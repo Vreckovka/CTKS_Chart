@@ -10,15 +10,55 @@
         Height="850"
         mc:Ignorable="d">
     <Grid>
-        <Canvas x:Name="main_canvas"
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+
+        <Grid.Resources>
+            <Style TargetType="Canvas">
+                <Setter Property="Background" Value="black" />
+                <Setter Property="ClipToBounds" Value="True" />
+            </Style>
+        </Grid.Resources>
+
+        <Border Background="Gray">
+            <Grid>
+                <ItemsControl ItemsSource="{Binding CtksTimeFrames}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Margin="10,0,10,0"
+                                        Command="{Binding DataContext.ShowLines, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}">
+                                    Show lines
+                                </Button>
+                                <Button Margin="10,0,10,0"
+                                        Command="{Binding DataContext.ShowIntersections, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}">
+                                    Show intersections
+                                </Button>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </Border>
+
+        <UniformGrid x:Name="canvas_grid"
+                     Grid.Column="1"
+                     Columns="1" />
+
+        <!--<Canvas x:Name="main_canvas"
+                Grid.Column="1"
                 Background="Black"
-                SizeChanged="main_canvas_SizeChanged"
+                Loaded="main_canvas_Loaded"
                 MouseMove="Canvas_MouseMove"
-                Loaded="main_canvas_Loaded">
+                SizeChanged="main_canvas_SizeChanged">
             <TextBlock x:Name="coordinates"
-                       Foreground="White"
                        Panel.ZIndex="100"
+                       Foreground="White"
                        Text="Ahoj" />
-        </Canvas>
+        </Canvas>-->
     </Grid>
 </Window>

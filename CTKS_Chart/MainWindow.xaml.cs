@@ -4,19 +4,13 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
-using Path = System.Windows.Shapes.Path;
+using VCore.Standard.Helpers;
+using VCore.WPF.Misc;
 
 namespace CTKS_Chart
 {
@@ -25,40 +19,140 @@ namespace CTKS_Chart
   /// </summary>
   public partial class MainWindow : Window
   {
-    public ObservableCollection<Candle> ChartPoints { get; set; } = new ObservableCollection<Candle>();
-
     public ObservableCollection<KeyValuePair<DateTime, double>> ForexData { get; set; } = new ObservableCollection<KeyValuePair<DateTime, double>>();
+    public ObservableCollection<Ctks> CtksTimeFrames { get; set; } = new ObservableCollection<Ctks>();
 
-    public double CanvasHeight
-    {
-      get
-      {
-        return main_canvas.ActualHeight * 0.75;
-      }
-    }
 
-    private Ctks ctks;
+    double maxValue = 500;
+    double minValue = 45;
+
+
     public MainWindow()
     {
       InitializeComponent();
       DataContext = this;
 
-      ctks = new Ctks(main_canvas);
-
+      ForexChart_Loaded();
     }
 
-    double maxValue = 600;
-    double minValue = 25;
+    #region ShowLines
+
+    protected ActionCommand<Ctks> showLines;
+
+    public ICommand ShowLines
+    {
+      get
+      {
+        return showLines ??= new ActionCommand<Ctks>(OnShowLines);
+      }
+    }
+
+    protected virtual void OnShowLines(Ctks ctks)
+    {
+      if (ctks.LinesVisible)
+      {
+        ctks.ClearRenderedLines();
+      }
+      else
+      {
+        ctks.RenderLines();
+      }
+
+      ctks.LinesVisible = !ctks.LinesVisible;
+    }
+
+    #endregion
+
+    #region ShowIntersections
+
+    protected ActionCommand<Ctks> showIntersections;
+
+    public ICommand ShowIntersections
+    {
+      get
+      {
+        return showIntersections ??= new ActionCommand<Ctks>(OnShowIntersections);
+      }
+    }
+
+    protected virtual void OnShowIntersections(Ctks ctks)
+    {
+      if (ctks.IntersectionsVisible)
+      {
+        ctks.ClearRenderedIntersections();
+      }
+      else
+      {
+        ctks.RenderIntersections(lastCandle);
+      }
+
+      ctks.IntersectionsVisible = !ctks.IntersectionsVisible;
+    }
+
+    #endregion
+
+    #region Methods
 
     private async void ForexChart_Loaded()
     {
       //var tradingView_12m = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\BTC-USD.csv";
 
       var localtion = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart";
-      var tradingView_12m = $"{localtion}\\INDEX BTCUSD, 12M.csv";
-      var tradingView_spy_12 = $"{localtion}\\BATS SPY, 12M.csv";
 
-      var file = File.ReadAllText(tradingView_spy_12);
+      LoadBitcoin(localtion);
+
+      var tradingView__ada_2W = $"{localtion}\\BINANCE ADAUSD, 2W.csv";
+      var tradingView__ada_1D = $"{localtion}\\BINANCE ADAUSD, 1D.csv";
+      var tradingView__ada_240 = $"{localtion}\\BINANCE ADAUSD, 240.csv";
+      var tradingView__ada_120 = $"{localtion}\\BINANCE ADAUSDT, 120.csv";
+
+      var tradingView__eth_1W = $"{localtion}\\BITSTAMP ETHUSD, 1W.csv";
+
+      var tradingView_spy_12 = $"{localtion}\\BATS SPY, 12M.csv";
+      var tradingView_spy_6 = $"{localtion}\\BATS SPY, 6M.csv";
+
+      var tradingView_ltc_240 = $"{localtion}\\BINANCE LTCUSD.P, 240.csv";
+
+
+      var spy6 = ParseTradingView(tradingView_spy_6);
+      var spy12 = ParseTradingView(tradingView_spy_12);
+
+      int skip = 0;
+      //ChartPoints = new ObservableCollection<Candle>(all.Take(skip));
+
+
+      var canvas1 = new Canvas();
+      var canvas2 = new Canvas();
+
+
+      canvas_grid.Children.Add(canvas1);
+      canvas_grid.Children.Add(canvas2);
+
+
+      //for (int i = skip; i < all.Count; i++)
+      //{
+      //  ClearCanvas();
+      //  ChartPoints.Add(all[i]);
+      //  CreateChart();
+
+
+      //  await Task.Delay(1000);
+      //}
+
+      canvas1.Loaded += (x,y) => Canvas_Loaded(x as Canvas, spy12);
+      canvas2.Loaded += (x, y) => Canvas_Loaded(x as Canvas, spy6);
+    }
+
+    private void Canvas_Loaded(Canvas sender, IList<Candle> candles)
+    {
+      CreateChart(sender, candles);
+    }
+
+    private List<Candle> ParseTradingView(string path)
+    {
+      var list = new List<Candle>();
+
+      var file = File.ReadAllText(path);
 
       var lines = file.Split("\n");
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
@@ -74,7 +168,7 @@ namespace CTKS_Chart
         double.TryParse(data[4], out var closeParsed);
 
 
-        ChartPoints.Add(new Candle()
+        list.Add(new Candle()
         {
           Close = closeParsed,
           Open = openParsed,
@@ -83,13 +177,32 @@ namespace CTKS_Chart
         });
       }
 
-      ChartPoints = new ObservableCollection<Candle>(ChartPoints.Take(ChartPoints.Count - 0));
-
-      CreateChart();
+      return list;
     }
 
-    private double GetCanvasValue(double value)
+    #region LoadBitcoin
+
+    private void LoadBitcoin(string location)
     {
+      var tradingView_btc_12m = $"{location}\\INDEX BTCUSD, 12M.csv";
+      var tradingView_btc_6m = $"{location}\\INDEX BTCUSD, 6M.csv";
+      var tradingView_btc_3m = $"{location}\\INDEX BTCUSD, 3M.csv";
+      var tradingView_btc_1m = $"{location}\\INDEX BTCUSD, 1M.csv";
+
+      var tradingView_btc_2W = $"{location}\\INDEX BTCUSD, 2W.csv";
+      var tradingView_btc_1W = $"{location}\\INDEX BTCUSD, 1W.csv";
+
+      var tradingView_btc_720m = $"{location}\\INDEX BTCUSD, 720.csv";
+    }
+
+    #endregion
+
+    #region GetCanvasValue
+
+    private double GetCanvasValue(Canvas canvas, double value)
+    {
+      var canvasHeight = canvas.ActualHeight * 0.75;
+
       var logValue = Math.Log10(value);
       var logMaxValue = Math.Log10(maxValue);
       var logMinValue = Math.Log10(minValue);
@@ -97,130 +210,132 @@ namespace CTKS_Chart
       var logRange = logMaxValue - logMinValue;
       double diffrence = logValue - logMinValue;
 
-      return diffrence * CanvasHeight / logRange;
+      return diffrence * canvasHeight / logRange;
     }
 
-    private void CreateChart()
+    #endregion
+
+    #region CreateChart
+
+    Rectangle lastCandle = null;
+
+    private void CreateChart(Canvas canvas, IList<Candle> candles)
     {
-      var canvasWidth = main_canvas.ActualWidth * 0.75;
+      var canvasWidth = canvas.ActualWidth * 0.85;
 
-      for (int i = 0; i < ChartPoints.Count; i++)
+      if (candles.Any())
       {
-        var point = ChartPoints[i];
-        var valueForCanvas = GetCanvasValue(point.Close);
-        var width = canvasWidth / ChartPoints.Count;
-
-
-        var green = i > 0 ? ChartPoints[i - 1].Close < point.Close : point.Open < point.Close;
-
-        Rectangle rec = new Rectangle()
+        for (int i = 0; i < candles.Count; i++)
         {
-          Width = width,
-          Height = 25,
-          Fill = green ? Brushes.Green : Brushes.Red,
-        };
+          var point = candles[i];
+          var valueForCanvas = GetCanvasValue(canvas,point.Close);
+          var width = canvasWidth / candles.Count;
 
-        Panel.SetZIndex(rec, 99);
+          var green = i > 0 ? candles[i - 1].Close < point.Close : point.Open < point.Close;
+
+          lastCandle = new Rectangle()
+          {
+            Width = width,
+            Height = 25,
+            Fill = green ? Brushes.Green : Brushes.Red,
+          };
+
+          Panel.SetZIndex(lastCandle, 99);
 
 
-        var open = i > 0 ? GetCanvasValue(ChartPoints[i - 1].Close) : GetCanvasValue(ChartPoints[i].Open);
+          var open = i > 0 ? GetCanvasValue(canvas, candles[i - 1].Close) : GetCanvasValue(canvas, candles[i].Open);
 
-        if (green)
-        {
-          rec.Height = valueForCanvas - open;
+          if (green)
+          {
+            lastCandle.Height = valueForCanvas - open;
+          }
+          else
+          {
+            lastCandle.Height = open - valueForCanvas;
+          }
+
+          canvas.Children.Add(lastCandle);
+
+          if (green)
+            Canvas.SetBottom(lastCandle, open);
+          else
+            Canvas.SetBottom(lastCandle, open - lastCandle.Height);
+
+          Canvas.SetLeft(lastCandle, ((i + 1) * width) + 2);
+
         }
-        else
-        {
-          rec.Height = open - valueForCanvas;
-        }
 
-        if (rec.Height < 0.5)
-        {
-          rec.Height = 0.5;
-        }
+        var ctks = new Ctks(canvas, GetValueFromCanvas);
+        ctks.CreateLines(candles);
+        ctks.AddIntersections(lastCandle);
 
-        main_canvas.Children.Add(rec);
+        //ctks.RenderIntersections(rec);
+        //ctks.RenderLines();
 
-        if (green)
-          Canvas.SetBottom(rec, open);
-        else
-          Canvas.SetBottom(rec, open - rec.Height);
-
-        Canvas.SetLeft(rec, ((i + 1) * width) + 2);
-
-      }
-
-      var candles = main_canvas.Children.OfType<Rectangle>().ToList();
-
-      for (int i = 0; i < ChartPoints.Count - 2; i++)
-      {
-        var currentCandle = ChartPoints[i];
-        var nextCandle = ChartPoints[i + 1];
-
-        //await Task.Delay(1000);
-
-        if (currentCandle.IsGreen)
-        {
-          if (nextCandle.IsGreen)
-            ctks.CreateLine(i, i + 1, LineType.LeftTop, GetValueFromCanvas);
-
-          if (currentCandle.Close < nextCandle.Close || (currentCandle.Open < nextCandle.Close))
-            ctks.CreateLine(i, i + 1, LineType.RightBttom, GetValueFromCanvas);
-        }
+        CtksTimeFrames.Add(ctks);
       }
     }
 
-    private double GetValueFromCanvas(double value)
+    #endregion
+
+    private double GetValueFromCanvas(Canvas canvas, double value)
     {
+      var canvasHeight = canvas.ActualHeight * 0.75;
+
       var logMaxValue = Math.Log10(maxValue);
       var logMinValue = Math.Log10(minValue);
 
       var logRange = logMaxValue - logMinValue;
 
-      return Math.Pow(10, (value * logRange / CanvasHeight) + logMinValue);
+      return Math.Pow(10, (value * logRange / canvasHeight) + logMinValue);
     }
 
     private void main_canvas_Loaded(object sender, RoutedEventArgs e)
     {
-      ForexChart_Loaded();
+     
     }
 
     private void Canvas_MouseMove(object sender, MouseEventArgs e)
     {
-      var mosue = Mouse.GetPosition(main_canvas);
+      //var mosue = Mouse.GetPosition(main_canvas);
 
-      Canvas.SetLeft(coordinates, mosue.X + 20);
-      Canvas.SetTop(coordinates, mosue.Y - 10);
+      //Canvas.SetLeft(coordinates, mosue.X + 20);
+      //Canvas.SetTop(coordinates, mosue.Y - 10);
 
-      var canvasValue = mosue.Y;
+      //var canvasValue = mosue.Y;
 
-      coordinates.Text = $"{GetValueFromCanvas(main_canvas.ActualHeight - canvasValue).ToString("N2")}";}
+      //coordinates.Text = $"{GetValueFromCanvas(main_canvas.ActualHeight - canvasValue).ToString("N2")}";
+    }
 
     private void main_canvas_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-
-      if (e.WidthChanged)
-      {
-        main_canvas.Children.Clear();
-        main_canvas.Children.Add(coordinates);
-
-        CreateChart();
-      }
-     
+      //if (e.WidthChanged)
+      //{
+      //  ClearCanvas();
+      //  CreateChart();
+      //}
     }
-  }
-  }
 
-  public class Candle
-  {
-    public double Close { get; set; }
-    public double Open { get; set; }
-    public double High { get; set; }
-    public double Low { get; set; }
-
-    public bool IsGreen
+    private void ClearCanvas()
     {
-      get { return Close > Open; }
+      //main_canvas.Children.Clear();
+      //main_canvas.Children.Add(coordinates);
+      //ctks.ctksLines.Clear();
     }
+  } 
+  #endregion
+}
+
+public class Candle
+{
+  public double Close { get; set; }
+  public double Open { get; set; }
+  public double High { get; set; }
+  public double Low { get; set; }
+
+  public bool IsGreen
+  {
+    get { return Close > Open; }
   }
+}
 
