@@ -26,6 +26,8 @@ namespace CTKS_Chart
     double maxValue = 500;
     double minValue = 45;
 
+    private double canvasHeight = 500;
+    private double canvasWidth = 500;
 
     public MainWindow()
     {
@@ -83,7 +85,7 @@ namespace CTKS_Chart
       }
       else
       {
-        ctks.RenderIntersections(lastCandle);
+        ctks.RenderIntersections();
       }
 
       ctks.IntersectionsVisible = !ctks.IntersectionsVisible;
@@ -123,11 +125,12 @@ namespace CTKS_Chart
 
       var canvas1 = new Canvas();
       var canvas2 = new Canvas();
+      var canvas3 = new Canvas();
 
 
       canvas_grid.Children.Add(canvas1);
       canvas_grid.Children.Add(canvas2);
-
+      canvas_grid.Children.Add(canvas3);
 
       //for (int i = skip; i < all.Count; i++)
       //{
@@ -139,8 +142,46 @@ namespace CTKS_Chart
       //  await Task.Delay(1000);
       //}
 
-      canvas1.Loaded += (x,y) => Canvas_Loaded(x as Canvas, spy12);
-      canvas2.Loaded += (x, y) => Canvas_Loaded(x as Canvas, spy6);
+      canvas1.Loaded += (x, y) =>
+      {
+        var canvas = x as Canvas;
+
+        var candles = spy12;
+        Canvas_Loaded(canvas, candles); 
+
+        var ctks = new Ctks(canvas, GetValueFromCanvas, TimeFrame.M12);
+        ctks.CreateLines(candles);
+        ctks.AddIntersections();
+
+        ctks.RenderIntersections();
+        CtksTimeFrames.Add(ctks);
+      };
+      canvas2.Loaded += (x, y) => {
+        var canvas = x as Canvas;
+       
+
+        var candles = spy6;
+        Canvas_Loaded(canvas, candles);
+
+        var ctks = new Ctks(canvas, GetValueFromCanvas, TimeFrame.M6);
+        ctks.CreateLines(candles);
+        ctks.AddIntersections();
+
+        ctks.RenderIntersections();
+        CtksTimeFrames.Add(ctks);
+      };
+
+      canvas3.Loaded += (x, y) =>
+      {
+        var canvas = x as Canvas;
+
+        Canvas_Loaded(canvas, spy6);
+
+        var ctks = new Ctks(canvas, GetValueFromCanvas, TimeFrame.M6);
+
+        ctks.RenderIntersections(intersections: CtksTimeFrames[0].ctksIntersections, timeFrame: TimeFrame.M12);
+        ctks.RenderIntersections(intersections: CtksTimeFrames[1].ctksIntersections, timeFrame: TimeFrame.M6);
+      };
     }
 
     private void Canvas_Loaded(Canvas sender, IList<Candle> candles)
@@ -217,8 +258,6 @@ namespace CTKS_Chart
 
     #region CreateChart
 
-    Rectangle lastCandle = null;
-
     private void CreateChart(Canvas canvas, IList<Candle> candles)
     {
       var canvasWidth = canvas.ActualWidth * 0.85;
@@ -233,7 +272,7 @@ namespace CTKS_Chart
 
           var green = i > 0 ? candles[i - 1].Close < point.Close : point.Open < point.Close;
 
-          lastCandle = new Rectangle()
+          var lastCandle = new Rectangle()
           {
             Width = width,
             Height = 25,
@@ -264,15 +303,6 @@ namespace CTKS_Chart
           Canvas.SetLeft(lastCandle, ((i + 1) * width) + 2);
 
         }
-
-        var ctks = new Ctks(canvas, GetValueFromCanvas);
-        ctks.CreateLines(candles);
-        ctks.AddIntersections(lastCandle);
-
-        //ctks.RenderIntersections(rec);
-        //ctks.RenderLines();
-
-        CtksTimeFrames.Add(ctks);
       }
     }
 

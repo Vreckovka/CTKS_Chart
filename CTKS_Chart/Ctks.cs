@@ -18,6 +18,14 @@ namespace CTKS_Chart
     RightTop
   }
 
+  public enum TimeFrame
+  {
+      Null,
+      M12,
+      M6,
+      M3
+  }
+
   public class CtksIntersection
   {
     public CtksLine Line { get; set; }
@@ -43,15 +51,20 @@ namespace CTKS_Chart
     public TextBlock Text { get; set; }
   }
 
+
+
+
   public class Ctks
   {
     private Canvas canvas;
     private readonly Func<Canvas, double, double> getCanvasValue;
+    private readonly TimeFrame timeFrame;
 
-    public Ctks(Canvas canvas, [NotNull] Func<Canvas, double, double> getCanvasValue)
+    public Ctks(Canvas canvas, [NotNull] Func<Canvas, double, double> getCanvasValue, TimeFrame timeFrame)
     {
       this.canvas = canvas;
       this.getCanvasValue = getCanvasValue ?? throw new ArgumentNullException(nameof(getCanvasValue));
+      this.timeFrame = timeFrame;
     }
 
     public List<CtksLine> ctksLines = new List<CtksLine>();
@@ -200,8 +213,10 @@ namespace CTKS_Chart
 
     #region AddIntersections
 
-    public void AddIntersections(Rectangle lastCandle)
+    public void AddIntersections()
     {
+      var lastCandle = canvas.Children.OfType<Rectangle>().Last();
+
       foreach (var line in ctksLines)
       {
         var actualLeft = Canvas.GetLeft(lastCandle) + lastCandle.Width / 2;
@@ -245,9 +260,13 @@ namespace CTKS_Chart
 
     #region RenderIntersections
 
-    public void RenderIntersections(Rectangle lastCandle, double? max = null)
+    public void RenderIntersections(double ? max = null, IEnumerable<CtksIntersection> intersections = null, TimeFrame? timeFrame = null)
     {
-      foreach (var intersection in ctksIntersections)
+      var lastCandle = canvas.Children.OfType<Rectangle>().Last();
+
+      var inter = intersections ?? ctksIntersections;
+
+      foreach (var intersection in inter)
       {
         var circle = new Ellipse();
         var size = 3;
@@ -265,7 +284,28 @@ namespace CTKS_Chart
 
         var target = new Line();
         target.Stroke = Brushes.Gray;
-        target.StrokeThickness = 2;
+
+        var frame = timeFrame ?? this.timeFrame;
+
+        switch (frame)
+        {
+          case TimeFrame.Null:
+            target.StrokeThickness = 1;
+            break;
+          case TimeFrame.M12:
+            target.StrokeThickness = 4;
+            break;
+          case TimeFrame.M6:
+            target.StrokeThickness = 2;
+            break;
+          case TimeFrame.M3:
+            target.StrokeThickness = 1;
+            break;
+          default:
+            target.StrokeThickness = 1;
+            break;
+        }
+      
         target.X1 = 150;
         target.X2 = canvas.ActualWidth;
         target.StrokeDashArray = new DoubleCollection() { 1, 1 };
