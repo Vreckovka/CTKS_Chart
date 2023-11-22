@@ -20,10 +20,10 @@ namespace CTKS_Chart
 
   public enum TimeFrame
   {
-      Null,
-      M12,
-      M6,
-      M3
+    Null,
+    M12,
+    M6,
+    M3
   }
 
   public class CtksIntersection
@@ -57,14 +57,24 @@ namespace CTKS_Chart
   public class Ctks
   {
     private Canvas canvas;
-    private readonly Func<Canvas, double, double> getCanvasValue;
+    private readonly Func<double, double, double> getValueFromCanvas;
+    private readonly Func<double, double, double> getCanvasValue;
+
     private readonly TimeFrame timeFrame;
 
-    public Ctks(Canvas canvas, [NotNull] Func<Canvas, double, double> getCanvasValue, TimeFrame timeFrame)
+    private double canvasHeight;
+    private double canvasWidth;
+
+    public Ctks(Canvas canvas, Func<double, double, double> getValueFromCanvas, Func<double, double, double> getCanvasValue, TimeFrame timeFrame, double canvasHeight, double canvasWidth)
     {
       this.canvas = canvas;
-      this.getCanvasValue = getCanvasValue ?? throw new ArgumentNullException(nameof(getCanvasValue));
+      this.getValueFromCanvas = getValueFromCanvas ?? throw new ArgumentNullException(nameof(getValueFromCanvas));
+      this.getCanvasValue = getCanvasValue ?? throw new ArgumentNullException(nameof(getValueFromCanvas));
+
       this.timeFrame = timeFrame;
+
+      this.canvasHeight = canvasHeight;
+      this.canvasWidth = canvasWidth;
     }
 
     public List<CtksLine> ctksLines = new List<CtksLine>();
@@ -115,8 +125,8 @@ namespace CTKS_Chart
 
       if (lineType == LineType.RightBttom)
       {
-        startPoint = new Point(Canvas.GetLeft(firstRect) + firstRect.Width, canvas.ActualHeight - bottom1);
-        endPoint = new Point(Canvas.GetLeft(secondrect) + secondrect.Width, canvas.ActualHeight - bottom2);
+        startPoint = new Point(Canvas.GetLeft(firstRect) + firstRect.Width, canvasHeight - bottom1);
+        endPoint = new Point(Canvas.GetLeft(secondrect) + secondrect.Width, canvasHeight - bottom2);
 
         y1 = bottom1;
         y2 = bottom2;
@@ -128,8 +138,8 @@ namespace CTKS_Chart
       }
       else if (lineType == LineType.LeftTop)
       {
-        startPoint = new Point(Canvas.GetLeft(firstRect), canvas.ActualHeight - bottom1 - firstRect.Height);
-        endPoint = new Point(Canvas.GetLeft(secondrect), canvas.ActualHeight - bottom2 - secondrect.Height);
+        startPoint = new Point(Canvas.GetLeft(firstRect), canvasHeight - bottom1 - firstRect.Height);
+        endPoint = new Point(Canvas.GetLeft(secondrect), canvasHeight - bottom2 - secondrect.Height);
 
         y1 = bottom1 + firstRect.Height;
         y2 = bottom2 + secondrect.Height;
@@ -141,8 +151,8 @@ namespace CTKS_Chart
       }
       else if (lineType == LineType.RightTop)
       {
-        startPoint = new Point(Canvas.GetLeft(firstRect) + firstRect.Width, canvas.ActualHeight - bottom1 - firstRect.Height);
-        endPoint = new Point(Canvas.GetLeft(secondrect) + secondrect.Width, canvas.ActualHeight - bottom2 - secondrect.Height);
+        startPoint = new Point(Canvas.GetLeft(firstRect) + firstRect.Width, canvasHeight - bottom1 - firstRect.Height);
+        endPoint = new Point(Canvas.GetLeft(secondrect) + secondrect.Width, canvasHeight - bottom2 - secondrect.Height);
 
         y1 = bottom1 + firstRect.Height;
         y2 = bottom2 + secondrect.Height;
@@ -152,8 +162,8 @@ namespace CTKS_Chart
       }
       else if (lineType == LineType.LeftBottom)
       {
-        startPoint = new Point(Canvas.GetLeft(firstRect), canvas.ActualHeight - bottom1);
-        endPoint = new Point(Canvas.GetLeft(secondrect), canvas.ActualHeight - bottom2);
+        startPoint = new Point(Canvas.GetLeft(firstRect), canvasHeight - bottom1);
+        endPoint = new Point(Canvas.GetLeft(secondrect), canvasHeight - bottom2);
 
         y1 = bottom1;
         y2 = bottom2;
@@ -221,7 +231,7 @@ namespace CTKS_Chart
       {
         var actualLeft = Canvas.GetLeft(lastCandle) + lastCandle.Width / 2;
         var actual = GetPointOnLine(line.X1, line.Y1, line.X2, line.Y2, actualLeft);
-        var value = getCanvasValue(canvas, actual);
+        var value = getValueFromCanvas(canvasHeight, actual);
 
         var intersection = new CtksIntersection()
         {
@@ -260,7 +270,7 @@ namespace CTKS_Chart
 
     #region RenderIntersections
 
-    public void RenderIntersections(double ? max = null, IEnumerable<CtksIntersection> intersections = null, TimeFrame? timeFrame = null)
+    public void RenderIntersections(double? max = null, IEnumerable<CtksIntersection> intersections = null, TimeFrame? timeFrame = null)
     {
       var lastCandle = canvas.Children.OfType<Rectangle>().Last();
 
@@ -277,7 +287,7 @@ namespace CTKS_Chart
         var actualLeft = Canvas.GetLeft(lastCandle) + lastCandle.Width / 2;
         var line = intersection.Line;
 
-        var actual = GetPointOnLine(line.X1, line.Y1, line.X2, line.Y2, actualLeft);
+        var actual = getCanvasValue(canvasHeight, intersection.Value);
 
         Canvas.SetLeft(circle, actualLeft - size / 2.0);
         Canvas.SetBottom(circle, actual - size / 2.0);
@@ -305,12 +315,12 @@ namespace CTKS_Chart
             target.StrokeThickness = 1;
             break;
         }
-      
+
         target.X1 = 150;
-        target.X2 = canvas.ActualWidth;
+        target.X2 = canvasWidth;
         target.StrokeDashArray = new DoubleCollection() { 1, 1 };
 
-        var lineY = canvas.ActualHeight - actual;
+        var lineY = canvasHeight - actual;
 
         target.Y1 = lineY;
         target.Y2 = lineY;
@@ -332,7 +342,7 @@ namespace CTKS_Chart
         Canvas.SetLeft(text, 0);
         Canvas.SetBottom(text, actual);
 
-        canvas.Children.Add(circle);
+        //canvas.Children.Add(circle);
         canvas.Children.Add(target);
         canvas.Children.Add(text);
 
@@ -340,7 +350,7 @@ namespace CTKS_Chart
         {
           Line = target,
           Text = text,
-          Mark = circle
+          //Mark = circle
         });
       }
     }
@@ -353,7 +363,7 @@ namespace CTKS_Chart
     {
       foreach (var ctksLine in ctksLines)
       {
-        var x3 = canvas.ActualWidth * 1.5;
+        var x3 = canvasWidth * 1.5;
         var y3 = GetPointOnLine(ctksLine.X1, ctksLine.Y1, ctksLine.X2, ctksLine.Y2, x3);
 
         PathFigure pathFigure = new PathFigure();
@@ -368,7 +378,7 @@ namespace CTKS_Chart
         segment.Point = ctksLine.EndPoint;
 
         LineSegment lastSegment = new LineSegment();
-        lastSegment.Point = new Point(x3, canvas.ActualHeight - y3);
+        lastSegment.Point = new Point(x3, canvasHeight - y3);
 
         PathSegmentCollection myPathSegmentCollection = new PathSegmentCollection();
         myPathSegmentCollection.Add(segment);

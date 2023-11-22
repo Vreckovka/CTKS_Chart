@@ -1,41 +1,102 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using LiveChart.Annotations;
 using VCore.Standard.Helpers;
 using VCore.WPF.Misc;
 
 namespace CTKS_Chart
 {
+  public class Layout
+  {
+    public string Title { get; set; }
+    public Canvas Canvas { get; set; }
+    public Ctks Ctks { get; set; }
+  }
   /// <summary>
   /// Interaction logic for MainWindow.xaml
   /// </summary>
-  public partial class MainWindow : Window
+  public partial class MainWindow : Window, INotifyPropertyChanged
   {
     public ObservableCollection<KeyValuePair<DateTime, double>> ForexData { get; set; } = new ObservableCollection<KeyValuePair<DateTime, double>>();
     public ObservableCollection<Ctks> CtksTimeFrames { get; set; } = new ObservableCollection<Ctks>();
+    public ObservableCollection<Layout> Layouts { get; set; } = new ObservableCollection<Layout>();
+
+
+
+    #region Selected
+
+    private Layout selected;
+
+    public Layout Selected
+    {
+      get { return selected; }
+      set
+      {
+        if (value != selected)
+        {
+          selected = value;
+          OnPropertyChanged();
+        }
+      }
+    }
+
+    #endregion
 
 
     double maxValue = 500;
-    double minValue = 45;
+    double minValue = 300;
 
-    private double canvasHeight = 500;
-    private double canvasWidth = 500;
+    private double height = 1000;
+    private double width = 1000;
+    private TextBlock coordinates = new TextBlock();
 
     public MainWindow()
     {
       InitializeComponent();
       DataContext = this;
 
+      coordinates.Foreground = Brushes.White;
+
       ForexChart_Loaded();
     }
+
+    #region ShowCanvas
+
+    protected ActionCommand<Layout> showCanvas;
+
+    public ICommand ShowCanvas
+    {
+      get
+      {
+        return showCanvas ??= new ActionCommand<Layout>(OnShowCanvas);
+      }
+    }
+
+    protected virtual void OnShowCanvas(Layout layout)
+    {
+      main_grid.Children.Clear();
+      main_grid.Children.Add(layout.Canvas);
+
+      Selected.Canvas.Children.Remove(coordinates);
+      layout.Canvas.Children.Add(coordinates);
+
+      coordinates.Text = "";
+
+      Selected = layout;
+    }
+
+    #endregion
 
     #region ShowLines
 
@@ -112,81 +173,79 @@ namespace CTKS_Chart
 
       var tradingView_spy_12 = $"{localtion}\\BATS SPY, 12M.csv";
       var tradingView_spy_6 = $"{localtion}\\BATS SPY, 6M.csv";
+      var tradingView_spy_3 = $"{localtion}\\BATS SPY, 3M.csv";
+      var tradingView_spy_1D = $"{localtion}\\BATS SPY, 1D.csv";
 
       var tradingView_ltc_240 = $"{localtion}\\BINANCE LTCUSD.P, 240.csv";
 
 
+      var spy3 = ParseTradingView(tradingView_spy_3);
       var spy6 = ParseTradingView(tradingView_spy_6);
       var spy12 = ParseTradingView(tradingView_spy_12);
-
-      int skip = 0;
-      //ChartPoints = new ObservableCollection<Candle>(all.Take(skip));
+      var spy1D = ParseTradingView(tradingView_spy_1D);
 
 
-      var canvas1 = new Canvas();
-      var canvas2 = new Canvas();
-      var canvas3 = new Canvas();
+      CreateCtksChart(spy12, TimeFrame.M12);
+      CreateCtksChart(spy6, TimeFrame.M6);
+      CreateCtksChart(spy3, TimeFrame.M3);
 
+      var mainCanvas = new Canvas();
+      var canvas = mainCanvas;
+      var candles = spy1D;
 
-      canvas_grid.Children.Add(canvas1);
-      canvas_grid.Children.Add(canvas2);
-      canvas_grid.Children.Add(canvas3);
+      canvas.MouseMove += Canvas_MouseMove;
 
-      //for (int i = skip; i < all.Count; i++)
-      //{
-      //  ClearCanvas();
-      //  ChartPoints.Add(all[i]);
-      //  CreateChart();
+      canvas.Width = width;
+      canvas.Height = height;
 
+      CreateChart(canvas, height, width, candles);
 
-      //  await Task.Delay(1000);
-      //}
+      var ctks = new Ctks(canvas, GetValueFromCanvas, GetCanvasValue, TimeFrame.M6, height, width);
 
-      canvas1.Loaded += (x, y) =>
+      ctks.RenderIntersections(intersections: CtksTimeFrames[0].ctksIntersections, timeFrame: TimeFrame.M12);
+      ctks.RenderIntersections(intersections: CtksTimeFrames[1].ctksIntersections, timeFrame: TimeFrame.M6);
+      ctks.RenderIntersections(intersections: CtksTimeFrames[2].ctksIntersections, timeFrame: TimeFrame.M3);
+
+      CtksTimeFrames.Add(ctks);
+
+      var main = new Layout()
       {
-        var canvas = x as Canvas;
-
-        var candles = spy12;
-        Canvas_Loaded(canvas, candles); 
-
-        var ctks = new Ctks(canvas, GetValueFromCanvas, TimeFrame.M12);
-        ctks.CreateLines(candles);
-        ctks.AddIntersections();
-
-        ctks.RenderIntersections();
-        CtksTimeFrames.Add(ctks);
-      };
-      canvas2.Loaded += (x, y) => {
-        var canvas = x as Canvas;
-       
-
-        var candles = spy6;
-        Canvas_Loaded(canvas, candles);
-
-        var ctks = new Ctks(canvas, GetValueFromCanvas, TimeFrame.M6);
-        ctks.CreateLines(candles);
-        ctks.AddIntersections();
-
-        ctks.RenderIntersections();
-        CtksTimeFrames.Add(ctks);
+        Title = "Main",
+        Canvas = canvas,
+        Ctks = ctks
       };
 
-      canvas3.Loaded += (x, y) =>
-      {
-        var canvas = x as Canvas;
+      Layouts.Add(main);
 
-        Canvas_Loaded(canvas, spy6);
+      Selected = main;
 
-        var ctks = new Ctks(canvas, GetValueFromCanvas, TimeFrame.M6);
-
-        ctks.RenderIntersections(intersections: CtksTimeFrames[0].ctksIntersections, timeFrame: TimeFrame.M12);
-        ctks.RenderIntersections(intersections: CtksTimeFrames[1].ctksIntersections, timeFrame: TimeFrame.M6);
-      };
+      main_grid.Children.Add(mainCanvas);
+      mainCanvas.Children.Add(coordinates);
     }
 
-    private void Canvas_Loaded(Canvas sender, IList<Candle> candles)
+    private void CreateCtksChart(IList<Candle> candles, TimeFrame timeFrame)
     {
-      CreateChart(sender, candles);
+      var canvas = new Canvas();
+      canvas.MouseMove += Canvas_MouseMove;
+
+      canvas.Width = width;
+      canvas.Height = height;
+
+      CreateChart(canvas, height, width, candles);
+
+      var ctks = new Ctks(canvas, GetValueFromCanvas, GetCanvasValue, timeFrame, height, width);
+      ctks.CreateLines(candles);
+      ctks.AddIntersections();
+
+      ctks.RenderIntersections();
+      CtksTimeFrames.Add(ctks);
+
+      Layouts.Add(new Layout()
+      {
+        Title = timeFrame.ToString(),
+        Canvas = canvas,
+        Ctks = ctks
+      });
     }
 
     private List<Candle> ParseTradingView(string path)
@@ -238,36 +297,20 @@ namespace CTKS_Chart
 
     #endregion
 
-    #region GetCanvasValue
 
-    private double GetCanvasValue(Canvas canvas, double value)
-    {
-      var canvasHeight = canvas.ActualHeight * 0.75;
-
-      var logValue = Math.Log10(value);
-      var logMaxValue = Math.Log10(maxValue);
-      var logMinValue = Math.Log10(minValue);
-
-      var logRange = logMaxValue - logMinValue;
-      double diffrence = logValue - logMinValue;
-
-      return diffrence * canvasHeight / logRange;
-    }
-
-    #endregion
 
     #region CreateChart
 
-    private void CreateChart(Canvas canvas, IList<Candle> candles)
+    private void CreateChart(Canvas canvas, double canvasHeight, double canvasWidth, IList<Candle> candles)
     {
-      var canvasWidth = canvas.ActualWidth * 0.85;
+      canvasWidth = canvasWidth * 0.85;
 
       if (candles.Any())
       {
         for (int i = 0; i < candles.Count; i++)
         {
           var point = candles[i];
-          var valueForCanvas = GetCanvasValue(canvas,point.Close);
+          var valueForCanvas = GetCanvasValue(canvasHeight, point.Close);
           var width = canvasWidth / candles.Count;
 
           var green = i > 0 ? candles[i - 1].Close < point.Close : point.Open < point.Close;
@@ -282,7 +325,7 @@ namespace CTKS_Chart
           Panel.SetZIndex(lastCandle, 99);
 
 
-          var open = i > 0 ? GetCanvasValue(canvas, candles[i - 1].Close) : GetCanvasValue(canvas, candles[i].Open);
+          var open = i > 0 ? GetCanvasValue(canvasHeight, candles[i - 1].Close) : GetCanvasValue(canvasHeight, candles[i].Open);
 
           if (green)
           {
@@ -308,9 +351,9 @@ namespace CTKS_Chart
 
     #endregion
 
-    private double GetValueFromCanvas(Canvas canvas, double value)
+    private double GetValueFromCanvas(double canvasHeight, double value)
     {
-      var canvasHeight = canvas.ActualHeight * 0.75;
+      canvasHeight = canvasHeight * 0.75;
 
       var logMaxValue = Math.Log10(maxValue);
       var logMinValue = Math.Log10(minValue);
@@ -320,21 +363,40 @@ namespace CTKS_Chart
       return Math.Pow(10, (value * logRange / canvasHeight) + logMinValue);
     }
 
+    #region GetCanvasValue
+
+    private double GetCanvasValue(double canvasHeight, double value)
+    {
+      canvasHeight = canvasHeight * 0.75;
+
+      var logValue = Math.Log10(value);
+      var logMaxValue = Math.Log10(maxValue);
+      var logMinValue = Math.Log10(minValue);
+
+      var logRange = logMaxValue - logMinValue;
+      double diffrence = logValue - logMinValue;
+
+      return diffrence * canvasHeight / logRange;
+    }
+
+    #endregion
+
     private void main_canvas_Loaded(object sender, RoutedEventArgs e)
     {
-     
+
     }
 
     private void Canvas_MouseMove(object sender, MouseEventArgs e)
     {
-      //var mosue = Mouse.GetPosition(main_canvas);
+      var canvas = sender as Canvas;
+      var mosue = Mouse.GetPosition(canvas);
 
-      //Canvas.SetLeft(coordinates, mosue.X + 20);
-      //Canvas.SetTop(coordinates, mosue.Y - 10);
+      Canvas.SetLeft(coordinates, mosue.X + 20);
+      Canvas.SetTop(coordinates, mosue.Y - 10);
 
-      //var canvasValue = mosue.Y;
+      var canvasValue = mosue.Y;
 
-      //coordinates.Text = $"{GetValueFromCanvas(main_canvas.ActualHeight - canvasValue).ToString("N2")}";
+      coordinates.Text = $"{GetValueFromCanvas(height, canvas.ActualHeight - canvasValue).ToString("N2")}";
     }
 
     private void main_canvas_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -352,7 +414,15 @@ namespace CTKS_Chart
       //main_canvas.Children.Add(coordinates);
       //ctks.ctksLines.Clear();
     }
-  } 
+
+    public event PropertyChangedEventHandler PropertyChanged;
+
+    [NotifyPropertyChangedInvocator]
+    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+    {
+      PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+  }
   #endregion
 }
 
