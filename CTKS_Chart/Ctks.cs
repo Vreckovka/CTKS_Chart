@@ -5,6 +5,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using LiveChart.Annotations;
 
@@ -23,13 +24,18 @@ namespace CTKS_Chart
     Null,
     M12,
     M6,
-    M3
+    M3,
+    M1,
+    D1
   }
 
   public class CtksIntersection
   {
     public CtksLine Line { get; set; }
     public double Value { get; set; }
+    public TimeFrame TimeFrame { get; set; }
+
+    public int Id { get; set; }
   }
 
   public class CtksLine
@@ -41,6 +47,8 @@ namespace CTKS_Chart
 
     public Point StartPoint { get; set; }
     public Point EndPoint { get; set; }
+
+    public TimeFrame TimeFrame { get; set; }
 
   }
 
@@ -57,20 +65,17 @@ namespace CTKS_Chart
   public class Ctks
   {
     private Canvas canvas;
-    private readonly Func<double, double, double> getValueFromCanvas;
-    private readonly Func<double, double, double> getCanvasValue;
 
+    private readonly Layout layout;
     private readonly TimeFrame timeFrame;
 
     private double canvasHeight;
     private double canvasWidth;
 
-    public Ctks(Canvas canvas, Func<double, double, double> getValueFromCanvas, Func<double, double, double> getCanvasValue, TimeFrame timeFrame, double canvasHeight, double canvasWidth)
+    public Ctks(Layout layout, TimeFrame timeFrame, double canvasHeight, double canvasWidth)
     {
-      this.canvas = canvas;
-      this.getValueFromCanvas = getValueFromCanvas ?? throw new ArgumentNullException(nameof(getValueFromCanvas));
-      this.getCanvasValue = getCanvasValue ?? throw new ArgumentNullException(nameof(getValueFromCanvas));
-
+      this.layout = layout ?? throw new ArgumentNullException(nameof(layout));
+      this.canvas = layout.Canvas;
       this.timeFrame = timeFrame;
 
       this.canvasHeight = canvasHeight;
@@ -105,7 +110,7 @@ namespace CTKS_Chart
 
     #region CreateLine
 
-    public void CreateLine(int candleIndex, int secondIndex, LineType lineType)
+    public void CreateLine(int candleIndex, int secondIndex, LineType lineType, TimeFrame timeFrame)
     {
       var candles = canvas.Children.OfType<Rectangle>().ToList();
       var firstRect = candles[candleIndex];
@@ -183,7 +188,8 @@ namespace CTKS_Chart
         Y1 = y1,
         Y2 = y2,
         StartPoint = startPoint,
-        EndPoint = endPoint
+        EndPoint = endPoint,
+        TimeFrame = timeFrame
       };
 
       ctksLines.Add(line);
@@ -193,7 +199,7 @@ namespace CTKS_Chart
 
     #region CreateLines
 
-    public void CreateLines(IList<Candle> candles)
+    public void CreateLines(IList<Candle> candles, TimeFrame timeFrame)
     {
       for (int i = 0; i < candles.Count - 2; i++)
       {
@@ -203,17 +209,17 @@ namespace CTKS_Chart
         if (currentCandle.IsGreen)
         {
           if (nextCandle.IsGreen)
-            CreateLine(i, i + 1, LineType.LeftTop);
+            CreateLine(i, i + 1, LineType.LeftTop, timeFrame);
 
           if (currentCandle.Close < nextCandle.Close || (currentCandle.Open < nextCandle.Close))
-            CreateLine(i, i + 1, LineType.RightBttom);
+            CreateLine(i, i + 1, LineType.RightBttom, timeFrame);
         }
         else
         {
           if (!nextCandle.IsGreen)
           {
-            CreateLine(i, i + 1, LineType.RightTop);
-            CreateLine(i, i + 1, LineType.LeftBottom);
+            CreateLine(i, i + 1, LineType.RightTop, timeFrame);
+            CreateLine(i, i + 1, LineType.LeftBottom, timeFrame);
           }
         }
       }
@@ -223,23 +229,27 @@ namespace CTKS_Chart
 
     #region AddIntersections
 
+    private static int intersectionId = 0;
     public void AddIntersections()
     {
       var lastCandle = canvas.Children.OfType<Rectangle>().Last();
-
+      
       foreach (var line in ctksLines)
       {
         var actualLeft = Canvas.GetLeft(lastCandle) + lastCandle.Width / 2;
         var actual = GetPointOnLine(line.X1, line.Y1, line.X2, line.Y2, actualLeft);
-        var value = getValueFromCanvas(canvasHeight, actual);
+        var value = GetValueFromCanvas(canvasHeight, actual);
 
         var intersection = new CtksIntersection()
         {
           Line = line,
-          Value = value
+          Value = value,
+          TimeFrame = line.TimeFrame,
+          Id = intersectionId
         };
 
         ctksIntersections.Add(intersection);
+        intersectionId++;
       }
     }
 
@@ -248,6 +258,8 @@ namespace CTKS_Chart
 
     public void ClearRenderedIntersections()
     {
+      IntersectionsVisible = false;
+
       foreach (var intersection in renderedIntersections)
       {
         canvas.Children.Remove(intersection.Line);
@@ -270,13 +282,18 @@ namespace CTKS_Chart
 
     #region RenderIntersections
 
-    public void RenderIntersections(double? max = null, IEnumerable<CtksIntersection> intersections = null, TimeFrame? timeFrame = null)
+    public void RenderIntersections(double? max = null, IEnumerable<CtksIntersection> intersections = null)
     {
+      IntersectionsVisible = true;
+
       var lastCandle = canvas.Children.OfType<Rectangle>().Last();
 
       var inter = intersections ?? ctksIntersections;
 
-      foreach (var intersection in inter)
+      var maxCanvasValue = GetValueFromCanvas(canvasHeight, canvasHeight);
+      var minCanvasValue = GetValueFromCanvas(canvasHeight, 0);
+
+      foreach (var intersection in inter.Where(x => x.Value > minCanvasValue && x.Value < maxCanvasValue))
       {
         var circle = new Ellipse();
         var size = 3;
@@ -287,7 +304,7 @@ namespace CTKS_Chart
         var actualLeft = Canvas.GetLeft(lastCandle) + lastCandle.Width / 2;
         var line = intersection.Line;
 
-        var actual = getCanvasValue(canvasHeight, intersection.Value);
+        var actual = GetCanvasValue(canvasHeight, intersection.Value);
 
         Canvas.SetLeft(circle, actualLeft - size / 2.0);
         Canvas.SetBottom(circle, actual - size / 2.0);
@@ -295,7 +312,7 @@ namespace CTKS_Chart
         var target = new Line();
         target.Stroke = Brushes.Gray;
 
-        var frame = timeFrame ?? this.timeFrame;
+        var frame = intersection.TimeFrame;
 
         switch (frame)
         {
@@ -333,7 +350,7 @@ namespace CTKS_Chart
           return;
         }
 
-        text.Text = intersection.Value.ToString("N2");
+        text.Text = intersection.Value.ToString("N4");
         text.Foreground = Brushes.White;
 
         Panel.SetZIndex(circle, 99);
@@ -341,6 +358,7 @@ namespace CTKS_Chart
 
         Canvas.SetLeft(text, 0);
         Canvas.SetBottom(text, actual);
+
 
         //canvas.Children.Add(circle);
         canvas.Children.Add(target);
@@ -353,6 +371,40 @@ namespace CTKS_Chart
           //Mark = circle
         });
       }
+    }
+
+    #endregion
+
+    #region GetValueFromCanvas
+
+    private double GetValueFromCanvas(double canvasHeight, double value)
+    {
+      canvasHeight = canvasHeight * 0.75;
+
+      var logMaxValue = Math.Log10(layout.MaxValue);
+      var logMinValue = Math.Log10(layout.MinValue);
+
+      var logRange = logMaxValue - logMinValue;
+
+      return Math.Pow(10, (value * logRange / canvasHeight) + logMinValue);
+    }
+
+    #endregion
+
+    #region GetCanvasValue
+
+    private double GetCanvasValue(double canvasHeight, double value)
+    {
+      canvasHeight = canvasHeight * 0.75;
+
+      var logValue = Math.Log10(value);
+      var logMaxValue = Math.Log10(layout.MaxValue);
+      var logMinValue = Math.Log10(layout.MinValue);
+
+      var logRange = logMaxValue - logMinValue;
+      double diffrence = logValue - logMinValue;
+
+      return diffrence * canvasHeight / logRange;
     }
 
     #endregion
@@ -401,5 +453,6 @@ namespace CTKS_Chart
 
     #endregion
 
+    
   }
 }

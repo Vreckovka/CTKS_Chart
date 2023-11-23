@@ -11,7 +11,7 @@
         mc:Ignorable="d">
     <Grid Background="Black">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="250" />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
 
@@ -29,6 +29,11 @@
 
         <Border Grid.RowSpan="2" Background="Gray">
             <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="150" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+
                 <ItemsControl ItemsSource="{Binding Layouts}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
@@ -37,11 +42,91 @@
                                     <TextBlock FontSize="15" Text="{Binding Title}" />
                                 </Button>
                             </Border>
-
-
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+
+                <Grid Grid.Row="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="100" />
+                        <RowDefinition />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel>
+                        <TextBlock Text="{Binding Strategy.TotalProfit, StringFormat=Total Profit {0:N2}}" />
+                        <TextBlock Text="{Binding Strategy.TotalSell, StringFormat=Total Sell {0}}" />
+                        <TextBlock Text="{Binding Strategy.TotalBuy, StringFormat=Total Buy {0}}" />
+                        <TextBlock Text="{Binding Strategy.Budget, StringFormat=Budget {0:N2}}" />
+                        <TextBlock Text="{Binding Strategy.TotalValue, StringFormat=Total Value {0:N2}}" />
+                        <TextBlock Text="{Binding Strategy.TotalNativeAsset, StringFormat=Total Native {0:N2}}" />
+                    </StackPanel>
+
+
+                    <ScrollViewer Grid.Row="1">
+                        <ItemsControl ItemsSource="{Binding Strategy.BuyPositions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Margin="10,0"
+                                                       FontSize="15"
+                                                       Text="{Binding Price, StringFormat=N4}" />
+                                            <TextBlock FontSize="15" Text="{Binding Side}" />
+                                            <TextBlock Margin="10,0"
+                                                       FontSize="15"
+                                                       Text="{Binding State}" />
+                                            <TextBlock Margin="10,0"
+                                                       FontSize="15"
+                                                       Text="{Binding PositionSize}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <ScrollViewer Grid.Row="2" Margin="0,10">
+                        <ItemsControl ItemsSource="{Binding Strategy.SellPositions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border>
+                                        <StackPanel>
+
+
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Margin="10,0"
+                                                           FontSize="15"
+                                                           Text="{Binding Price, StringFormat=N4}" />
+                                                <TextBlock FontSize="15" Text="{Binding Side}" />
+                                                <TextBlock Margin="10,0"
+                                                           FontSize="15"
+                                                           Text="{Binding State}" />
+                                                <TextBlock Margin="10,0"
+                                                           FontSize="15"
+                                                           Text="{Binding PositionSize}" />
+
+                                            </StackPanel>
+
+                                            <StackPanel Orientation="Horizontal">
+
+
+                                                <TextBlock Margin="10,0"
+                                                           FontSize="15"
+                                                           Text="{Binding Profit, StringFormat=N2}" />
+
+                                                <TextBlock Margin="10,0"
+                                                           FontSize="15"
+                                                           Text="{Binding ProfitValue, StringFormat=N2}" />
+                                            </StackPanel>
+
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
             </Grid>
         </Border>
 
@@ -65,28 +150,13 @@
             </StackPanel>
         </Border>
 
-        <Grid x:Name="main_grid"
-              Grid.Row="1"
-              Grid.Column="1">
-            <!--<Grid.RowDefinitions>
-                <RowDefinition Height="100" />
-                <RowDefinition />
-            </Grid.RowDefinitions>
+        <Grid Grid.Row="1"
+              Grid.Column="1"
+              Width="{Binding CanvasWidth}"
+              Height="{Binding CanvasHeight}">
 
-            <StackPanel x:Name="mini_grid" Orientation="Horizontal" />
-            <Grid x:Name="maxi_grid" Grid.Row="1" />-->
+            <Image x:Name="Overlay" Panel.ZIndex="1" />
+            <Grid x:Name="main_grid" />
         </Grid>
-
-        <!--<Canvas x:Name="main_canvas"
-                Grid.Column="1"
-                Background="Black"
-                Loaded="main_canvas_Loaded"
-                MouseMove="Canvas_MouseMove"
-                SizeChanged="main_canvas_SizeChanged">
-            <TextBlock x:Name="coordinates"
-                       Panel.ZIndex="100"
-                       Foreground="White"
-                       Text="Ahoj" />
-        </Canvas>-->
     </Grid>
 </Window>
