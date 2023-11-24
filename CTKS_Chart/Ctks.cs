@@ -91,6 +91,8 @@ namespace CTKS_Chart
     public bool LinesVisible { get; set; }
     public bool IntersectionsVisible { get; set; }
 
+    public IList<Candle> Candles { get; set; }
+
     #region GetPointOnLine
 
     private double GetPointOnLine(double x1, double y1, double x2, double y2, double x3)
@@ -255,6 +257,7 @@ namespace CTKS_Chart
 
     #endregion
 
+    #region ClearRenderedIntersections
 
     public void ClearRenderedIntersections()
     {
@@ -270,6 +273,10 @@ namespace CTKS_Chart
       renderedIntersections.Clear();
     }
 
+    #endregion
+
+    #region ClearRenderedLines
+
     public void ClearRenderedLines()
     {
       foreach (var line in renderedLines)
@@ -279,6 +286,8 @@ namespace CTKS_Chart
 
       renderedLines.Clear();
     }
+
+    #endregion
 
     #region RenderIntersections
 
@@ -460,6 +469,20 @@ namespace CTKS_Chart
 
     #endregion
 
-    
+    public void CrateCtks(IList<Candle> candles, Action createChart)
+    {
+      Candles = null;
+      canvas.Children.Clear();
+      ctksIntersections.Clear();
+      ctksLines.Clear();
+
+      createChart();
+
+      CreateLines(candles, timeFrame);
+      AddIntersections();
+      RenderIntersections();
+
+      Candles = candles;
+    }
   }
 }

@@ -9,5 +9,8 @@ namespace CTKS_Chart
     public Ctks Ctks { get; set; }
     public decimal MaxValue { get; set; }
     public decimal MinValue { get; set; }
+    public TimeFrame TimeFrame { get; set; }
+
+    public string DataLocation { get; set; }
   }
 }

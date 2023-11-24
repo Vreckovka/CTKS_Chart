@@ -5,11 +5,11 @@ namespace CTKS_Chart
 {
   public class Position : ViewModel
   {
-    public Position(decimal positionSize, decimal price)
+    public Position(decimal positionSize, decimal price, decimal positionSizeNative)
     {
       PositionSize = positionSize;
       OriginalPositionSize = positionSize;
-      PositionSizeNative = (decimal)positionSize / price;
+      PositionSizeNative = positionSizeNative;
       Price = price;
     }
 
@@ -19,7 +19,7 @@ namespace CTKS_Chart
     {
       get
       {
-        return Profit /100 * (decimal)PositionSize;
+        return Profit /100 * (decimal)OriginalPositionSize;
       }
     }
 

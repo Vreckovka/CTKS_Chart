@@ -177,7 +177,7 @@ namespace CTKS_Chart
       var tradingView_btc_1W = $"{location}\\INDEX BTCUSD, 1W.csv";
 
       var tradingView_btc_720m = $"{location}\\INDEX BTCUSD, 720.csv";
-
+      var tradingView_btc_240m = $"{location}\\INDEX BTCUSD, 240.csv";
 
       var tradingView__ada_12M = $"{location}\\BINANCE ADAUSD, 12M.csv";
       var tradingView__ada_6M = $"{location}\\BINANCE ADAUSD, 6M.csv";
@@ -186,6 +186,7 @@ namespace CTKS_Chart
       var tradingView__ada_2W = $"{location}\\BINANCE ADAUSD, 2W.csv";
       var tradingView__ada_1D = $"{location}\\BINANCE ADAUSD, 1D.csv";
       var tradingView__ada_1D_2 = $"{location}\\BINANCE ADAUSDT, 1D_2.0.csv";
+      var tradingView__ada_360 = $"{location}\\BINANCE ADAUSD, 360.csv";
       var tradingView__ada_240 = $"{location}\\BINANCE ADAUSD, 240.csv";
       var tradingView__ada_120 = $"{location}\\BINANCE ADAUSDT, 120.csv";
 
@@ -210,21 +211,36 @@ namespace CTKS_Chart
         new Tuple<string, TimeFrame>(tradingView_btc_12m, TimeFrame.M12),
         new Tuple<string, TimeFrame>(tradingView_btc_6m, TimeFrame.M6),
         new Tuple<string, TimeFrame>(tradingView_btc_3m, TimeFrame.M3),
-        new Tuple<string, TimeFrame>(tradingView_btc_1m, TimeFrame.M1)
+        new Tuple<string, TimeFrame>(tradingView_btc_1m, TimeFrame.M1),
+        new Tuple<string, TimeFrame>(tradingView_btc_1W, TimeFrame.W2)
       };
 
       var ada = new[] {
-        new Tuple<string, TimeFrame, decimal, decimal>(tradingView__ada_12M, TimeFrame.M12, 1, (decimal)0.01),
-        new Tuple<string, TimeFrame, decimal, decimal>(tradingView__ada_6M, TimeFrame.M6, 1, (decimal)0.01),
-        new Tuple<string, TimeFrame, decimal, decimal>(tradingView__ada_3M, TimeFrame.M3, 1,(decimal) 0.01),
-        new Tuple<string, TimeFrame, decimal, decimal>(tradingView__ada_1M, TimeFrame.M1, 1,(decimal) 0.01),
-        new Tuple<string, TimeFrame, decimal, decimal>(tradingView__ada_2W, TimeFrame.W2, 1,(decimal) 0.01),
+        new Tuple<string, TimeFrame>(tradingView__ada_12M, TimeFrame.M12),
+        new Tuple<string, TimeFrame>(tradingView__ada_6M, TimeFrame.M6),
+        new Tuple<string, TimeFrame>(tradingView__ada_3M, TimeFrame.M3),
+        new Tuple<string, TimeFrame>(tradingView__ada_1M, TimeFrame.M1),
+        new Tuple<string, TimeFrame>(tradingView__ada_2W, TimeFrame.W2),
       };
 
 
       //LoadLayouts(spy, new Tuple<string, TimeFrame>(tradingView_spy_1D, TimeFrame.D1), mainCanvas, 900, 100);
       //LoadLayouts(btc, new Tuple<string, TimeFrame>(tradingView_btc_720m, TimeFrame.D1), mainCanvas, 0, 0);
-      LoadLayouts(ada, new Tuple<string, TimeFrame, decimal, decimal>(tradingView__ada_240, TimeFrame.D1, (decimal)0.4, (decimal)0.2), 100, 1700);
+
+      var main = new Layout()
+      {
+        Title = "Main",
+        TimeFrame = TimeFrame.D1
+      };
+
+      var mainCandles = ParseTradingView(tradingView_btc_240m);
+      
+      main.MaxValue = mainCandles.Max(x => x.High);
+      main.MinValue = 25000;
+
+      var maxDate = mainCandles.First().Time;
+
+      LoadLayouts(btc, main, mainCandles, maxDate, 0, mainCandles.Count);
 
     }
 
@@ -232,40 +248,33 @@ namespace CTKS_Chart
 
     #region LoadLAyouts
 
-    private void LoadLayouts(IList<Tuple<string, TimeFrame, decimal, decimal>> paths, Tuple<string, TimeFrame, decimal, decimal> mainLayout, int skip = 0, int cut = 0)
+    private void LoadLayouts(IList<Tuple<string, TimeFrame>> layoutDatas,
+      Layout mainLayout,
+      IList<Candle> mainCandles,
+      DateTime? maxTime = null,
+      int skip = 0,
+      int cut = 0)
     {
-      var main = new Layout()
+      var ctks = new Ctks(mainLayout, mainLayout.TimeFrame, CanvasHeight, CanvasWidth);
+
+      var cutCandles = mainCandles.TakeLast(cut).ToList();
+      var candles = mainCandles.Skip(skip).SkipLast(cut).ToList();
+
+      var innerLayouts = new List<Layout>();
+
+      foreach (var layoutData in layoutDatas)
       {
-        Title = "Main " + mainLayout.Item2,
-        MaxValue = mainLayout.Item3,
-        MinValue = mainLayout.Item4
-      };
+        var layout = CreateCtksChart(layoutData.Item1, layoutData.Item2, maxTime);
 
-      var ctks = new Ctks(main, mainLayout.Item2, CanvasHeight, CanvasWidth);
-
-      var actualLayout = ParseTradingView(mainLayout.Item1);
-
-      var cutCandles = actualLayout.TakeLast(cut).ToList();
-      var candles = actualLayout.Skip(skip).SkipLast(cut).ToList();
-
-      var ctksList = new List<Ctks>();
-
-      foreach (var location in paths)
-      {
-        var spy3 = ParseTradingView(location.Item1);
-        var layout = CreateCtksChart(spy3, location.Item2, location.Item3, location.Item4);
-
-        CreateChart(layout, CanvasHeight, CanvasWidth, spy3);
-
-        ctksList.Add(layout.Ctks);
+        innerLayouts.Add(layout);
       }
 
-      main.Ctks = ctks;
-      Layouts.Add(main);
-      Selected = main;
+      mainLayout.Ctks = ctks;
+      Layouts.Add(mainLayout);
+      Selected = mainLayout;
 
 
-      Simulate(cutCandles, main, candles, ctksList);
+      Simulate(cutCandles, mainLayout, candles, innerLayouts, 15);
     }
 
     #endregion
@@ -276,39 +285,61 @@ namespace CTKS_Chart
       List<Candle> cutCandles,
       Layout layout,
       List<Candle> candles,
-      List<Ctks> ctksList)
+      List<Layout> secondaryLayouts,
+      int delay = 500)
     {
       Task.Run(async () =>
       {
+        bool shouldUpdate = true;
         List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
-
-        for (int y = 0; y < ctksList.Count; y++)
-        {
-          var intersections = ctksList[y].ctksIntersections;
-
-          var validIntersections = intersections
-            .Where(x => x.Value < layout.MaxValue * 2 && x.Value > layout.MinValue * (decimal)0.5).ToList();
-
-          ctksIntersections.AddRange(validIntersections);
-        }
-
-        ctksIntersections = ctksIntersections.OrderByDescending(x => x.Value).ToList();
 
         for (int i = 0; i < cutCandles.Count; i++)
         {
-          await VSynchronizationContext.InvokeOnDispatcherAsync(() =>
+          VSynchronizationContext.InvokeOnDispatcher(() =>
           {
             var acutal = cutCandles[i];
             candles.Add(acutal);
 
+            foreach (var secondaryLayout in secondaryLayouts)
+            {
+              var lastCandle = secondaryLayout.Ctks.Candles.Last();
+              if (acutal.Time > lastCandle.Time)
+              {
+                var innerCandles = ParseTradingView(secondaryLayout.DataLocation, acutal.Time, addNotClosedCandle: true);
 
-            Strategy.ValidatePositions(acutal.High, acutal.Low, ctksIntersections);
-            Strategy.CreatePositions(acutal.Low, ctksIntersections);
+                secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles));
+
+                shouldUpdate = true;
+              }
+            }
+
+          
+            if (shouldUpdate)
+            {
+              ctksIntersections.Clear();
+
+              for (int y = 0; y < secondaryLayouts.Count; y++)
+              {
+                var intersections = secondaryLayouts[y].Ctks.ctksIntersections;
+
+                var validIntersections = intersections
+                  .Where(x => x.Value < layout.MaxValue * 2 && x.Value > layout.MinValue * (decimal)0.5).ToList();
+
+                ctksIntersections.AddRange(validIntersections);
+              }
+
+              ctksIntersections = ctksIntersections.OrderByDescending(x => x.Value).ToList();
+              shouldUpdate = false;
+            }
+         
+
+            Strategy.ValidatePositions(acutal.High, acutal.Low, acutal.Close, ctksIntersections);
+            Strategy.CreatePositions(acutal.Low, acutal.Close, ctksIntersections);
 
             RenderOverlay(layout, ctksIntersections, Strategy, candles);
           });
 
-          await Task.Delay(1075);
+          await Task.Delay(delay);
         }
       });
     }
@@ -317,8 +348,10 @@ namespace CTKS_Chart
 
     #region CreateCtksChart
 
-    private Layout CreateCtksChart(IList<Candle> candles, TimeFrame timeFrame, decimal maxValue, decimal minValue)
+    private Layout CreateCtksChart(string location, TimeFrame timeFrame,  DateTime? maxTime = null)
     {
+      var candles = ParseTradingView(location, maxTime);
+      
       var canvas = new Canvas();
       canvas.MouseMove += Canvas_MouseMove;
 
@@ -326,27 +359,23 @@ namespace CTKS_Chart
       {
         Title = timeFrame.ToString(),
         Canvas = canvas,
-        MaxValue = maxValue,
-        MinValue = minValue
+        MaxValue = candles.Max(x => x.High),
+        MinValue = candles.Min(x => x.Low),
+        TimeFrame = timeFrame,
+        DataLocation = location,
       };
 
       canvas.Width = CanvasWidth;
       canvas.Height = CanvasHeight;
 
       var ctks = new Ctks(layout, timeFrame, CanvasHeight, CanvasWidth);
-      CreateChart(layout, CanvasHeight, CanvasWidth, candles);
 
-      ctks.CreateLines(candles, timeFrame);
-      ctks.AddIntersections();
-
-      ctks.RenderIntersections();
-
+      ctks.CrateCtks(candles, () => CreateChart(layout, CanvasHeight, CanvasWidth, candles));
 
       layout.Ctks = ctks;
 
       Layouts.Add(layout);
-
-
+      
       return layout;
     }
 
@@ -355,16 +384,16 @@ namespace CTKS_Chart
 
     #region ParseTradingView
 
-    private List<Candle> ParseTradingView(string path, DateTime? maxDate = null)
+    private List<Candle> ParseTradingView(string path, DateTime? maxDate = null, int skip = 0, int cut = 0, bool addNotClosedCandle = false)
     {
       var list = new List<Candle>();
 
       var file = File.ReadAllText(path);
 
-      var lines = file.Split("\n");
+      var lines = file.Split("\n").Skip(1 + skip).ToArray();
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
 
-      foreach (var line in lines.Skip(1))
+      foreach (var line in lines.TakeLast(lines.Length - cut))
       {
         var data = line.Split(",");
 
@@ -377,7 +406,15 @@ namespace CTKS_Chart
 
         var dateTime = DateTimeHelper.UnixTimeStampToUtcDateTime(unixTimestamp);
 
-        if (maxDate >= dateTime || maxDate == null)
+        var isOverDate = dateTime > maxDate;
+
+        if (isOverDate && addNotClosedCandle)
+        {
+          isOverDate = false;
+          addNotClosedCandle = false;
+        }
+
+        if (!isOverDate)
         {
           list.Add(new Candle()
           {
@@ -388,6 +425,10 @@ namespace CTKS_Chart
             Time = dateTime,
             UnixTime = unixTimestamp
           });
+        }
+        else
+        {
+          break;
         }
       }
 
@@ -458,7 +499,7 @@ namespace CTKS_Chart
 
     private void DrawChart(DrawingContext drawingContext, Layout layout, IList<Candle> candles, int maxCount = 150)
     {
-      var canvasWidth = CanvasHeight * 0.85 - 150;
+      var canvasWidth = CanvasWidth * 0.85 - 150;
 
       var skip = candles.Count - maxCount > 0 ? candles.Count - maxCount : 0;
 
@@ -525,7 +566,7 @@ namespace CTKS_Chart
           {
             Height = wickBottom - bottomWickCanvas,
             X = newCandle.X,
-            Y = CanvasHeight - wickBottom ,
+            Y = CanvasHeight - wickBottom,
           };
 
           drawingContext.DrawRectangle(selectedBrush, pen, newCandle);
@@ -606,8 +647,7 @@ namespace CTKS_Chart
       {
         dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(1000, 1000));
 
-        RenderIntersections(dc, layout, ctksIntersections);
-        RenderPositions(dc, layout, ctksIntersections, strategy.AllPositions);
+        RenderIntersections(dc, layout, ctksIntersections, strategy.AllOpenedPositions.ToList());
 
         DrawChart(dc, layout, candles);
         DrawActualPrice(dc, layout, candles);
@@ -648,7 +688,7 @@ namespace CTKS_Chart
       DrawingContext drawingContext,
       Layout layout,
       List<CtksIntersection> ctksIntersections,
-      IEnumerable<Position> allPositions)
+      IList<Position> allPositions)
     {
       var renderedPositions = new List<CtksIntersection>();
 
@@ -660,7 +700,7 @@ namespace CTKS_Chart
       foreach (var intersection in valid)
       {
         var positionsOnIntersesction = allPositions
-       .Where(x => x.Intersection?.Id == intersection.Id && x.State == PositionState.Open)
+       .Where(x => x.Intersection?.Id == intersection.Id )
        .ToList();
 
         var firstPositionsOnIntersesction = positionsOnIntersesction.FirstOrDefault();
@@ -700,44 +740,6 @@ namespace CTKS_Chart
         FlowDirection.LeftToRight,
         new Typeface(new FontFamily("Arial").ToString()),
         12, brush);
-    }
-
-    #endregion
-
-    #region RenderIntersections
-
-    public void RenderIntersections(DrawingContext drawingContext, Layout layout, IEnumerable<CtksIntersection> intersections)
-    {
-      var canvas = layout.Canvas;
-      var maxCanvasValue = (decimal)GetValueFromCanvas(CanvasHeight, CanvasHeight, layout.MaxValue, layout.MinValue);
-      var minCanvasValue = (decimal)GetValueFromCanvas(CanvasHeight, 0, layout.MaxValue, layout.MinValue);
-
-      var validIntersection = intersections.Where(x => x.Value > minCanvasValue && x.Value < maxCanvasValue).ToList();
-
-      foreach (var intersection in validIntersection)
-      {
-        Pen pen = new Pen(Brushes.Gray, 1);
-        pen.DashStyle = DashStyles.Dash;
-
-        var actual = GetCanvasValue(CanvasHeight, intersection.Value, layout.MaxValue, layout.MinValue);
-
-        var frame = intersection.TimeFrame;
-
-        pen.Thickness = GetPositionThickness(frame);
-
-        var lineY = CanvasHeight - actual;
-
-
-        FormattedText formattedText = new FormattedText(intersection.Value.ToString("N4"), CultureInfo.GetCultureInfo("en-us"),
-          FlowDirection.LeftToRight,
-          new Typeface(new FontFamily("Arial").ToString()),
-          12, Brushes.White);
-
-        drawingContext.DrawText(formattedText, new Point(0, lineY));
-
-
-        drawingContext.DrawLine(pen, new Point(150, lineY), new Point(CanvasWidth, lineY));
-      }
     }
 
     #endregion
