@@ -682,56 +682,6 @@ namespace CTKS_Chart
 
     #endregion
 
-    #region RenderPositions
-
-    public void RenderPositions(
-      DrawingContext drawingContext,
-      Layout layout,
-      List<CtksIntersection> ctksIntersections,
-      IList<Position> allPositions)
-    {
-      var renderedPositions = new List<CtksIntersection>();
-
-      var maxCanvasValue = (decimal)GetValueFromCanvas(CanvasHeight, CanvasHeight, layout.MaxValue, layout.MinValue);
-      var minCanvasValue = (decimal)GetValueFromCanvas(CanvasHeight, 0, layout.MaxValue, layout.MinValue);
-
-      var valid = ctksIntersections.Where(x => x.Value > minCanvasValue && x.Value < maxCanvasValue);
-
-      foreach (var intersection in valid)
-      {
-        var positionsOnIntersesction = allPositions
-       .Where(x => x.Intersection?.Id == intersection.Id )
-       .ToList();
-
-        var firstPositionsOnIntersesction = positionsOnIntersesction.FirstOrDefault();
-        var sum = positionsOnIntersesction.Sum(x => x.PositionSize);
-
-        if (firstPositionsOnIntersesction != null && !renderedPositions.Contains(intersection))
-        {
-          var selectedBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ? Brushes.Green : Brushes.Red;
-
-          Pen pen = new Pen(selectedBrush, 2);
-          pen.DashStyle = DashStyles.Dash;
-
-          var frame = intersection.TimeFrame;
-
-          pen.Thickness = GetPositionThickness(frame);
-
-          //target.StrokeDashArray = new DoubleCollection() { 1, 1 };
-
-          var actual = GetCanvasValue(CanvasHeight, intersection.Value, layout.MaxValue, layout.MinValue);
-          var lineY = CanvasHeight - actual;
-
-
-          drawingContext.DrawText(GetFormattedText(sum.ToString("N4"), selectedBrush), new Point(50, lineY));
-          drawingContext.DrawLine(pen, new Point(150, lineY), new Point(CanvasWidth, lineY));
-          renderedPositions.Add(intersection);
-        }
-      }
-    }
-
-    #endregion
-
     #region GetFormattedText
 
     private FormattedText GetFormattedText(string text, Brush brush)
@@ -740,6 +690,59 @@ namespace CTKS_Chart
         FlowDirection.LeftToRight,
         new Typeface(new FontFamily("Arial").ToString()),
         12, brush);
+    }
+
+    #endregion
+
+    #region RenderIntersections
+
+    public void RenderIntersections(DrawingContext drawingContext, Layout layout, IEnumerable<CtksIntersection> intersections, IList<Position> allPositions)
+    {
+      var maxCanvasValue = (decimal)GetValueFromCanvas(CanvasHeight, CanvasHeight, layout.MaxValue, layout.MinValue);
+      var minCanvasValue = (decimal)GetValueFromCanvas(CanvasHeight, 0, layout.MaxValue, layout.MinValue);
+
+      var validIntersection = intersections.Where(x => x.Value > minCanvasValue && x.Value < maxCanvasValue).ToList();
+
+      foreach (var intersection in validIntersection)
+      {
+        Pen pen = new Pen(Brushes.Gray, 1);
+        pen.DashStyle = DashStyles.Dash;
+        Brush selectedBrush = Brushes.White;
+
+        var actual = GetCanvasValue(CanvasHeight, intersection.Value, layout.MaxValue, layout.MinValue);
+
+        var frame = intersection.TimeFrame;
+
+        pen.Thickness = GetPositionThickness(frame);
+
+        var lineY = CanvasHeight - actual;
+
+        var positionsOnIntersesction = allPositions
+          .Where(x => x.Intersection?.Id == intersection.Id)
+          .ToList();
+
+        var firstPositionsOnIntersesction = positionsOnIntersesction.FirstOrDefault();
+        var sum = positionsOnIntersesction.Sum(x => x.PositionSize);
+
+        if (firstPositionsOnIntersesction != null)
+        {
+          selectedBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ? Brushes.Green : Brushes.Red;
+          pen.Brush = selectedBrush;
+        }
+
+        var text = sum > 0 ? $"{intersection.Value.ToString("N4")} - {sum.ToString("N4")}" : $"{intersection.Value.ToString("N4")}";
+
+        FormattedText formattedText = new FormattedText(text,
+          CultureInfo.GetCultureInfo("en-us"),
+          FlowDirection.LeftToRight,
+          new Typeface(new FontFamily("Arial").ToString()),
+          12, selectedBrush);
+
+        drawingContext.DrawText(formattedText, new Point(0, lineY));
+
+
+        drawingContext.DrawLine(pen, new Point(150, lineY), new Point(CanvasWidth, lineY));
+      }
     }
 
     #endregion
