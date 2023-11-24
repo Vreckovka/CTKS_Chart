@@ -5,21 +5,21 @@ namespace CTKS_Chart
 {
   public class Position : ViewModel
   {
-    public Position(double positionSize, double price)
+    public Position(decimal positionSize, decimal price)
     {
       PositionSize = positionSize;
       OriginalPositionSize = positionSize;
-      PositionSizeNative = positionSize / price;
+      PositionSizeNative = (decimal)positionSize / price;
       Price = price;
     }
 
     #region ProfitValue
 
-    public double ProfitValue
+    public decimal ProfitValue
     {
       get
       {
-        return Profit / 100 * PositionSize;
+        return Profit /100 * (decimal)PositionSize;
       }
     }
 
@@ -27,9 +27,9 @@ namespace CTKS_Chart
 
     #region Profit
 
-    private double profit;
+    private decimal profit;
 
-    public double Profit
+    public decimal Profit
     {
       get { return profit; }
       set
@@ -45,8 +45,8 @@ namespace CTKS_Chart
 
     #endregion
 
-    public double PositionSizeNative { get;  }
-    public double Price { get;  }
+    public decimal PositionSizeNative { get;  }
+    public decimal Price { get;  }
     public CtksIntersection Intersection { get; set; }
 
     public PositionSide Side { get; set; }
@@ -73,14 +73,14 @@ namespace CTKS_Chart
 
     public TimeFrame TimeFrame { get; set; }
 
-    public double OriginalPositionSize { get; }
+    public decimal OriginalPositionSize { get; }
     public IList<Position> OpositPositions { get; set; } = new List<Position>();
 
     #region PositionSize
 
-    private double positionSize;
+    private decimal positionSize;
 
-    public double PositionSize
+    public decimal PositionSize
     {
       get { return positionSize; }
       set

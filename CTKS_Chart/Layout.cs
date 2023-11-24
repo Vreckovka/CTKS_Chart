@@ -7,7 +7,7 @@ namespace CTKS_Chart
     public string Title { get; set; }
     public Canvas Canvas { get; set; }
     public Ctks Ctks { get; set; }
-    public double MaxValue { get; set; }
-    public double MinValue { get; set; }
+    public decimal MaxValue { get; set; }
+    public decimal MinValue { get; set; }
   }
 }

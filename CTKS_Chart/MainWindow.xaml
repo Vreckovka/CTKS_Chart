@@ -2,14 +2,19 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:liveChart="clr-namespace:LiveChart;assembly=LiveChart"
         xmlns:local="clr-namespace:CTKS_Chart"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         Title="MainWindow"
         Width="1250"
         Height="1100"
         mc:Ignorable="d">
-    <Grid Background="Black">
+    <Window.Resources>
+        <Style TargetType="Canvas">
+            <Setter Property="ClipToBounds" Value="True" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="#02050a">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="250" />
             <ColumnDefinition />
@@ -19,13 +24,6 @@
             <RowDefinition Height="50" />
             <RowDefinition />
         </Grid.RowDefinitions>
-
-        <Grid.Resources>
-            <Style TargetType="Canvas">
-                <Setter Property="Background" Value="black" />
-                <Setter Property="ClipToBounds" Value="True" />
-            </Style>
-        </Grid.Resources>
 
         <Border Grid.RowSpan="2" Background="Gray">
             <Grid>
@@ -155,8 +153,11 @@
               Width="{Binding CanvasWidth}"
               Height="{Binding CanvasHeight}">
 
-            <Image x:Name="Overlay" Panel.ZIndex="1" />
+            <Image x:Name="chart_image" />
             <Grid x:Name="main_grid" />
+            <Canvas x:Name="overaly_canvas"
+                    Panel.ZIndex="1"
+                    Background="Transparent" />
         </Grid>
     </Grid>
 </Window>

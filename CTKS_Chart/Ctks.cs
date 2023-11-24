@@ -7,7 +7,6 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Shapes;
-using LiveChart.Annotations;
 
 namespace CTKS_Chart
 {
@@ -26,13 +25,14 @@ namespace CTKS_Chart
     M6,
     M3,
     M1,
+    W2,
     D1
   }
 
   public class CtksIntersection
   {
     public CtksLine Line { get; set; }
-    public double Value { get; set; }
+    public decimal Value { get; set; }
     public TimeFrame TimeFrame { get; set; }
 
     public int Id { get; set; }
@@ -282,7 +282,7 @@ namespace CTKS_Chart
 
     #region RenderIntersections
 
-    public void RenderIntersections(double? max = null, IEnumerable<CtksIntersection> intersections = null)
+    public void RenderIntersections(decimal? max = null, IEnumerable<CtksIntersection> intersections = null)
     {
       IntersectionsVisible = true;
 
@@ -377,29 +377,36 @@ namespace CTKS_Chart
 
     #region GetValueFromCanvas
 
-    private double GetValueFromCanvas(double canvasHeight, double value)
+    private decimal GetValueFromCanvas(double canvasHeight, double value)
     {
       canvasHeight = canvasHeight * 0.75;
 
-      var logMaxValue = Math.Log10(layout.MaxValue);
-      var logMinValue = Math.Log10(layout.MinValue);
+      var logMaxValue = Math.Log10((double)layout.MaxValue);
+      var logMinValue = Math.Log10((double)layout.MinValue);
 
       var logRange = logMaxValue - logMinValue;
 
-      return Math.Pow(10, (value * logRange / canvasHeight) + logMinValue);
+      var valued = Math.Pow(10, (value * logRange / canvasHeight) + logMinValue);
+
+      if ((double)decimal.MaxValue < valued)
+      {
+        return decimal.MaxValue;
+      }
+
+      return (decimal)valued;
     }
 
     #endregion
 
     #region GetCanvasValue
 
-    private double GetCanvasValue(double canvasHeight, double value)
+    private double GetCanvasValue(double canvasHeight, decimal value)
     {
       canvasHeight = canvasHeight * 0.75;
 
-      var logValue = Math.Log10(value);
-      var logMaxValue = Math.Log10(layout.MaxValue);
-      var logMinValue = Math.Log10(layout.MinValue);
+      var logValue = Math.Log10((double)value);
+      var logMaxValue = Math.Log10((double)layout.MaxValue);
+      var logMinValue = Math.Log10((double)layout.MinValue);
 
       var logRange = logMaxValue - logMinValue;
       double diffrence = logValue - logMinValue;
