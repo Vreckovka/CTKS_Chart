@@ -73,9 +73,17 @@ namespace CTKS_Chart
     }
     #endregion
 
+    public static decimal StartingBudget
+    {
+      get
+      {
+        return 2000 * Multiplicator;
+      }
+    }
+
     #region Budget
 
-    private decimal budget = 2000 * Multiplicator;
+    private decimal budget = StartingBudget;
 
     public decimal Budget
     {
@@ -104,6 +112,25 @@ namespace CTKS_Chart
         if (value != totalNativeAsset)
         {
           totalNativeAsset = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region TotalNativeAssetValue
+
+    private decimal totalNativeAssetValue;
+
+    public decimal TotalNativeAssetValue
+    {
+      get { return totalNativeAssetValue; }
+      set
+      {
+        if (value != totalNativeAssetValue)
+        {
+          totalNativeAssetValue = value;
           RaisePropertyChanged();
         }
       }
@@ -313,7 +340,9 @@ namespace CTKS_Chart
       var openPositions = openedBuy.Sum(x => x.PositionSize);
 
       TotalValue = assetsValue + openPositions + Budget;
+      TotalNativeAssetValue = TotalNativeAsset * actualPrice;
 
+      RaisePropertyChanged(nameof(AllClosedPositions));
     }
 
     #region CreateSellPositionForBuy

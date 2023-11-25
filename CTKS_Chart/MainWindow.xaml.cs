@@ -26,6 +26,18 @@ namespace CTKS_Chart
   /// </summary>
   public partial class MainWindow : Window, INotifyPropertyChanged
   {
+   
+    public MainWindow()
+    {
+      VSynchronizationContext.UISynchronizationContext = SynchronizationContext.Current;
+      VSynchronizationContext.UIDispatcher = Application.Current.Dispatcher;
+
+      InitializeComponent();
+      DataContext = this;
+
+      ForexChart_Loaded();
+    }
+
     public ObservableCollection<Layout> Layouts { get; set; } = new ObservableCollection<Layout>();
 
     public Strategy Strategy { get; set; } = new Strategy();
@@ -56,16 +68,6 @@ namespace CTKS_Chart
     public double CanvasHeight { get; set; } = 1000;
     public double CanvasWidth { get; set; } = 1000;
 
-    public MainWindow()
-    {
-      VSynchronizationContext.UISynchronizationContext = SynchronizationContext.Current;
-      VSynchronizationContext.UIDispatcher = Application.Current.Dispatcher;
-
-      InitializeComponent();
-      DataContext = this;
-
-      ForexChart_Loaded();
-    }
 
 
     #region Commands
@@ -233,14 +235,14 @@ namespace CTKS_Chart
         TimeFrame = TimeFrame.D1
       };
 
-      var mainCandles = ParseTradingView(tradingView_btc_240m);
+      var mainCandles = ParseTradingView(tradingView__ada_240);
       
       main.MaxValue = mainCandles.Max(x => x.High);
-      main.MinValue = 25000;
+      main.MinValue = mainCandles.Min(x => x.Low);
 
       var maxDate = mainCandles.First().Time;
 
-      LoadLayouts(btc, main, mainCandles, maxDate, 0, mainCandles.Count);
+      LoadLayouts(ada, main, mainCandles, maxDate, 0, mainCandles.Count);
 
     }
 
@@ -274,7 +276,7 @@ namespace CTKS_Chart
       Selected = mainLayout;
 
 
-      Simulate(cutCandles, mainLayout, candles, innerLayouts, 15);
+      Simulate(cutCandles, mainLayout, candles, innerLayouts, 75);
     }
 
     #endregion
@@ -497,7 +499,7 @@ namespace CTKS_Chart
 
     #region DrawChart
 
-    private void DrawChart(DrawingContext drawingContext, Layout layout, IList<Candle> candles, int maxCount = 150)
+    private Tuple<double,double> DrawChart(DrawingContext drawingContext, Layout layout, IList<Candle> candles, int maxCount = 150)
     {
       var canvasWidth = CanvasWidth * 0.85 - 150;
 
@@ -505,6 +507,9 @@ namespace CTKS_Chart
 
       var width = canvasWidth / maxCount;
       var margin = width * 0.95;
+
+      double minDrawnPoint = 0;
+      double maxDrawnPoint = 0;
 
       if (candles.Any())
       {
@@ -573,8 +578,20 @@ namespace CTKS_Chart
           drawingContext.DrawRectangle(selectedBrush, wickPen, topWick);
           drawingContext.DrawRectangle(selectedBrush, wickPen, bottomWick);
           y++;
+
+          if (bottomWick.Y < minDrawnPoint)
+          {
+            minDrawnPoint = bottomWick.Y;
+          }
+
+          if (topWick.Y > maxDrawnPoint)
+          {
+            maxDrawnPoint = topWick.Y;
+          }
         }
       }
+
+      return new Tuple<double, double>(minDrawnPoint, maxDrawnPoint);
     }
 
     #endregion
@@ -647,9 +664,21 @@ namespace CTKS_Chart
       {
         dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(1000, 1000));
 
-        RenderIntersections(dc, layout, ctksIntersections, strategy.AllOpenedPositions.ToList());
+        var drawPoints = DrawChart(dc, layout, candles);
+        double desiredCanvasHeight = CanvasHeight;
 
-        DrawChart(dc, layout, candles);
+        if (drawPoints.Item1 < 0)
+        {
+
+        }
+        else if(drawPoints.Item2 > CanvasHeight)
+        {
+          desiredCanvasHeight = drawPoints.Item2;
+        }
+
+        RenderIntersections(dc, layout, ctksIntersections, strategy.AllOpenedPositions.ToList(), desiredCanvasHeight);
+
+        
         DrawActualPrice(dc, layout, candles);
       }
 
@@ -696,10 +725,15 @@ namespace CTKS_Chart
 
     #region RenderIntersections
 
-    public void RenderIntersections(DrawingContext drawingContext, Layout layout, IEnumerable<CtksIntersection> intersections, IList<Position> allPositions)
+    public void RenderIntersections(
+      DrawingContext drawingContext,
+      Layout layout,
+      IEnumerable<CtksIntersection> intersections, 
+      IList<Position> allPositions,
+      double desiredHeight)
     {
-      var maxCanvasValue = (decimal)GetValueFromCanvas(CanvasHeight, CanvasHeight, layout.MaxValue, layout.MinValue);
-      var minCanvasValue = (decimal)GetValueFromCanvas(CanvasHeight, 0, layout.MaxValue, layout.MinValue);
+      var maxCanvasValue = (decimal)GetValueFromCanvas(desiredHeight, desiredHeight, layout.MaxValue, layout.MinValue);
+      var minCanvasValue = (decimal)GetValueFromCanvas(desiredHeight, -2 * (desiredHeight - CanvasHeight), layout.MaxValue, layout.MinValue);
 
       var validIntersection = intersections.Where(x => x.Value > minCanvasValue && x.Value < maxCanvasValue).ToList();
 
@@ -726,7 +760,7 @@ namespace CTKS_Chart
 
         if (firstPositionsOnIntersesction != null)
         {
-          selectedBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ? Brushes.Green : Brushes.Red;
+          selectedBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ? Brushes.Red : Brushes.Green;
           pen.Brush = selectedBrush;
         }
 

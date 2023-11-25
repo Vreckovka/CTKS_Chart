@@ -46,19 +46,39 @@
 
                 <Grid Grid.Row="1">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="100" />
+                        <RowDefinition Height="250" />
                         <RowDefinition />
                         <RowDefinition />
                     </Grid.RowDefinitions>
 
-                    <StackPanel>
-                        <TextBlock Text="{Binding Strategy.TotalProfit, StringFormat=Total Profit {0:N2}}" />
-                        <TextBlock Text="{Binding Strategy.TotalSell, StringFormat=Total Sell {0}}" />
-                        <TextBlock Text="{Binding Strategy.TotalBuy, StringFormat=Total Buy {0}}" />
-                        <TextBlock Text="{Binding Strategy.Budget, StringFormat=Budget {0:N2}}" />
-                        <TextBlock Text="{Binding Strategy.TotalValue, StringFormat=Total Value {0:N2}}" />
-                        <TextBlock Text="{Binding Strategy.TotalNativeAsset, StringFormat=Total Native {0:N2}}" />
-                    </StackPanel>
+                    <UniformGrid Columns="2"
+                                 DataContext="{Binding Strategy}"
+                                 Rows="10">
+                        <TextBlock Text="Starting Budget" />
+                        <TextBlock Text="{Binding StartingBudget, StringFormat={}{0:N2} $}" />
+                        <TextBlock Text="Total Value" />
+                        <TextBlock Text="{Binding TotalValue, StringFormat={}{0:N2} $}" />
+
+                        <TextBlock Text="Total Profit " />
+                        <TextBlock Text="{Binding TotalProfit, StringFormat={}{0:N2} $}" />
+                        <TextBlock Text="Budget" />
+                        <TextBlock Text="{Binding Budget, StringFormat={}{0:N2} $}" />
+
+                        <TextBlock Text="Total Native" />
+                        <TextBlock Text="{Binding TotalNativeAsset, StringFormat={}{0:N8}}" />
+                        <TextBlock Text="Total Native Value" />
+                        <TextBlock Text="{Binding TotalNativeAssetValue, StringFormat={}{0:N2} $}" />
+
+                        <TextBlock Text="Closed buy trades" />
+                        <TextBlock Text="{Binding ClosedBuyPositions.Count, StringFormat={}{0}}" />
+                        <TextBlock Text="Closed sell trades" />
+                        <TextBlock Text="{Binding ClosedSellPositions.Count, StringFormat={}{0}}" />
+
+                        <TextBlock Text="Total Sell" />
+                        <TextBlock Text="{Binding TotalSell, StringFormat={}{0:N4}}" />
+                        <TextBlock Text="Total Buy" />
+                        <TextBlock Text="{Binding TotalBuy, StringFormat={}{0:N4}}" />
+                    </UniformGrid>
 
 
                     <ScrollViewer Grid.Row="1">
