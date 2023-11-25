@@ -186,6 +186,7 @@ namespace CTKS_Chart
       var tradingView__ada_3M = $"{location}\\BINANCE ADAUSD, 3M.csv";
       var tradingView__ada_1M = $"{location}\\BINANCE ADAUSD, 1M.csv";
       var tradingView__ada_2W = $"{location}\\BINANCE ADAUSD, 2W.csv";
+      var tradingView__ada_1W = $"{location}\\BINANCE ADAUSD, 1W.csv";
       var tradingView__ada_1D = $"{location}\\BINANCE ADAUSD, 1D.csv";
       var tradingView__ada_1D_2 = $"{location}\\BINANCE ADAUSDT, 1D_2.0.csv";
       var tradingView__ada_360 = $"{location}\\BINANCE ADAUSD, 360.csv";
@@ -223,6 +224,7 @@ namespace CTKS_Chart
         new Tuple<string, TimeFrame>(tradingView__ada_3M, TimeFrame.M3),
         new Tuple<string, TimeFrame>(tradingView__ada_1M, TimeFrame.M1),
         new Tuple<string, TimeFrame>(tradingView__ada_2W, TimeFrame.W2),
+        new Tuple<string, TimeFrame>(tradingView__ada_1W, TimeFrame.W1),
       };
 
 
@@ -276,7 +278,7 @@ namespace CTKS_Chart
       Selected = mainLayout;
 
 
-      Simulate(cutCandles, mainLayout, candles, innerLayouts, 75);
+      Simulate(cutCandles, mainLayout, candles, innerLayouts,100);
     }
 
     #endregion
@@ -730,12 +732,13 @@ namespace CTKS_Chart
       Layout layout,
       IEnumerable<CtksIntersection> intersections, 
       IList<Position> allPositions,
-      double desiredHeight)
+      double desiredHeight,
+      TimeFrame minTimeframe = TimeFrame.W1)
     {
       var maxCanvasValue = (decimal)GetValueFromCanvas(desiredHeight, desiredHeight, layout.MaxValue, layout.MinValue);
       var minCanvasValue = (decimal)GetValueFromCanvas(desiredHeight, -2 * (desiredHeight - CanvasHeight), layout.MaxValue, layout.MinValue);
 
-      var validIntersection = intersections.Where(x => x.Value > minCanvasValue && x.Value < maxCanvasValue).ToList();
+      var validIntersection = intersections.Where(x => x.Value > minCanvasValue && x.Value < maxCanvasValue && minTimeframe <= x.TimeFrame).ToList();
 
       foreach (var intersection in validIntersection)
       {
@@ -764,15 +767,21 @@ namespace CTKS_Chart
           pen.Brush = selectedBrush;
         }
 
-        var text = sum > 0 ? $"{intersection.Value.ToString("N4")} - {sum.ToString("N4")}" : $"{intersection.Value.ToString("N4")}";
+        //var text = sum > 0 ? $"{intersection.Value.ToString("N4")} - {sum.ToString("N4")}" : $"{intersection.Value.ToString("N4")}";
 
-        FormattedText formattedText = new FormattedText(text,
-          CultureInfo.GetCultureInfo("en-us"),
-          FlowDirection.LeftToRight,
-          new Typeface(new FontFamily("Arial").ToString()),
-          12, selectedBrush);
+        if(frame >= TimeFrame.W1)
+        {
+          var text = intersection.Value.ToString("N4");
 
-        drawingContext.DrawText(formattedText, new Point(0, lineY));
+          FormattedText formattedText = new FormattedText(text,
+            CultureInfo.GetCultureInfo("en-us"),
+            FlowDirection.LeftToRight,
+            new Typeface(new FontFamily("Arial").ToString()),
+            12, selectedBrush);
+
+          drawingContext.DrawText(formattedText, new Point(0, lineY));
+        }
+     
 
 
         drawingContext.DrawLine(pen, new Point(150, lineY), new Point(CanvasWidth, lineY));
@@ -798,7 +807,7 @@ namespace CTKS_Chart
         case TimeFrame.W2:
           return 1;
         default:
-          return 1;
+          return 0.5;
       }
     }
 

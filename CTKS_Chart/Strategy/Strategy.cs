@@ -26,7 +26,7 @@ namespace CTKS_Chart
       {TimeFrame.M3, 75},
       {TimeFrame.M1, 50},
       {TimeFrame.W2, 20},
-      {TimeFrame.D1, 1},
+      {TimeFrame.W1, 10},
     };
 
     public Dictionary<TimeFrame, double> MinSellProfitMapping { get; set; } = new Dictionary<TimeFrame, double>()
@@ -36,7 +36,7 @@ namespace CTKS_Chart
       {TimeFrame.M3,  0.01},
       {TimeFrame.M1,  0.01},
       {TimeFrame.W2,  0.01},
-      {TimeFrame.D1,  0.01},
+      {TimeFrame.W1,  0.01},
     };
 
     public IEnumerable<Position> AllClosedPositions

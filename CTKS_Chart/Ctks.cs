@@ -20,13 +20,14 @@ namespace CTKS_Chart
 
   public enum TimeFrame
   {
-    Null,
-    M12,
-    M6,
-    M3,
-    M1,
-    W2,
-    D1
+    Null = 7,
+    M12 = 6,
+    M6 = 5,
+    M3 = 4,
+    M1 =3,
+    W2 = 2,
+    W1 = 1,
+    D1 =1
   }
 
   public class CtksIntersection
