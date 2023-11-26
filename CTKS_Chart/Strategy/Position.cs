@@ -9,21 +9,11 @@ namespace CTKS_Chart
     {
       PositionSize = positionSize;
       OriginalPositionSize = positionSize;
+      OriginalPositionSizeNative = positionSizeNative;
       PositionSizeNative = positionSizeNative;
       Price = price;
     }
 
-    #region ProfitValue
-
-    public decimal ProfitValue
-    {
-      get
-      {
-        return Profit /100 * (decimal)OriginalPositionSize;
-      }
-    }
-
-    #endregion
 
     #region Profit
 
@@ -38,17 +28,15 @@ namespace CTKS_Chart
         {
           profit = value;
           RaisePropertyChanged();
-          RaisePropertyChanged(nameof(ProfitValue));
         }
       }
     }
 
     #endregion
 
-    public decimal PositionSizeNative { get;  }
+    public decimal PositionSizeNative { get; set; }
     public decimal Price { get;  }
     public CtksIntersection Intersection { get; set; }
-
     public PositionSide Side { get; set; }
 
 
@@ -74,6 +62,7 @@ namespace CTKS_Chart
     public TimeFrame TimeFrame { get; set; }
 
     public decimal OriginalPositionSize { get; }
+    public decimal OriginalPositionSizeNative { get; }
     public IList<Position> OpositPositions { get; set; } = new List<Position>();
 
     #region PositionSize

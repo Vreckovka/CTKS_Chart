@@ -35,8 +35,6 @@ namespace CTKS_Chart
     public CtksLine Line { get; set; }
     public decimal Value { get; set; }
     public TimeFrame TimeFrame { get; set; }
-
-    public int Id { get; set; }
   }
 
   public class CtksLine
@@ -72,8 +70,9 @@ namespace CTKS_Chart
 
     private double canvasHeight;
     private double canvasWidth;
+    private readonly Asset asset;
 
-    public Ctks(Layout layout, TimeFrame timeFrame, double canvasHeight, double canvasWidth)
+    public Ctks(Layout layout, TimeFrame timeFrame, double canvasHeight, double canvasWidth, Asset asset)
     {
       this.layout = layout ?? throw new ArgumentNullException(nameof(layout));
       this.canvas = layout.Canvas;
@@ -81,6 +80,7 @@ namespace CTKS_Chart
 
       this.canvasHeight = canvasHeight;
       this.canvasWidth = canvasWidth;
+      this.asset = asset ?? throw new ArgumentNullException(nameof(asset));
     }
 
     public List<CtksLine> ctksLines = new List<CtksLine>();
@@ -241,14 +241,13 @@ namespace CTKS_Chart
       {
         var actualLeft = Canvas.GetLeft(lastCandle) + lastCandle.Width / 2;
         var actual = GetPointOnLine(line.X1, line.Y1, line.X2, line.Y2, actualLeft);
-        var value = GetValueFromCanvas(canvasHeight, actual);
+        var value = Math.Round(GetValueFromCanvas(canvasHeight, actual), asset.PriceRound);
 
         var intersection = new CtksIntersection()
         {
           Line = line,
           Value = value,
           TimeFrame = line.TimeFrame,
-          Id = intersectionId
         };
 
         ctksIntersections.Add(intersection);

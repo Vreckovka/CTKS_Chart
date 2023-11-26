@@ -1,11 +1,19 @@
 ﻿using System;
 
+
 public class Candle
 {
-  public decimal Close { get; set; }
-  public decimal Open { get; set; }
-  public decimal High { get; set; }
-  public decimal Low { get; set; }
+  public static int ID = 0;
+  public Candle()
+  {
+    Id = ID++;
+  }
+
+  public int Id { get; set; }
+  public decimal? Close { get; set; }
+  public decimal? Open { get; set; }
+  public decimal? High { get; set; }
+  public decimal? Low { get; set; }
 
   public bool IsGreen
   {
