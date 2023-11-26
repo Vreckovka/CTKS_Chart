@@ -34,17 +34,17 @@ namespace CTKS_Chart
     public ObservableCollection<Position> OpenSellPositions { get; set; } = new ObservableCollection<Position>();
     public ObservableCollection<Position> OpenBuyPositions { get; set; } = new ObservableCollection<Position>();
 
-    public Dictionary<TimeFrame, decimal> PositionSizeMapping { get; set; } = new Dictionary<TimeFrame, decimal>()
+    public Dictionary<TimeFrame, decimal> PositionSizeMapping { get; } = new Dictionary<TimeFrame, decimal>()
     {
-      {TimeFrame.M12, 250},
-      {TimeFrame.M6, 150},
-      {TimeFrame.M3, 75},
-      {TimeFrame.M1, 50},
-      {TimeFrame.W2, 30},
-      {TimeFrame.W1, 20},
+      {TimeFrame.M12, 200},
+      {TimeFrame.M6, 100},
+      {TimeFrame.M3, 50},
+      {TimeFrame.M1, 30},
+      {TimeFrame.W2, 20},
+      {TimeFrame.W1, 10},
     };
 
-    public Dictionary<TimeFrame, double> MinSellProfitMapping { get; set; } = new Dictionary<TimeFrame, double>()
+    public Dictionary<TimeFrame, double> MinSellProfitMapping { get; } = new Dictionary<TimeFrame, double>()
     {
       {TimeFrame.M12, 0.01},
       {TimeFrame.M6,  0.01},
@@ -229,7 +229,6 @@ namespace CTKS_Chart
 
     #region CreatePositions
 
-    private Dictionary<Position, decimal> keyValuePairs = new Dictionary<Position, decimal>();
     public void CreatePositions(Candle actualCandle, List<CtksIntersection> ctksIntersections)
     {
       var minPrice = actualCandle.Low * (decimal)0.75;
@@ -245,10 +244,7 @@ namespace CTKS_Chart
         Budget += buyPosition.PositionSize;
       }
 
-      decimal removed = 0;
       var removedBu = new HashSet<Position>();
-      keyValuePairs = new Dictionary<Position, decimal>();
-      created = 0;
 
       foreach (var sellPosition in openedSell)
       {
@@ -260,15 +256,6 @@ namespace CTKS_Chart
 
         OpenSellPositions.Remove(sellPosition);
         removedBu.Add(buy);
-
-        removed += sellPosition.PositionSizeNative;
-
-        if (keyValuePairs.ContainsKey(buy))
-        {
-          keyValuePairs[buy] += sellPosition.PositionSizeNative;
-        }
-        else
-          keyValuePairs.Add(buy, sellPosition.PositionSizeNative);
       }
 
 
@@ -277,22 +264,6 @@ namespace CTKS_Chart
         CreateSellPositionForBuy(opened, ordered, actualCandle);
       }
 
-      var sum1 = OpenSellPositions.ToList().Sum(x => x.OriginalPositionSizeNative);
-      var summ = keyValuePairs.Sum(x => x.Value);
-
-      foreach (var ke in ClosedBuyPositions)
-      {
-        var sumOposite = ke.OpositPositions.Sum(x => x.OriginalPositionSizeNative);
-        if (sumOposite != ke.OriginalPositionSizeNative)
-        {
-          throw new Exception("Postion asset value does not mach sell order !!");
-        }
-      }
-
-      //if (Math.Round(sum1) != Math.Round(TotalNativeAsset))
-      //{
-      //  throw new Exception("Native asset value does not mach sell order !!");
-      //}
 
       foreach (var intersection in
         ctksIntersections
@@ -464,8 +435,8 @@ namespace CTKS_Chart
 
           leftPositionSize = (decimal)maxPOsitionOnIntersection - positionsOnIntersesction;
 
-
-          if (MinPositionValue > leftPositionSize)
+         
+          if (!forcePositionSize && MinPositionValue > leftPositionSize)
           {
             continue;
           }
@@ -485,6 +456,7 @@ namespace CTKS_Chart
             else
               positionSize = position.PositionSize;
           }
+
 
 
 
@@ -555,7 +527,7 @@ namespace CTKS_Chart
         LeftSize -= sell.PositionSizeNative;
 
         if (LeftSize < 0)
-          ;
+          throw new Exception("Left native size is less than 0 !!");
       }
     }
 
@@ -696,6 +668,8 @@ namespace CTKS_Chart
       Budget += finalSize;
       TotalNativeAsset -= position.OriginalPositionSizeNative;
 
+      Scale(position.Profit);
+
       var sum = OpenSellPositions.ToList().Sum(x => x.OriginalPositionSizeNative);
 
       if (Math.Round(sum) != Math.Round(TotalNativeAsset))
@@ -710,5 +684,21 @@ namespace CTKS_Chart
     }
 
     #endregion
+
+    private void Scale(decimal profit)
+    {
+      var perc = ((profit* (decimal)100.0 / TotalProfit) ) / (decimal)100.0;
+
+      if (perc > 0 && perc < (decimal)0.01)
+      {
+        var map = PositionSizeMapping.ToList();
+
+        foreach (var mapping in map)
+        {
+          PositionSizeMapping[mapping.Key] *= (1 + (perc * (decimal)1));
+        }
+      }
+    
+    }
   }
 }

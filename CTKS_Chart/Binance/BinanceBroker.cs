@@ -107,7 +107,7 @@ namespace CTKS_Chart.Binance
     }
 
 
-    private SemaphoreSlim createPositionLock = new SemaphoreSlim(1,1);
+    private SemaphoreSlim createPositionLock = new SemaphoreSlim(1, 1);
     public async Task Buy(string symbol, decimal tradeAmount, decimal price)
     {
 
@@ -160,17 +160,32 @@ namespace CTKS_Chart.Binance
     }
 
 
-
+    private SemaphoreSlim subscribeToKlineIntervaLock = new SemaphoreSlim(1, 1);
+    private int subId;
     public async Task SubscribeToKlineInterval(Action<IBinanceStreamKline> onKlineUpdate, KlineInterval klineInterval)
     {
-      var sub = await socketClient.SpotApi.ExchangeData.SubscribeToKlineUpdatesAsync("ADAUSDT", klineInterval, (x) =>
-      {
-        onKlineUpdate(x.Data.Data);
-      });
 
-      if (!sub.Success)
+      try
       {
-        throw new Exception("Kline subscibe failed!");
+        await subscribeToKlineIntervaLock.WaitAsync();
+
+        await socketClient.UnsubscribeAsync(subId);
+        var sub = await socketClient.SpotApi.ExchangeData.SubscribeToKlineUpdatesAsync("ADAUSDT", klineInterval, (x) =>
+       {
+         onKlineUpdate(x.Data.Data);
+       });
+
+
+        if (!sub.Success)
+        {
+          throw new Exception("Kline subscibe failed!");
+        }
+
+        subId = sub.Data.Id;
+      }
+      finally
+      {
+        subscribeToKlineIntervaLock.Release();
       }
     }
 
@@ -181,7 +196,7 @@ namespace CTKS_Chart.Binance
         var startOkay = await client.SpotApi.Account.StartUserStreamAsync();
         if (!startOkay.Success)
         {
-         
+
           return;
         }
 
@@ -192,10 +207,10 @@ namespace CTKS_Chart.Binance
         }
 
 
-      
+
 
         var accountResult = await client.SpotApi.Account.GetAccountInfoAsync();
-      
+
       }
     }
 
@@ -238,10 +253,10 @@ namespace CTKS_Chart.Binance
             //});
           });
         }
-       // else
+        // else
         {
-       //   order.ExecutedQuantity = orderUpdate.QuantityFilled;
-       //   order.Status = orderUpdate.Status;
+          //   order.ExecutedQuantity = orderUpdate.QuantityFilled;
+          //   order.Status = orderUpdate.Status;
         }
       }
     }

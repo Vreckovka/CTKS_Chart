@@ -1,11 +1,12 @@
 ﻿<Window x:Class="CTKS_Chart.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:VCore.WPF.Converters;assembly=VCore.WPF"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:local="clr-namespace:CTKS_Chart"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         Title="MainWindow"
-        Width="1250"
+        Width="1370"
         Height="1100"
         mc:Ignorable="d">
     <Window.Resources>
@@ -243,6 +244,13 @@
                         CommandParameter="{Binding Selected.Ctks}">
                     Show intersections
                 </Button>
+                <ComboBox ItemsSource="{Binding KlineInterval, Converter={converters:EnumValueToCollectionConverter}, Mode=OneTime}" SelectedValue="{Binding KlineInterval}" />
+                <TextBox Width="120"
+                         Margin="10,0,10,0"
+                         Text="{Binding MaxValue}" />
+                <TextBox Width="120"
+                         Margin="10,0,10,0"
+                         Text="{Binding MinValue}" />
             </StackPanel>
         </Border>
 

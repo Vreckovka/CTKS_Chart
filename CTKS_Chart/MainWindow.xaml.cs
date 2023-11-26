@@ -39,7 +39,84 @@ namespace CTKS_Chart
     private BinanceBroker binanceBroker = new BinanceBroker();
     public Asset Asset { get; set; } = new Asset();
 
+#if DEBUG
     public bool IsLive { get; set; } = false;
+#endif
+
+#if RELEASE
+    public bool IsLive { get; set; } = true;
+#endif
+
+    #region MaxValue
+
+    private decimal maxValue;
+
+    public decimal MaxValue
+    {
+      get { return maxValue; }
+      set
+      {
+        if (value != maxValue)
+        {
+          maxValue = value;
+          RaisePropertyChanged();
+          MainLayout.MaxValue = MaxValue;
+
+          RecreateChart();
+        }
+      }
+    }
+
+    #endregion
+
+    #region MinValue
+
+    private decimal minValue = (decimal)0.001;
+
+    public decimal MinValue
+    {
+      get { return minValue; }
+      set
+      {
+        if (value != minValue)
+        {
+          minValue = value;
+          RaisePropertyChanged();
+          MainLayout.MinValue = MinValue;
+
+          RecreateChart();
+        }
+      }
+    }
+
+    #endregion
+
+
+    #region KlineInterval
+
+#if DEBUG
+    private KlineInterval klineInterval = KlineInterval.FifteenMinutes;
+#endif
+
+#if RELEASE
+    private KlineInterval klineInterval = KlineInterval.FifteenMinutes;
+#endif
+
+    public KlineInterval KlineInterval
+    {
+      get { return klineInterval; }
+      set
+      {
+        if (value != klineInterval)
+        {
+          klineInterval = value;
+          RaisePropertyChanged();
+          RecreateChart();
+        }
+      }
+    }
+
+    #endregion
 
     public MainWindow()
     {
@@ -73,7 +150,7 @@ namespace CTKS_Chart
         if (value != selected)
         {
           selected = value;
-          OnPropertyChanged();
+          RaisePropertyChanged();
         }
       }
     }
@@ -259,18 +336,38 @@ namespace CTKS_Chart
 
       var mainCandles = ParseTradingView(tradingView__ada_240);
 
+
       MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
-      MainLayout.MinValue = mainCandles.Min(x => x.Low.Value);
+      MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
-      MainLayout.MaxValue = (decimal)0.39;
-      MainLayout.MinValue = (decimal)0.38;
-
+      MaxValue = MainLayout.MaxValue;
+      MinValue = MainLayout.MinValue;
 
       var maxDate = mainCandles.First().Time;
 
-      LoadLayouts(ada, MainLayout, mainCandles, maxDate, 0, mainCandles.Count - 0, !IsLive);
+      if (IsLive)
+      {
+        MainLayout.MaxValue = (decimal)0.39;
+        MainLayout.MinValue = (decimal)0.38;
 
-      Strategy.OnCreatePosition.Subscribe(OnCreatePosition);
+        LoadLayouts(ada, MainLayout, mainCandles, maxDate, 0, mainCandles.Count - 0, !IsLive);
+        Strategy.OnCreatePosition.Subscribe(OnCreatePosition);
+      }
+      else
+      {
+        //Asset = new Asset()
+        //{
+        //  NativeRound = 8,
+        //  PriceRound = 2
+        //};
+
+        //mainCandles = ParseTradingView(tradingView_btc_240m);
+
+        //Strategy.Asset = Asset;
+
+
+        LoadLayouts(ada, MainLayout, mainCandles, maxDate, 0, mainCandles.Count - 0, !IsLive);
+      }
 
     }
 
@@ -295,15 +392,15 @@ namespace CTKS_Chart
 
       var cutCandles = mainCandles.TakeLast(cut).ToList();
 
-      if (simulate)
-      {
-        ActualCandles = mainCandles.Skip(skip).SkipLast(cut).ToList();
-      }
-      else
-      {
-        ActualCandles = (await binanceBroker.GetCandles(Asset.Symbol, TimeSpan.FromMinutes(1))).ToList();
-        await binanceBroker.SubscribeToKlineInterval(OnBinanceKlineUpdate, KlineInterval.OneMinute);
-      }
+      //if (simulate)
+      //{
+      //  ActualCandles = mainCandles.Skip(skip).SkipLast(cut).ToList();
+      //}
+      //else
+      //{
+      ActualCandles = (await binanceBroker.GetCandles(Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
+      await binanceBroker.SubscribeToKlineInterval(OnBinanceKlineUpdate, KlineInterval);
+      //}
 
       foreach (var layoutData in layoutDatas)
       {
@@ -322,8 +419,21 @@ namespace CTKS_Chart
         RenderLayout(mainLayout, InnerLayouts, ActualCandles.Last(), ActualCandles);
       }
 
-      if (simulate)
-        Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts, 1);
+      //if (simulate)
+      //  Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts, 100);
+    }
+
+   
+    private async void RecreateChart()
+    {
+ 
+      ActualCandles = (await binanceBroker.GetCandles(Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
+      await binanceBroker.SubscribeToKlineInterval(OnBinanceKlineUpdate, KlineInterval);
+
+      if (ActualCandles.Count > 0)
+      {
+        RenderLayout(MainLayout, InnerLayouts, ActualCandles.Last(), ActualCandles);
+      }
     }
 
     #endregion
@@ -595,8 +705,8 @@ namespace CTKS_Chart
 
           var selectedBrush = green ? Brushes.Green : Brushes.Red;
 
-          Pen pen = new Pen(selectedBrush, 2);
-          Pen wickPen = new Pen(selectedBrush, 0.5);
+          Pen pen = new Pen(selectedBrush, 3);
+          Pen wickPen = new Pen(selectedBrush, 1);
 
           var newCandle = new Rect()
           {
@@ -870,11 +980,11 @@ namespace CTKS_Chart
 
     #endregion
 
-    #region OnPropertyChanged
+    #region RaisePropertyChanged
 
     public event PropertyChangedEventHandler PropertyChanged;
 
-    protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+    protected virtual void RaisePropertyChanged([CallerMemberName] string propertyName = null)
     {
       PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
@@ -923,6 +1033,47 @@ namespace CTKS_Chart
           await binanceBroker.Buy(Asset.Symbol, position.PositionSizeNative, position.Price);
         else
           await binanceBroker.Sell(Asset.Symbol, position.PositionSizeNative, position.Price);
+      }
+    }
+
+    private TimeSpan GetTimeSpanFromInterval(KlineInterval klineInterval)
+    {
+      switch (klineInterval)
+      {
+        case KlineInterval.OneSecond:
+          return TimeSpan.FromSeconds(1);
+        case KlineInterval.OneMinute:
+          return TimeSpan.FromMinutes(1);
+        case KlineInterval.ThreeMinutes:
+          return TimeSpan.FromMinutes(3);
+        case KlineInterval.FiveMinutes:
+          return TimeSpan.FromMinutes(10);
+        case KlineInterval.FifteenMinutes:
+          return TimeSpan.FromMinutes(15);
+        case KlineInterval.ThirtyMinutes:
+          return TimeSpan.FromMinutes(30);
+        case KlineInterval.OneHour:
+          return TimeSpan.FromHours(1);
+        case KlineInterval.TwoHour:
+          return TimeSpan.FromHours(2);
+        case KlineInterval.FourHour:
+          return TimeSpan.FromHours(4);
+        case KlineInterval.SixHour:
+          return TimeSpan.FromHours(6);
+        case KlineInterval.EightHour:
+          return TimeSpan.FromHours(8);
+        case KlineInterval.TwelveHour:
+          return TimeSpan.FromHours(12);
+        case KlineInterval.OneDay:
+          return TimeSpan.FromDays(1);
+        case KlineInterval.ThreeDay:
+          return TimeSpan.FromDays(3);
+        case KlineInterval.OneWeek:
+          return TimeSpan.FromDays(7);
+        case KlineInterval.OneMonth:
+          return TimeSpan.FromDays(30);
+        default:
+          throw new ArgumentOutOfRangeException(nameof(klineInterval), klineInterval, null);
       }
     }
   }
