@@ -48,12 +48,11 @@
                 <Grid Grid.Row="1">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="250" />
+                        <RowDefinition Height="auto" />
                         <RowDefinition />
                     </Grid.RowDefinitions>
 
-                    <UniformGrid Columns="2"
-                                 DataContext="{Binding Strategy}"
-                                 Rows="10">
+                    <UniformGrid Columns="2" DataContext="{Binding Strategy}">
                         <TextBlock Text="Starting Budget" />
                         <TextBlock Text="{Binding StartingBudget, StringFormat={}{0:N2} $}" />
                         <TextBlock Text="Total Value" />
@@ -81,9 +80,25 @@
                         <TextBlock Text="{Binding TotalSell}" />
                         <TextBlock Text="Total Buy" />
                         <TextBlock Text="{Binding TotalBuy}" />
+
+                        <TextBlock Text="Scale" />
+                        <TextBlock Text="{Binding ScaleSize}" />
+
                     </UniformGrid>
 
-                    <Grid Grid.Row="1" Margin="0,20,0,0">
+                    <ItemsControl Grid.Row="1" ItemsSource="{Binding Strategy.PositionSizeMapping}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Key}" />
+                                    <TextBlock Margin="10,0,0,0" Text="{Binding Value, StringFormat={}{0:N2}}" />
+                                </StackPanel>
+
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Grid Grid.Row="2" Margin="0,10,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition />
                             <RowDefinition />
@@ -132,6 +147,9 @@
                                                 <TextBlock Margin="10,0"
                                                            FontSize="15"
                                                            Text="{Binding OriginalPositionSize}" />
+                                                <TextBlock Margin="10,0"
+                                                           FontSize="15"
+                                                           Text="{Binding OriginalPositionSizeNative}" />
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>
@@ -139,14 +157,14 @@
                             </ItemsControl>
                         </ScrollViewer>
 
-                        <ScrollViewer Grid.Row="2" Margin="0,10">
+                        <ScrollViewer Grid.Row="2"
+                                      Margin="0,10"
+                                      HorizontalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding Strategy.ClosedSellPositions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border>
                                             <StackPanel>
-
-
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Margin="10,0"
                                                                FontSize="15"
@@ -157,12 +175,11 @@
                                                                Text="{Binding State}" />
                                                     <TextBlock Margin="10,0"
                                                                FontSize="15"
-                                                               Text="{Binding PositionSize}" />
+                                                               Text="{Binding OriginalPositionSize}" />
 
-                                                </StackPanel>
-
-                                                <StackPanel Orientation="Horizontal">
-
+                                                    <TextBlock Margin="10,0"
+                                                               FontSize="15"
+                                                               Text="{Binding OriginalPositionSizeNative}" />
 
                                                     <TextBlock Margin="10,0"
                                                                FontSize="15"
@@ -171,6 +188,7 @@
                                                     <TextBlock Margin="10,0"
                                                                FontSize="15"
                                                                Text="{Binding Profit, StringFormat=N2}" />
+
                                                 </StackPanel>
 
                                             </StackPanel>
@@ -180,7 +198,9 @@
                             </ItemsControl>
                         </ScrollViewer>
 
-                        <ScrollViewer Grid.Row="3" Margin="0,10">
+                        <ScrollViewer Grid.Row="3"
+                                      Margin="0,10"
+                                      HorizontalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding Strategy.OpenSellPositions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -198,22 +218,18 @@
                                                                Text="{Binding State}" />
                                                     <TextBlock Margin="10,0"
                                                                FontSize="15"
-                                                               Text="{Binding PositionSize}" />
+                                                               Text="{Binding OriginalPositionSize}" />
 
-                                                </StackPanel>
-
-                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Margin="10,0"
+                                                               FontSize="15"
+                                                               Text="{Binding OriginalPositionSizeNative}" />
 
 
                                                     <TextBlock Margin="10,0"
                                                                FontSize="15"
                                                                Text="{Binding Profit, StringFormat=N2}" />
 
-                                                    <TextBlock Margin="10,0"
-                                                               FontSize="15"
-                                                               Text="{Binding Profit, StringFormat=N2}" />
                                                 </StackPanel>
-
                                             </StackPanel>
                                         </Border>
                                     </DataTemplate>
@@ -221,8 +237,6 @@
                             </ItemsControl>
                         </ScrollViewer>
                     </Grid>
-
-
                 </Grid>
             </Grid>
         </Border>

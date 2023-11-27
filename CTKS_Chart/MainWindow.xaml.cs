@@ -37,6 +37,7 @@ namespace CTKS_Chart
   public partial class MainWindow : Window, INotifyPropertyChanged
   {
     private BinanceBroker binanceBroker = new BinanceBroker();
+
     public Asset Asset { get; set; } = new Asset();
 
 #if DEBUG
@@ -95,11 +96,11 @@ namespace CTKS_Chart
     #region KlineInterval
 
 #if DEBUG
-    private KlineInterval klineInterval = KlineInterval.FifteenMinutes;
+    private KlineInterval klineInterval = KlineInterval.OneHour;
 #endif
 
 #if RELEASE
-    private KlineInterval klineInterval = KlineInterval.FifteenMinutes;
+    private KlineInterval klineInterval = KlineInterval.OneHour;
 #endif
 
     public KlineInterval KlineInterval
@@ -126,6 +127,10 @@ namespace CTKS_Chart
       InitializeComponent();
       DataContext = this;
 
+      Strategy = new BinanceStrategy(binanceBroker);
+#if DEBUG
+      Strategy = new SimulationStrategy();
+#endif
       Strategy.Asset = Asset;
       ForexChart_Loaded();
 
@@ -136,7 +141,7 @@ namespace CTKS_Chart
 
     public ObservableCollection<Layout> Layouts { get; set; } = new ObservableCollection<Layout>();
 
-    public Strategy Strategy { get; set; } = new Strategy();
+    public Strategy Strategy { get; set; }
 
     #region Selected
 
@@ -265,7 +270,7 @@ namespace CTKS_Chart
       //var tradingView_12m = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\BTC-USD.csv";
 
 
-      var location = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data";
+      var location = "Data";
 
       var tradingView_btc_12m = $"{location}\\INDEX BTCUSD, 12M.csv";
       var tradingView_btc_6m = $"{location}\\INDEX BTCUSD, 6M.csv";
@@ -321,7 +326,7 @@ namespace CTKS_Chart
         new Tuple<string, TimeFrame>(tradingView__ada_3M, TimeFrame.M3),
         new Tuple<string, TimeFrame>(tradingView__ada_1M, TimeFrame.M1),
         new Tuple<string, TimeFrame>(tradingView__ada_2W, TimeFrame.W2),
-        new Tuple<string, TimeFrame>(tradingView__ada_1W, TimeFrame.W1),
+       new Tuple<string, TimeFrame>(tradingView__ada_1W, TimeFrame.W1),
       };
 
 
@@ -334,7 +339,7 @@ namespace CTKS_Chart
         TimeFrame = TimeFrame.D1
       };
 
-      var mainCandles = ParseTradingView(tradingView__ada_240);
+      var mainCandles = ParseTradingView(tradingView__ada_1D);
 
 
       MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
@@ -347,11 +352,11 @@ namespace CTKS_Chart
 
       if (IsLive)
       {
-        MainLayout.MaxValue = (decimal)0.39;
-        MainLayout.MinValue = (decimal)0.38;
+        MainLayout.MaxValue = (decimal)0.40;
+        MainLayout.MinValue = (decimal)0.28;
 
-        LoadLayouts(ada, MainLayout, mainCandles, maxDate, 0, mainCandles.Count - 0, !IsLive);
-        Strategy.OnCreatePosition.Subscribe(OnCreatePosition);
+        Strategy.LoadState();
+        LoadLayouts(ada, MainLayout, mainCandles, maxDate, 0, mainCandles.Count - 0);
       }
       else
       {
@@ -366,13 +371,14 @@ namespace CTKS_Chart
         //Strategy.Asset = Asset;
 
 
-        LoadLayouts(ada, MainLayout, mainCandles, maxDate, 0, mainCandles.Count - 0, !IsLive);
+        Strategy.LoadState();
+        LoadLayouts(ada, MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
+      
       }
 
     }
 
     #endregion
-
 
     #region LoadLAyouts
 
@@ -392,15 +398,15 @@ namespace CTKS_Chart
 
       var cutCandles = mainCandles.TakeLast(cut).ToList();
 
-      //if (simulate)
-      //{
-      //  ActualCandles = mainCandles.Skip(skip).SkipLast(cut).ToList();
-      //}
-      //else
-      //{
-      ActualCandles = (await binanceBroker.GetCandles(Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
-      await binanceBroker.SubscribeToKlineInterval(OnBinanceKlineUpdate, KlineInterval);
-      //}
+      if (simulate)
+      {
+        ActualCandles = mainCandles.Skip(skip).SkipLast(cut).ToList();
+      }
+      else
+      {
+        ActualCandles = (await binanceBroker.GetCandles(Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
+        await binanceBroker.SubscribeToKlineInterval(OnBinanceKlineUpdate, KlineInterval);
+      }
 
       foreach (var layoutData in layoutDatas)
       {
@@ -419,21 +425,24 @@ namespace CTKS_Chart
         RenderLayout(mainLayout, InnerLayouts, ActualCandles.Last(), ActualCandles);
       }
 
-      //if (simulate)
-      //  Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts, 100);
+      if (simulate)
+        Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts, 1);
     }
 
-   
+
     private async void RecreateChart()
     {
- 
-      ActualCandles = (await binanceBroker.GetCandles(Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
-      await binanceBroker.SubscribeToKlineInterval(OnBinanceKlineUpdate, KlineInterval);
-
-      if (ActualCandles.Count > 0)
+      if (IsLive)
       {
-        RenderLayout(MainLayout, InnerLayouts, ActualCandles.Last(), ActualCandles);
+        ActualCandles = (await binanceBroker.GetCandles(Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
+        await binanceBroker.SubscribeToKlineInterval(OnBinanceKlineUpdate, KlineInterval);
+
+        if (ActualCandles.Count > 0)
+        {
+          RenderLayout(MainLayout, InnerLayouts, ActualCandles.Last(), ActualCandles);
+        }
       }
+
     }
 
     #endregion
@@ -835,7 +844,7 @@ namespace CTKS_Chart
           desiredCanvasHeight = drawPoints.Item2;
         }
 
-        RenderIntersections(dc, layout, ctksIntersections, strategy.AllOpenedPositions.ToList(), desiredCanvasHeight, candles);
+        RenderIntersections(dc, layout, ctksIntersections, strategy.AllOpenedPositions.ToList(), desiredCanvasHeight, candles, IsLive ? TimeFrame.W1 : TimeFrame.M1);
 
 
         DrawActualPrice(dc, layout, candles);
@@ -993,6 +1002,8 @@ namespace CTKS_Chart
 
     #endregion
 
+    #region OnBinanceKlineUpdate
+
     private void OnBinanceKlineUpdate(IBinanceStreamKline binanceStreamKline)
     {
       lock (this)
@@ -1025,16 +1036,9 @@ namespace CTKS_Chart
       }
     }
 
-    private async void OnCreatePosition(Position position)
-    {
-      if (IsLive)
-      {
-        if (position.Side == PositionSide.Buy)
-          await binanceBroker.Buy(Asset.Symbol, position.PositionSizeNative, position.Price);
-        else
-          await binanceBroker.Sell(Asset.Symbol, position.PositionSizeNative, position.Price);
-      }
-    }
+    #endregion
+
+    #region GetTimeSpanFromInterval
 
     private TimeSpan GetTimeSpanFromInterval(KlineInterval klineInterval)
     {
@@ -1076,5 +1080,7 @@ namespace CTKS_Chart
           throw new ArgumentOutOfRangeException(nameof(klineInterval), klineInterval, null);
       }
     }
+
+    #endregion
   }
 }

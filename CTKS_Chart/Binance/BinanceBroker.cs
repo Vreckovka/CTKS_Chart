@@ -108,9 +108,8 @@ namespace CTKS_Chart.Binance
 
 
     private SemaphoreSlim createPositionLock = new SemaphoreSlim(1, 1);
-    public async Task Buy(string symbol, decimal tradeAmount, decimal price)
+    public async Task<long> Buy(string symbol, decimal tradeAmount, decimal price)
     {
-
       try
       {
         await createPositionLock.WaitAsync();
@@ -123,6 +122,9 @@ namespace CTKS_Chart.Binance
             tradeAmount,
             price: price,
             timeInForce: TimeInForce.GoodTillCanceled);
+
+          if (result.Success)
+            return result.Data.Id;
         }
       }
       catch (Exception ex)
@@ -133,9 +135,11 @@ namespace CTKS_Chart.Binance
       {
         createPositionLock.Release();
       }
+
+      return 0;
     }
 
-    public async Task Sell(string symbol, decimal tradeAmount, decimal price)
+    public async Task<long> Sell(string symbol, decimal tradeAmount, decimal price)
     {
 
       try
@@ -150,6 +154,30 @@ namespace CTKS_Chart.Binance
             tradeAmount,
             price: price,
             timeInForce: TimeInForce.GoodTillCanceled);
+
+          if (result.Success)
+            return result.Data.Id;
+        }
+      }
+      finally
+      {
+        createPositionLock.Release();
+      }
+
+      return 0;
+    }
+
+    public async Task<bool> Close(string symbol, long positionId)
+    {
+
+      try
+      {
+        await createPositionLock.WaitAsync();
+        using (var client = new BinanceRestClient())
+        {
+          var result = await client.SpotApi.Trading.CancelOrderAsync(symbol, positionId);
+
+          return result.Success;
         }
       }
       finally

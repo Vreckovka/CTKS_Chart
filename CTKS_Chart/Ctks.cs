@@ -20,19 +20,19 @@ namespace CTKS_Chart
 
   public enum TimeFrame
   {
-    Null = 7,
-    M12 = 6,
-    M6 = 5,
-    M3 = 4,
-    M1 =3,
-    W2 = 2,
-    W1 = 1,
-    D1 =1
+    Null = 8,
+    M12 = 7,
+    M6 = 6,
+    M3 = 5,
+    M1 = 4,
+    W2 = 3,
+    W1 = 2,
+    D1 = 1
   }
+
 
   public class CtksIntersection
   {
-    public CtksLine Line { get; set; }
     public decimal Value { get; set; }
     public TimeFrame TimeFrame { get; set; }
   }
@@ -245,7 +245,6 @@ namespace CTKS_Chart
 
         var intersection = new CtksIntersection()
         {
-          Line = line,
           Value = value,
           TimeFrame = line.TimeFrame,
         };
@@ -311,7 +310,6 @@ namespace CTKS_Chart
         circle.Fill = Brushes.Red;
 
         var actualLeft = Canvas.GetLeft(lastCandle) + lastCandle.Width / 2;
-        var line = intersection.Line;
 
         var actual = GetCanvasValue(canvasHeight, intersection.Value);
 

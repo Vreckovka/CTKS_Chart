@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -12,8 +14,13 @@ using VCore.Standard.Helpers;
 
 namespace CTKS_Chart
 {
-  public class Strategy : ViewModel
+  public abstract class Strategy : ViewModel
   {
+    public Strategy()
+    {
+      budget = StartingBudget;
+    }
+
     private Subject<Position> onCreatePositionSub = new Subject<Position>();
     public IObservable<Position> OnCreatePosition
     {
@@ -28,21 +35,44 @@ namespace CTKS_Chart
     public decimal MinPositionValue { get; set; } = 6;
 
     public const decimal Multiplicator = (decimal)1;
+    public double ScaleSize { get; set; } = 3;
+
     public ObservableCollection<Position> ClosedBuyPositions { get; set; } = new ObservableCollection<Position>();
     public ObservableCollection<Position> ClosedSellPositions { get; set; } = new ObservableCollection<Position>();
 
     public ObservableCollection<Position> OpenSellPositions { get; set; } = new ObservableCollection<Position>();
     public ObservableCollection<Position> OpenBuyPositions { get; set; } = new ObservableCollection<Position>();
 
-    public Dictionary<TimeFrame, decimal> PositionSizeMapping { get; } = new Dictionary<TimeFrame, decimal>()
+
+
+    #region PositionSizeMapping
+
+    private Dictionary<TimeFrame, decimal> positionSizeMapping = new Dictionary<TimeFrame, decimal>()
     {
       {TimeFrame.M12, 200},
       {TimeFrame.M6, 100},
-      {TimeFrame.M3, 50},
-      {TimeFrame.M1, 30},
-      {TimeFrame.W2, 20},
-      {TimeFrame.W1, 10},
+      { TimeFrame.M3, 50},
+      { TimeFrame.M1, 30},
+      { TimeFrame.W2, 20},
+      { TimeFrame.W1, 10},
     };
+
+    public Dictionary<TimeFrame, decimal> PositionSizeMapping
+    {
+      get { return positionSizeMapping; }
+      set
+      {
+        if (value != positionSizeMapping)
+        {
+          positionSizeMapping = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
 
     public Dictionary<TimeFrame, double> MinSellProfitMapping { get; } = new Dictionary<TimeFrame, double>()
     {
@@ -53,6 +83,8 @@ namespace CTKS_Chart
       {TimeFrame.W2,  0.01},
       {TimeFrame.W1,  0.01},
     };
+
+
 
     public IEnumerable<Position> AllClosedPositions
     {
@@ -88,17 +120,11 @@ namespace CTKS_Chart
     }
     #endregion
 
-    public static decimal StartingBudget
-    {
-      get
-      {
-        return 2000 * Multiplicator;
-      }
-    }
+    public decimal StartingBudget { get; protected set; } = 1500 * Multiplicator;
 
     #region Budget
 
-    private decimal budget = StartingBudget;
+    private decimal budget;
 
     public decimal Budget
     {
@@ -229,75 +255,78 @@ namespace CTKS_Chart
 
     #region CreatePositions
 
-    public void CreatePositions(Candle actualCandle, List<CtksIntersection> ctksIntersections)
+    private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+    public async void CreatePositions(Candle actualCandle, List<CtksIntersection> ctksIntersections)
     {
-      var minPrice = actualCandle.Low * (decimal)0.75;
 
-      var openedBuy = OpenBuyPositions.Where(x => !ctksIntersections.Any(y => y.Value == x.Intersection.Value)).ToList();
-      var openedSell = OpenSellPositions.Where(x => !ctksIntersections.Any(y => y.Value == x.Intersection.Value)).ToList();
-      var ordered = ctksIntersections.OrderBy(x => x.Value).ToList();
-
-
-      foreach (var buyPosition in openedBuy)
+      try
       {
-        OpenBuyPositions.Remove(buyPosition);
-        Budget += buyPosition.PositionSize;
-      }
+        await semaphoreSlim.WaitAsync();
+        var minPrice = actualCandle.Close * (decimal)0.75;
 
-      var removedBu = new HashSet<Position>();
-
-      foreach (var sellPosition in openedSell)
-      {
-        var buy = sellPosition.OpositPositions[0];
-        buy.OpositPositions.Remove(sellPosition);
-        buy.PositionSize += sellPosition.PositionSize;
-        buy.PositionSizeNative += sellPosition.PositionSizeNative;
-        LeftSize += sellPosition.PositionSizeNative;
-
-        OpenSellPositions.Remove(sellPosition);
-        removedBu.Add(buy);
-      }
+        var openedBuy = OpenBuyPositions.Where(x => !ctksIntersections.Any(y => y.Value == x.Intersection.Value)).ToList();
+        var openedSell = OpenSellPositions.Where(x => !ctksIntersections.Any(y => y.Value == x.Intersection.Value)).ToList();
+        var ordered = ctksIntersections.OrderBy(x => x.Value).ToList();
 
 
-      foreach (var opened in removedBu)
-      {
-        CreateSellPositionForBuy(opened, ordered, actualCandle);
-      }
+        foreach (var buyPosition in openedBuy)
+        {
+          await OnCancelPosition(buyPosition);
+        }
 
+        var removedBu = new HashSet<Position>();
 
-      foreach (var intersection in
-        ctksIntersections
-          .Where(x => x.Value < actualCandle.Close.Value && x.Value > minPrice && x.Value < GetMinBuy(actualCandle.Close.Value, x.TimeFrame)))
-      {
-        var positionsOnIntersesction = AllOpenedPositions
-          .Where(x => x.Intersection?.Value == intersection.Value)
+        foreach (var sellPosition in openedSell)
+        {
+          await OnCancelPosition(sellPosition, removedBu);
+        }
+
+        foreach (var opened in removedBu)
+        {
+          await CreateSellPositionForBuy(opened, ordered, actualCandle);
+        }
+
+        var inter = ctksIntersections
+          .Where(x => x.Value < actualCandle.Close.Value && x.Value > minPrice && x.Value < GetMinBuy(actualCandle.Close.Value, x.TimeFrame))
+          .OrderByDescending(x => x.Value)
           .ToList();
 
-        var maxPOsitionOnIntersection = GetPositionSize(intersection.TimeFrame);
-        var sum = positionsOnIntersesction.Sum(x => x.PositionSize);
-
-        var existing = AllClosedPositions
-          .Where(x => x.Intersection.Value == intersection.Value)
-          .Where(x => x.State == PositionState.Filled)
-          .Sum(x => x.OpositPositions.Sum(y => y.PositionSize));
-
-        var leftSize = maxPOsitionOnIntersection - sum;
-
-        if (existing > 0)
+        foreach (var intersection in inter)
         {
-          leftSize = leftSize - existing;
-        }
+          var positionsOnIntersesction = AllOpenedPositions
+            .Where(x => x.Intersection?.Value == intersection.Value)
+            .ToList();
 
-        if (Budget < leftSize)
-        {
-          return;
-        }
+          var maxPOsitionOnIntersection = GetPositionSize(intersection.TimeFrame);
+          var sum = positionsOnIntersesction.Sum(x => x.PositionSize);
+
+          var existing = AllClosedPositions
+            .Where(x => x.Intersection.Value == intersection.Value)
+            .Where(x => x.State == PositionState.Filled)
+            .Sum(x => x.OpositPositions.Sum(y => y.PositionSize));
+
+          var leftSize = maxPOsitionOnIntersection - sum;
+
+          if (existing > 0)
+          {
+            leftSize = leftSize - existing;
+          }
+
+          if (Budget < leftSize)
+          {
+            return;
+          }
 
 
-        if (leftSize > MinPositionValue)
-        {
-          CreateBuyPosition(leftSize, intersection);
+          if (leftSize > MinPositionValue)
+          {
+            await CreateBuyPosition(leftSize, intersection);
+          }
         }
+      }
+      finally
+      {
+        semaphoreSlim.Release();
       }
     }
 
@@ -314,27 +343,27 @@ namespace CTKS_Chart
 
     #region ValidatePositions
 
-    public void ValidatePositions(Candle candle, IEnumerable<CtksIntersection> ctksIntersections)
+    public async void ValidatePositions(Candle candle, IEnumerable<CtksIntersection> ctksIntersections)
     {
       var ordered = ctksIntersections.OrderBy(x => x.Value).ToList();
 
       for (int i = 0; i < 2; i++)
       {
-        var allPositions = AllOpenedPositions.ToList();
+        var allPositions = AllOpenedPositions.Where(x => x.State == PositionState.Open).ToList();
 
         foreach (var position in allPositions)
         {
-          if (candle.Low.Value <= position.Price && position.Price < candle.High.Value)
+          if (IsPositionFilled(candle, position))
           {
-            position.State = PositionState.Filled;
-
             if (position.Side == PositionSide.Buy)
             {
+              position.State = PositionState.Filled;
+
               TotalBuy += position.PositionSize;
               TotalNativeAsset += position.PositionSizeNative;
               LeftSize += position.PositionSizeNative;
 
-              CreateSellPositionForBuy(position, ordered, candle);
+              await CreateSellPositionForBuy(position, ordered, candle);
 
               ClosedBuyPositions.Add(position);
               OpenBuyPositions.Remove(position);
@@ -345,7 +374,6 @@ namespace CTKS_Chart
               {
                 CloseSell(closedWithin);
               }
-
             }
             else
             {
@@ -353,18 +381,10 @@ namespace CTKS_Chart
             }
           }
 
-          if (position.Price < candle.Low.Value * (decimal)0.75 && position.State == PositionState.Open)
-          {
-            if (position.Side == PositionSide.Buy)
-            {
-              OpenBuyPositions.Remove(position);
-            }
-            else
-            {
-              OpenSellPositions.Remove(position);
-            }
 
-            Budget += position.PositionSize;
+          if (position.Price < candle.Close.Value * (decimal)0.75 && position.State == PositionState.Open)
+          {
+            await OnCancelPosition(position);
           }
         }
       }
@@ -385,10 +405,9 @@ namespace CTKS_Chart
 
     #region CreateSellPositionForBuy
 
-    private decimal created;
-    private void CreateSellPositionForBuy(Position position, IEnumerable<CtksIntersection> ctksIntersections, Candle actualCandle)
+    protected async Task CreateSellPositionForBuy(Position position, IEnumerable<CtksIntersection> ctksIntersections, Candle actualCandle)
     {
-      CreateSell(position, ctksIntersections, actualCandle);
+      await CreateSell(position, ctksIntersections, actualCandle);
 
       var sumOposite = position.OpositPositions.Sum(x => x.OriginalPositionSizeNative);
       if (sumOposite != position.OriginalPositionSizeNative)
@@ -402,7 +421,7 @@ namespace CTKS_Chart
 
     #region CreateSell
 
-    private void CreateSell(Position position, IEnumerable<CtksIntersection> ctksIntersections, Candle actualCandle)
+    private async Task CreateSell(Position position, IEnumerable<CtksIntersection> ctksIntersections, Candle actualCandle)
     {
       var minPrice = position.Price * (decimal)(1.0 + MinSellProfitMapping[position.TimeFrame]);
       var nextLines = ctksIntersections.Where(x => x.Value > minPrice && x.Value > actualCandle.Close.Value).ToList();
@@ -435,7 +454,7 @@ namespace CTKS_Chart
 
           leftPositionSize = (decimal)maxPOsitionOnIntersection - positionsOnIntersesction;
 
-         
+
           if (!forcePositionSize && MinPositionValue > leftPositionSize)
           {
             continue;
@@ -456,9 +475,6 @@ namespace CTKS_Chart
             else
               positionSize = position.PositionSize;
           }
-
-
-
 
           var roundedNativeSize = Math.Round(positionSize / position.Price, Asset.NativeRound);
 
@@ -506,11 +522,10 @@ namespace CTKS_Chart
           position.PositionSizeNative -= roundedNativeSize;
           position.OpositPositions.Add(newPosition);
 
-          created += newPosition.PositionSizeNative;
 
           createdPositions.Add(newPosition);
 
-         
+
 
           if (position.PositionSize <= 0)
             break;
@@ -521,21 +536,36 @@ namespace CTKS_Chart
 
       foreach (var sell in createdPositions)
       {
-        onCreatePositionSub.OnNext(sell);
-        OpenSellPositions.Add(sell);
+        var id = await CreatePosition(sell);
 
-        LeftSize -= sell.PositionSizeNative;
+        if (id > 0)
+        {
+          sell.Id = id;
 
-        if (LeftSize < 0)
-          throw new Exception("Left native size is less than 0 !!");
+          onCreatePositionSub.OnNext(sell);
+          OpenSellPositions.Add(sell);
+
+          LeftSize -= sell.PositionSizeNative;
+
+          if (LeftSize < 0)
+            throw new Exception("Left native size is less than 0 !!");
+        }
+        else
+        {
+          throw new Exception("Sell was not created !!");
+        }
       }
+
+      SaveState();
     }
 
     #endregion
 
-    private decimal LeftSize = 0;
+    protected decimal LeftSize = 0;
 
-    private void CreateBuyPosition(decimal positionSize, CtksIntersection intersection)
+    #region CreateBuyPosition
+
+    private async Task CreateBuyPosition(decimal positionSize, CtksIntersection intersection)
     {
       var existingBuys = ClosedBuyPositions
         .Where(x => x.State == PositionState.Filled)
@@ -567,11 +597,22 @@ namespace CTKS_Chart
         Side = PositionSide.Buy,
       };
 
-      Budget -= newPosition.PositionSize;
-      OpenBuyPositions.Add(newPosition);
+      var id = await CreatePosition(newPosition);
 
-      onCreatePositionSub.OnNext(newPosition);
+      if (id > 0)
+      {
+        newPosition.Id = id;
+
+        Budget -= newPosition.PositionSize;
+        OpenBuyPositions.Add(newPosition);
+
+        onCreatePositionSub.OnNext(newPosition);
+      }
+
+      SaveState();
     }
+
+    #endregion
 
     #region RenderPositions
 
@@ -650,8 +691,10 @@ namespace CTKS_Chart
 
     #region CloseSell
 
-    private void CloseSell(Position position)
+    protected void CloseSell(Position position)
     {
+      position.State = PositionState.Filled;
+
       ClosedSellPositions.Add(position);
       OpenSellPositions.Remove(position);
 
@@ -681,24 +724,84 @@ namespace CTKS_Chart
       {
         originalBuy.State = PositionState.Completed;
       }
+
+      SaveState();
     }
 
     #endregion
 
+    #region Scale
+
     private void Scale(decimal profit)
     {
-      var perc = ((profit* (decimal)100.0 / TotalProfit) ) / (decimal)100.0;
+      var perc = ((profit * (decimal)100.0 / (TotalProfit + StartingBudget))) / (decimal)100.0;
+      var map = PositionSizeMapping.ToList();
 
-      if (perc > 0 && perc < (decimal)0.01)
+      var size = (1 + (perc * (decimal)1 * (decimal)ScaleSize));
+      var maxValue = (TotalProfit + StartingBudget);
+      var nextMaxValue = PositionSizeMapping[TimeFrame.M12] * size;
+
+      var newList = new Dictionary<TimeFrame, decimal>();
+
+      if (nextMaxValue < maxValue)
       {
-        var map = PositionSizeMapping.ToList();
-
         foreach (var mapping in map)
         {
-          PositionSizeMapping[mapping.Key] *= (1 + (perc * (decimal)1));
+          newList.Add(mapping.Key, mapping.Value * size);
+        }
+
+        PositionSizeMapping = newList;
+
+        SaveState();
+      }
+    }
+
+    #endregion
+
+    private async Task OnCancelPosition(Position position, HashSet<Position> removed = null)
+    {
+      var cancled = await CancelPosition(position);
+
+      if (cancled)
+      {
+        if (position.Side == PositionSide.Buy)
+        {
+          OpenBuyPositions.Remove(position);
+          Budget += position.PositionSize;
+        }
+        else
+        {
+          var buy = position.OpositPositions[0];
+          buy.OpositPositions.Remove(position);
+          buy.PositionSize += position.PositionSize;
+          buy.PositionSizeNative += position.PositionSizeNative;
+          LeftSize += position.PositionSizeNative;
+
+          OpenSellPositions.Remove(position);
+
+          if (removed != null)
+            removed.Add(buy);
         }
       }
-    
+
+      SaveState();
+    }
+
+    protected abstract Task<bool> CancelPosition(Position position);
+    protected abstract Task<long> CreatePosition(Position position);
+    public abstract void SaveState();
+    public abstract void LoadState();
+
+    public virtual bool IsPositionFilled(Candle candle, Position position)
+    {
+      if (position.Side == PositionSide.Buy)
+      {
+        return candle.Close.Value <= position.Price;
+      }
+      else
+      {
+        return candle.Close.Value >= position.Price;
+      }
     }
   }
 }
