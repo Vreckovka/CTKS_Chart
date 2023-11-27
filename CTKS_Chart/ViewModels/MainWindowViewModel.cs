@@ -5,45 +5,30 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using Binance.Net.Enums;
 using Binance.Net.Interfaces;
 using CTKS_Chart.Binance;
+using VCore.Standard.Factories.ViewModels;
 using VCore.Standard.Helpers;
-using VCore.Standard.Modularity.Interfaces;
 using VCore.WPF;
-using VCore.WPF.Managers;
 using VCore.WPF.Misc;
-#pragma warning disable 618
+using VCore.WPF.ViewModels;
 
-namespace CTKS_Chart
+namespace CTKS_Chart.ViewModels
 {
-  public class Asset
+  public class MainWindowViewModel : BaseMainWindowViewModel
   {
-    public string Symbol { get; set; } = "ADAUSDT";
-    public int NativeRound { get; set; } = 1;
-    public int PriceRound { get; set; } = 4;
-  }
-
-  /// <summary>
-  /// Interaction logic for MainWindow.xaml
-  /// </summary>
-  public partial class MainWindow : IView
-  {
-    public MainWindow()
+    public MainWindowViewModel(IViewModelsFactory viewModelsFactory) : base(viewModelsFactory)
     {
-      InitializeComponent();
-      DataContext = this;
-
       VSynchronizationContext.UISynchronizationContext = SynchronizationContext.Current;
       VSynchronizationContext.UIDispatcher = Application.Current.Dispatcher;
 
@@ -213,17 +198,18 @@ namespace CTKS_Chart
 
     protected virtual void OnShowCanvas(Layout layout)
     {
-      main_grid.Children.Clear();
+      //SelectedLayout = layout;
+      //main_grid.Children.Clear();
 
-      if (layout.Canvas == null)
-      {
-        chart_image.Visibility = Visibility.Visible;
-      }
-      else
-      {
-        main_grid.Children.Add(layout.Canvas);
-        chart_image.Visibility = Visibility.Collapsed;
-      }
+      //if (layout.Canvas == null)
+      //{
+      //  chart_image.Visibility = Visibility.Visible;
+      //}
+      //else
+      //{
+      //  main_grid.Children.Add(layout.Canvas);
+      //  chart_image.Visibility = Visibility.Collapsed;
+      //}
 
       SelectedLayout = layout;
     }
@@ -365,13 +351,16 @@ namespace CTKS_Chart
         TimeFrame = TimeFrame.D1
       };
 
-     
+      var mainCandles = ParseTradingView(tradingView__ada_15);
 
+
+      MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
+      MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
       MaxValue = MainLayout.MaxValue;
       MinValue = MainLayout.MinValue;
 
-    
+      var maxDate = mainCandles.First().Time;
 
       if (IsLive)
       {
@@ -379,19 +368,10 @@ namespace CTKS_Chart
         MainLayout.MinValue = (decimal)0.28;
 
         Strategy.LoadState();
-        LoadLayouts(ada, MainLayout);
+        LoadLayouts(ada, MainLayout, mainCandles, maxDate, 0, mainCandles.Count - 0);
       }
       else
       {
-        var mainCandles = ParseTradingView(tradingView__ada_15);
-
-
-        MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
-        MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
-
-        var maxDate = mainCandles.First().Time;
-
-
         //Asset = new Asset()
         //{
         //  NativeRound = 8,
@@ -419,7 +399,7 @@ namespace CTKS_Chart
 
     private async void LoadLayouts(IList<Tuple<string, TimeFrame>> layoutDatas,
       Layout mainLayout,
-      IList<Candle> mainCandles = null,
+      IList<Candle> mainCandles,
       DateTime? maxTime = null,
       int skip = 0,
       int cut = 0,
@@ -427,10 +407,11 @@ namespace CTKS_Chart
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, CanvasHeight, CanvasWidth, Asset);
 
-      if (simulate && mainCandles != null)
-      {
-       
 
+      var cutCandles = mainCandles.TakeLast(cut).ToList();
+
+      if (simulate)
+      {
         ActualCandles = mainCandles.Skip(skip).SkipLast(cut).ToList();
       }
       else
@@ -458,13 +439,8 @@ namespace CTKS_Chart
         RenderLayout(mainLayout, InnerLayouts, ActualCandles.Last(), ActualCandles);
       }
 
-      if (simulate && mainCandles != null)
-      {
-        var cutCandles = mainCandles.TakeLast(cut).ToList();
-
+      if (simulate)
         Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts, 0);
-      }
-      
     }
 
     #region RecreateChart
@@ -942,7 +918,6 @@ namespace CTKS_Chart
       DrawingImage dImageSource = new DrawingImage(dGroup);
 
       Chart = dImageSource;
-      this.chart_image.Source = Chart;
     }
 
     #endregion
@@ -1172,8 +1147,5 @@ namespace CTKS_Chart
     }
 
     #endregion
-
-
-    
   }
 }

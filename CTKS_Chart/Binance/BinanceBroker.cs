@@ -106,6 +106,7 @@ namespace CTKS_Chart.Binance
       }
     }
 
+    #region Buy
 
     private SemaphoreSlim createPositionLock = new SemaphoreSlim(1, 1);
     public async Task<long> Buy(string symbol, decimal tradeAmount, decimal price)
@@ -139,6 +140,10 @@ namespace CTKS_Chart.Binance
       return 0;
     }
 
+    #endregion
+
+    #region Sell
+
     public async Task<long> Sell(string symbol, decimal tradeAmount, decimal price)
     {
 
@@ -167,6 +172,10 @@ namespace CTKS_Chart.Binance
       return 0;
     }
 
+    #endregion
+
+    #region Close
+
     public async Task<bool> Close(string symbol, long positionId)
     {
 
@@ -187,6 +196,9 @@ namespace CTKS_Chart.Binance
 
     }
 
+    #endregion
+
+    #region SubscribeToKlineInterval
 
     private SemaphoreSlim subscribeToKlineIntervaLock = new SemaphoreSlim(1, 1);
     private int subId;
@@ -217,6 +229,8 @@ namespace CTKS_Chart.Binance
       }
     }
 
+    #endregion
+
     public async Task SubscribeUserStream()
     {
       using (var client = new BinanceRestClient())
@@ -234,9 +248,6 @@ namespace CTKS_Chart.Binance
           return;
         }
 
-
-
-
         var accountResult = await client.SpotApi.Account.GetAccountInfoAsync();
 
       }
@@ -252,39 +263,17 @@ namespace CTKS_Chart.Binance
     {
       var orderUpdate = data.Data;
 
-      //var symbol = AllPrices.SingleOrDefault(a => a.Symbol == orderUpdate.Symbol);
-      //if (symbol == null)
-      //  return;
-
       lock (orderLock)
       {
-        //var order = symbol.Orders.SingleOrDefault(o => o.Id == orderUpdate.Id);
-        //if (order == null)
-        {
-          if (orderUpdate.RejectReason != OrderRejectReason.None || orderUpdate.ExecutionType != ExecutionType.New)
-            // Order got rejected, no need to show
-            return;
 
-          Application.Current.Dispatcher.Invoke(() =>
-          {
-            //symbol.AddOrder(new OrderViewModel()
-            //{
-            //  ExecutedQuantity = orderUpdate.QuoteQuantityFilled,
-            //  Id = orderUpdate.Id,
-            //  OriginalQuantity = orderUpdate.Quantity,
-            //  Price = orderUpdate.Price,
-            //  Side = orderUpdate.Side,
-            //  Status = orderUpdate.Status,
-            //  Symbol = orderUpdate.Symbol,
-            //  Time = orderUpdate.CreateTime,
-            //  Type = orderUpdate.Type
-            //});
-          });
-        }
-        // else
+
+        if (orderUpdate.RejectReason != OrderRejectReason.None || orderUpdate.ExecutionType != ExecutionType.New)
+          // Order got rejected, no need to show
+          return;
+
+        if (orderUpdate.Status == OrderStatus.Filled)
         {
-          //   order.ExecutedQuantity = orderUpdate.QuantityFilled;
-          //   order.Status = orderUpdate.Status;
+
         }
       }
     }

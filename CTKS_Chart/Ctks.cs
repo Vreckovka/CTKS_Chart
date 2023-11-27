@@ -204,7 +204,7 @@ namespace CTKS_Chart
 
     public void CreateLines(IList<Candle> candles, TimeFrame timeFrame)
     {
-      for (int i = 0; i < candles.Count - 2; i++)
+      for (int i = 0; i < candles.Count - 1; i++)
       {
         var currentCandle = candles[i];
         var nextCandle = candles[i + 1];

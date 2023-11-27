@@ -39,6 +39,16 @@
                             <Border>
                                 <Button Command="{Binding DataContext.ShowCanvas, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
                                     <TextBlock FontSize="15" Text="{Binding Title}" />
+
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsOutDated}" Value="True">
+                                                    <Setter Property="Background" Value="#f25e5e" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
                                 </Button>
                             </Border>
                         </DataTemplate>
@@ -271,13 +281,12 @@
         <Grid Grid.Row="1"
               Grid.Column="1"
               Width="{Binding CanvasWidth}"
-              Height="{Binding CanvasHeight}">
+              Height="{Binding CanvasHeight}"
+              DataContext="{Binding Selected}">
 
             <Image x:Name="chart_image" />
             <Grid x:Name="main_grid" />
-            <Canvas x:Name="overaly_canvas"
-                    Panel.ZIndex="1"
-                    Background="Transparent" />
+
         </Grid>
     </Grid>
 </Window>
