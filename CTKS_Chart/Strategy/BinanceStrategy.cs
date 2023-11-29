@@ -103,8 +103,9 @@ namespace CTKS_Chart
 
         var map = JsonSerializer.Deserialize<IEnumerable<KeyValuePair<TimeFrame, decimal>>>(File.ReadAllText(Path.Combine(path, "map.json")));
 
+        var data = File.ReadAllText(Path.Combine(path, "budget.json"));
         PositionSizeMapping = map.ToDictionary(x => x.Key, x => x.Value);
-        Budget = decimal.Parse(File.ReadAllText(Path.Combine(path, "budget.json")));
+        Budget = (decimal)double.Parse(File.ReadAllText(Path.Combine(path, "budget.json")));
         TotalProfit = decimal.Parse(File.ReadAllText(Path.Combine(path, "totalProfit.json")));
         StartingBudget = decimal.Parse(File.ReadAllText(Path.Combine(path, "startBug.json")));
         TotalNativeAsset = decimal.Parse(File.ReadAllText(Path.Combine(path, "native.json")));

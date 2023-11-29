@@ -35,7 +35,7 @@ namespace CTKS_Chart
     public decimal MinPositionValue { get; set; } = 6;
 
     public const decimal Multiplicator = (decimal)1;
-    public double ScaleSize { get; set; } = 3;
+    public double ScaleSize { get; set; } = 10;
 
     public ObservableCollection<Position> ClosedBuyPositions { get; set; } = new ObservableCollection<Position>();
     public ObservableCollection<Position> ClosedSellPositions { get; set; } = new ObservableCollection<Position>();
@@ -120,7 +120,7 @@ namespace CTKS_Chart
     }
     #endregion
 
-    public decimal StartingBudget { get; protected set; } = 1500 * Multiplicator;
+    public decimal StartingBudget { get; protected set; } = 1000 * Multiplicator;
 
     #region Budget
 

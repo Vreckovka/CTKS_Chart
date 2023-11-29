@@ -1,7 +1,11 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
+using VCore;
 using VCore.Standard.Helpers;
 
 namespace CTKS_Chart
@@ -35,10 +39,6 @@ namespace CTKS_Chart
 
   public class SimulationStrategy : Strategy
   {
-    public override void LoadState()
-    {
-    }
-
     public override bool IsPositionFilled(Candle candle, Position position)
     {
       if (position.Side == PositionSide.Buy)
@@ -62,9 +62,17 @@ namespace CTKS_Chart
       return Task.FromResult((long)actual++);
     }
 
+
+    string path = "State";
+
     public override void SaveState()
     {
-      
+    
+    }
+
+    public override void LoadState()
+    {
+     
     }
   }
 }

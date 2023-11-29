@@ -47,16 +47,14 @@ namespace CTKS_Chart
       VSynchronizationContext.UISynchronizationContext = SynchronizationContext.Current;
       VSynchronizationContext.UIDispatcher = Application.Current.Dispatcher;
 
+      CultureInfo.CurrentCulture = new CultureInfo("en-US");
+
       Strategy = new BinanceStrategy(binanceBroker);
 #if DEBUG
       Strategy = new SimulationStrategy();
 #endif
-      Strategy.Asset = Asset;
+
       ForexChart_Loaded();
-
-
-      //binanceBroker.PlaceSpotOrder("BTCUSDT", (decimal)0.001, PositionSide.Buy);
-      //binanceBroker.GetOpenOrders("BTCUSDT");
     }
 
     private BinanceBroker binanceBroker = new BinanceBroker();
@@ -64,7 +62,7 @@ namespace CTKS_Chart
     public Asset Asset { get; set; } = new Asset();
 
 #if DEBUG
-    public bool IsLive { get; set; } = false;
+    public bool IsLive { get; set; } = true;
 #endif
 
 #if RELEASE
@@ -115,7 +113,6 @@ namespace CTKS_Chart
 
     #endregion
 
-
     #region KlineInterval
 
 #if DEBUG
@@ -143,7 +140,6 @@ namespace CTKS_Chart
     #endregion
 
     public ObservableCollection<Layout> Layouts { get; set; } = new ObservableCollection<Layout>();
-
     public Strategy Strategy { get; set; }
 
     #region Selected
@@ -165,16 +161,9 @@ namespace CTKS_Chart
 
     #endregion
 
-
-    //double maxValue = 0.40;
-    //double minValue = 0.22;
-
     public double CanvasHeight { get; set; } = 1000;
     public double CanvasWidth { get; set; } = 1000;
-
     public Layout MainLayout { get; set; }
-
-
 
     #region Chart
 
@@ -194,8 +183,6 @@ namespace CTKS_Chart
     }
 
     #endregion
-
-
 
     #region Commands
 
@@ -331,6 +318,13 @@ namespace CTKS_Chart
       var tradingView_spy_3 = $"{location}\\BATS SPY, 3M.csv";
       var tradingView_spy_1D = $"{location}\\BATS SPY, 1D.csv";
 
+      var tradingView__ltc_12M = $"{location}\\BINANCE LTCUSD, 12M.csv";
+      var tradingView__ltc_6M = $"{location}\\BINANCE LTCUSD, 6M.csv";
+      var tradingView__ltc_3M = $"{location}\\BINANCE LTCUSD, 3M.csv";
+      var tradingView__ltc_1M = $"{location}\\BINANCE LTCUSD, 1M.csv";
+      var tradingView__ltc_2W = $"{location}\\BINANCE LTCUSD, 2W.csv";
+      var tradingView__ltc_1W = $"{location}\\BINANCE LTCUSD, 1W.csv";
+
 
       var spy = new[] {
         new Tuple<string, TimeFrame>(tradingView_spy_12, TimeFrame.M12),
@@ -355,6 +349,15 @@ namespace CTKS_Chart
        new Tuple<string, TimeFrame>(tradingView__ada_1W, TimeFrame.W1),
       };
 
+      var ltc = new[] {
+        new Tuple<string, TimeFrame>(tradingView__ltc_12M, TimeFrame.M12),
+        new Tuple<string, TimeFrame>(tradingView__ltc_6M, TimeFrame.M6),
+        new Tuple<string, TimeFrame>(tradingView__ltc_3M, TimeFrame.M3),
+        new Tuple<string, TimeFrame>(tradingView__ltc_1M, TimeFrame.M1),
+        new Tuple<string, TimeFrame>(tradingView__ltc_2W, TimeFrame.W2),
+        new Tuple<string, TimeFrame>(tradingView__ltc_1W, TimeFrame.W1),
+      };
+
 
       //LoadLayouts(spy, new Tuple<string, TimeFrame>(tradingView_spy_1D, TimeFrame.D1), mainCanvas, 900, 100);
       //LoadLayouts(btc, new Tuple<string, TimeFrame>(tradingView_btc_720m, TimeFrame.D1), mainCanvas, 0, 0);
@@ -365,18 +368,19 @@ namespace CTKS_Chart
         TimeFrame = TimeFrame.D1
       };
 
-     
-
-
-      MaxValue = MainLayout.MaxValue;
-      MinValue = MainLayout.MinValue;
-
-    
-
       if (IsLive)
       {
+        //Asset = new Asset()
+        //{
+        //  NativeRound = 3,
+        //  PriceRound = 2,
+        //  Symbol = "LTCUSDT",
+        //};
+
+        Strategy.Asset = Asset;
         MainLayout.MaxValue = (decimal)0.40;
-        MainLayout.MinValue = (decimal)0.28;
+        MainLayout.MinValue = (decimal)0.10;
+      
 
         Strategy.LoadState();
         LoadLayouts(ada, MainLayout);
@@ -384,7 +388,6 @@ namespace CTKS_Chart
       else
       {
         var mainCandles = ParseTradingView(tradingView__ada_15);
-
 
         MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
         MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
@@ -394,23 +397,31 @@ namespace CTKS_Chart
 
         //Asset = new Asset()
         //{
-        //  NativeRound = 8,
-        //  PriceRound = 2
+        //  NativeRound = 3,
+        //  PriceRound = 2,
+        //  Symbol = "LTCUSDT",
         //};
 
-        //mainCandles = ParseTradingView(tradingView_btc_240m);
+        //MainLayout.MaxValue = (decimal)70;
+        //MainLayout.MinValue = (decimal)50;
 
-        //Strategy.Asset = Asset;
+
+        Strategy.Asset = Asset;
+
 
 
         Strategy.LoadState();
-        LoadLayouts(ada, MainLayout, mainCandles, maxDate, 0, mainCandles.Count, false);
-
+        LoadLayouts(ada, MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
+        //LoadLayouts(ltc, MainLayout);
       }
 
+      //Do not raise 
+      maxValue = MainLayout.MaxValue;
+      minValue = MainLayout.MinValue;
     }
 
     #endregion
+
 
     #region LoadLAyouts
 
@@ -436,7 +447,7 @@ namespace CTKS_Chart
       else
       {
         ActualCandles = (await binanceBroker.GetCandles(Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
-        await binanceBroker.SubscribeToKlineInterval(OnBinanceKlineUpdate, KlineInterval);
+        await binanceBroker.SubscribeToKlineInterval(Asset.Symbol,OnBinanceKlineUpdate, KlineInterval);
       }
 
       foreach (var layoutData in layoutDatas)
@@ -462,7 +473,7 @@ namespace CTKS_Chart
       {
         var cutCandles = mainCandles.TakeLast(cut).ToList();
 
-        Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts, 0);
+        Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts, 100);
       }
       
     }
@@ -474,7 +485,7 @@ namespace CTKS_Chart
       if (IsLive)
       {
         ActualCandles = (await binanceBroker.GetCandles(Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
-        await binanceBroker.SubscribeToKlineInterval(OnBinanceKlineUpdate, KlineInterval);
+        await binanceBroker.SubscribeToKlineInterval(Asset.Symbol,OnBinanceKlineUpdate, KlineInterval);
 
         if (ActualCandles.Count > 0)
         {

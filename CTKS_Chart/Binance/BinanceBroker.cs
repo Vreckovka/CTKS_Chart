@@ -128,10 +128,6 @@ namespace CTKS_Chart.Binance
             return result.Data.Id;
         }
       }
-      catch (Exception ex)
-      {
-        ;
-      }
       finally
       {
         createPositionLock.Release();
@@ -202,7 +198,7 @@ namespace CTKS_Chart.Binance
 
     private SemaphoreSlim subscribeToKlineIntervaLock = new SemaphoreSlim(1, 1);
     private int subId;
-    public async Task SubscribeToKlineInterval(Action<IBinanceStreamKline> onKlineUpdate, KlineInterval klineInterval)
+    public async Task SubscribeToKlineInterval(string symbol, Action<IBinanceStreamKline> onKlineUpdate, KlineInterval klineInterval)
     {
 
       try
@@ -210,7 +206,7 @@ namespace CTKS_Chart.Binance
         await subscribeToKlineIntervaLock.WaitAsync();
 
         await socketClient.UnsubscribeAsync(subId);
-        var sub = await socketClient.SpotApi.ExchangeData.SubscribeToKlineUpdatesAsync("ADAUSDT", klineInterval, (x) =>
+        var sub = await socketClient.SpotApi.ExchangeData.SubscribeToKlineUpdatesAsync(symbol, klineInterval, (x) =>
        {
          onKlineUpdate(x.Data.Data);
        });

@@ -259,13 +259,13 @@
                 <Button Width="120"
                         Margin="10,0,10,0"
                         Command="{Binding DataContext.ShowLines, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="{Binding Selected.Ctks}">
+                        CommandParameter="{Binding SelectedLayout.Ctks, RelativeSource={RelativeSource AncestorType=Window}}">
                     Show lines
                 </Button>
                 <Button Width="120"
                         Margin="10,0,10,0"
                         Command="{Binding DataContext.ShowIntersections, RelativeSource={RelativeSource AncestorType=Window}}"
-                        CommandParameter="{Binding Selected.Ctks}">
+                        CommandParameter="{Binding SelectedLayout.Ctks, RelativeSource={RelativeSource AncestorType=Window}}">
                     Show intersections
                 </Button>
                 <ComboBox ItemsSource="{Binding KlineInterval, Converter={converters:EnumValueToCollectionConverter}, Mode=OneTime}" SelectedValue="{Binding KlineInterval}" />
