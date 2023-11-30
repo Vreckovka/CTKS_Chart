@@ -2,27 +2,132 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
+using Binance.Net.Enums;
+using Binance.Net.Objects.Models.Spot.Socket;
+using CryptoExchange.Net.Sockets;
 using CTKS_Chart.Binance;
 using VCore;
+using VCore.WPF;
 
 namespace CTKS_Chart
 {
   public class BinanceStrategy : Strategy
   {
     private readonly BinanceBroker binanceBroker;
+    string path = "State";
 
-
-    public BinanceStrategy(BinanceBroker binanceBroker)
+    public BinanceStrategy(BinanceBroker binanceBroker) 
     {
       this.binanceBroker = binanceBroker ?? throw new ArgumentNullException(nameof(binanceBroker));
+
+      //Observable.Interval(TimeSpan.FromMinutes(5)).Subscribe(x =>
+      //{
+      //  RefreshState();
+      //});
+
+      Subscribe();
     }
+
+    public override bool IsPositionFilled(Candle candle, Position position)
+    {
+      return false;
+    }
+
+    private async void Subscribe()
+    {
+      await binanceBroker.SubscribeUserStream(OnOrderUpdate);
+    }
+
+    public override async void RefreshState()
+    {
+      var closedOrders = await binanceBroker.GetClosedOrders(Asset.Symbol);
+
+      VSynchronizationContext.InvokeOnDispatcher(async () =>
+      {
+        foreach (var closed in closedOrders)
+        {
+          var order = AllOpenedPositions.SingleOrDefault(x => x.Id == long.Parse(closed.Id));
+
+          if (order != null)
+          {
+            if (order.State == PositionState.Filled || order.State == PositionState.Completed)
+            {
+              if (order.Side == PositionSide.Buy)
+              {
+                OpenBuyPositions.Remove(order);
+                ClosedBuyPositions.Add(order);
+              }
+              else
+              {
+                OpenSellPositions.Remove(order);
+                ClosedSellPositions.Add(order);
+              }
+            }
+            else if (order.State == PositionState.Open)
+            {
+              if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Filled)
+              {
+                if (order.Side == PositionSide.Buy)
+                  await CloseBuy(order);
+                else
+                  CloseSell(order);
+              }
+            }
+          }
+        }
+      });
+    }
+
+    #region OnOrderUpdate
+
+    private SemaphoreSlim orderLock = new SemaphoreSlim(1, 1);
+    private async void OnOrderUpdate(DataEvent<BinanceStreamOrderUpdate> data)
+    {
+      try
+      {
+        await orderLock.WaitAsync();
+
+        var orderUpdate = data.Data;
+        if (orderUpdate.RejectReason != OrderRejectReason.None || orderUpdate.ExecutionType != ExecutionType.New)
+          // Order got rejected, no need to show
+          return;
+
+        if (orderUpdate.Status == OrderStatus.Filled)
+        {
+          var existingPosition = AllOpenedPositions.SingleOrDefault(x => x.Id == orderUpdate.Id);
+
+          if (existingPosition != null && existingPosition.State != PositionState.Filled)
+          {
+            if (existingPosition.Side == PositionSide.Sell)
+              CloseSell(existingPosition);
+            else
+              await CloseBuy(existingPosition);
+          }
+        }
+
+      }
+      finally
+      {
+        orderLock.Release();
+      }
+    }
+
+    #endregion
+
+    #region CancelPosition
 
     protected override Task<bool> CancelPosition(Position position)
     {
       return binanceBroker.Close(Asset.Symbol, position.Id);
     }
+
+    #endregion
+
+    #region CreatePosition
 
     protected override Task<long> CreatePosition(Position position)
     {
@@ -32,7 +137,9 @@ namespace CTKS_Chart
         return binanceBroker.Sell(Asset.Symbol, position.PositionSizeNative, position.Price);
     }
 
-    string path = "State";
+    #endregion
+
+  
 
     public override void SaveState()
     {

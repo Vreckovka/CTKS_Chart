@@ -55,7 +55,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <Grid Grid.Row="1">
+                <Grid Grid.Row="1" DataContext="{Binding TradingBot}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="250" />
                         <RowDefinition Height="auto" />
@@ -149,7 +149,7 @@
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Margin="10,0"
                                                            FontSize="15"
-                                                           Text="{Binding Price, StringFormat=N4}" />
+                                                           Text="{Binding Price}" />
                                                 <TextBlock FontSize="15" Text="{Binding Side}" />
                                                 <TextBlock Margin="10,0"
                                                            FontSize="15"
@@ -178,7 +178,7 @@
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Margin="10,0"
                                                                FontSize="15"
-                                                               Text="{Binding Price, StringFormat=N4}" />
+                                                               Text="{Binding Price}" />
                                                     <TextBlock FontSize="15" Text="{Binding Side}" />
                                                     <TextBlock Margin="10,0"
                                                                FontSize="15"
@@ -221,7 +221,7 @@
                                                 <StackPanel Orientation="Horizontal">
                                                     <TextBlock Margin="10,0"
                                                                FontSize="15"
-                                                               Text="{Binding Price, StringFormat=N4}" />
+                                                               Text="{Binding Price}" />
                                                     <TextBlock FontSize="15" Text="{Binding Side}" />
                                                     <TextBlock Margin="10,0"
                                                                FontSize="15"

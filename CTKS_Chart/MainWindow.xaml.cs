@@ -29,9 +29,9 @@ namespace CTKS_Chart
 {
   public class Asset
   {
-    public string Symbol { get; set; } = "ADAUSDT";
-    public int NativeRound { get; set; } = 1;
-    public int PriceRound { get; set; } = 4;
+    public string Symbol { get; set; }
+    public int NativeRound { get; set; }
+    public int PriceRound { get; set; }
   }
 
   /// <summary>
@@ -49,17 +49,30 @@ namespace CTKS_Chart
 
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
 
-      Strategy = new BinanceStrategy(binanceBroker);
-#if DEBUG
-      Strategy = new SimulationStrategy();
-#endif
-
       ForexChart_Loaded();
     }
 
     private BinanceBroker binanceBroker = new BinanceBroker();
 
-    public Asset Asset { get; set; } = new Asset();
+    #region TradingBot
+
+    private TradingBot tradingBot;
+
+    public TradingBot TradingBot
+    {
+      get { return tradingBot; }
+      set
+      {
+        if (value != tradingBot)
+        {
+          tradingBot = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
 
 #if DEBUG
     public bool IsLive { get; set; } = true;
@@ -140,7 +153,6 @@ namespace CTKS_Chart
     #endregion
 
     public ObservableCollection<Layout> Layouts { get; set; } = new ObservableCollection<Layout>();
-    public Strategy Strategy { get; set; }
 
     #region Selected
 
@@ -340,27 +352,25 @@ namespace CTKS_Chart
         new Tuple<string, TimeFrame>(tradingView_btc_1W, TimeFrame.W2)
       };
 
-      var ada = new[] {
-        new Tuple<string, TimeFrame>(tradingView__ada_12M, TimeFrame.M12),
-        new Tuple<string, TimeFrame>(tradingView__ada_6M, TimeFrame.M6),
-        new Tuple<string, TimeFrame>(tradingView__ada_3M, TimeFrame.M3),
-        new Tuple<string, TimeFrame>(tradingView__ada_1M, TimeFrame.M1),
-        new Tuple<string, TimeFrame>(tradingView__ada_2W, TimeFrame.W2),
-       new Tuple<string, TimeFrame>(tradingView__ada_1W, TimeFrame.W1),
+      var ada = new Dictionary<string, TimeFrame> {
+        {tradingView__ada_12M, TimeFrame.M12},
+        {tradingView__ada_6M, TimeFrame.M6},
+        {tradingView__ada_3M, TimeFrame.M3},
+        {tradingView__ada_1M, TimeFrame.M1},
+        {tradingView__ada_2W, TimeFrame.W2},
+        {tradingView__ada_1W, TimeFrame.W1},
       };
 
-      var ltc = new[] {
-        new Tuple<string, TimeFrame>(tradingView__ltc_12M, TimeFrame.M12),
-        new Tuple<string, TimeFrame>(tradingView__ltc_6M, TimeFrame.M6),
-        new Tuple<string, TimeFrame>(tradingView__ltc_3M, TimeFrame.M3),
-        new Tuple<string, TimeFrame>(tradingView__ltc_1M, TimeFrame.M1),
-        new Tuple<string, TimeFrame>(tradingView__ltc_2W, TimeFrame.W2),
-        new Tuple<string, TimeFrame>(tradingView__ltc_1W, TimeFrame.W1),
+      var ltc = new Dictionary<string, TimeFrame> {
+        {tradingView__ltc_12M, TimeFrame.M12},
+        {tradingView__ltc_6M, TimeFrame.M6},
+        {tradingView__ltc_3M, TimeFrame.M3},
+        {tradingView__ltc_1M, TimeFrame.M1},
+        {tradingView__ltc_2W, TimeFrame.W2},
+        {tradingView__ltc_1W, TimeFrame.W1},
       };
 
 
-      //LoadLayouts(spy, new Tuple<string, TimeFrame>(tradingView_spy_1D, TimeFrame.D1), mainCanvas, 900, 100);
-      //LoadLayouts(btc, new Tuple<string, TimeFrame>(tradingView_btc_720m, TimeFrame.D1), mainCanvas, 0, 0);
 
       MainLayout = new Layout()
       {
@@ -368,51 +378,51 @@ namespace CTKS_Chart
         TimeFrame = TimeFrame.D1
       };
 
+      Strategy strategy = new BinanceStrategy(binanceBroker); ;
+
+      if (!IsLive)
+        strategy = new SimulationStrategy();
+
+
+      var adaBot = new TradingBot(new Asset()
+      {
+        Symbol = "ADAUSDT",
+        NativeRound = 1,
+        PriceRound = 4
+      }, ada, strategy, (decimal)0.35, (decimal)0.4);
+
+      var ltcBot = new TradingBot(new Asset()
+      {
+        Symbol = "LTCUSDT",
+        NativeRound = 3,
+        PriceRound = 2
+      }, ltc, strategy, (decimal)65, (decimal)70);
+
+
+      TradingBot = adaBot;
+
+      strategy.Asset = TradingBot.Asset;
+
+      MainLayout.MaxValue = TradingBot.StartingMaxPrice;
+      MainLayout.MinValue = TradingBot.StartingMinPrice;
+
       if (IsLive)
       {
-        //Asset = new Asset()
-        //{
-        //  NativeRound = 3,
-        //  PriceRound = 2,
-        //  Symbol = "LTCUSDT",
-        //};
+        TradingBot.Strategy.LoadState();
+        TradingBot.Strategy.RefreshState();
 
-        Strategy.Asset = Asset;
-        MainLayout.MaxValue = (decimal)0.40;
-        MainLayout.MinValue = (decimal)0.10;
-      
-
-        Strategy.LoadState();
-        LoadLayouts(ada, MainLayout);
+        LoadLayouts(MainLayout);
       }
       else
       {
-        var mainCandles = ParseTradingView(tradingView__ada_15);
+        var mainCandles = ParseTradingView(tradingView__ada_1D);
 
         MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
         MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
         var maxDate = mainCandles.First().Time;
 
-
-        //Asset = new Asset()
-        //{
-        //  NativeRound = 3,
-        //  PriceRound = 2,
-        //  Symbol = "LTCUSDT",
-        //};
-
-        //MainLayout.MaxValue = (decimal)70;
-        //MainLayout.MinValue = (decimal)50;
-
-
-        Strategy.Asset = Asset;
-
-
-
-        Strategy.LoadState();
-        LoadLayouts(ada, MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
-        //LoadLayouts(ltc, MainLayout);
+        LoadLayouts(MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
       }
 
       //Do not raise 
@@ -428,7 +438,7 @@ namespace CTKS_Chart
     private List<Candle> ActualCandles = new List<Candle>();
     private List<Layout> InnerLayouts = new List<Layout>();
 
-    private async void LoadLayouts(IList<Tuple<string, TimeFrame>> layoutDatas,
+    private async void LoadLayouts(
       Layout mainLayout,
       IList<Candle> mainCandles = null,
       DateTime? maxTime = null,
@@ -436,23 +446,21 @@ namespace CTKS_Chart
       int cut = 0,
       bool simulate = false)
     {
-      var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, CanvasHeight, CanvasWidth, Asset);
+      var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, CanvasHeight, CanvasWidth, TradingBot.Asset);
 
       if (simulate && mainCandles != null)
       {
-       
-
         ActualCandles = mainCandles.Skip(skip).SkipLast(cut).ToList();
       }
       else
       {
-        ActualCandles = (await binanceBroker.GetCandles(Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
-        await binanceBroker.SubscribeToKlineInterval(Asset.Symbol,OnBinanceKlineUpdate, KlineInterval);
+        ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
+        await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
       }
 
-      foreach (var layoutData in layoutDatas)
+      foreach (var layoutData in TradingBot.TimeFrames)
       {
-        var layout = CreateCtksChart(layoutData.Item1, layoutData.Item2, maxTime);
+        var layout = CreateCtksChart(layoutData.Key, layoutData.Value, maxTime);
 
         CheckLayout(layout);
 
@@ -473,10 +481,11 @@ namespace CTKS_Chart
       {
         var cutCandles = mainCandles.TakeLast(cut).ToList();
 
-        Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts, 100);
+        Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts, 1);
       }
-      
     }
+
+    #endregion
 
     #region RecreateChart
 
@@ -484,8 +493,8 @@ namespace CTKS_Chart
     {
       if (IsLive)
       {
-        ActualCandles = (await binanceBroker.GetCandles(Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
-        await binanceBroker.SubscribeToKlineInterval(Asset.Symbol,OnBinanceKlineUpdate, KlineInterval);
+        ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
+        await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
 
         if (ActualCandles.Count > 0)
         {
@@ -494,8 +503,6 @@ namespace CTKS_Chart
       }
 
     }
-
-    #endregion
 
     #endregion
 
@@ -626,10 +633,11 @@ namespace CTKS_Chart
       }
 
 
-      Strategy.ValidatePositions(actual, ctksIntersections);
-      Strategy.CreatePositions(actual, ctksIntersections);
+      TradingBot.Strategy.Intersections = ctksIntersections;
+      TradingBot.Strategy.ValidatePositions(actual);
+      TradingBot.Strategy.CreatePositions(actual);
 
-      RenderOverlay(layout, ctksIntersections, Strategy, candles);
+      RenderOverlay(layout, ctksIntersections, TradingBot.Strategy, candles);
     }
 
     #endregion
@@ -655,7 +663,7 @@ namespace CTKS_Chart
       canvas.Width = CanvasWidth;
       canvas.Height = CanvasHeight;
 
-      var ctks = new Ctks(layout, timeFrame, CanvasHeight, CanvasWidth, Asset);
+      var ctks = new Ctks(layout, timeFrame, CanvasHeight, CanvasWidth, TradingBot.Asset);
 
       ctks.CrateCtks(candles, () => CreateChart(layout, CanvasHeight, CanvasWidth, candles));
 
@@ -944,7 +952,7 @@ namespace CTKS_Chart
           desiredCanvasHeight = drawPoints.Item2;
         }
 
-        RenderIntersections(dc, layout, ctksIntersections, strategy.AllOpenedPositions.ToList(), desiredCanvasHeight, candles, IsLive ? TimeFrame.W1 : TimeFrame.W1);
+        RenderIntersections(dc, layout, ctksIntersections, strategy.AllOpenedPositions.ToList(), desiredCanvasHeight, candles, IsLive ? TimeFrame.W1 : TimeFrame.M1);
 
 
         DrawActualPrice(dc, layout, candles);
@@ -973,7 +981,7 @@ namespace CTKS_Chart
       var pen = new Pen(brush, 1);
       pen.DashStyle = DashStyles.Dash;
 
-      var text = GetFormattedText(closePrice.Value.ToString("N4"), brush);
+      var text = GetFormattedText(closePrice.Value.ToString($"N{TradingBot.Asset.PriceRound}"), brush);
       drawingContext.DrawText(text, new Point(CanvasWidth - text.Width - 25, lineY - text.Height - 5));
       drawingContext.DrawLine(pen, new Point(0, lineY), new Point(CanvasWidth, lineY));
     }
@@ -1185,6 +1193,6 @@ namespace CTKS_Chart
     #endregion
 
 
-    
+
   }
 }

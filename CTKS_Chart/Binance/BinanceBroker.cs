@@ -14,6 +14,7 @@ using Binance.Net.Interfaces;
 using Binance.Net.Objects.Models.Spot.Socket;
 using Binance.Net.Objects.Options;
 using CryptoExchange.Net.Authentication;
+using CryptoExchange.Net.CommonObjects;
 using CryptoExchange.Net.Sockets;
 
 
@@ -32,15 +33,6 @@ namespace CTKS_Chart.Binance
 
     public BinanceBroker()
     {
-      //BinanceClient.SetDefaultOptions(new BinanceClientOptions()
-      //{
-      //  ApiCredentials = new ApiCredentials(apiKey, secret),
-      //  LogVerbosity = LogVerbosity.Error,
-      //  LogWriters = new List<TextWriter> { Console.Out },
-      //  BaseAddress = "https://testnet.binance.vision/api"
-      //});
-
-
       BinanceRestClient.SetDefaultOptions((options) =>
       {
         options.ApiCredentials = new ApiCredentials(liveApiKey, liveApiSecret);
@@ -55,6 +47,8 @@ namespace CTKS_Chart.Binance
 
       socketClient = new BinanceSocketClient();
     }
+
+    #region GetCandles
 
     public async Task<IEnumerable<Candle>> GetCandles(string symbol, TimeSpan interval)
     {
@@ -80,18 +74,21 @@ namespace CTKS_Chart.Binance
       return list;
     }
 
-    public async void GetOpenOrders(string symbol)
+    #endregion
+
+    #region GetClosedOrders
+
+    public async Task<IEnumerable<Order>> GetClosedOrders(string symbol)
     {
       using (var client = new BinanceRestClient())
       {
-        var orders = await client.SpotApi.CommonSpotClient.GetOpenOrdersAsync(symbol);
-      }
-
-      using (var client = new BinanceRestClient())
-      {
-        var ordersd = await client.SpotApi.CommonSpotClient.GetClosedOrdersAsync(symbol);
+        return (await client.SpotApi.CommonSpotClient.GetClosedOrdersAsync(symbol)).Data;
       }
     }
+
+    #endregion
+
+    #region GetPositionSide
 
     private OrderSide GetPositionSide(PositionSide positionSide)
     {
@@ -105,6 +102,8 @@ namespace CTKS_Chart.Binance
           throw new ArgumentOutOfRangeException(nameof(positionSide), positionSide, null);
       }
     }
+
+    #endregion
 
     #region Buy
 
@@ -227,7 +226,9 @@ namespace CTKS_Chart.Binance
 
     #endregion
 
-    public async Task SubscribeUserStream()
+    #region SubscribeUserStream
+
+    public async Task SubscribeUserStream(Action<DataEvent<BinanceStreamOrderUpdate>> data)
     {
       using (var client = new BinanceRestClient())
       {
@@ -238,40 +239,26 @@ namespace CTKS_Chart.Binance
           return;
         }
 
-        var subOkay = await socketClient.SpotApi.Account.SubscribeToUserDataUpdatesAsync(startOkay.Data, OnOrderUpdate, null, OnAccountUpdate, null);
+        var subOkay = await socketClient.SpotApi.Account.SubscribeToUserDataUpdatesAsync(startOkay.Data, data, null, null, null);
         if (!subOkay.Success)
         {
           return;
         }
-
-        var accountResult = await client.SpotApi.Account.GetAccountInfoAsync();
-
       }
     }
+
+    #endregion
+
+    #region OnAccountUpdate
 
     private void OnAccountUpdate(DataEvent<BinanceStreamPositionsUpdate> data)
     {
       Debug.WriteLine(data);
     }
 
-    private object orderLock = new object();
-    private void OnOrderUpdate(DataEvent<BinanceStreamOrderUpdate> data)
-    {
-      var orderUpdate = data.Data;
+    #endregion
 
-      lock (orderLock)
-      {
+    
 
-
-        if (orderUpdate.RejectReason != OrderRejectReason.None || orderUpdate.ExecutionType != ExecutionType.New)
-          // Order got rejected, no need to show
-          return;
-
-        if (orderUpdate.Status == OrderStatus.Filled)
-        {
-
-        }
-      }
-    }
   }
 }

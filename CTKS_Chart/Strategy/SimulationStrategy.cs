@@ -39,6 +39,11 @@ namespace CTKS_Chart
 
   public class SimulationStrategy : Strategy
   {
+    public override void RefreshState()
+    {
+      
+    }
+
     public override bool IsPositionFilled(Candle candle, Position position)
     {
       if (position.Side == PositionSide.Buy)
@@ -74,5 +79,6 @@ namespace CTKS_Chart
     {
      
     }
+
   }
 }
