@@ -105,19 +105,21 @@ namespace CTKS_Chart
             Console.WriteLine($"Order update REJECTED {orderUpdate.Id} {orderUpdate.Status} {orderUpdate.UpdateTime} {orderUpdate.RejectReason}");
           }
 
-
-          if (orderUpdate.Status == OrderStatus.Filled)
+          VSynchronizationContext.InvokeOnDispatcher(async () =>
           {
-            var existingPosition = AllOpenedPositions.SingleOrDefault(x => x.Id == orderUpdate.Id);
-
-            if (existingPosition != null && existingPosition.State != PositionState.Filled)
+            if (orderUpdate.Status == OrderStatus.Filled)
             {
-              if (existingPosition.Side == PositionSide.Sell)
-                CloseSell(existingPosition);
-              else
-                await CloseBuy(existingPosition);
+              var existingPosition = AllOpenedPositions.SingleOrDefault(x => x.Id == orderUpdate.Id);
+
+              if (existingPosition != null && existingPosition.State != PositionState.Filled)
+              {
+                if (existingPosition.Side == PositionSide.Sell)
+                  CloseSell(existingPosition);
+                else
+                  await CloseBuy(existingPosition);
+              }
             }
-          }
+          });
         }
       }
       finally

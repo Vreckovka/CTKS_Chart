@@ -85,7 +85,7 @@ namespace CTKS_Chart
 
 
 #if DEBUG
-    public bool IsLive { get; set; } = true;
+    public bool IsLive { get; set; } = false;
 #endif
 
 #if RELEASE
@@ -412,7 +412,7 @@ namespace CTKS_Chart
         TimeFrame = TimeFrame.D1
       };
 
-      Strategy strategy = new BinanceStrategy(binanceBroker); 
+      Strategy strategy = new BinanceStrategy(binanceBroker);
 
       if (!IsLive)
         strategy = new SimulationStrategy();
@@ -442,8 +442,12 @@ namespace CTKS_Chart
 
       var dic = asset.Symbol == "BTCUSDT" ? btc : asset.Symbol == "ADAUSDT" ? ada : ltc;
 
-      TradingBot = new TradingBot(asset, dic, strategy);
-      ;
+      if (IsLive)
+        TradingBot = new TradingBot(asset, dic, strategy);
+      else
+      {
+        TradingBot = adaBot;
+      }
 
       strategy.Asset = TradingBot.Asset;
 
@@ -466,7 +470,7 @@ namespace CTKS_Chart
 
         var maxDate = mainCandles.First().Time;
 
-        LoadLayouts(MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
+        LoadLayouts(MainLayout, mainCandles, maxDate, 500, mainCandles.Count, true);
       }
 
       //Do not raise 
@@ -506,7 +510,6 @@ namespace CTKS_Chart
       {
         var layout = CreateCtksChart(layoutData.Key, layoutData.Value, maxTime);
 
-        CheckLayout(layout);
 
         InnerLayouts.Add(layout);
       }
@@ -523,7 +526,7 @@ namespace CTKS_Chart
 
       if (simulate && mainCandles != null)
       {
-        var cutCandles = mainCandles.TakeLast(cut).ToList();
+        var cutCandles = mainCandles.Skip(skip).TakeLast(cut).ToList();
 
         Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts, 1);
       }
@@ -559,6 +562,10 @@ namespace CTKS_Chart
       if (DateTime.Now > GetNextTime(innerCandles.Last().Time, layout.TimeFrame))
       {
         layout.IsOutDated = true;
+      }
+      else
+      {
+        layout.IsOutDated = false;
       }
     }
 
@@ -654,6 +661,8 @@ namespace CTKS_Chart
           secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles));
 
           shouldUpdate = true;
+
+          CheckLayout(secondaryLayout);
         }
       }
 
