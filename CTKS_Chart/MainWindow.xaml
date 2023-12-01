@@ -268,6 +268,11 @@
                         CommandParameter="{Binding SelectedLayout.Ctks, RelativeSource={RelativeSource AncestorType=Window}}">
                     Show intersections
                 </Button>
+                <!--<Button Width="120"
+                        Margin="10,0,10,0"
+                        Command="{Binding DataContext.CancelPositions, RelativeSource={RelativeSource AncestorType=Window}}">
+                    Cancel Positions
+                </Button>-->
                 <ComboBox ItemsSource="{Binding KlineInterval, Converter={converters:EnumValueToCollectionConverter}, Mode=OneTime}" SelectedValue="{Binding KlineInterval}" />
                 <TextBox Width="120"
                          Margin="10,0,10,0"

@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -23,6 +24,8 @@ using VCore.Standard.Modularity.Interfaces;
 using VCore.WPF;
 using VCore.WPF.Managers;
 using VCore.WPF.Misc;
+using VCore.WPF.Other;
+
 #pragma warning disable 618
 
 namespace CTKS_Chart
@@ -32,6 +35,10 @@ namespace CTKS_Chart
     public string Symbol { get; set; }
     public int NativeRound { get; set; }
     public int PriceRound { get; set; }
+
+    public decimal StartLowPrice { get; set; }
+
+    public decimal StartMaxPrice { get; set; }
   }
 
   /// <summary>
@@ -50,6 +57,9 @@ namespace CTKS_Chart
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
 
       ForexChart_Loaded();
+
+      WinConsole.CreateConsole();
+
     }
 
     private BinanceBroker binanceBroker = new BinanceBroker();
@@ -283,6 +293,30 @@ namespace CTKS_Chart
 
     #endregion
 
+    #region CancelPositions
+
+    protected ActionCommand cancelPositions;
+
+    public ICommand CancelPositions
+    {
+      get
+      {
+        return cancelPositions ??= new ActionCommand(OnCancelPositions);
+      }
+    }
+
+    protected async virtual void OnCancelPositions()
+    {
+      var open = await binanceBroker.GetOpenOrders(TradingBot.Asset.Symbol);
+
+      foreach (var opend in open)
+      {
+        await binanceBroker.Close(TradingBot.Asset.Symbol, long.Parse(opend.Id));
+      }
+    }
+
+    #endregion
+
     #endregion
 
     #region Methods
@@ -344,12 +378,12 @@ namespace CTKS_Chart
         new Tuple<string, TimeFrame>(tradingView_spy_3, TimeFrame.M3)
       };
 
-      var btc = new[] {
-        new Tuple<string, TimeFrame>(tradingView_btc_12m, TimeFrame.M12),
-        new Tuple<string, TimeFrame>(tradingView_btc_6m, TimeFrame.M6),
-        new Tuple<string, TimeFrame>(tradingView_btc_3m, TimeFrame.M3),
-        new Tuple<string, TimeFrame>(tradingView_btc_1m, TimeFrame.M1),
-        new Tuple<string, TimeFrame>(tradingView_btc_1W, TimeFrame.W2)
+      var btc = new Dictionary<string, TimeFrame> {
+        {tradingView_btc_12m, TimeFrame.M12},
+        {tradingView_btc_6m, TimeFrame.M6},
+        {tradingView_btc_3m, TimeFrame.M3},
+        {tradingView_btc_1m, TimeFrame.M1},
+        {tradingView_btc_1W, TimeFrame.W2}
       };
 
       var ada = new Dictionary<string, TimeFrame> {
@@ -370,7 +404,7 @@ namespace CTKS_Chart
         {tradingView__ltc_1W, TimeFrame.W1},
       };
 
-
+      var asset = JsonSerializer.Deserialize<Asset>(File.ReadAllText("asset.json"));
 
       MainLayout = new Layout()
       {
@@ -378,7 +412,7 @@ namespace CTKS_Chart
         TimeFrame = TimeFrame.D1
       };
 
-      Strategy strategy = new BinanceStrategy(binanceBroker); ;
+      Strategy strategy = new BinanceStrategy(binanceBroker); 
 
       if (!IsLive)
         strategy = new SimulationStrategy();
@@ -389,17 +423,27 @@ namespace CTKS_Chart
         Symbol = "ADAUSDT",
         NativeRound = 1,
         PriceRound = 4
-      }, ada, strategy, (decimal)0.35, (decimal)0.4);
+      }, ada, strategy);
 
       var ltcBot = new TradingBot(new Asset()
       {
         Symbol = "LTCUSDT",
         NativeRound = 3,
         PriceRound = 2
-      }, ltc, strategy, (decimal)65, (decimal)70);
+      }, ltc, strategy);
+
+      var btcBot = new TradingBot(new Asset()
+      {
+        Symbol = "BTCUSDT",
+        NativeRound = 5,
+        PriceRound = 2
+      }, btc, strategy);
 
 
-      TradingBot = adaBot;
+      var dic = asset.Symbol == "BTCUSDT" ? btc : asset.Symbol == "ADAUSDT" ? ada : ltc;
+
+      TradingBot = new TradingBot(asset, dic, strategy);
+      ;
 
       strategy.Asset = TradingBot.Asset;
 
@@ -807,6 +851,8 @@ namespace CTKS_Chart
 
       double minDrawnPoint = 0;
       double maxDrawnPoint = 0;
+      var maxDrawinPoint = GetCanvasValue(CanvasHeight, layout.MaxValue, layout.MaxValue, layout.MinValue);
+      var minDrawinPoint = GetCanvasValue(CanvasHeight, layout.MinValue, layout.MaxValue, layout.MinValue);
 
       if (candles.Any())
       {
@@ -871,9 +917,21 @@ namespace CTKS_Chart
             Y = CanvasHeight - wickBottom,
           };
 
+
           drawingContext.DrawRectangle(selectedBrush, pen, newCandle);
+
+          //if (topWick.Y + topWick.Height > maxDrawinPoint)
+          //  topWick.Height = CanvasHeight - wickTop;
+
+          //if (bottomWick.Y - bottomWick.Height < 0)
+          //{
+          //  bottomWick.Height = CanvasHeight - bottomWick.Y;
+          //}
+
           drawingContext.DrawRectangle(selectedBrush, wickPen, topWick);
           drawingContext.DrawRectangle(selectedBrush, wickPen, bottomWick);
+
+
           y++;
 
           if (bottomWick.Y < minDrawnPoint)

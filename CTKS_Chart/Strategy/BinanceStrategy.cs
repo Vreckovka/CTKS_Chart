@@ -46,6 +46,7 @@ namespace CTKS_Chart
     {
       var closedOrders = await binanceBroker.GetClosedOrders(Asset.Symbol);
 
+
       VSynchronizationContext.InvokeOnDispatcher(async () =>
       {
         foreach (var closed in closedOrders)
@@ -90,25 +91,34 @@ namespace CTKS_Chart
       try
       {
         await orderLock.WaitAsync();
-
         var orderUpdate = data.Data;
-        if (orderUpdate.RejectReason != OrderRejectReason.None || orderUpdate.ExecutionType != ExecutionType.New)
-          // Order got rejected, no need to show
-          return;
 
-        if (orderUpdate.Status == OrderStatus.Filled)
+        if (data.Data.Symbol == Asset.Symbol)
         {
-          var existingPosition = AllOpenedPositions.SingleOrDefault(x => x.Id == orderUpdate.Id);
+          Console.ForegroundColor = ConsoleColor.White;
+          Console.WriteLine($"Order update {orderUpdate.Id} {orderUpdate.Status} {orderUpdate.UpdateTime}");
 
-          if (existingPosition != null && existingPosition.State != PositionState.Filled)
+
+          if (orderUpdate.RejectReason != OrderRejectReason.None)
           {
-            if (existingPosition.Side == PositionSide.Sell)
-              CloseSell(existingPosition);
-            else
-              await CloseBuy(existingPosition);
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Order update REJECTED {orderUpdate.Id} {orderUpdate.Status} {orderUpdate.UpdateTime} {orderUpdate.RejectReason}");
+          }
+
+
+          if (orderUpdate.Status == OrderStatus.Filled)
+          {
+            var existingPosition = AllOpenedPositions.SingleOrDefault(x => x.Id == orderUpdate.Id);
+
+            if (existingPosition != null && existingPosition.State != PositionState.Filled)
+            {
+              if (existingPosition.Side == PositionSide.Sell)
+                CloseSell(existingPosition);
+              else
+                await CloseBuy(existingPosition);
+            }
           }
         }
-
       }
       finally
       {

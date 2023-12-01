@@ -4,6 +4,8 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -83,6 +85,18 @@ namespace CTKS_Chart.Binance
       using (var client = new BinanceRestClient())
       {
         return (await client.SpotApi.CommonSpotClient.GetClosedOrdersAsync(symbol)).Data;
+      }
+    }
+
+    #endregion
+
+    #region GetOpenOrders
+
+    public async Task<IEnumerable<Order>> GetOpenOrders(string symbol)
+    {
+      using (var client = new BinanceRestClient())
+      {
+        return (await client.SpotApi.CommonSpotClient.GetOpenOrdersAsync(symbol)).Data;
       }
     }
 
@@ -228,6 +242,9 @@ namespace CTKS_Chart.Binance
 
     #region SubscribeUserStream
 
+    private string key;
+    Action<DataEvent<BinanceStreamOrderUpdate>> onUpdate;
+    private SerialDisposable serialDisposable = new SerialDisposable();
     public async Task SubscribeUserStream(Action<DataEvent<BinanceStreamOrderUpdate>> data)
     {
       using (var client = new BinanceRestClient())
@@ -239,26 +256,48 @@ namespace CTKS_Chart.Binance
           return;
         }
 
-        var subOkay = await socketClient.SpotApi.Account.SubscribeToUserDataUpdatesAsync(startOkay.Data, data, null, null, null);
+        key = startOkay.Data;
+        onUpdate = data;
+
+        var subOkay = await socketClient.SpotApi.Account.SubscribeToUserDataUpdatesAsync(key, data, null, null, null);
         if (!subOkay.Success)
         {
           return;
         }
+
+        serialDisposable.Disposable?.Dispose();
+        serialDisposable.Disposable = Observable.Interval(TimeSpan.FromMinutes(10)).Subscribe((x) =>
+         {
+           RefreshStream();
+         });
       }
     }
 
     #endregion
 
-    #region OnAccountUpdate
-
-    private void OnAccountUpdate(DataEvent<BinanceStreamPositionsUpdate> data)
+    public async void RefreshStream()
     {
-      Debug.WriteLine(data);
+      using (var client = new BinanceRestClient())
+      {
+        ;
+        var result = await client.SpotApi.Account.KeepAliveUserStreamAsync(key);
+
+        if (result.Success)
+        {
+          Console.ForegroundColor = ConsoleColor.Yellow;
+          Console.WriteLine($"Refresh token refreshed {DateTime.UtcNow}");
+        }
+        else
+        {
+          Console.ForegroundColor = ConsoleColor.Red;
+          Console.WriteLine($"Refresh token refreshed FAILED {DateTime.UtcNow}");
+
+          if (onUpdate != null)
+          {
+            await SubscribeUserStream(onUpdate);
+          }
+        }
+      }
     }
-
-    #endregion
-
-    
-
   }
 }

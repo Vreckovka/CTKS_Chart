@@ -9,13 +9,13 @@ namespace CTKS_Chart
 {
   public class TradingBot : ViewModel
   {
-    public TradingBot(Asset asset, Dictionary<string, TimeFrame> timeFrames, Strategy strategy, decimal startingMinPrice, decimal startingMaxPrice)
+    public TradingBot(Asset asset, Dictionary<string, TimeFrame> timeFrames, Strategy strategy)
     {
       Strategy = strategy ?? throw new ArgumentNullException(nameof(strategy));
       Asset = asset;
       TimeFrames = timeFrames;
-      StartingMinPrice = startingMinPrice;
-      StartingMaxPrice = startingMaxPrice;
+      StartingMinPrice = asset.StartLowPrice;
+      StartingMaxPrice = asset.StartMaxPrice;
 
     }
 
