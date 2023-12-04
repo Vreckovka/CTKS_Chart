@@ -17,7 +17,7 @@
 
     <Grid Background="#02050a">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="450" />
+            <ColumnDefinition Width="350" />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
 
@@ -283,10 +283,7 @@
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="1"
-              Grid.Column="1"
-              Width="{Binding CanvasWidth}"
-              Height="{Binding CanvasHeight}">
+        <Grid Grid.Row="1" Grid.Column="1">
 
             <!--<Image x:Name="chart_image" />
             <Grid x:Name="main_grid" />-->

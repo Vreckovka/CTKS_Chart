@@ -18,12 +18,14 @@ using Binance.Net.Objects.Options;
 using CryptoExchange.Net.Authentication;
 using CryptoExchange.Net.CommonObjects;
 using CryptoExchange.Net.Sockets;
+using Logger;
 
 
 namespace CTKS_Chart.Binance
 {
   public class BinanceBroker
   {
+    private readonly ILogger logger;
     private string apiKey = "pEUT5muif0EINAO9rwNPH7f2TcGl22YT13x8vdKjn1UazTmwISyAjijCSghjrq4K";
     private string apiSecret = "5h71ZEWdjFShRIHX7Q14dGrSfASJYECPfcL06DmLzf2qcVKnYSv6SusSsYww6vbR";
 
@@ -33,8 +35,9 @@ namespace CTKS_Chart.Binance
 
     private BinanceSocketClient socketClient;
 
-    public BinanceBroker()
+    public BinanceBroker(ILogger logger)
     {
+      this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
       BinanceRestClient.SetDefaultOptions((options) =>
       {
         options.ApiCredentials = new ApiCredentials(liveApiKey, liveApiSecret);
@@ -265,6 +268,8 @@ namespace CTKS_Chart.Binance
           return;
         }
 
+        logger.Log(MessageType.Inform2, $"{DateTime.UtcNow} Subscribe to stream sucess", simpleMessage: true);
+
         serialDisposable.Disposable?.Dispose();
         serialDisposable.Disposable = Observable.Interval(TimeSpan.FromMinutes(30)).Subscribe((x) =>
          {
@@ -286,13 +291,11 @@ namespace CTKS_Chart.Binance
 
         if (result.Success)
         {
-          Console.ForegroundColor = ConsoleColor.Yellow;
-          Console.WriteLine($"Subscribe token refreshed {DateTime.UtcNow}");
+          logger.Log(MessageType.Inform2, $"{DateTime.UtcNow} Subscribe token refreshed", simpleMessage: true);
         }
         else
         {
-          Console.ForegroundColor = ConsoleColor.Red;
-          Console.WriteLine($"Subscribe token refreshed FAILED {DateTime.UtcNow}");
+          logger.Log(MessageType.Error, $"{DateTime.UtcNow} Subscribe token refreshed FAILED", simpleMessage: true);
 
           if (onUpdate != null)
           {

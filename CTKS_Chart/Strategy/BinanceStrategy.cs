@@ -10,6 +10,7 @@ using Binance.Net.Enums;
 using Binance.Net.Objects.Models.Spot.Socket;
 using CryptoExchange.Net.Sockets;
 using CTKS_Chart.Binance;
+using Logger;
 using VCore;
 using VCore.WPF;
 
@@ -18,11 +19,13 @@ namespace CTKS_Chart
   public class BinanceStrategy : Strategy
   {
     private readonly BinanceBroker binanceBroker;
+    private readonly ILogger logger;
     string path = "State";
 
-    public BinanceStrategy(BinanceBroker binanceBroker) 
+    public BinanceStrategy(BinanceBroker binanceBroker, ILogger logger) 
     {
       this.binanceBroker = binanceBroker ?? throw new ArgumentNullException(nameof(binanceBroker));
+      this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
       //Observable.Interval(TimeSpan.FromMinutes(5)).Subscribe(x =>
       //{
@@ -95,22 +98,23 @@ namespace CTKS_Chart
 
         if (Asset != null && data.Data.Symbol == Asset.Symbol)
         {
+          var message = $"{orderUpdate.UpdateTime} Order update {orderUpdate.Status} " +
+                        $"{orderUpdate.Price.ToString($"N{Asset.PriceRound}")} " +
+                        $"{orderUpdate.QuantityFilled.ToString($"N{Asset.NativeRound}")}";
+
           if (orderUpdate.Status == OrderStatus.Filled)
           {
-            Console.ForegroundColor = ConsoleColor.Green;
+            logger.Log(MessageType.Success, message, simpleMessage: true);
           }
           else
           {
-            Console.ForegroundColor = ConsoleColor.Gray;
+            logger.Log(MessageType.Inform, message, simpleMessage: true);
           }
-         
-          Console.WriteLine($"{orderUpdate.UpdateTime} Order update {orderUpdate.Status} {orderUpdate.Price} {orderUpdate.QuantityFilled}");
-
+        
 
           if (orderUpdate.RejectReason != OrderRejectReason.None)
           {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Order update REJECTED {orderUpdate.Id} {orderUpdate.Status} {orderUpdate.UpdateTime} {orderUpdate.RejectReason}");
+            logger.Log(MessageType.Error, $"Order update REJECTED {orderUpdate.Id} {orderUpdate.Status} {orderUpdate.UpdateTime} {orderUpdate.RejectReason}", simpleMessage: true);
           }
 
           VSynchronizationContext.InvokeOnDispatcher(async () =>

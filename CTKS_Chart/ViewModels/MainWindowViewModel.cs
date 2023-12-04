@@ -20,6 +20,7 @@ using System.Windows.Shapes;
 using Binance.Net.Enums;
 using Binance.Net.Interfaces;
 using CTKS_Chart.Binance;
+using Logger;
 using VCore.Standard.Factories.ViewModels;
 using VCore.Standard.Helpers;
 using VCore.WPF;
@@ -31,10 +32,13 @@ namespace CTKS_Chart.ViewModels
 {
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
+    private readonly ILogger logger;
     private Stopwatch stopwatch = new Stopwatch();
-    public MainWindowViewModel(IViewModelsFactory viewModelsFactory) : base(viewModelsFactory)
+    public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
     {
+      this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
+      binanceBroker = new BinanceBroker(logger);
 
       ForexChart_Loaded();
 
@@ -45,7 +49,7 @@ namespace CTKS_Chart.ViewModels
       });
     }
 
-    private BinanceBroker binanceBroker = new BinanceBroker();
+    private BinanceBroker binanceBroker;
 
     #region TradingBot
 
@@ -429,7 +433,7 @@ namespace CTKS_Chart.ViewModels
         TimeFrame = TimeFrame.D1
       };
 
-      Strategy strategy = new BinanceStrategy(binanceBroker);
+      Strategy strategy = new BinanceStrategy(binanceBroker, logger);
 
       if (!IsLive)
         strategy = new SimulationStrategy();

@@ -26,9 +26,9 @@ namespace CTKS_Chart
   {
     protected override void OnStartup(StartupEventArgs e)
     {
-      base.OnStartup(e);
-
       IsConsoleVisible = true;
+
+      base.OnStartup(e);
     }
   }
 }
