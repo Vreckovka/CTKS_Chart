@@ -22,67 +22,13 @@ namespace CTKS_Chart
   {
   }
 
-  public partial class App : Application
+  public partial class App : CtksApplication
   {
-    private Logger.Logger logger;
-    public App()
+    protected override void OnStartup(StartupEventArgs e)
     {
-      logger = new Logger.Logger(new ConsoleLogger(), new FileLoggerContainer());
-    }
+      base.OnStartup(e);
 
-    protected override void OnActivated(EventArgs e)
-    {
-      base.OnActivated(e);
-
-
-    }
-
-
-
-    #region SetupExceptionHandling
-
-    private void SetupExceptionHandling()
-    {
-
-      //#if !DEBUG
-      AppDomain.CurrentDomain.UnhandledException += (s, e) =>
-        LogUnhandledException((Exception) e.ExceptionObject, "AppDomain.CurrentDomain.UnhandledException");
-
-      DispatcherUnhandledException += (s, e) =>
-      {
-        LogUnhandledException(e.Exception, "Application.Current.DispatcherUnhandledException");
-        e.Handled = true;
-      };
-      //#endif
-      TaskScheduler.UnobservedTaskException += (s, e) =>
-      {
-        LogUnhandledException(e.Exception, "TaskScheduler.UnobservedTaskException");
-        e.SetObserved();
-      };
-    }
-
-    #endregion
-
-
-    private async void LogUnhandledException(Exception exception, string source)
-    {
-      string message = $"Unhandled exception ({source})";
-
-      try
-      {
-        AssemblyName assemblyName = Assembly.GetExecutingAssembly().GetName();
-
-        message = string.Format("Unhandled exception in {0} v{1}", assemblyName.Name, assemblyName.Version);
-      }
-      catch (Exception ex)
-      {
-        logger.Log(ex);
-      }
-      finally
-      {
-        logger.Log(exception);
-
-      }
+      IsConsoleVisible = true;
     }
   }
 }

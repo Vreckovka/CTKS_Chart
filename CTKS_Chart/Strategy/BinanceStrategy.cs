@@ -93,10 +93,18 @@ namespace CTKS_Chart
         await orderLock.WaitAsync();
         var orderUpdate = data.Data;
 
-        if (data.Data.Symbol == Asset.Symbol)
+        if (Asset != null && data.Data.Symbol == Asset.Symbol)
         {
-          Console.ForegroundColor = ConsoleColor.White;
-          Console.WriteLine($"Order update {orderUpdate.Id} {orderUpdate.Status} {orderUpdate.UpdateTime}");
+          if (orderUpdate.Status == OrderStatus.Filled)
+          {
+            Console.ForegroundColor = ConsoleColor.Green;
+          }
+          else
+          {
+            Console.ForegroundColor = ConsoleColor.Gray;
+          }
+         
+          Console.WriteLine($"{orderUpdate.UpdateTime} Order update {orderUpdate.Status} {orderUpdate.Price} {orderUpdate.QuantityFilled}");
 
 
           if (orderUpdate.RejectReason != OrderRejectReason.None)
@@ -219,10 +227,8 @@ namespace CTKS_Chart
         }
 
 
-
         var map = JsonSerializer.Deserialize<IEnumerable<KeyValuePair<TimeFrame, decimal>>>(File.ReadAllText(Path.Combine(path, "map.json")));
 
-        var data = File.ReadAllText(Path.Combine(path, "budget.json"));
         PositionSizeMapping = map.ToDictionary(x => x.Key, x => x.Value);
         Budget = (decimal)double.Parse(File.ReadAllText(Path.Combine(path, "budget.json")));
         TotalProfit = decimal.Parse(File.ReadAllText(Path.Combine(path, "totalProfit.json")));

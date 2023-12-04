@@ -266,7 +266,7 @@ namespace CTKS_Chart.Binance
         }
 
         serialDisposable.Disposable?.Dispose();
-        serialDisposable.Disposable = Observable.Interval(TimeSpan.FromMinutes(10)).Subscribe((x) =>
+        serialDisposable.Disposable = Observable.Interval(TimeSpan.FromMinutes(30)).Subscribe((x) =>
          {
            RefreshStream();
          });
@@ -274,6 +274,8 @@ namespace CTKS_Chart.Binance
     }
 
     #endregion
+
+    #region RefreshStream
 
     public async void RefreshStream()
     {
@@ -285,12 +287,12 @@ namespace CTKS_Chart.Binance
         if (result.Success)
         {
           Console.ForegroundColor = ConsoleColor.Yellow;
-          Console.WriteLine($"Refresh token refreshed {DateTime.UtcNow}");
+          Console.WriteLine($"Subscribe token refreshed {DateTime.UtcNow}");
         }
         else
         {
           Console.ForegroundColor = ConsoleColor.Red;
-          Console.WriteLine($"Refresh token refreshed FAILED {DateTime.UtcNow}");
+          Console.WriteLine($"Subscribe token refreshed FAILED {DateTime.UtcNow}");
 
           if (onUpdate != null)
           {
@@ -299,5 +301,8 @@ namespace CTKS_Chart.Binance
         }
       }
     }
+
+    #endregion
+
   }
 }
