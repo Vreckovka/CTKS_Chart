@@ -84,7 +84,7 @@ namespace CTKS_Chart.ViewModels
 
 
 #if DEBUG
-    public bool IsLive { get; set; } = true;
+    public bool IsLive { get; set; } = false;
 #endif
 
 #if RELEASE
@@ -117,6 +117,7 @@ namespace CTKS_Chart.ViewModels
           maxValue = value;
           RaisePropertyChanged();
           MainLayout.MaxValue = MaxValue;
+          TradingBot.Asset.StartMaxPrice = MaxValue;
 
           RecreateChart();
         }
@@ -139,6 +140,7 @@ namespace CTKS_Chart.ViewModels
           minValue = value;
           RaisePropertyChanged();
           MainLayout.MinValue = MinValue;
+          TradingBot.Asset.StartLowPrice = MinValue;
 
           RecreateChart();
         }

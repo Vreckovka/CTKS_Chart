@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using Logger;
 using VCore.Standard;
 using VCore.Standard.Helpers;
 
@@ -33,6 +34,8 @@ namespace CTKS_Chart
     public Asset Asset { get; set; }
     public decimal MinPositionValue { get; set; } = 6;
     public double ScaleSize { get; set; } = 3;
+
+    public ILogger Logger { get; set; }
 
     #region Positions
 
@@ -129,7 +132,26 @@ namespace CTKS_Chart
     }
     #endregion
 
-    public decimal StartingBudget { get; protected set; } = 1000;
+
+
+    #region StartingBudget
+
+    private decimal startingBudget = 1000;
+
+    public decimal StartingBudget
+    {
+      get { return startingBudget; }
+      protected set
+      {
+        if (value != startingBudget)
+        {
+          startingBudget = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
 
     public List<CtksIntersection> Intersections { get; set; } = new List<CtksIntersection>();
 
@@ -579,24 +601,31 @@ namespace CTKS_Chart
 
       foreach (var sell in createdPositions)
       {
-        var id = await CreatePosition(sell);
+        long id = 0;
 
-        if (id > 0)
+        while (id == 0)
         {
-          sell.Id = id;
+          id = await CreatePosition(sell);
 
-          onCreatePositionSub.OnNext(sell);
-          OpenSellPositions.Add(sell);
+          if (id > 0)
+          {
+            sell.Id = id;
 
-          LeftSize -= sell.PositionSizeNative;
+            onCreatePositionSub.OnNext(sell);
+            OpenSellPositions.Add(sell);
 
-          if (LeftSize < 0)
-            throw new Exception("Left native size is less than 0 !!");
+            LeftSize -= sell.PositionSizeNative;
+
+            if (LeftSize < 0)
+              throw new Exception("Left native size is less than 0 !!");
+          }
+          else
+          {
+            Logger?.Log(MessageType.Error, "Sell order was not created!, trying again");
+            await Task.Delay(1000);
+          }
         }
-        else
-        {
-          throw new Exception("Sell was not created !!");
-        }
+       
       }
 
       SaveState();
@@ -745,7 +774,7 @@ namespace CTKS_Chart
       position.PositionSize = 0;
       position.PositionSizeNative = 0;
 
-      TotalProfit = ClosedSellPositions.Where(x => x.State == PositionState.Filled).Sum(x => x.Profit);
+      TotalProfit += position.Profit;
       TotalSell += position.OriginalPositionSize;
       Budget += finalSize;
       TotalNativeAsset -= position.OriginalPositionSizeNative;

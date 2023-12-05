@@ -33,6 +33,7 @@ namespace CTKS_Chart
       //});
 
       Subscribe();
+      Logger = this.logger;
     }
 
     public override bool IsPositionFilled(Candle candle, Position position)
@@ -58,20 +59,7 @@ namespace CTKS_Chart
 
           if (order != null)
           {
-            if (order.State == PositionState.Filled || order.State == PositionState.Completed)
-            {
-              if (order.Side == PositionSide.Buy)
-              {
-                OpenBuyPositions.Remove(order);
-                ClosedBuyPositions.Add(order);
-              }
-              else
-              {
-                OpenSellPositions.Remove(order);
-                ClosedSellPositions.Add(order);
-              }
-            }
-            else if (order.State == PositionState.Open)
+            if (order.State == PositionState.Open)
             {
               if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Filled)
               {
@@ -107,7 +95,7 @@ namespace CTKS_Chart
             if (orderUpdate.Side == OrderSide.Buy)
               logger.Log(MessageType.Success, message, simpleMessage: true);
             else
-              logger.Log(MessageType.Success, message, simpleMessage: true);
+              logger.Log(MessageType.Success2, message, simpleMessage: true);
           }
           else
           {
