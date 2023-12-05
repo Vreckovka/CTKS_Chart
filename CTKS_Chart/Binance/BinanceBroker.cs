@@ -272,7 +272,7 @@ namespace CTKS_Chart.Binance
           return;
         }
 
-        logger.Log(MessageType.Inform2, $"{DateTime.UtcNow} Subscribe to stream sucess", simpleMessage: true);
+        logger.Log(MessageType.Inform2, $"{DateTime.UtcNow} Subscribe to stream success", simpleMessage: true);
 
         serialDisposable.Disposable?.Dispose();
         serialDisposable.Disposable = Observable.Interval(TimeSpan.FromMinutes(30)).Subscribe((x) =>

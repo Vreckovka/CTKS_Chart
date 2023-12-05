@@ -22,7 +22,7 @@ namespace CTKS_Chart
     private readonly ILogger logger;
     string path = "State";
 
-    public BinanceStrategy(BinanceBroker binanceBroker, ILogger logger) 
+    public BinanceStrategy(BinanceBroker binanceBroker, ILogger logger)
     {
       this.binanceBroker = binanceBroker ?? throw new ArgumentNullException(nameof(binanceBroker));
       this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -99,18 +99,21 @@ namespace CTKS_Chart
         if (Asset != null && data.Data.Symbol == Asset.Symbol)
         {
           var message = $"{orderUpdate.UpdateTime} Order update {orderUpdate.Status} " +
-                        $"{orderUpdate.Price.ToString($"N{Asset.PriceRound}")} " +
+                        $"{orderUpdate.Side} {orderUpdate.Price.ToString($"N{Asset.PriceRound}")} " +
                         $"{orderUpdate.QuantityFilled.ToString($"N{Asset.NativeRound}")}";
 
           if (orderUpdate.Status == OrderStatus.Filled)
           {
-            logger.Log(MessageType.Success, message, simpleMessage: true);
+            if (orderUpdate.Side == OrderSide.Buy)
+              logger.Log(MessageType.Success, message, simpleMessage: true);
+            else
+              logger.Log(MessageType.Success, message, simpleMessage: true);
           }
           else
           {
             logger.Log(MessageType.Inform, message, simpleMessage: true);
           }
-        
+
 
           if (orderUpdate.RejectReason != OrderRejectReason.None)
           {
@@ -163,7 +166,7 @@ namespace CTKS_Chart
 
     #endregion
 
-  
+
 
     public override void SaveState()
     {

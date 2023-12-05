@@ -1,13 +1,15 @@
-﻿namespace CTKS_Chart
+﻿using System;
+
+namespace CTKS_Chart
 {
   public class Asset
   {
     public string Symbol { get; set; }
     public int NativeRound { get; set; }
     public int PriceRound { get; set; }
-
     public decimal StartLowPrice { get; set; }
-
     public decimal StartMaxPrice { get; set; }
+    public TimeSpan RunTime { get; set; }
+    public long RunTimeTicks { get; set; }
   }
 }

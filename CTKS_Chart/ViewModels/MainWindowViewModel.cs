@@ -34,6 +34,7 @@ namespace CTKS_Chart.ViewModels
   {
     private readonly ILogger logger;
     private Stopwatch stopwatch = new Stopwatch();
+    private TimeSpan lastElapsed;
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
     {
       this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -45,7 +46,18 @@ namespace CTKS_Chart.ViewModels
       stopwatch.Start();
       Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
       {
-        ActiveTime = stopwatch.Elapsed;
+        var diff = stopwatch.Elapsed - lastElapsed;
+        ActiveTime += diff;
+        TotalRunTime += diff;
+
+        lastElapsed = stopwatch.Elapsed;
+
+        if (Math.Round(activeTime.TotalSeconds,0) % 10 == 0)
+        {
+          TradingBot.Asset.RunTimeTicks = TotalRunTime.Ticks;
+          var json = JsonSerializer.Serialize<Asset>(TradingBot.Asset);
+          File.WriteAllText("asset.json",json);
+        }
       });
     }
 
@@ -72,12 +84,24 @@ namespace CTKS_Chart.ViewModels
 
 
 #if DEBUG
-    public bool IsLive { get; set; } = false;
+    public bool IsLive { get; set; } = true;
 #endif
 
 #if RELEASE
     public bool IsLive { get; set; } = true;
 #endif
+    public TimeSpan TotalRunTime
+    {
+      get
+      {
+        return TradingBot.Asset.RunTime;
+      }
+      set
+      {
+        TradingBot.Asset.RunTime = value;
+        RaisePropertyChanged();
+      }
+    }
 
     #region MaxValue
 
@@ -427,6 +451,8 @@ namespace CTKS_Chart.ViewModels
 
       var asset = JsonSerializer.Deserialize<Asset>(File.ReadAllText("asset.json"));
 
+      asset.RunTime = TimeSpan.FromTicks(asset.RunTimeTicks);
+
       MainLayout = new Layout()
       {
         Title = "Main",
@@ -477,10 +503,8 @@ namespace CTKS_Chart.ViewModels
 
       if (IsLive)
       {
-        TradingBot.Strategy.LoadState();
-        TradingBot.Strategy.RefreshState();
-
         LoadLayouts(MainLayout);
+
       }
       else
       {
@@ -506,7 +530,7 @@ namespace CTKS_Chart.ViewModels
     private List<Candle> ActualCandles = new List<Candle>();
     private List<Layout> InnerLayouts = new List<Layout>();
 
-    private async void LoadLayouts(
+    private async Task LoadLayouts(
       Layout mainLayout,
       IList<Candle> mainCandles = null,
       DateTime? maxTime = null,
@@ -708,6 +732,15 @@ namespace CTKS_Chart.ViewModels
 
 
       TradingBot.Strategy.Intersections = ctksIntersections;
+
+      if (!wasLoaded)
+      {
+        TradingBot.Strategy.LoadState();
+        TradingBot.Strategy.RefreshState();
+        wasLoaded = true;
+      }
+
+
       TradingBot.Strategy.ValidatePositions(actual);
       TradingBot.Strategy.CreatePositions(actual);
 
@@ -716,6 +749,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    private bool wasLoaded = false;
     #region CreateCtksChart
 
     private Layout CreateCtksChart(string location, TimeFrame timeFrame, DateTime? maxTime = null)

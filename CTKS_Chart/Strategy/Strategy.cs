@@ -733,22 +733,8 @@ namespace CTKS_Chart
 
     protected void CloseSell(Position position)
     {
-      position.State = PositionState.Filled;
-
       ClosedSellPositions.Add(position);
       OpenSellPositions.Remove(position);
-
-      if (position.OpositPositions.Count > 0)
-      {
-        var originalBuy = position.OpositPositions.Single();
-
-        if (originalBuy.OpositPositions.Sum(x => x.PositionSize) == 0)
-        {
-          originalBuy.State = PositionState.Completed;
-        }
-
-      }
-
 
       var finalSize = position.Price * position.OriginalPositionSizeNative;
 
@@ -769,6 +755,18 @@ namespace CTKS_Chart
       {
         throw new Exception("Native asset value does not mach sell order !!");
       }
+
+      if (position.OpositPositions.Count > 0)
+      {
+        var originalBuy = position.OpositPositions.Single();
+
+        if (originalBuy.OpositPositions.Sum(x => x.PositionSize) == 0)
+        {
+          originalBuy.State = PositionState.Completed;
+        }
+      }
+
+      position.State = PositionState.Filled;
 
       SaveState();
     }

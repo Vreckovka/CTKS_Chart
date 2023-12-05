@@ -66,6 +66,8 @@
                         </Grid.RowDefinitions>
 
                         <UniformGrid Columns="2" DataContext="{Binding Strategy}">
+                            <TextBlock Text="Total time" />
+                            <TextBlock Foreground="Black" Text="{Binding DataContext.TotalRunTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
                             <TextBlock Text="Active time" />
                             <TextBlock Foreground="Black" Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
                             <TextBlock Text="Starting Budget" />
