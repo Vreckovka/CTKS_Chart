@@ -142,6 +142,8 @@ namespace CTKS_Chart.Binance
 
           if (result.Success)
             return result.Data.Id;
+          else
+            logger.Log(MessageType.Error, result.Error?.Message);
         }
       }
       finally
@@ -174,6 +176,8 @@ namespace CTKS_Chart.Binance
 
           if (result.Success)
             return result.Data.Id;
+          else
+            logger.Log(MessageType.Error, result.Error?.Message);
         }
       }
       finally

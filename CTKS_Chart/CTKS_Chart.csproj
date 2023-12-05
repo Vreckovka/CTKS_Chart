@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\CustomLibraries\VCore.Standard\VCore.Standard.csproj" />
     <ProjectReference Include="..\..\..\CustomLibraries\VCore\VCore.WPF.csproj" />
+    <ProjectReference Include="..\..\..\VPlayer\VPlayer.DarkTheme\VPlayer.DarkTheme.csproj" />
   </ItemGroup>
 
 </Project>

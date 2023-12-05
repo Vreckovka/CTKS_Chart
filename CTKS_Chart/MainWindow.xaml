@@ -22,7 +22,7 @@
         </Grid.ColumnDefinitions>
 
         <Grid.RowDefinitions>
-            <RowDefinition Height="50" />
+            <RowDefinition Height="60" />
             <RowDefinition />
         </Grid.RowDefinitions>
 
@@ -66,6 +66,8 @@
                         </Grid.RowDefinitions>
 
                         <UniformGrid Columns="2" DataContext="{Binding Strategy}">
+                            <TextBlock Text="Active time" />
+                            <TextBlock Foreground="Black" Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
                             <TextBlock Text="Starting Budget" />
                             <TextBlock Text="{Binding StartingBudget, StringFormat={}{0:N2} $}" />
                             <TextBlock Text="Total Value" />
@@ -278,7 +280,7 @@
                          Margin="10,0,10,0"
                          Text="{Binding MinValue}" />
 
-                <TextBlock Foreground="LightYellow" Text="{Binding ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}}" />
+
 
             </StackPanel>
         </Border>

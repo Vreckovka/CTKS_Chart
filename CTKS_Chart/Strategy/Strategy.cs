@@ -437,8 +437,6 @@ namespace CTKS_Chart
 
         if (position.State != PositionState.Filled)
         {
-          position.State = PositionState.Filled;
-
           var ordered = Intersections.OrderBy(x => x.Value).ToList();
 
           TotalBuy += position.PositionSize;
@@ -446,6 +444,8 @@ namespace CTKS_Chart
           LeftSize += position.PositionSizeNative;
 
           await CreateSellPositionForBuy(position, ordered);
+
+          position.State = PositionState.Filled;
 
           ClosedBuyPositions.Add(position);
           OpenBuyPositions.Remove(position);
