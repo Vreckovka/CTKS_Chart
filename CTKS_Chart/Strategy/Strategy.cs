@@ -414,14 +414,16 @@ namespace CTKS_Chart
 
     protected async Task CreateSellPositionForBuy(Position position, IEnumerable<CtksIntersection> ctksIntersections)
     {
-      await CreateSell(position, ctksIntersections);
-
-      var sumOposite = position.OpositPositions.Sum(x => x.OriginalPositionSizeNative);
-      if (sumOposite != position.OriginalPositionSizeNative)
+      if(position.PositionSize > 0)
       {
-        throw new Exception("Postion asset value does not mach sell order !!");
-      }
+        await CreateSell(position, ctksIntersections);
 
+        var sumOposite = position.OpositPositions.Sum(x => x.OriginalPositionSizeNative);
+        if (sumOposite != position.OriginalPositionSizeNative)
+        {
+          throw new Exception("Postion asset value does not mach sell order !!");
+        }
+      }
     }
 
     #endregion
@@ -449,6 +451,7 @@ namespace CTKS_Chart
 
           ClosedBuyPositions.Add(position);
           OpenBuyPositions.Remove(position);
+          SaveState();
         }
       }
       finally
