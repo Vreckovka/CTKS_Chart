@@ -52,11 +52,11 @@ namespace CTKS_Chart.ViewModels
 
         lastElapsed = stopwatch.Elapsed;
 
-        if (Math.Round(activeTime.TotalSeconds,0) % 10 == 0)
+        if (Math.Round(activeTime.TotalSeconds, 0) % 10 == 0)
         {
           TradingBot.Asset.RunTimeTicks = TotalRunTime.Ticks;
           var json = JsonSerializer.Serialize<Asset>(TradingBot.Asset);
-          File.WriteAllText("asset.json",json);
+          File.WriteAllText("asset.json", json);
         }
       });
     }
@@ -461,7 +461,7 @@ namespace CTKS_Chart.ViewModels
         TimeFrame = TimeFrame.D1
       };
 
-      Strategy strategy = new BinanceStrategy(binanceBroker, logger);
+      Strategy strategy = new BinanceStrategy(binanceBroker, logger, IsLive);
 
       if (!IsLive)
         strategy = new SimulationStrategy();
@@ -510,14 +510,14 @@ namespace CTKS_Chart.ViewModels
       }
       else
       {
-        var mainCandles = ParseTradingView(tradingView__ada_15);
+        var mainCandles = ParseTradingView(tradingView__ada_240);
 
         MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
         MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
         var maxDate = mainCandles.First().Time;
 
-        LoadLayouts(MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
+        LoadLayouts(MainLayout, mainCandles, maxDate, 1500, mainCandles.Count, true);
       }
 
       //Do not raise 

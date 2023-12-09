@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,16 +17,19 @@ using VCore.WPF;
 
 namespace CTKS_Chart
 {
+
   public class BinanceStrategy : Strategy
   {
     private readonly BinanceBroker binanceBroker;
     private readonly ILogger logger;
+    private readonly bool isLive;
     string path = "State";
 
-    public BinanceStrategy(BinanceBroker binanceBroker, ILogger logger)
+    public BinanceStrategy(BinanceBroker binanceBroker, ILogger logger, bool isLive)
     {
       this.binanceBroker = binanceBroker ?? throw new ArgumentNullException(nameof(binanceBroker));
       this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+      this.isLive = isLive;
 
       //Observable.Interval(TimeSpan.FromMinutes(5)).Subscribe(x =>
       //{
@@ -49,7 +53,6 @@ namespace CTKS_Chart
     public override async void RefreshState()
     {
       var closedOrders = await binanceBroker.GetClosedOrders(Asset.Symbol);
-
 
       VSynchronizationContext.InvokeOnDispatcher(async () =>
       {
@@ -137,7 +140,14 @@ namespace CTKS_Chart
 
     protected override Task<bool> CancelPosition(Position position)
     {
-      return binanceBroker.Close(Asset.Symbol, position.Id);
+      if (isLive)
+      {
+        return binanceBroker.Close(Asset.Symbol, position.Id);
+      }
+      else
+      {
+        return Task.FromResult(false);
+      }
     }
 
     #endregion
@@ -146,10 +156,17 @@ namespace CTKS_Chart
 
     protected override Task<long> CreatePosition(Position position)
     {
-      if (position.Side == PositionSide.Buy)
-        return binanceBroker.Buy(Asset.Symbol, position.PositionSizeNative, position.Price);
+      if (isLive)
+      {
+        if (position.Side == PositionSide.Buy)
+          return binanceBroker.Buy(Asset.Symbol, position.PositionSizeNative, position.Price);
+        else
+          return binanceBroker.Sell(Asset.Symbol, position.PositionSizeNative, position.Price);
+      }
       else
-        return binanceBroker.Sell(Asset.Symbol, position.PositionSizeNative, position.Price);
+      {
+        return Task.FromResult(0L);
+      }
     }
 
     #endregion
@@ -164,7 +181,7 @@ namespace CTKS_Chart
         var openSell = JsonSerializer.Serialize(OpenSellPositions.Select(x => new PositionDto(x)));
         var cloedSell = JsonSerializer.Serialize(ClosedSellPositions.Select(x => new PositionDto(x)));
         var closedBuy = JsonSerializer.Serialize(ClosedBuyPositions.Select(x => new PositionDto(x)));
-        var map = JsonSerializer.Serialize(PositionSizeMapping.ToList());
+        var data = JsonSerializer.Serialize(StrategyData);
 
         Path.Combine(path, "openBuy.json").EnsureDirectoryExists();
 
@@ -172,13 +189,7 @@ namespace CTKS_Chart
         File.WriteAllText(Path.Combine(path, "openSell.json"), openSell);
         File.WriteAllText(Path.Combine(path, "cloedSell.json"), cloedSell);
         File.WriteAllText(Path.Combine(path, "closedBuy.json"), closedBuy);
-        File.WriteAllText(Path.Combine(path, "budget.json"), Budget.ToString());
-        File.WriteAllText(Path.Combine(path, "totalProfit.json"), TotalProfit.ToString());
-        File.WriteAllText(Path.Combine(path, "map.json"), map);
-        File.WriteAllText(Path.Combine(path, "startBug.json"), StartingBudget.ToString());
-        File.WriteAllText(Path.Combine(path, "native.json"), TotalNativeAsset.ToString());
-        File.WriteAllText(Path.Combine(path, "totalBuy.json"), TotalBuy.ToString());
-        File.WriteAllText(Path.Combine(path, "totalSell.json"), TotalSell.ToString());
+        File.WriteAllText(Path.Combine(path, "data.json"), data);
       }
     }
 
@@ -222,15 +233,22 @@ namespace CTKS_Chart
         }
 
 
-        var map = JsonSerializer.Deserialize<IEnumerable<KeyValuePair<TimeFrame, decimal>>>(File.ReadAllText(Path.Combine(path, "map.json")));
+        if (File.Exists(Path.Combine(path, "data.json")))
+        {
+          StrategyData = JsonSerializer.Deserialize<StrategyData>(File.ReadAllText(Path.Combine(path, "data.json")));
+        }
+        else
+        {
+          var map = JsonSerializer.Deserialize<IEnumerable<KeyValuePair<TimeFrame, decimal>>>(File.ReadAllText(Path.Combine(path, "map.json")));
 
-        PositionSizeMapping = map.ToDictionary(x => x.Key, x => x.Value);
-        Budget = (decimal)double.Parse(File.ReadAllText(Path.Combine(path, "budget.json")));
-        TotalProfit = decimal.Parse(File.ReadAllText(Path.Combine(path, "totalProfit.json")));
-        StartingBudget = decimal.Parse(File.ReadAllText(Path.Combine(path, "startBug.json")));
-        TotalNativeAsset = decimal.Parse(File.ReadAllText(Path.Combine(path, "native.json")));
-        TotalBuy = decimal.Parse(File.ReadAllText(Path.Combine(path, "totalBuy.json")));
-        TotalSell = decimal.Parse(File.ReadAllText(Path.Combine(path, "totalSell.json")));
+          PositionSizeMapping = map.ToDictionary(x => x.Key, x => x.Value);
+          Budget = (decimal)double.Parse(File.ReadAllText(Path.Combine(path, "budget.json")));
+          TotalProfit = decimal.Parse(File.ReadAllText(Path.Combine(path, "totalProfit.json")));
+          StartingBudget = decimal.Parse(File.ReadAllText(Path.Combine(path, "startBug.json")));
+          TotalNativeAsset = decimal.Parse(File.ReadAllText(Path.Combine(path, "native.json")));
+          TotalBuy = decimal.Parse(File.ReadAllText(Path.Combine(path, "totalBuy.json")));
+          TotalSell = decimal.Parse(File.ReadAllText(Path.Combine(path, "totalSell.json")));
+        }
       }
     }
   }

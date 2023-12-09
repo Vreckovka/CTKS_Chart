@@ -15,12 +15,28 @@ using VCore.Standard.Helpers;
 
 namespace CTKS_Chart
 {
+  public class StrategyData
+  {
+    public double ScaleSize { get; set; }
+    public decimal StartingBudget { get; set; }
+    public decimal Budget { get; set; }
+    public decimal TotalProfit { get; set; }
+    public decimal TotalSell { get; set; }
+    public decimal TotalBuy { get; set; }
+    public decimal TotalNativeAsset { get; set; }
+    public decimal MinBuyPrice { get; set; }
+    public IEnumerable<KeyValuePair<TimeFrame, decimal>> PositionSizeMapping { get; set; }
+  }
+
+
   public abstract class Strategy : ViewModel
   {
     public Strategy()
     {
-      budget = StartingBudget;
+      Budget = StartingBudget;
     }
+
+    #region Properties
 
     private Subject<Position> onCreatePositionSub = new Subject<Position>();
     public IObservable<Position> OnCreatePosition
@@ -33,41 +49,63 @@ namespace CTKS_Chart
 
     public Asset Asset { get; set; }
     public decimal MinPositionValue { get; set; } = 6;
-    public double ScaleSize { get; set; } = 3;
-
+  
     public ILogger Logger { get; set; }
 
-    #region Positions
 
-    public ObservableCollection<Position> ClosedBuyPositions { get; set; } = new ObservableCollection<Position>();
-    public ObservableCollection<Position> ClosedSellPositions { get; set; } = new ObservableCollection<Position>();
+    #region StrategyData
 
-    public ObservableCollection<Position> OpenSellPositions { get; set; } = new ObservableCollection<Position>();
-    public ObservableCollection<Position> OpenBuyPositions { get; set; } = new ObservableCollection<Position>();
+    private StrategyData strategyData = new StrategyData()
+    {
+      MinBuyPrice = (decimal)0.25,
+      PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
+      {
+        { TimeFrame.M12, 100},
+        { TimeFrame.M6, 70},
+        { TimeFrame.M3, 50},
+        { TimeFrame.M1, 30},
+        { TimeFrame.W2, 20},
+        { TimeFrame.W1, 10},
+      },
+      StartingBudget = 1000,
+      ScaleSize = 1.5
+    };
 
+    public StrategyData StrategyData
+    {
+      get { return strategyData; }
+      set
+      {
+        if (value != strategyData)
+        {
+          strategyData = value;
+          RaisePropertyChanged();
+
+          RaisePropertyChanged(nameof(StartingBudget));
+          RaisePropertyChanged(nameof(TotalProfit));
+          RaisePropertyChanged(nameof(MinBuyPrice));
+          RaisePropertyChanged(nameof(Budget));
+          RaisePropertyChanged(nameof(TotalNativeAsset));
+          RaisePropertyChanged(nameof(TotalBuy));
+          RaisePropertyChanged(nameof(TotalSell));
+          RaisePropertyChanged(nameof(PositionSizeMapping));
+          RaisePropertyChanged(nameof(ScaleSize));
+        }
+      }
+    }
 
     #endregion
 
-    #region PositionSizeMapping
+    #region ScaleSize
 
-    private Dictionary<TimeFrame, decimal> positionSizeMapping = new Dictionary<TimeFrame, decimal>()
+    public double ScaleSize
     {
-      {TimeFrame.M12, 200},
-      {TimeFrame.M6, 100},
-      { TimeFrame.M3, 50},
-      { TimeFrame.M1, 30},
-      { TimeFrame.W2, 20},
-      { TimeFrame.W1, 10},
-    };
-
-    public Dictionary<TimeFrame, decimal> PositionSizeMapping
-    {
-      get { return positionSizeMapping; }
+      get { return StrategyData.ScaleSize; }
       set
       {
-        if (value != positionSizeMapping)
+        if (value != StrategyData.ScaleSize)
         {
-          positionSizeMapping = value;
+          StrategyData.ScaleSize = value;
           RaisePropertyChanged();
         }
       }
@@ -75,40 +113,18 @@ namespace CTKS_Chart
 
     #endregion
 
-    #region MinSellProfitMapping
+    #region StartingBudget
 
-
-    public Dictionary<TimeFrame, double> MinSellProfitMapping { get; } = new Dictionary<TimeFrame, double>()
+    public decimal StartingBudget
     {
-      {TimeFrame.M12, 0.01},
-      {TimeFrame.M6,  0.01},
-      {TimeFrame.M3,  0.01},
-      {TimeFrame.M1,  0.01},
-      {TimeFrame.W2,  0.01},
-      {TimeFrame.W1,  0.01},
-    };
-
-    #endregion
-
-    #region AllClosedPositions
-
-    public IEnumerable<Position> AllClosedPositions
-    {
-      get
+      get { return StrategyData.StartingBudget; }
+      protected set
       {
-        return ClosedBuyPositions.Concat(ClosedSellPositions);
-      }
-    }
-
-    #endregion
-
-    #region AllOpenedPositions
-
-    public IEnumerable<Position> AllOpenedPositions
-    {
-      get
-      {
-        return OpenBuyPositions.Concat(OpenSellPositions);
+        if (value != StrategyData.StartingBudget)
+        {
+          StrategyData.StartingBudget = value;
+          RaisePropertyChanged();
+        }
       }
     }
 
@@ -116,57 +132,48 @@ namespace CTKS_Chart
 
     #region TotalProfit
 
-    private decimal totalProfit;
-
     public decimal TotalProfit
     {
-      get { return totalProfit; }
+      get { return StrategyData.TotalProfit; }
       set
       {
-        if (value != totalProfit)
+        if (value != StrategyData.TotalProfit)
         {
-          totalProfit = value;
+          StrategyData.TotalProfit = value;
           RaisePropertyChanged();
         }
       }
     }
+
     #endregion
 
+    #region MinBuyPrice
 
-
-    #region StartingBudget
-
-    private decimal startingBudget = 1000;
-
-    public decimal StartingBudget
+    public decimal MinBuyPrice
     {
-      get { return startingBudget; }
-      protected set
+      get { return StrategyData.MinBuyPrice; }
+      set
       {
-        if (value != startingBudget)
+        if (value != StrategyData.MinBuyPrice)
         {
-          startingBudget = value;
+          StrategyData.MinBuyPrice = value;
           RaisePropertyChanged();
         }
       }
     }
 
     #endregion
-
-    public List<CtksIntersection> Intersections { get; set; } = new List<CtksIntersection>();
 
     #region Budget
 
-    private decimal budget;
-
     public decimal Budget
     {
-      get { return budget; }
+      get { return StrategyData.Budget; }
       set
       {
-        if (value != budget)
+        if (value != StrategyData.Budget)
         {
-          budget = value;
+          StrategyData.Budget = value;
           RaisePropertyChanged();
         }
       }
@@ -176,54 +183,14 @@ namespace CTKS_Chart
 
     #region TotalNativeAsset
 
-    private decimal totalNativeAsset;
-
     public decimal TotalNativeAsset
     {
-      get { return totalNativeAsset; }
+      get { return StrategyData.TotalNativeAsset; }
       set
       {
-        if (value != totalNativeAsset)
+        if (value != StrategyData.TotalNativeAsset)
         {
-          totalNativeAsset = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region TotalNativeAssetValue
-
-    private decimal totalNativeAssetValue;
-
-    public decimal TotalNativeAssetValue
-    {
-      get { return totalNativeAssetValue; }
-      set
-      {
-        if (value != totalNativeAssetValue)
-        {
-          totalNativeAssetValue = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region TotalValue
-
-    private decimal totalValue;
-
-    public decimal TotalValue
-    {
-      get { return totalValue; }
-      set
-      {
-        if (value != totalValue)
-        {
-          totalValue = value;
+          StrategyData.TotalNativeAsset = value;
           RaisePropertyChanged();
         }
       }
@@ -269,6 +236,116 @@ namespace CTKS_Chart
 
     #endregion
 
+    #region PositionSizeMapping
+
+    public IEnumerable<KeyValuePair<TimeFrame, decimal>> PositionSizeMapping
+    {
+      get { return StrategyData.PositionSizeMapping; }
+      set
+      {
+        if (value != StrategyData.PositionSizeMapping)
+        {
+          StrategyData.PositionSizeMapping = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region MinSellProfitMapping
+
+    public Dictionary<TimeFrame, double> MinSellProfitMapping { get; } = new Dictionary<TimeFrame, double>()
+    {
+      {TimeFrame.M12, 0.01},
+      {TimeFrame.M6,  0.01},
+      {TimeFrame.M3,  0.01},
+      {TimeFrame.M1,  0.01},
+      {TimeFrame.W2,  0.01},
+      {TimeFrame.W1,  0.01},
+    };
+
+    #endregion
+
+    #region Calculated Properties
+
+    #region TotalNativeAssetValue
+
+    private decimal totalNativeAssetValue;
+
+    public decimal TotalNativeAssetValue
+    {
+      get { return totalNativeAssetValue; }
+      set
+      {
+        if (value != totalNativeAssetValue)
+        {
+          totalNativeAssetValue = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region TotalValue
+
+    private decimal totalValue;
+
+    public decimal TotalValue
+    {
+      get { return totalValue; }
+      set
+      {
+        if (value != totalValue)
+        {
+          totalValue = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Positions
+
+    public ObservableCollection<Position> ClosedBuyPositions { get; set; } = new ObservableCollection<Position>();
+    public ObservableCollection<Position> ClosedSellPositions { get; set; } = new ObservableCollection<Position>();
+
+    public ObservableCollection<Position> OpenSellPositions { get; set; } = new ObservableCollection<Position>();
+    public ObservableCollection<Position> OpenBuyPositions { get; set; } = new ObservableCollection<Position>();
+
+
+    #region AllClosedPositions
+
+    public IEnumerable<Position> AllClosedPositions
+    {
+      get
+      {
+        return ClosedBuyPositions.Concat(ClosedSellPositions);
+      }
+    }
+
+    #endregion
+
+    #region AllOpenedPositions
+
+    public IEnumerable<Position> AllOpenedPositions
+    {
+      get
+      {
+        return OpenBuyPositions.Concat(OpenSellPositions);
+      }
+    }
+
+    #endregion
+
+    #endregion
+    
+    public List<CtksIntersection> Intersections { get; set; } = new List<CtksIntersection>();
+
     #region AvrageBuyPrice
 
     public decimal AvrageBuyPrice
@@ -283,6 +360,10 @@ namespace CTKS_Chart
     }
 
     #endregion
+
+    #endregion
+
+    #region Methods
 
     #region GetMinBuy
 
@@ -302,9 +383,12 @@ namespace CTKS_Chart
       try
       {
         await semaphoreSlim.WaitAsync();
-        var minPrice = actualCandle.Close * (decimal)0.75;
+        var minPrice = actualCandle.Close * (1 - MinBuyPrice);
 
-        var openedBuy = OpenBuyPositions.Where(x => !Intersections.Any(y => y.Value == x.Intersection.Value)).ToList();
+        var openedBuy = OpenBuyPositions
+          .Where(x => !Intersections.Any(y => y.Value == x.Intersection.Value) || x.Price < minPrice)
+          .ToList();
+
         var openedSell = OpenSellPositions.Where(x => !Intersections.Any(y => y.Value == x.Intersection.Value)).ToList();
         var ordered = Intersections.OrderBy(x => x.Value).ToList();
 
@@ -327,7 +411,8 @@ namespace CTKS_Chart
         }
 
         var inter = Intersections
-          .Where(x => x.Value < actualCandle.Close.Value && x.Value > minPrice && x.Value < GetMinBuy(actualCandle.Close.Value, x.TimeFrame))
+          .Where(x => x.Value < actualCandle.Close.Value && x.Value > minPrice &&
+                      x.Value < GetMinBuy(actualCandle.Close.Value, x.TimeFrame))
           .OrderByDescending(x => x.Value)
           .ToList();
 
@@ -376,7 +461,7 @@ namespace CTKS_Chart
 
     private decimal GetPositionSize(TimeFrame timeFrame)
     {
-      return PositionSizeMapping[timeFrame];
+      return PositionSizeMapping.Single(x => x.Key == timeFrame).Value;
     }
 
     #endregion
@@ -436,7 +521,7 @@ namespace CTKS_Chart
 
     protected async Task CreateSellPositionForBuy(Position position, IEnumerable<CtksIntersection> ctksIntersections)
     {
-      if(position.PositionSize > 0)
+      if (position.PositionSize > 0)
       {
         await CreateSell(position, ctksIntersections);
 
@@ -625,7 +710,7 @@ namespace CTKS_Chart
             await Task.Delay(1000);
           }
         }
-       
+
       }
 
       SaveState();
@@ -814,7 +899,7 @@ namespace CTKS_Chart
 
       var size = (1 + (perc * (decimal)1 * (decimal)ScaleSize));
       var maxValue = (TotalProfit + StartingBudget);
-      var nextMaxValue = PositionSizeMapping[TimeFrame.M12] * size;
+      var nextMaxValue = PositionSizeMapping.Single(x => x.Key == TimeFrame.M12).Value * size;
 
       var newList = new Dictionary<TimeFrame, decimal>();
 
@@ -882,5 +967,7 @@ namespace CTKS_Chart
         return candle.Close.Value >= position.Price;
       }
     }
+
+    #endregion
   }
 }
