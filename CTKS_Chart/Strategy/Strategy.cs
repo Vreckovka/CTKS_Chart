@@ -49,7 +49,7 @@ namespace CTKS_Chart
 
     public Asset Asset { get; set; }
     public decimal MinPositionValue { get; set; } = 6;
-  
+
     public ILogger Logger { get; set; }
 
 
@@ -67,8 +67,8 @@ namespace CTKS_Chart
         { TimeFrame.W2, 20},
         { TimeFrame.W1, 10},
       },
-      StartingBudget = 1000,
-      ScaleSize = 1.5
+      StartingBudget = 500,
+      ScaleSize = 3.5
     };
 
     public StrategyData StrategyData
@@ -343,7 +343,7 @@ namespace CTKS_Chart
     #endregion
 
     #endregion
-    
+
     public List<CtksIntersection> Intersections { get; set; } = new List<CtksIntersection>();
 
     #region AvrageBuyPrice
@@ -558,6 +558,12 @@ namespace CTKS_Chart
 
           ClosedBuyPositions.Add(position);
           OpenBuyPositions.Remove(position);
+
+          if (TotalValue / 5 < PositionSizeMapping.Single(x => x.Key == TimeFrame.M12).Value)
+          {
+            Scale(-1 * TotalValue * (decimal)0.01);
+          }
+
           SaveState();
         }
       }
@@ -847,7 +853,6 @@ namespace CTKS_Chart
     #endregion
 
     #region CloseSell
-
     protected void CloseSell(Position position)
     {
       ClosedSellPositions.Add(position);

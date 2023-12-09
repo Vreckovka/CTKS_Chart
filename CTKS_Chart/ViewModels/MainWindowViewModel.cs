@@ -35,6 +35,8 @@ namespace CTKS_Chart.ViewModels
     private readonly ILogger logger;
     private Stopwatch stopwatch = new Stopwatch();
     private TimeSpan lastElapsed;
+    private BinanceBroker binanceBroker;
+
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
     {
       this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -61,7 +63,7 @@ namespace CTKS_Chart.ViewModels
       });
     }
 
-    private BinanceBroker binanceBroker;
+    #region Properties
 
     #region TradingBot
 
@@ -82,6 +84,13 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+#if DEBUG
+    public bool Simulation { get; set; } = true;
+#endif
+
+#if RELEASE
+    public bool Simulation { get; set; } = false;
+#endif
 
 #if DEBUG
     public bool IsLive { get; set; } = false;
@@ -239,6 +248,8 @@ namespace CTKS_Chart.ViewModels
         }
       }
     }
+
+    #endregion
 
     #endregion
 
@@ -510,14 +521,14 @@ namespace CTKS_Chart.ViewModels
       }
       else
       {
-        var mainCandles = ParseTradingView(tradingView__ada_240);
+        var mainCandles = ParseTradingView(tradingView__ada_1D);
 
         MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
         MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
         var maxDate = mainCandles.First().Time;
 
-        LoadLayouts(MainLayout, mainCandles, maxDate, 1500, mainCandles.Count, true);
+        LoadLayouts(MainLayout, mainCandles, maxDate, 1000, mainCandles.Count, true);
       }
 
       //Do not raise 
@@ -692,7 +703,9 @@ namespace CTKS_Chart.ViewModels
     #region RenderLayout
 
     private bool shouldUpdate = true;
+    private bool wasLoaded = false;
     List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
+
 
     public void RenderLayout(Layout layout, List<Layout> secondaryLayouts, Candle actual, List<Candle> candles)
     {
@@ -746,12 +759,12 @@ namespace CTKS_Chart.ViewModels
       TradingBot.Strategy.ValidatePositions(actual);
       TradingBot.Strategy.CreatePositions(actual);
 
-      RenderOverlay(layout, ctksIntersections, TradingBot.Strategy, candles);
+      if (!Simulation)
+        RenderOverlay(layout, ctksIntersections, TradingBot.Strategy, candles);
     }
 
     #endregion
 
-    private bool wasLoaded = false;
     #region CreateCtksChart
 
     private Layout CreateCtksChart(string location, TimeFrame timeFrame, DateTime? maxTime = null)
@@ -1222,9 +1235,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
-    #endregion
-
     #region OnBinanceKlineUpdate
 
     private void OnBinanceKlineUpdate(IBinanceStreamKline binanceStreamKline)
@@ -1306,7 +1316,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
+    #endregion
   }
 }
 
