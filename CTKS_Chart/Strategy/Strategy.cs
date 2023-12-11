@@ -390,8 +390,6 @@ namespace CTKS_Chart
           .ToList();
 
         var openedSell = OpenSellPositions.Where(x => !Intersections.Any(y => y.Value == x.Intersection.Value)).ToList();
-        var ordered = Intersections.OrderBy(x => x.Value).ToList();
-
 
         foreach (var buyPosition in openedBuy)
         {
@@ -407,7 +405,7 @@ namespace CTKS_Chart
 
         foreach (var opened in removedBu)
         {
-          await CreateSellPositionForBuy(opened, ordered);
+          await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close.Value));
         }
 
         var inter = Intersections
@@ -559,7 +557,7 @@ namespace CTKS_Chart
           ClosedBuyPositions.Add(position);
           OpenBuyPositions.Remove(position);
 
-          if (TotalValue / 5 < PositionSizeMapping.Single(x => x.Key == TimeFrame.M12).Value)
+          if (TotalValue / 3 < PositionSizeMapping.Single(x => x.Key == TimeFrame.M12).Value)
           {
             Scale(-1 * TotalValue * (decimal)0.01);
           }
@@ -752,6 +750,11 @@ namespace CTKS_Chart
       if (positionSize == 0)
         return;
 
+      if (positionSize > Budget && Budget > MinPositionValue)
+      {
+        positionSize = Budget;
+      }
+
       var newPosition = new Position(positionSize, intersection.Value, roundedNativeSize)
       {
         TimeFrame = intersection.TimeFrame,
@@ -853,6 +856,7 @@ namespace CTKS_Chart
     #endregion
 
     #region CloseSell
+
     protected void CloseSell(Position position)
     {
       ClosedSellPositions.Add(position);
@@ -875,7 +879,7 @@ namespace CTKS_Chart
 
       if (Math.Round(sum) != Math.Round(TotalNativeAsset))
       {
-        throw new Exception("Native asset value does not mach sell order !!");
+        throw new Exception($"Native asset value does not mach sell order !! {Math.Round(sum)} != {Math.Round(TotalNativeAsset)}");
       }
 
       if (position.OpositPositions.Count > 0)

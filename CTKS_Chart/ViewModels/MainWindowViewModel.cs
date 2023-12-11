@@ -85,7 +85,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 #if DEBUG
-    public bool Simulation { get; set; } = true;
+    public bool Simulation { get; set; } = false;
 #endif
 
 #if RELEASE
@@ -528,7 +528,7 @@ namespace CTKS_Chart.ViewModels
 
         var maxDate = mainCandles.First().Time;
 
-        LoadLayouts(MainLayout, mainCandles, maxDate, 1000, mainCandles.Count, true);
+        LoadLayouts(MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
       }
 
       //Do not raise 
