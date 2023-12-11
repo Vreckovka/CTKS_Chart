@@ -437,7 +437,14 @@ namespace CTKS_Chart
 
           if (Budget < leftSize)
           {
-            return;
+            if (Budget - MinPositionValue > MinPositionValue)
+            {
+              leftSize = Budget - MinPositionValue;
+            }
+            else
+            {
+              return;
+            }
           }
 
 
@@ -750,11 +757,7 @@ namespace CTKS_Chart
       if (positionSize == 0)
         return;
 
-      if (positionSize > Budget && Budget > MinPositionValue)
-      {
-        positionSize = Budget;
-      }
-
+      
       var newPosition = new Position(positionSize, intersection.Value, roundedNativeSize)
       {
         TimeFrame = intersection.TimeFrame,
