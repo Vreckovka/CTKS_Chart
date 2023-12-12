@@ -60,15 +60,15 @@ namespace CTKS_Chart
       MinBuyPrice = (decimal)0.25,
       PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
       {
-        { TimeFrame.M12, 100},
-        { TimeFrame.M6, 70},
+        { TimeFrame.M12, 70},
+        { TimeFrame.M6, 60},
         { TimeFrame.M3, 50},
         { TimeFrame.M1, 30},
         { TimeFrame.W2, 20},
         { TimeFrame.W1, 10},
       },
-      StartingBudget = 500,
-      ScaleSize = 3.5
+      StartingBudget = 1000,
+      ScaleSize = 1.5
     };
 
     public StrategyData StrategyData
@@ -257,12 +257,12 @@ namespace CTKS_Chart
 
     public Dictionary<TimeFrame, double> MinSellProfitMapping { get; } = new Dictionary<TimeFrame, double>()
     {
-      {TimeFrame.M12, 0.01},
-      {TimeFrame.M6,  0.01},
-      {TimeFrame.M3,  0.01},
-      {TimeFrame.M1,  0.01},
-      {TimeFrame.W2,  0.01},
-      {TimeFrame.W1,  0.01},
+      {TimeFrame.M12, 0.005},
+      {TimeFrame.M6,  0.005},
+      {TimeFrame.M3,  0.005},
+      {TimeFrame.M1,  0.005},
+      {TimeFrame.W2,  0.005},
+      {TimeFrame.W1,  0.005},
     };
 
     #endregion
@@ -437,13 +437,13 @@ namespace CTKS_Chart
 
           if (Budget < leftSize)
           {
-            if (Budget - MinPositionValue > MinPositionValue)
+            if (Budget - 1 > MinPositionValue)
             {
-              leftSize = Budget - MinPositionValue;
+              leftSize = Budget - 1;
             }
             else
             {
-              return;
+              break;
             }
           }
 

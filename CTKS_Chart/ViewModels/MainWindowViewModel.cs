@@ -85,7 +85,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 #if DEBUG
-    public bool Simulation { get; set; } = false;
+    public bool Simulation { get; set; } = true;
 #endif
 
 #if RELEASE
