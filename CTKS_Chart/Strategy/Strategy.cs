@@ -267,6 +267,20 @@ namespace CTKS_Chart
 
     #endregion
 
+    #region MinBuyMapping
+
+    public Dictionary<TimeFrame, double> MinBuyMapping { get; } = new Dictionary<TimeFrame, double>()
+    {
+      {TimeFrame.M12, 0.01},
+      {TimeFrame.M6,  0.01},
+      {TimeFrame.M3,  0.01},
+      {TimeFrame.M1,  0.01},
+      {TimeFrame.W2,  0.01},
+      {TimeFrame.W1,  0.01},
+    };
+
+    #endregion
+
     #region Calculated Properties
 
     #region TotalNativeAssetValue
@@ -369,8 +383,7 @@ namespace CTKS_Chart
 
     private decimal GetMinBuy(decimal low, TimeFrame timeFrame)
     {
-      return low * (decimal)(1 - MinSellProfitMapping[timeFrame]);
-      return low;
+      return low * (decimal)(1 - MinBuyMapping[timeFrame]);
     }
 
     #endregion
