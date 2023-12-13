@@ -71,6 +71,10 @@ namespace CTKS_Chart
                 else
                   CloseSell(order);
               }
+              else if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Canceled)
+              {
+                await OnCancelPosition(order, force: true);
+              }
             }
           }
         }
@@ -175,22 +179,19 @@ namespace CTKS_Chart
 
     public override void SaveState()
     {
-      if (OpenBuyPositions.Count > 0)
-      {
-        var openBuy = JsonSerializer.Serialize(OpenBuyPositions.Select(x => new PositionDto(x)));
-        var openSell = JsonSerializer.Serialize(OpenSellPositions.Select(x => new PositionDto(x)));
-        var cloedSell = JsonSerializer.Serialize(ClosedSellPositions.Select(x => new PositionDto(x)));
-        var closedBuy = JsonSerializer.Serialize(ClosedBuyPositions.Select(x => new PositionDto(x)));
-        var data = JsonSerializer.Serialize(StrategyData);
+      var openBuy = JsonSerializer.Serialize(OpenBuyPositions.Select(x => new PositionDto(x)));
+      var openSell = JsonSerializer.Serialize(OpenSellPositions.Select(x => new PositionDto(x)));
+      var cloedSell = JsonSerializer.Serialize(ClosedSellPositions.Select(x => new PositionDto(x)));
+      var closedBuy = JsonSerializer.Serialize(ClosedBuyPositions.Select(x => new PositionDto(x)));
+      var data = JsonSerializer.Serialize(StrategyData);
 
-        Path.Combine(path, "openBuy.json").EnsureDirectoryExists();
+      Path.Combine(path, "openBuy.json").EnsureDirectoryExists();
 
-        File.WriteAllText(Path.Combine(path, "openBuy.json"), openBuy);
-        File.WriteAllText(Path.Combine(path, "openSell.json"), openSell);
-        File.WriteAllText(Path.Combine(path, "cloedSell.json"), cloedSell);
-        File.WriteAllText(Path.Combine(path, "closedBuy.json"), closedBuy);
-        File.WriteAllText(Path.Combine(path, "data.json"), data);
-      }
+      File.WriteAllText(Path.Combine(path, "openBuy.json"), openBuy);
+      File.WriteAllText(Path.Combine(path, "openSell.json"), openSell);
+      File.WriteAllText(Path.Combine(path, "cloedSell.json"), cloedSell);
+      File.WriteAllText(Path.Combine(path, "closedBuy.json"), closedBuy);
+      File.WriteAllText(Path.Combine(path, "data.json"), data);
     }
 
     public override void LoadState()
@@ -223,10 +224,14 @@ namespace CTKS_Chart
         {
           foreach (var op in closedBuy.OpositePositions)
           {
-            var pos = sells.Single(x => x.Id == op);
-            pos.OpositPositions.Add(closedBuy);
+            var pos = sells.SingleOrDefault(x => x.Id == op);
 
-            closedBuy.OpositPositions.Add(pos);
+            if (pos != null)
+            {
+              pos.OpositPositions.Add(closedBuy);
+
+              closedBuy.OpositPositions.Add(pos);
+            }
           }
 
           ClosedBuyPositions.Add(closedBuy);

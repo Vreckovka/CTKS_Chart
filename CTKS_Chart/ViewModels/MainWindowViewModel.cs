@@ -380,7 +380,7 @@ namespace CTKS_Chart.ViewModels
 
     #region ForexChart_Loaded
 
-    private void ForexChart_Loaded()
+    private async void ForexChart_Loaded()
     {
       //var tradingView_12m = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\BTC-USD.csv";
 
@@ -514,10 +514,12 @@ namespace CTKS_Chart.ViewModels
       MainLayout.MaxValue = TradingBot.StartingMaxPrice;
       MainLayout.MinValue = TradingBot.StartingMinPrice;
 
+      maxValue = MainLayout.MaxValue;
+      minValue = MainLayout.MinValue;
+
       if (IsLive)
       {
-        LoadLayouts(MainLayout);
-
+        await LoadLayouts(MainLayout);
       }
       else
       {
@@ -528,12 +530,11 @@ namespace CTKS_Chart.ViewModels
 
         var maxDate = mainCandles.First().Time;
 
-        LoadLayouts(MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
+        await LoadLayouts(MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
       }
 
       //Do not raise 
-      maxValue = MainLayout.MaxValue;
-      minValue = MainLayout.MinValue;
+    
     }
 
     #endregion
@@ -705,62 +706,71 @@ namespace CTKS_Chart.ViewModels
     private bool shouldUpdate = true;
     private bool wasLoaded = false;
     List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
-
-
-    public void RenderLayout(Layout layout, List<Layout> secondaryLayouts, Candle actual, List<Candle> candles)
+    private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1,1);
+    
+    public async void RenderLayout(Layout layout, List<Layout> secondaryLayouts, Candle actual, List<Candle> candles)
     {
-      foreach (var secondaryLayout in secondaryLayouts)
+      try
       {
-        var lastCandle = secondaryLayout.Ctks.Candles.Last();
+        await semaphoreSlim.WaitAsync();
 
-        if (actual.Time > GetNextTime(lastCandle.Time, secondaryLayout.TimeFrame))
+        foreach (var secondaryLayout in secondaryLayouts)
         {
-          var innerCandles = ParseTradingView(secondaryLayout.DataLocation, actual.Time, addNotClosedCandle: true);
+          var lastCandle = secondaryLayout.Ctks.Candles.Last();
 
-          secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles));
+          if (actual.Time > GetNextTime(lastCandle.Time, secondaryLayout.TimeFrame))
+          {
+            var innerCandles = ParseTradingView(secondaryLayout.DataLocation, actual.Time, addNotClosedCandle: true);
 
-          shouldUpdate = true;
+            secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles));
 
-          if (IsLive)
-            CheckLayout(secondaryLayout);
-        }
-      }
+            shouldUpdate = true;
 
-
-      if (shouldUpdate)
-      {
-        ctksIntersections.Clear();
-
-        for (int y = 0; y < secondaryLayouts.Count; y++)
-        {
-          var intersections = secondaryLayouts[y].Ctks.ctksIntersections;
-
-          var validIntersections = intersections
-            .Where(x => x.Value < decimal.MaxValue && x.Value > decimal.MinValue).ToList();
-
-          ctksIntersections.AddRange(validIntersections);
+            if (IsLive)
+              CheckLayout(secondaryLayout);
+          }
         }
 
-        ctksIntersections = ctksIntersections.OrderByDescending(x => x.Value).ToList();
-        shouldUpdate = false;
+
+        if (shouldUpdate)
+        {
+          ctksIntersections.Clear();
+
+          for (int y = 0; y < secondaryLayouts.Count; y++)
+          {
+            var intersections = secondaryLayouts[y].Ctks.ctksIntersections;
+
+            var validIntersections = intersections
+              .Where(x => x.Value < decimal.MaxValue && x.Value > decimal.MinValue).ToList();
+
+            ctksIntersections.AddRange(validIntersections);
+          }
+
+          ctksIntersections = ctksIntersections.OrderByDescending(x => x.Value).ToList();
+          shouldUpdate = false;
+        }
+
+
+        TradingBot.Strategy.Intersections = ctksIntersections;
+
+        if (!wasLoaded)
+        {
+          TradingBot.Strategy.LoadState();
+          TradingBot.Strategy.RefreshState();
+          wasLoaded = true;
+        }
+
+
+        TradingBot.Strategy.ValidatePositions(actual);
+        TradingBot.Strategy.CreatePositions(actual);
+
+        if (!Simulation)
+          RenderOverlay(layout, ctksIntersections, TradingBot.Strategy, candles);
       }
-
-
-      TradingBot.Strategy.Intersections = ctksIntersections;
-
-      if (!wasLoaded)
+      finally
       {
-        TradingBot.Strategy.LoadState();
-        TradingBot.Strategy.RefreshState();
-        wasLoaded = true;
+        semaphoreSlim.Release();
       }
-
-
-      TradingBot.Strategy.ValidatePositions(actual);
-      TradingBot.Strategy.CreatePositions(actual);
-
-      if (!Simulation)
-        RenderOverlay(layout, ctksIntersections, TradingBot.Strategy, candles);
     }
 
     #endregion

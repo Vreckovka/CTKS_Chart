@@ -383,23 +383,27 @@ namespace CTKS_Chart
 
     private decimal GetMinBuy(decimal low, TimeFrame timeFrame)
     {
-      return low * (decimal)(1 - MinBuyMapping[timeFrame]);
+      var min = low * (decimal)(1 - MinBuyMapping[timeFrame]);
+
+      return min;
     }
 
     #endregion
 
     #region CreatePositions
 
+    private decimal maxBuy = (decimal)0.75;
     private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
     public async void CreatePositions(Candle actualCandle)
     {
       try
       {
         await semaphoreSlim.WaitAsync();
-        var minPrice = actualCandle.Close * (1 - MinBuyPrice);
+
+        var minBuy = actualCandle.Close * maxBuy;
 
         var openedBuy = OpenBuyPositions
-          .Where(x => !Intersections.Any(y => y.Value == x.Intersection.Value) || x.Price < minPrice)
+          .Where(x => !Intersections.Any(y => y.Value == x.Intersection.Value) || x.Price < minBuy)
           .ToList();
 
         var openedSell = OpenSellPositions.Where(x => !Intersections.Any(y => y.Value == x.Intersection.Value)).ToList();
@@ -416,13 +420,27 @@ namespace CTKS_Chart
           await OnCancelPosition(sellPosition, removedBu);
         }
 
+        if (removedBu.Count == 0)
+        {
+          var canceledSells = ClosedBuyPositions
+            .Where(x => x.State == PositionState.Filled && x.OpositPositions.Count == 0).ToList();
+
+          if (canceledSells.Count > 0)
+          {
+            removedBu = new HashSet<Position>(canceledSells);
+
+            LeftSize += removedBu.Sum(x => x.PositionSizeNative);
+          }
+        }
+
         foreach (var opened in removedBu)
         {
           await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close.Value));
         }
 
         var inter = Intersections
-          .Where(x => x.Value < actualCandle.Close.Value && x.Value > minPrice &&
+          .Where(x => x.Value < actualCandle.Close.Value &&
+                      x.Value > minBuy &&
                       x.Value < GetMinBuy(actualCandle.Close.Value, x.TimeFrame))
           .OrderByDescending(x => x.Value)
           .ToList();
@@ -511,12 +529,6 @@ namespace CTKS_Chart
             {
               CloseSell(position);
             }
-          }
-
-
-          if (position.Price < candle.Close.Value * (decimal)0.75 && position.State == PositionState.Open)
-          {
-            await OnCancelPosition(position);
           }
         }
       }
@@ -770,7 +782,7 @@ namespace CTKS_Chart
       if (positionSize == 0)
         return;
 
-      
+
       var newPosition = new Position(positionSize, intersection.Value, roundedNativeSize)
       {
         TimeFrame = intersection.TimeFrame,
@@ -945,11 +957,11 @@ namespace CTKS_Chart
 
     #region OnCancelPosition
 
-    private async Task OnCancelPosition(Position position, HashSet<Position> removed = null)
+    public async Task OnCancelPosition(Position position, HashSet<Position> removed = null, bool force = false)
     {
       var cancled = await CancelPosition(position);
 
-      if (cancled)
+      if (cancled || force)
       {
         if (position.Side == PositionSide.Buy)
         {
