@@ -50,35 +50,32 @@ namespace CTKS_Chart
       await binanceBroker.SubscribeUserStream(OnOrderUpdate);
     }
 
-    public override async void RefreshState()
+    public override async Task RefreshState()
     {
-      var closedOrders = await binanceBroker.GetClosedOrders(Asset.Symbol);
+      var closedOrders = (await binanceBroker.GetClosedOrders(Asset.Symbol)).ToList();
 
-      VSynchronizationContext.InvokeOnDispatcher(async () =>
+      foreach (var closed in closedOrders)
       {
-        foreach (var closed in closedOrders)
-        {
-          var order = AllOpenedPositions.SingleOrDefault(x => x.Id == long.Parse(closed.Id));
+        var order = AllOpenedPositions.SingleOrDefault(x => x.Id == long.Parse(closed.Id));
 
-          if (order != null)
+        if (order != null)
+        {
+          if (order.State == PositionState.Open)
           {
-            if (order.State == PositionState.Open)
+            if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Filled)
             {
-              if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Filled)
-              {
-                if (order.Side == PositionSide.Buy)
-                  await CloseBuy(order);
-                else
-                  CloseSell(order);
-              }
-              else if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Canceled)
-              {
-                await OnCancelPosition(order, force: true);
-              }
+              if (order.Side == PositionSide.Buy)
+                await CloseBuy(order);
+              else
+                CloseSell(order);
+            }
+            else if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Canceled)
+            {
+              await OnCancelPosition(order, force: true);
             }
           }
         }
-      });
+      }
     }
 
     #region OnOrderUpdate

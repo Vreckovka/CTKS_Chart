@@ -39,9 +39,9 @@ namespace CTKS_Chart
 
   public class SimulationStrategy : Strategy
   {
-    public override void RefreshState()
+    public override Task RefreshState()
     {
-      
+      return Task.CompletedTask;
     }
 
     public override bool IsPositionFilled(Candle candle, Position position)

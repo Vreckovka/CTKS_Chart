@@ -323,6 +323,11 @@
 
                     </StackPanel>
 
+                    <Button Width="120"
+                            Margin="10,0,10,0"
+                            Command="{Binding ResetBot}">
+                        Reset Bot
+                    </Button>
 
                 </StackPanel>
             </Grid>

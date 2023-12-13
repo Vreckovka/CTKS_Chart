@@ -85,7 +85,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 #if DEBUG
-    public bool Simulation { get; set; } = true;
+    public bool Simulation { get; set; } = false;
 #endif
 
 #if RELEASE
@@ -284,6 +284,27 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
+
+    #region ShowCanvas
+
+    protected ActionCommand resetBot;
+
+    public ICommand ResetBot
+    {
+      get
+      {
+        return resetBot ??= new ActionCommand(OnResetBot);
+      }
+    }
+
+    protected virtual async void OnResetBot()
+    {
+      await TradingBot.Strategy.Reset(actual);
+    }
+
+    #endregion
+
 
     #region ShowLines
 
@@ -534,7 +555,7 @@ namespace CTKS_Chart.ViewModels
       }
 
       //Do not raise 
-    
+
     }
 
     #endregion
@@ -631,6 +652,7 @@ namespace CTKS_Chart.ViewModels
 
     #region OnActualCandleChange
 
+    private Candle actual = null;
     private void OnActualCandleChange(Layout layout, List<Layout> secondaryLayouts, Candle candle, List<Candle> candles)
     {
       candles.Add(candle);
@@ -706,13 +728,15 @@ namespace CTKS_Chart.ViewModels
     private bool shouldUpdate = true;
     private bool wasLoaded = false;
     List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
-    private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1,1);
-    
+    private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+
     public async void RenderLayout(Layout layout, List<Layout> secondaryLayouts, Candle actual, List<Candle> candles)
     {
       try
       {
         await semaphoreSlim.WaitAsync();
+
+        this.actual = actual;
 
         foreach (var secondaryLayout in secondaryLayouts)
         {
@@ -756,7 +780,7 @@ namespace CTKS_Chart.ViewModels
         if (!wasLoaded)
         {
           TradingBot.Strategy.LoadState();
-          TradingBot.Strategy.RefreshState();
+          await TradingBot.Strategy.RefreshState();
           wasLoaded = true;
         }
 

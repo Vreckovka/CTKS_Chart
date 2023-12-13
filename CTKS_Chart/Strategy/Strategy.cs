@@ -420,19 +420,6 @@ namespace CTKS_Chart
           await OnCancelPosition(sellPosition, removedBu);
         }
 
-        if (removedBu.Count == 0)
-        {
-          var canceledSells = ClosedBuyPositions
-            .Where(x => x.State == PositionState.Filled && x.OpositPositions.Count == 0).ToList();
-
-          if (canceledSells.Count > 0)
-          {
-            removedBu = new HashSet<Position>(canceledSells);
-
-            LeftSize += removedBu.Sum(x => x.PositionSizeNative);
-          }
-        }
-
         foreach (var opened in removedBu)
         {
           await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close.Value));
@@ -567,12 +554,11 @@ namespace CTKS_Chart
 
     #region CloseBuy
 
-    private SemaphoreSlim buySemaphore = new SemaphoreSlim(1, 1);
     public async Task CloseBuy(Position position)
     {
       try
       {
-        await buySemaphore.WaitAsync();
+        await semaphoreSlim.WaitAsync();
 
         if (position.State != PositionState.Filled)
         {
@@ -599,7 +585,7 @@ namespace CTKS_Chart
       }
       finally
       {
-        buySemaphore.Release();
+        semaphoreSlim.Release();
       }
     }
 
@@ -728,6 +714,7 @@ namespace CTKS_Chart
         {
           id = await CreatePosition(sell);
 
+
           if (id > 0)
           {
             sell.Id = id;
@@ -746,7 +733,6 @@ namespace CTKS_Chart
             await Task.Delay(1000);
           }
         }
-
       }
 
       SaveState();
@@ -905,9 +891,9 @@ namespace CTKS_Chart
 
       var sum = OpenSellPositions.ToList().Sum(x => x.OriginalPositionSizeNative);
 
-      if (Math.Round(sum) != Math.Round(TotalNativeAsset))
+      if (Math.Round(sum, Asset.NativeRound) != Math.Round(TotalNativeAsset, Asset.NativeRound))
       {
-        throw new Exception($"Native asset value does not mach sell order !! {Math.Round(sum)} != {Math.Round(TotalNativeAsset)}");
+        throw new Exception($"Native asset value does not mach sell order !! {Math.Round(sum, Asset.NativeRound)} != {Math.Round(TotalNativeAsset, Asset.NativeRound)}");
       }
 
       if (position.OpositPositions.Count > 0)
@@ -972,9 +958,9 @@ namespace CTKS_Chart
         {
           var buy = position.OpositPositions[0];
           buy.OpositPositions.Remove(position);
-          buy.PositionSize += position.PositionSize;
-          buy.PositionSizeNative += position.PositionSizeNative;
-          LeftSize += position.PositionSizeNative;
+          buy.PositionSize += position.OriginalPositionSize;
+          buy.PositionSizeNative += position.OriginalPositionSizeNative;
+          LeftSize += position.OriginalPositionSizeNative;
 
           OpenSellPositions.Remove(position);
 
@@ -992,7 +978,7 @@ namespace CTKS_Chart
     protected abstract Task<long> CreatePosition(Position position);
     public abstract void SaveState();
     public abstract void LoadState();
-    public abstract void RefreshState();
+    public abstract Task RefreshState();
     public virtual bool IsPositionFilled(Candle candle, Position position)
     {
       if (position.Side == PositionSide.Buy)
@@ -1002,6 +988,76 @@ namespace CTKS_Chart
       else
       {
         return candle.Close.Value >= position.Price;
+      }
+    }
+
+    public async Task Reset(Candle actualCandle)
+    {
+      try
+      {
+        await semaphoreSlim.WaitAsync();
+        var asd = AllOpenedPositions.ToList();
+
+        foreach (var open in asd)
+        {
+          await OnCancelPosition(open, force: true);
+        }
+
+
+        LeftSize = TotalNativeAsset;
+        var fakeSize = LeftSize;
+
+        var removedBu = new List<Position>();
+
+        var buys = ClosedBuyPositions
+          .Where(x => x.State == PositionState.Filled &&
+                      !x.OpositPositions.Any())
+          .DistinctBy(x => x.Id)
+          .ToList();
+
+
+
+        if (buys.Count > 0)
+        {
+          removedBu = new List<Position>(buys);
+        }
+
+        for (int i = 0; i < removedBu.Count; i++)
+        {
+          var opened = removedBu[i];
+
+          fakeSize -= opened.PositionSizeNative;
+          opened.OriginalPositionSize = opened.PositionSize;
+          opened.OriginalPositionSizeNative = opened.PositionSizeNative;
+
+          if (fakeSize < 0)
+          {
+            opened.OriginalPositionSizeNative = LeftSize;
+            opened.PositionSizeNative = LeftSize;
+            opened.OriginalPositionSize = opened.Price * LeftSize;
+            opened.PositionSize = opened.Price * LeftSize;
+          }
+
+          if (i == removedBu.Count - 1 && LeftSize > 0)
+          {
+            opened.OriginalPositionSizeNative += LeftSize - opened.OriginalPositionSizeNative;
+            opened.PositionSizeNative += LeftSize - opened.PositionSizeNative;
+            opened.OriginalPositionSize = opened.Price * opened.OriginalPositionSizeNative;
+            opened.PositionSize = opened.Price * opened.PositionSizeNative;
+          }
+
+          if (LeftSize > 0)
+            await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close * (decimal)1.01));
+          else
+            ClosedBuyPositions.Remove(opened);
+        }
+
+
+        SaveState();
+      }
+      finally
+      {
+        semaphoreSlim.Release();
       }
     }
 
