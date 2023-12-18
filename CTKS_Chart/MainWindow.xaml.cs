@@ -119,8 +119,14 @@ namespace CTKS_Chart
           (int)con.Height, SWP_NOSIZE);
 
 
+
+
         Console.WindowHeight = (int)con.Height;
         Console.WindowWidth = (int)con.Width;
+
+        Console.BufferHeight = (int)(con.Height * 1.25);
+        Console.BufferWidth = (int)con.Width;
+
       }
     }
   }
