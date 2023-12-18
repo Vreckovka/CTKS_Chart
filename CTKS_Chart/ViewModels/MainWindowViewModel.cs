@@ -551,7 +551,7 @@ namespace CTKS_Chart.ViewModels
 
         var maxDate = mainCandles.First().Time;
 
-        await LoadLayouts(MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
+        await LoadLayouts(MainLayout, mainCandles, maxDate, 1900, mainCandles.Count, true);
       }
 
       //Do not raise 
@@ -735,6 +735,7 @@ namespace CTKS_Chart.ViewModels
       try
       {
         await semaphoreSlim.WaitAsync();
+        RenderOverlay(layout, ctksIntersections, TradingBot.Strategy, candles);
 
         this.actual = actual;
 
@@ -774,6 +775,10 @@ namespace CTKS_Chart.ViewModels
           shouldUpdate = false;
         }
 
+        if (ctksIntersections.Count == 0)
+        {
+          return;
+        }
 
         TradingBot.Strategy.Intersections = ctksIntersections;
 
@@ -784,7 +789,7 @@ namespace CTKS_Chart.ViewModels
           wasLoaded = true;
         }
 
-
+        
         TradingBot.Strategy.ValidatePositions(actual);
         TradingBot.Strategy.CreatePositions(actual);
 

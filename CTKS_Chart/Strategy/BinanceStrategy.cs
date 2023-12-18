@@ -30,14 +30,9 @@ namespace CTKS_Chart
       this.binanceBroker = binanceBroker ?? throw new ArgumentNullException(nameof(binanceBroker));
       this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
       this.isLive = isLive;
-
-      //Observable.Interval(TimeSpan.FromMinutes(5)).Subscribe(x =>
-      //{
-      //  RefreshState();
-      //});
+      Logger = this.logger;
 
       Subscribe();
-      Logger = this.logger;
     }
 
     public override bool IsPositionFilled(Candle candle, Position position)
@@ -48,34 +43,6 @@ namespace CTKS_Chart
     private async void Subscribe()
     {
       await binanceBroker.SubscribeUserStream(OnOrderUpdate);
-    }
-
-    public override async Task RefreshState()
-    {
-      var closedOrders = (await binanceBroker.GetClosedOrders(Asset.Symbol)).ToList();
-
-      foreach (var closed in closedOrders)
-      {
-        var order = AllOpenedPositions.SingleOrDefault(x => x.Id == long.Parse(closed.Id));
-
-        if (order != null)
-        {
-          if (order.State == PositionState.Open)
-          {
-            if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Filled)
-            {
-              if (order.Side == PositionSide.Buy)
-                await CloseBuy(order);
-              else
-                CloseSell(order);
-            }
-            else if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Canceled)
-            {
-              await OnCancelPosition(order, force: true);
-            }
-          }
-        }
-      }
     }
 
     #region OnOrderUpdate
@@ -120,6 +87,10 @@ namespace CTKS_Chart
 
               if (existingPosition != null && existingPosition.State != PositionState.Filled)
               {
+                var fees = await GetFees(orderUpdate);
+
+                existingPosition.Fees = fees;
+
                 if (existingPosition.Side == PositionSide.Sell)
                   CloseSell(existingPosition);
                 else
@@ -132,6 +103,38 @@ namespace CTKS_Chart
       finally
       {
         orderLock.Release();
+      }
+    }
+
+    #endregion
+
+    #region RefreshState
+
+    public override async Task RefreshState()
+    {
+      var closedOrders = (await binanceBroker.GetClosedOrders(Asset.Symbol)).ToList();
+
+      foreach (var closed in closedOrders)
+      {
+        var order = AllOpenedPositions.SingleOrDefault(x => x.Id == long.Parse(closed.Id));
+
+        if (order != null)
+        {
+          if (order.State == PositionState.Open)
+          {
+            if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Filled)
+            {
+              if (order.Side == PositionSide.Buy)
+                await CloseBuy(order);
+              else
+                CloseSell(order);
+            }
+            else if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Canceled)
+            {
+              await OnCancelPosition(order, force: true);
+            }
+          }
+        }
       }
     }
 
@@ -172,7 +175,7 @@ namespace CTKS_Chart
 
     #endregion
 
-
+    #region SaveState
 
     public override void SaveState()
     {
@@ -190,6 +193,10 @@ namespace CTKS_Chart
       File.WriteAllText(Path.Combine(path, "closedBuy.json"), closedBuy);
       File.WriteAllText(Path.Combine(path, "data.json"), data);
     }
+
+    #endregion
+
+    #region LoadState
 
     public override void LoadState()
     {
@@ -248,9 +255,33 @@ namespace CTKS_Chart
           TotalProfit = decimal.Parse(File.ReadAllText(Path.Combine(path, "totalProfit.json")));
           StartingBudget = decimal.Parse(File.ReadAllText(Path.Combine(path, "startBug.json")));
           TotalNativeAsset = decimal.Parse(File.ReadAllText(Path.Combine(path, "native.json")));
-          TotalBuy = decimal.Parse(File.ReadAllText(Path.Combine(path, "totalBuy.json")));
-          TotalSell = decimal.Parse(File.ReadAllText(Path.Combine(path, "totalSell.json")));
         }
+      }
+    }
+
+    #endregion
+
+    private async Task<decimal?> GetFees(BinanceStreamOrderUpdate binanceStreamOrderUpdate)
+    {
+      try
+      {
+        var fees = binanceStreamOrderUpdate.Fee;
+        var asset = binanceStreamOrderUpdate.FeeAsset;
+
+        var ticker = await binanceBroker.GetTicker(asset);
+
+        if (ticker != null)
+        {
+          return fees * ticker;
+        }
+
+        return null;
+      }
+      catch (Exception ex)
+      {
+        logger.Log(ex);
+
+        return null;
       }
     }
   }

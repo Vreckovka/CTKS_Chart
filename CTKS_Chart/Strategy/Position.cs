@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
 using VCore.Standard;
@@ -8,9 +9,10 @@ namespace CTKS_Chart
 {
   public class Position : ViewModel
   {
+    //Json serialize
     public Position()
     {
-      
+
     }
 
     public Position(decimal positionSize, decimal price, decimal positionSizeNative)
@@ -42,6 +44,7 @@ namespace CTKS_Chart
 
     #endregion
 
+    public decimal? Fees { get; set; }
     public decimal PositionSizeNative { get; set; }
     public decimal Price { get; set; }
     public CtksIntersection Intersection { get; set; }
@@ -91,5 +94,18 @@ namespace CTKS_Chart
 
     #endregion
 
+
+    public decimal TotalProfit
+    {
+      get
+      {
+        return OpositPositions.Sum(x => x.Profit);
+      }
+    }
+
+    public void RaiseNotify(string name)
+    {
+      RaisePropertyChanged(name);
+    }
   }
 }

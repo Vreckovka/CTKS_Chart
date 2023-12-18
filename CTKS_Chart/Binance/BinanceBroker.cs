@@ -81,6 +81,20 @@ namespace CTKS_Chart.Binance
 
     #endregion
 
+    #region GetTicker
+
+    public async Task<decimal?> GetTicker(string symbol)
+    {
+      using (var client = new BinanceRestClient())
+      {
+        var ticker = await client.SpotApi.CommonSpotClient.GetTickerAsync(symbol);
+
+        return ticker.Data.LastPrice;
+      }
+    }
+
+    #endregion
+
     #region GetClosedOrders
 
     public async Task<IEnumerable<Order>> GetClosedOrders(string symbol)

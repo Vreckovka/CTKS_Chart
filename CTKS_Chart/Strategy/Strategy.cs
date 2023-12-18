@@ -21,8 +21,6 @@ namespace CTKS_Chart
     public decimal StartingBudget { get; set; }
     public decimal Budget { get; set; }
     public decimal TotalProfit { get; set; }
-    public decimal TotalSell { get; set; }
-    public decimal TotalBuy { get; set; }
     public decimal TotalNativeAsset { get; set; }
     public decimal MinBuyPrice { get; set; }
     public IEnumerable<KeyValuePair<TimeFrame, decimal>> PositionSizeMapping { get; set; }
@@ -31,6 +29,8 @@ namespace CTKS_Chart
 
   public abstract class Strategy : ViewModel
   {
+    protected decimal LeftSize = 0;
+
     public Strategy()
     {
       Budget = StartingBudget;
@@ -200,38 +200,18 @@ namespace CTKS_Chart
 
     #region TotalBuy
 
-    private decimal totalBuy;
-
     public decimal TotalBuy
     {
-      get { return totalBuy; }
-      set
-      {
-        if (value != totalBuy)
-        {
-          totalBuy = value;
-          RaisePropertyChanged();
-        }
-      }
+      get { return AllClosedPositions.Where(x => x.Side == PositionSide.Buy).Sum(x => x.OriginalPositionSize); }
     }
 
     #endregion
 
     #region TotalSell
 
-    private decimal totalSell;
-
     public decimal TotalSell
     {
-      get { return totalSell; }
-      set
-      {
-        if (value != totalSell)
-        {
-          totalSell = value;
-          RaisePropertyChanged();
-        }
-      }
+      get { return AllClosedPositions.Where(x => x.Side == PositionSide.Sell).Sum(x => x.OriginalPositionSize + x.Profit); }
     }
 
     #endregion
@@ -501,6 +481,8 @@ namespace CTKS_Chart
         {
           if (IsPositionFilled(candle, position))
           {
+            position.Fees = position.OriginalPositionSize * (decimal)0.001;
+
             if (position.Side == PositionSide.Buy)
             {
               await CloseBuy(position);
@@ -564,7 +546,6 @@ namespace CTKS_Chart
         {
           var ordered = Intersections.OrderBy(x => x.Value).ToList();
 
-          TotalBuy += position.PositionSize;
           TotalNativeAsset += position.PositionSizeNative;
           LeftSize += position.PositionSizeNative;
 
@@ -580,6 +561,8 @@ namespace CTKS_Chart
             Scale(-1 * TotalValue * (decimal)0.01);
           }
 
+          RaisePropertyChanged(nameof(TotalBuy));
+
           SaveState();
         }
       }
@@ -587,6 +570,52 @@ namespace CTKS_Chart
       {
         semaphoreSlim.Release();
       }
+    }
+
+    #endregion
+
+    #region CloseSell
+
+    protected void CloseSell(Position position)
+    {
+      ClosedSellPositions.Add(position);
+      OpenSellPositions.Remove(position);
+
+      var finalSize = position.Price * position.OriginalPositionSizeNative;
+
+      position.Profit = finalSize - position.OriginalPositionSize;
+      position.PositionSize = 0;
+      position.PositionSizeNative = 0;
+
+      TotalProfit += position.Profit;
+      Budget += finalSize;
+      TotalNativeAsset -= position.OriginalPositionSizeNative;
+
+      Scale(position.Profit);
+      RaisePropertyChanged(nameof(TotalSell));
+
+      var sum = OpenSellPositions.ToList().Sum(x => x.OriginalPositionSizeNative);
+
+      if (Math.Round(sum, Asset.NativeRound) != Math.Round(TotalNativeAsset, Asset.NativeRound))
+      {
+        throw new Exception($"Native asset value does not mach sell order !! {Math.Round(sum, Asset.NativeRound)} != {Math.Round(TotalNativeAsset, Asset.NativeRound)}");
+      }
+
+      if (position.OpositPositions.Count > 0)
+      {
+        var originalBuy = position.OpositPositions.Single();
+
+        originalBuy.RaiseNotify(nameof(Position.TotalProfit));
+
+        if (originalBuy.OpositPositions.Sum(x => x.PositionSize) == 0)
+        {
+          originalBuy.State = PositionState.Completed;
+        }
+      }
+
+      position.State = PositionState.Filled;
+
+      SaveState();
     }
 
     #endregion
@@ -740,8 +769,6 @@ namespace CTKS_Chart
 
     #endregion
 
-    protected decimal LeftSize = 0;
-
     #region CreateBuyPosition
 
     private async Task CreateBuyPosition(decimal positionSize, CtksIntersection intersection)
@@ -788,125 +815,6 @@ namespace CTKS_Chart
 
         onCreatePositionSub.OnNext(newPosition);
       }
-
-      SaveState();
-    }
-
-    #endregion
-
-    #region RenderPositions
-
-    public void RenderPositions(Canvas canvas, Func<double, decimal, double> getCanvasValue, List<CtksIntersection> ctksIntersections, decimal maxValue, decimal minValue)
-    {
-      var renderedPositions = new List<CtksIntersection>();
-      var valid = ctksIntersections.Where(x => x.Value > minValue && x.Value < maxValue);
-
-      foreach (var intersection in valid)
-      {
-        var target = new Line();
-
-        var positionsOnIntersesction = AllOpenedPositions
-          .Where(x => x.Intersection?.Value == intersection.Value)
-          .ToList();
-
-        var firstPositionsOnIntersesction = positionsOnIntersesction.FirstOrDefault();
-        var sum = positionsOnIntersesction.Sum(x => x.PositionSize);
-
-        if (firstPositionsOnIntersesction != null && !renderedPositions.Contains(intersection))
-        {
-          var stroke = firstPositionsOnIntersesction.Side == PositionSide.Buy ? Brushes.Green : Brushes.Red;
-          target.Stroke = stroke;
-
-          var frame = intersection.TimeFrame;
-
-          switch (frame)
-          {
-            case TimeFrame.Null:
-              target.StrokeThickness = 1;
-              break;
-            case TimeFrame.M12:
-              target.StrokeThickness = 4;
-              break;
-            case TimeFrame.M6:
-              target.StrokeThickness = 2;
-              break;
-            case TimeFrame.M3:
-              target.StrokeThickness = 1;
-              break;
-            default:
-              target.StrokeThickness = 1;
-              break;
-          }
-
-          target.X1 = 150;
-          target.X2 = canvas.ActualWidth;
-          target.StrokeDashArray = new DoubleCollection() { 1, 1 };
-
-          var actual = getCanvasValue(canvas.ActualHeight, intersection.Value);
-
-          var lineY = canvas.ActualHeight - actual;
-
-          target.Y1 = lineY;
-          target.Y2 = lineY;
-
-          Panel.SetZIndex(target, 110);
-
-          var text = new TextBlock();
-          text.Text = sum.ToString("N4");
-          text.Foreground = stroke;
-
-          Panel.SetZIndex(text, 110);
-          Canvas.SetLeft(text, 50);
-          Canvas.SetBottom(text, actual);
-
-          canvas.Children.Add(text);
-          canvas.Children.Add(target);
-
-          renderedPositions.Add(intersection);
-        }
-      }
-    }
-
-    #endregion
-
-    #region CloseSell
-
-    protected void CloseSell(Position position)
-    {
-      ClosedSellPositions.Add(position);
-      OpenSellPositions.Remove(position);
-
-      var finalSize = position.Price * position.OriginalPositionSizeNative;
-
-      position.Profit = finalSize - position.OriginalPositionSize;
-      position.PositionSize = 0;
-      position.PositionSizeNative = 0;
-
-      TotalProfit += position.Profit;
-      TotalSell += position.OriginalPositionSize;
-      Budget += finalSize;
-      TotalNativeAsset -= position.OriginalPositionSizeNative;
-
-      Scale(position.Profit);
-
-      var sum = OpenSellPositions.ToList().Sum(x => x.OriginalPositionSizeNative);
-
-      if (Math.Round(sum, Asset.NativeRound) != Math.Round(TotalNativeAsset, Asset.NativeRound))
-      {
-        throw new Exception($"Native asset value does not mach sell order !! {Math.Round(sum, Asset.NativeRound)} != {Math.Round(TotalNativeAsset, Asset.NativeRound)}");
-      }
-
-      if (position.OpositPositions.Count > 0)
-      {
-        var originalBuy = position.OpositPositions.Single();
-
-        if (originalBuy.OpositPositions.Sum(x => x.PositionSize) == 0)
-        {
-          originalBuy.State = PositionState.Completed;
-        }
-      }
-
-      position.State = PositionState.Filled;
 
       SaveState();
     }
@@ -991,6 +899,8 @@ namespace CTKS_Chart
       }
     }
 
+    #region Reset
+
     public async Task Reset(Candle actualCandle)
     {
       try
@@ -1060,6 +970,8 @@ namespace CTKS_Chart
         semaphoreSlim.Release();
       }
     }
+
+    #endregion
 
     #endregion
   }
