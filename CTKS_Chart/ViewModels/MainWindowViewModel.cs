@@ -85,7 +85,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 #if DEBUG
-    public bool Simulation { get; set; } = false;
+    public bool Simulation { get; set; } = true;
 #endif
 
 #if RELEASE
@@ -551,7 +551,7 @@ namespace CTKS_Chart.ViewModels
 
         var maxDate = mainCandles.First().Time;
 
-        await LoadLayouts(MainLayout, mainCandles, maxDate, 1900, mainCandles.Count, true);
+        await LoadLayouts(MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
       }
 
       //Do not raise 
@@ -782,16 +782,24 @@ namespace CTKS_Chart.ViewModels
 
         TradingBot.Strategy.Intersections = ctksIntersections;
 
-        if (!wasLoaded)
+        if (ctksIntersections.Count > 0)
         {
-          TradingBot.Strategy.LoadState();
-          await TradingBot.Strategy.RefreshState();
-          wasLoaded = true;
+          if (!wasLoaded)
+          {
+            TradingBot.Strategy.LoadState();
+            await TradingBot.Strategy.RefreshState();
+            wasLoaded = true;
+          }
+
+          TradingBot.Strategy.ValidatePositions(actual);
+          TradingBot.Strategy.CreatePositions(actual);
+        }
+        else
+        {
+          Console.WriteLine("NO INTERSECTIONS, DOING NOTHING !");
         }
 
-        
-        TradingBot.Strategy.ValidatePositions(actual);
-        TradingBot.Strategy.CreatePositions(actual);
+    
 
         if (!Simulation)
           RenderOverlay(layout, ctksIntersections, TradingBot.Strategy, candles);

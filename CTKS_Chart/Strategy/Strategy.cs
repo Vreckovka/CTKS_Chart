@@ -486,13 +486,6 @@ namespace CTKS_Chart
             if (position.Side == PositionSide.Buy)
             {
               await CloseBuy(position);
-
-              var closedWithinCandle = position.OpositPositions.Where(x => x.Price < candle.Close.Value);
-
-              foreach (var closedWithin in closedWithinCandle)
-              {
-                CloseSell(closedWithin);
-              }
             }
             else
             {
@@ -555,6 +548,7 @@ namespace CTKS_Chart
 
           ClosedBuyPositions.Add(position);
           OpenBuyPositions.Remove(position);
+         // Budget -= position.Fees ?? 0;
 
           if (TotalValue / 3 < PositionSizeMapping.Single(x => x.Key == TimeFrame.M12).Value)
           {
@@ -590,6 +584,8 @@ namespace CTKS_Chart
       TotalProfit += position.Profit;
       Budget += finalSize;
       TotalNativeAsset -= position.OriginalPositionSizeNative;
+
+      //Budget -= position.Fees ?? 0;
 
       Scale(position.Profit);
       RaisePropertyChanged(nameof(TotalSell));

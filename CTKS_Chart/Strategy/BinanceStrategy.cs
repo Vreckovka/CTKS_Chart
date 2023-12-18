@@ -268,7 +268,7 @@ namespace CTKS_Chart
         var fees = binanceStreamOrderUpdate.Fee;
         var asset = binanceStreamOrderUpdate.FeeAsset;
 
-        var ticker = await binanceBroker.GetTicker(asset);
+        var ticker = await binanceBroker.GetTicker(asset + "USDT");
 
         if (ticker != null)
         {
