@@ -1311,7 +1311,7 @@ namespace CTKS_Chart.ViewModels
 
         if (IsLive && actual.Close != null)
         {
-          TradingBot.Strategy.ActualPositions.ForEach(x => x.ActualProfit = (x.Price * x.OriginalPositionSizeNative) - (x.OriginalPositionSizeNative * actual.Close.Value));
+          TradingBot.Strategy.ActualPositions.ForEach(x => x.ActualProfit = (x.OriginalPositionSizeNative * actual.Close.Value) - (x.Price * x.OriginalPositionSizeNative));
         }
 
         VSynchronizationContext.InvokeOnDispatcher(() =>
