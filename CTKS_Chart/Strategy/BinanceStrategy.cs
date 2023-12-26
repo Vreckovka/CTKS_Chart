@@ -22,14 +22,13 @@ namespace CTKS_Chart
   {
     private readonly BinanceBroker binanceBroker;
     private readonly ILogger logger;
-    private readonly bool isLive;
+
     string path = "State";
 
-    public BinanceStrategy(BinanceBroker binanceBroker, ILogger logger, bool isLive)
+    public BinanceStrategy(BinanceBroker binanceBroker, ILogger logger)
     {
       this.binanceBroker = binanceBroker ?? throw new ArgumentNullException(nameof(binanceBroker));
       this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-      this.isLive = isLive;
       Logger = this.logger;
 
       Subscribe();
@@ -90,6 +89,7 @@ namespace CTKS_Chart
                 var fees = await GetFees(orderUpdate);
 
                 existingPosition.Fees = fees;
+                existingPosition.FilledDate = orderUpdate.UpdateTime;
 
                 if (existingPosition.Side == PositionSide.Sell)
                   CloseSell(existingPosition);
@@ -144,14 +144,11 @@ namespace CTKS_Chart
 
     protected override Task<bool> CancelPosition(Position position)
     {
-      if (isLive)
-      {
-        return binanceBroker.Close(Asset.Symbol, position.Id);
-      }
-      else
-      {
-        return Task.FromResult(false);
-      }
+#if RELEASE
+      return binanceBroker.Close(Asset.Symbol, position.Id);
+#else
+      return Task.FromResult(false);
+#endif
     }
 
     #endregion
@@ -160,17 +157,14 @@ namespace CTKS_Chart
 
     protected override Task<long> CreatePosition(Position position)
     {
-      if (isLive)
-      {
-        if (position.Side == PositionSide.Buy)
-          return binanceBroker.Buy(Asset.Symbol, position.PositionSizeNative, position.Price);
-        else
-          return binanceBroker.Sell(Asset.Symbol, position.PositionSizeNative, position.Price);
-      }
+#if RELEASE
+      if (position.Side == PositionSide.Buy)
+        return binanceBroker.Buy(Asset.Symbol, position.PositionSizeNative, position.Price);
       else
-      {
-        return Task.FromResult(0L);
-      }
+        return binanceBroker.Sell(Asset.Symbol, position.PositionSizeNative, position.Price);
+#else
+      return Task.FromResult(0L);
+#endif
     }
 
     #endregion
@@ -256,6 +250,10 @@ namespace CTKS_Chart
           StartingBudget = decimal.Parse(File.ReadAllText(Path.Combine(path, "startBug.json")));
           TotalNativeAsset = decimal.Parse(File.ReadAllText(Path.Combine(path, "native.json")));
         }
+
+        RaisePropertyChanged(nameof(TotalBuy));
+        RaisePropertyChanged(nameof(TotalSell));
+        RaisePropertyChanged(nameof(ActualPositions));
       }
     }
 

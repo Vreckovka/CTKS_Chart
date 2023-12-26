@@ -7,6 +7,7 @@ using VCore.Standard;
 
 namespace CTKS_Chart
 {
+  //THERE IS POSITION_DTO ALSO NEED CHANGE!!!!
   public class Position : ViewModel
   {
     //Json serialize
@@ -44,6 +45,7 @@ namespace CTKS_Chart
 
     #endregion
 
+    //THERE IS POSITION_DTO ALSO NEED CHANGE!!!!
     public decimal? Fees { get; set; }
     public decimal PositionSizeNative { get; set; }
     public decimal Price { get; set; }
@@ -75,6 +77,9 @@ namespace CTKS_Chart
     public decimal OriginalPositionSizeNative { get;  set; }
     public IList<Position> OpositPositions { get; set; } = new List<Position>();
 
+    //THERE IS POSITION_DTO ALSO NEED CHANGE!!!!
+    public DateTime? FilledDate { get; set; }
+
     #region PositionSize
 
     private decimal positionSize;
@@ -94,6 +99,24 @@ namespace CTKS_Chart
 
     #endregion
 
+    #region ActualProfit
+
+    private decimal actualProfit;
+
+    public decimal ActualProfit
+    {
+      get { return actualProfit; }
+      set
+      {
+        if (value != actualProfit)
+        {
+          actualProfit = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
 
     public decimal TotalProfit
     {

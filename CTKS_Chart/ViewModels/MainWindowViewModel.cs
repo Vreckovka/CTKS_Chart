@@ -85,7 +85,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 #if DEBUG
-    public bool Simulation { get; set; } = true;
+    public bool Simulation { get; set; } = false;
 #endif
 
 #if RELEASE
@@ -93,7 +93,7 @@ namespace CTKS_Chart.ViewModels
 #endif
 
 #if DEBUG
-    public bool IsLive { get; set; } = false;
+    public bool IsLive { get; set; } = true;
 #endif
 
 #if RELEASE
@@ -493,7 +493,7 @@ namespace CTKS_Chart.ViewModels
         TimeFrame = TimeFrame.D1
       };
 
-      Strategy strategy = new BinanceStrategy(binanceBroker, logger, IsLive);
+      Strategy strategy = new BinanceStrategy(binanceBroker, logger);
 
       if (!IsLive)
         strategy = new SimulationStrategy();
@@ -1307,6 +1307,11 @@ namespace CTKS_Chart.ViewModels
         {
           ActualCandles.RemoveAt(ActualCandles.Count - 1);
           ActualCandles.Add(actual);
+        }
+
+        if (IsLive && actual.Close != null)
+        {
+          TradingBot.Strategy.ActualPositions.ForEach(x => x.ActualProfit = (x.Price * x.OriginalPositionSizeNative) - (x.OriginalPositionSizeNative * actual.Close.Value));
         }
 
         VSynchronizationContext.InvokeOnDispatcher(() =>

@@ -311,6 +311,18 @@ namespace CTKS_Chart
     public ObservableCollection<Position> OpenSellPositions { get; set; } = new ObservableCollection<Position>();
     public ObservableCollection<Position> OpenBuyPositions { get; set; } = new ObservableCollection<Position>();
 
+    #region ActualPositions
+
+    public IEnumerable<Position> ActualPositions
+    {
+      get
+      {
+        return ClosedBuyPositions.Where(x => x.State == PositionState.Filled);
+      }
+    }
+
+    #endregion
+
 
     #region AllClosedPositions
 
@@ -556,6 +568,7 @@ namespace CTKS_Chart
           }
 
           RaisePropertyChanged(nameof(TotalBuy));
+          RaisePropertyChanged(nameof(ActualPositions));
 
           SaveState();
         }
@@ -588,7 +601,6 @@ namespace CTKS_Chart
       //Budget -= position.Fees ?? 0;
 
       Scale(position.Profit);
-      RaisePropertyChanged(nameof(TotalSell));
 
       var sum = OpenSellPositions.ToList().Sum(x => x.OriginalPositionSizeNative);
 
@@ -610,6 +622,9 @@ namespace CTKS_Chart
       }
 
       position.State = PositionState.Filled;
+
+      RaisePropertyChanged(nameof(TotalSell));
+      RaisePropertyChanged(nameof(ActualPositions));
 
       SaveState();
     }
@@ -810,6 +825,7 @@ namespace CTKS_Chart
         OpenBuyPositions.Add(newPosition);
 
         onCreatePositionSub.OnNext(newPosition);
+
       }
 
       SaveState();

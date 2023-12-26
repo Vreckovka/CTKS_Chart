@@ -31,6 +31,8 @@ namespace CTKS_Chart
       Side = position.Side;
       OpositePositions = position.OpositPositions.Select(x => x.Id).ToArray();
       Intersection = position.Intersection;
+      Fees = position.Fees;
+      FilledDate = position.FilledDate;
     }
 
 
