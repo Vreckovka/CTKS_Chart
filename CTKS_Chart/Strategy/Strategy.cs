@@ -384,7 +384,6 @@ namespace CTKS_Chart
 
     #region CreatePositions
 
-    private decimal maxBuy = (decimal)0.75;
     private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
     public async void CreatePositions(Candle actualCandle)
     {
@@ -392,7 +391,7 @@ namespace CTKS_Chart
       {
         await semaphoreSlim.WaitAsync();
 
-        var minBuy = actualCandle.Close * maxBuy;
+        var minBuy = actualCandle.Close * (1 - MinBuyPrice);
 
         var openedBuy = OpenBuyPositions
           .Where(x => !Intersections.Any(y => y.Value == x.Intersection.Value) || x.Price < minBuy)

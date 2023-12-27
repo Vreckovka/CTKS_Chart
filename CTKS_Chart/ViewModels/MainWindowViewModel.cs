@@ -30,6 +30,15 @@ using VCore.WPF.ViewModels;
 
 namespace CTKS_Chart.ViewModels
 {
+  public class State
+  {
+    public decimal TotalValue { get; set; }
+    public decimal TotalProfit { get; set; }
+    public decimal TotalNative { get; set; }
+    public decimal TotalNativeValue { get; set; }
+    public DateTime Date { get; set; }
+  }
+
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
     private readonly ILogger logger;
@@ -1284,6 +1293,7 @@ namespace CTKS_Chart.ViewModels
 
     #region OnBinanceKlineUpdate
 
+    private DateTime? lastDate;
     private void OnBinanceKlineUpdate(IBinanceStreamKline binanceStreamKline)
     {
       lock (this)
@@ -1318,6 +1328,25 @@ namespace CTKS_Chart.ViewModels
         {
           RenderLayout(MainLayout, InnerLayouts, actual, ActualCandles);
         });
+
+        if ((actual.Time.Date > lastDate || lastDate == null) && TradingBot.Strategy.TotalValue > 0)
+        {
+          lastDate = actual.Time.Date;
+
+          var state = new State()
+          {
+            Date = actual.Time.Date,
+            TotalProfit = TradingBot.Strategy.TotalProfit,
+            TotalValue = TradingBot.Strategy.TotalValue,
+            TotalNative = TradingBot.Strategy.TotalNativeAsset,
+            TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
+          };
+
+          using (StreamWriter w = File.AppendText("state_data.txt"))
+          {
+            w.WriteLine(JsonSerializer.Serialize(state));
+          }
+        }
       }
     }
 
@@ -1367,6 +1396,11 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
+    private void SaveProgress()
+    {
+
+    }
 
     #endregion
   }
