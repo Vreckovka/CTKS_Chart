@@ -78,6 +78,16 @@ namespace CTKS_Chart
             logger.Log(MessageType.Error, $"Order update REJECTED {orderUpdate.Id} {orderUpdate.Status} {orderUpdate.UpdateTime} {orderUpdate.RejectReason}", simpleMessage: true);
           }
 
+          if (orderUpdate.Status == OrderStatus.New)
+          {
+            var existingPosition = AllOpenedPositions.SingleOrDefault(x => x.Id == orderUpdate.Id);
+
+            if (existingPosition != null)
+            {
+              existingPosition.CreatedDate = orderUpdate.UpdateTime;
+            }
+          }
+
           VSynchronizationContext.InvokeOnDispatcher(async () =>
           {
             if (orderUpdate.Status == OrderStatus.Filled)
@@ -254,6 +264,7 @@ namespace CTKS_Chart
         RaisePropertyChanged(nameof(TotalBuy));
         RaisePropertyChanged(nameof(TotalSell));
         RaisePropertyChanged(nameof(ActualPositions));
+        RaisePropertyChanged(nameof(AllCompletedPositions));
       }
     }
 

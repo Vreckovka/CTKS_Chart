@@ -18,391 +18,410 @@
     </Window.Resources>
 
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="500" />
-            <ColumnDefinition />
-        </Grid.ColumnDefinitions>
-
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
             <RowDefinition />
         </Grid.RowDefinitions>
 
-        <Border Grid.RowSpan="2">
+        <Menu>
 
-            <Grid DataContext="{Binding TradingBot}">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="250" />
-                    <RowDefinition Height="auto" />
-                    <RowDefinition />
-                </Grid.RowDefinitions>
-
-                <UniformGrid Columns="2" DataContext="{Binding Strategy}">
-                    <TextBlock Text="Total time" />
-                    <TextBlock Foreground="Black" Text="{Binding DataContext.TotalRunTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
-                    <TextBlock Text="Active time" />
-                    <TextBlock Foreground="Black" Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
-                    <TextBlock Text="Starting Budget" />
-                    <TextBlock Text="{Binding StartingBudget, StringFormat={}{0:N2} $}" />
-                    <TextBlock Text="Total Value" />
-                    <TextBlock Text="{Binding TotalValue, StringFormat={}{0:N2} $}" />
-
-                    <TextBlock Text="Total Profit " />
-                    <TextBlock Text="{Binding TotalProfit, StringFormat={}{0:N2} $}" />
-                    <TextBlock Text="Budget" />
-                    <TextBlock Text="{Binding Budget, StringFormat={}{0:N2} $}" />
-                    <TextBlock Text="Avrage Buy Price " />
-                    <TextBlock Text="{Binding AvrageBuyPrice, StringFormat={}{0:N4} $}" />
-
-
-                    <TextBlock Text="Total Native" />
-                    <TextBlock Text="{Binding TotalNativeAsset}" />
-                    <TextBlock Text="Total Native Value" />
-                    <TextBlock Text="{Binding TotalNativeAssetValue, StringFormat={}{0:N2} $}" />
-
-                    <TextBlock Text="Closed buy trades" />
-                    <TextBlock Text="{Binding ClosedBuyPositions.Count, StringFormat={}{0}}" />
-                    <TextBlock Text="Closed sell trades" />
-                    <TextBlock Text="{Binding ClosedSellPositions.Count, StringFormat={}{0}}" />
-
-                    <TextBlock Text="Total Sell" />
-                    <TextBlock Text="{Binding TotalSell}" />
-                    <TextBlock Text="Total Buy" />
-                    <TextBlock Text="{Binding TotalBuy}" />
-
-                    <TextBlock Text="Scale" />
-                    <TextBlock Text="{Binding ScaleSize}" />
-
-                </UniformGrid>
-
-                <ItemsControl Grid.Row="1"
-                              Margin="0,5"
-                              ItemsSource="{Binding Strategy.PositionSizeMapping}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Key}" />
-                                <TextBlock Margin="10,0,0,0" Text="{Binding Value, StringFormat={}{0:N2}}" />
-                            </StackPanel>
-
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <ScrollViewer Grid.Row="2"
-                              HorizontalScrollBarVisibility="Auto"
-                              VerticalScrollBarVisibility="Auto">
-
-
-                    <Grid Margin="0,10,0,0">
-                        <Grid.Style>
-                            <Style TargetType="Grid">
-                                <Style.Triggers>
-
-                                    <DataTrigger Binding="{Binding DataContext.Simulation, RelativeSource={RelativeSource AncestorType=Window}}" Value="true">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Grid.Style>
+            <MenuItem Header="Settings">
+                <Border Padding="10">
+                    <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="150" />
-                            <RowDefinition Height="150" />
-                            <RowDefinition Height="150" />
-                            <RowDefinition Height="150" />
-                            <RowDefinition Height="150" />
+                            <RowDefinition />
+                            <RowDefinition />
                         </Grid.RowDefinitions>
-                        <Grid.Resources>
-                            <Style TargetType="GroupBox">
-                                <Setter Property="MaxHeight" Value="200" />
-                                <Setter Property="Margin" Value="5" />
+                        <ItemsControl Margin="5" ItemsSource="{Binding Layouts}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border>
+                                        <Button Command="{Binding DataContext.ShowCanvas, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
+                                            <TextBlock FontSize="15" Text="{Binding Title}" />
 
-                            </Style>
+                                            <Button.Style>
+                                                <Style TargetType="Button">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsOutDated}" Value="True">
+                                                            <Setter Property="Background" Value="#f25e5e" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
-                            <Style x:Key="PositionText" TargetType="TextBlock">
-                                <Setter Property="Margin" Value="5,0" />
-                                <Setter Property="FontSize" Value="15" />
-                            </Style>
-
-                            <DataTemplate x:Key="OppsitePositions">
-
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
-                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
-                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
-
-                                    <TextBlock Foreground="#003500"
-                                               Style="{StaticResource PositionText}"
-                                               Text="{Binding Profit, StringFormat={}{0:N3} $}" />
-                                    <TextBlock Foreground="#350000"
-                                               Style="{StaticResource PositionText}"
-                                               Text="{Binding Fees, StringFormat={}{0:N3} $}" />
-                                </StackPanel>
-
-                            </DataTemplate>
-                        </Grid.Resources>
-
-                        <GroupBox Grid.Row="0" Header="Open Buy">
-                            <ScrollViewer>
-                                <ItemsControl ItemsSource="{Binding Strategy.OpenBuyPositions}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
-
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </GroupBox>
-
-                        <GroupBox Grid.Row="1" Header="Open Sell">
-                            <ScrollViewer Margin="0,10" HorizontalScrollBarVisibility="Auto">
-                                <ItemsControl ItemsSource="{Binding Strategy.OpenSellPositions}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border>
-                                                <StackPanel>
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
-                                                        <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
-                                                        <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
-
-
-                                                        <TextBlock Background="#15ffffff" Text="Trades">
-                                                            <TextBlock.ToolTip>
-                                                                <Grid>
-                                                                    <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
-
-                                                                </Grid>
-                                                            </TextBlock.ToolTip>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </GroupBox>
-
-                        <GroupBox Grid.Row="2" Header="Actual BUY positions">
-                            <ScrollViewer>
-                                <ItemsControl ItemsSource="{Binding Strategy.ActualPositions}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding FilledDate}" />
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding State}" />
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
-
-                                                    <TextBlock Text="{Binding ActualProfit, StringFormat={}{0:N3} $}">
-                                                        <TextBlock.Style>
-                                                            <Style BasedOn="{StaticResource PositionText}" TargetType="TextBlock">
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
-                                                                        <Setter Property="Foreground" Value="#350000" />
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsGreaterConverter}, ConverterParameter=0}" Value="true">
-                                                                        <Setter Property="Foreground" Value="#003500" />
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
-
-
-                                                    <TextBlock Background="#15ffffff" Text="Trades">
-                                                        <TextBlock.ToolTip>
-                                                            <Grid>
-                                                                <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
-                                                            </Grid>
-                                                        </TextBlock.ToolTip>
-                                                    </TextBlock>
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </GroupBox>
-
-                        <GroupBox Grid.Row="3" Header="Completed Sell">
-                            <ScrollViewer Margin="0,10" HorizontalScrollBarVisibility="Auto">
-                                <ItemsControl ItemsSource="{Binding Strategy.ClosedSellPositions}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border>
-                                                <StackPanel>
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Style="{StaticResource PositionText}" Text="{Binding FilledDate}" />
-                                                        <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
-                                                        <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
-                                                        <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
-
-                                                        <TextBlock Foreground="#003500"
-                                                                   Style="{StaticResource PositionText}"
-                                                                   Text="{Binding Profit, StringFormat={}{0:N3} $}" />
-                                                        <TextBlock Foreground="#350000"
-                                                                   Style="{StaticResource PositionText}"
-                                                                   Text="{Binding Fees, StringFormat={}{0:N3} $}" />
-
-                                                        <TextBlock Background="#15ffffff" Text="Trades">
-                                                            <TextBlock.ToolTip>
-                                                                <Grid>
-                                                                    <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
-
-                                                                </Grid>
-                                                            </TextBlock.ToolTip>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </GroupBox>
-
-                        <GroupBox Grid.Row="4" Header="Completed Buy">
-                            <ScrollViewer>
-                                <ItemsControl ItemsSource="{Binding Strategy.ClosedBuyPositions}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding FilledDate}" />
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding State}" />
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
-
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
-
-                                                    <TextBlock Foreground="#350000"
-                                                               Style="{StaticResource PositionText}"
-                                                               Text="{Binding Fees, StringFormat={}{0:N3} $}" />
-
-                                                    <TextBlock Foreground="#003500"
-                                                               Style="{StaticResource PositionText}"
-                                                               Text="{Binding TotalProfit, StringFormat={}{0:N3} $}" />
-
-                                                    <TextBlock Background="#15ffffff" Text="Trades">
-                                                        <TextBlock.ToolTip>
-                                                            <Grid>
-                                                                <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
-                                                            </Grid>
-                                                        </TextBlock.ToolTip>
-                                                    </TextBlock>
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </GroupBox>
-                    </Grid>
-
-                </ScrollViewer>
-            </Grid>
-
-
-
-        </Border>
-
-        <Border Grid.Row="0"
-                Grid.Column="1"
-                Padding="10">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition />
-                    <RowDefinition />
-                </Grid.RowDefinitions>
-                <ItemsControl Margin="5" ItemsSource="{Binding Layouts}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border>
-                                <Button Command="{Binding DataContext.ShowCanvas, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
-                                    <TextBlock FontSize="15" Text="{Binding Title}" />
-
-                                    <Button.Style>
-                                        <Style TargetType="Button">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsOutDated}" Value="True">
-                                                    <Setter Property="Background" Value="#f25e5e" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <StackPanel Grid.Row="1" Orientation="Horizontal">
-                    <Button Width="120"
-                            Margin="10,0,10,0"
-                            Command="{Binding ShowLines}">
-                        Show lines
-                    </Button>
-                    <Button Width="120"
-                            Margin="10,0,10,0"
-                            Command="{Binding ShowIntersections}">
-                        Show intersections
-                    </Button>
-                    <!--<Button Width="120"
+                        <StackPanel Grid.Row="1" Orientation="Horizontal">
+                            <Button Width="120"
+                                    Margin="10,0,10,0"
+                                    Command="{Binding ShowLines}">
+                                Show lines
+                            </Button>
+                            <Button Width="120"
+                                    Margin="10,0,10,0"
+                                    Command="{Binding ShowIntersections}">
+                                Show intersections
+                            </Button>
+                            <!--<Button Width="120"
                         Margin="10,0,10,0"
                         Command="{Binding DataContext.CancelPositions, RelativeSource={RelativeSource AncestorType=Window}}">
                     Cancel Positions
                 </Button>-->
-                    <ComboBox ItemsSource="{Binding KlineInterval, Converter={converters:EnumValueToCollectionConverter}, Mode=OneTime}" SelectedValue="{Binding KlineInterval}" />
-                    <TextBox Width="120"
-                             Margin="10,0,10,0"
-                             Text="{Binding MaxValue}" />
-                    <TextBox Width="120"
-                             Margin="10,0,10,0"
-                             Text="{Binding MinValue}" />
+                            <ComboBox ItemsSource="{Binding KlineInterval, Converter={converters:EnumValueToCollectionConverter}, Mode=OneTime}" SelectedValue="{Binding KlineInterval}" />
+                            <TextBox Width="120"
+                                     Margin="10,0,10,0"
+                                     Text="{Binding MaxValue}" />
+                            <TextBox Width="120"
+                                     Margin="10,0,10,0"
+                                     Text="{Binding MinValue}" />
 
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Min buy % " />
-                        <TextBox Width="120"
-                                 Margin="10,0,10,0"
-                                 Text="{Binding TradingBot.Strategy.MinBuyPrice}" />
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="Min buy % " />
+                                <TextBox Width="120"
+                                         Margin="10,0,10,0"
+                                         Text="{Binding TradingBot.Strategy.MinBuyPrice}" />
 
-                    </StackPanel>
+                            </StackPanel>
 
-                    <Button Width="120"
-                            Margin="10,0,10,0"
-                            Command="{Binding ResetBot}">
-                        Reset Bot
-                    </Button>
+                            <Button Width="120"
+                                    Margin="10,0,10,0"
+                                    Command="{Binding ResetBot}">
+                                Reset Bot
+                            </Button>
 
-                </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </MenuItem>
+        </Menu>
+
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="2*" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="250" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+
+                <Grid VerticalAlignment="Top" DataContext="{Binding TradingBot.Strategy}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition Height="auto" />
+                    </Grid.RowDefinitions>
+
+                    <UniformGrid Columns="2">
+                        <TextBlock Text="Total time" />
+                        <TextBlock Foreground="Black" Text="{Binding DataContext.TotalRunTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
+                        <TextBlock Text="Active time" />
+                        <TextBlock Foreground="Black" Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
+                        <TextBlock Text="Starting Budget" />
+                        <TextBlock Text="{Binding StartingBudget, StringFormat={}{0:N2} $}" />
+                        <TextBlock Text="Total Value" />
+                        <TextBlock Text="{Binding TotalValue, StringFormat={}{0:N2} $}" />
+
+                        <TextBlock Text="Total Profit " />
+                        <TextBlock Text="{Binding TotalProfit, StringFormat={}{0:N2} $}" />
+                        <TextBlock Text="Budget" />
+                        <TextBlock Text="{Binding Budget, StringFormat={}{0:N2} $}" />
+                        <TextBlock Text="Avrage Buy Price " />
+                        <TextBlock Text="{Binding AvrageBuyPrice, StringFormat={}{0:N4} $}" />
+
+
+                        <TextBlock Text="Total Native" />
+                        <TextBlock Text="{Binding TotalNativeAsset}" />
+                        <TextBlock Text="Total Native Value" />
+                        <TextBlock Text="{Binding TotalNativeAssetValue, StringFormat={}{0:N2} $}" />
+
+                        <TextBlock Text="Closed buy trades" />
+                        <TextBlock Text="{Binding ClosedBuyPositions.Count, StringFormat={}{0}}" />
+                        <TextBlock Text="Closed sell trades" />
+                        <TextBlock Text="{Binding ClosedSellPositions.Count, StringFormat={}{0}}" />
+
+                        <TextBlock Text="Total Sell" />
+                        <TextBlock Text="{Binding TotalSell}" />
+                        <TextBlock Text="Total Buy" />
+                        <TextBlock Text="{Binding TotalBuy}" />
+
+                        <TextBlock Text="Scale" />
+                        <TextBlock Text="{Binding ScaleSize}" />
+
+
+
+                    </UniformGrid>
+
+                    <ItemsControl Grid.Row="1"
+                                  Margin="0,5"
+                                  ItemsSource="{Binding PositionSizeMapping}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Key}" />
+                                    <TextBlock Margin="10,0,0,0" Text="{Binding Value, StringFormat={}{0:N2}}" />
+                                </StackPanel>
+
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+
+
+                <Border Grid.Column="1" Background="#02050a">
+                    <ContentControl Content="{Binding MainGrid}" />
+                </Border>
             </Grid>
-        </Border>
 
-        <Grid Grid.Row="1" Grid.Column="1">
+            <Border Grid.Row="1">
+                <TabControl Background="Transparent" DataContext="{Binding TradingBot}">
+                    <TabControl.Resources>
+                        <Style TargetType="GroupBox">
+                            <Setter Property="MaxHeight" Value="200" />
+                            <Setter Property="Margin" Value="5" />
 
-            <!--<Image x:Name="chart_image" />
-            <Grid x:Name="main_grid" />-->
-            <!--  //Background="#02050a"  -->
-            <Border Background="#02050a">
-                <ContentControl Content="{Binding MainGrid}" />
+                        </Style>
+
+                        <Style x:Key="PositionText" TargetType="TextBlock">
+                            <Setter Property="Margin" Value="0,0,25,0" />
+                            <Setter Property="FontSize" Value="15" />
+                        </Style>
+
+                        <DataTemplate x:Key="OppsitePositions">
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
+                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
+                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
+
+                                <TextBlock Foreground="#003500"
+                                           Style="{StaticResource PositionText}"
+                                           Text="{Binding Profit, StringFormat={}{0:N3} $}" />
+                                <TextBlock Foreground="#350000"
+                                           Style="{StaticResource PositionText}"
+                                           Text="{Binding Fees, StringFormat={}{0:N3} $}" />
+                            </StackPanel>
+
+                        </DataTemplate>
+                    </TabControl.Resources>
+
+                    <TabItem Header="Open Buy">
+                        <ScrollViewer>
+                            <ItemsControl ItemsSource="{Binding Strategy.OpenBuyPositions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding CreatedDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
+
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <TabItem Header="Open Sell">
+                        <ScrollViewer Margin="0,10" HorizontalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding Strategy.OpenSellPositions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border>
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding CreatedDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
+                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
+                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
+                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
+
+
+                                                    <TextBlock Background="#15ffffff" Text="Trades">
+                                                        <TextBlock.ToolTip>
+                                                            <Grid>
+                                                                <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
+
+                                                            </Grid>
+                                                        </TextBlock.ToolTip>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <TabItem Header="Actual positions">
+                        <ScrollViewer>
+                            <ItemsControl ItemsSource="{Binding Strategy.ActualPositions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
+
+                                                <TextBlock Text="{Binding ActualProfit, StringFormat={}{0:N3} $}">
+                                                    <TextBlock.Style>
+                                                        <Style BasedOn="{StaticResource PositionText}" TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
+                                                                    <Setter Property="Foreground" Value="#350000" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsGreaterConverter}, ConverterParameter=0}" Value="true">
+                                                                    <Setter Property="Foreground" Value="#003500" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+
+
+                                                <TextBlock Background="#15ffffff" Text="Trades">
+                                                    <TextBlock.ToolTip>
+                                                        <Grid>
+                                                            <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
+                                                        </Grid>
+                                                    </TextBlock.ToolTip>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                    </TabItem>
+
+                    <TabItem Header="Completed Sell">
+                        <ScrollViewer Margin="0,10" HorizontalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding Strategy.ClosedSellPositions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border>
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding FilledDate}" />
+                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
+                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
+                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
+
+                                                    <TextBlock Foreground="#003500"
+                                                               Style="{StaticResource PositionText}"
+                                                               Text="{Binding Profit, StringFormat={}{0:N3} $}" />
+                                                    <TextBlock Foreground="#350000"
+                                                               Style="{StaticResource PositionText}"
+                                                               Text="{Binding Fees, StringFormat={}{0:N3} $}" />
+
+                                                    <TextBlock Background="#15ffffff" Text="Trades">
+                                                        <TextBlock.ToolTip>
+                                                            <Grid>
+                                                                <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
+
+                                                            </Grid>
+                                                        </TextBlock.ToolTip>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <TabItem Header="Completed Buy">
+                        <ScrollViewer>
+                            <ItemsControl ItemsSource="{Binding Strategy.AllCompletedPositions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding State}" />
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
+
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
+
+                                                <TextBlock Foreground="#350000"
+                                                           Style="{StaticResource PositionText}"
+                                                           Text="{Binding Fees, StringFormat={}{0:N3} $}" />
+
+                                                <TextBlock Foreground="#003500"
+                                                           Style="{StaticResource PositionText}"
+                                                           Text="{Binding TotalProfit, StringFormat={}{0:N3} $}" />
+
+                                                <TextBlock Background="#15ffffff" Text="Trades">
+                                                    <TextBlock.ToolTip>
+                                                        <Grid>
+                                                            <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
+                                                        </Grid>
+                                                    </TextBlock.ToolTip>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </TabItem>
+                </TabControl>
+
+                <!--<Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="auto" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+
+                    <ScrollViewer Grid.Row="1"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Auto">
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Style.Triggers>
+
+                                        <DataTrigger Binding="{Binding DataContext.Simulation, RelativeSource={RelativeSource AncestorType=Window}}" Value="true">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="150" />
+                                <RowDefinition Height="150" />
+                                <RowDefinition Height="150" />
+                                <RowDefinition Height="150" />
+                                <RowDefinition Height="150" />
+                            </Grid.RowDefinitions>
+
+
+
+
+                        </Grid>
+
+                    </ScrollViewer>
+                </Grid>-->
             </Border>
-
         </Grid>
     </Grid>
 </Window>

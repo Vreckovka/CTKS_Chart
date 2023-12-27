@@ -323,6 +323,18 @@ namespace CTKS_Chart
 
     #endregion
 
+    #region AllCompletedPositions
+
+    public IEnumerable<Position> AllCompletedPositions
+    {
+      get
+      {
+        return ClosedBuyPositions.Where(x => x.State == PositionState.Completed);
+      }
+    }
+
+    #endregion
+
 
     #region AllClosedPositions
 
@@ -568,6 +580,7 @@ namespace CTKS_Chart
 
           RaisePropertyChanged(nameof(TotalBuy));
           RaisePropertyChanged(nameof(ActualPositions));
+          RaisePropertyChanged(nameof(AllCompletedPositions));
 
           SaveState();
         }

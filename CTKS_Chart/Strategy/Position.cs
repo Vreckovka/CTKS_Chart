@@ -79,6 +79,7 @@ namespace CTKS_Chart
 
     //THERE IS POSITION_DTO ALSO NEED CHANGE!!!!
     public DateTime? FilledDate { get; set; }
+    public DateTime? CreatedDate { get; set; }
 
     #region PositionSize
 

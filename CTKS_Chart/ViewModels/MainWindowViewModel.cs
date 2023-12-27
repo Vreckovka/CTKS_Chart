@@ -808,7 +808,7 @@ namespace CTKS_Chart.ViewModels
           Console.WriteLine("NO INTERSECTIONS, DOING NOTHING !");
         }
 
-    
+
 
         if (!Simulation)
           RenderOverlay(layout, ctksIntersections, TradingBot.Strategy, candles);
@@ -1329,6 +1329,17 @@ namespace CTKS_Chart.ViewModels
           RenderLayout(MainLayout, InnerLayouts, actual, ActualCandles);
         });
 
+        if (lastDate == null)
+        {
+          var last = File.ReadLines(@"state_data.txt").Last();
+          var lastState = JsonSerializer.Deserialize<State>(last);
+
+          if (lastState?.Date != null)
+          {
+            lastDate = lastState.Date;
+          }
+        }
+
         if ((actual.Time.Date > lastDate || lastDate == null) && TradingBot.Strategy.TotalValue > 0)
         {
           lastDate = actual.Time.Date;
@@ -1396,11 +1407,6 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-
-    private void SaveProgress()
-    {
-
-    }
 
     #endregion
   }
