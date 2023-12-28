@@ -25,6 +25,9 @@ namespace CTKS_Chart
 
     string path = "State";
 
+    private SemaphoreSlim binanceOrderLock = new SemaphoreSlim(1, 1);
+    private SemaphoreSlim orderUpdateLock = new SemaphoreSlim(1, 1);
+
     public BinanceStrategy(BinanceBroker binanceBroker, ILogger logger)
     {
       this.binanceBroker = binanceBroker ?? throw new ArgumentNullException(nameof(binanceBroker));
@@ -45,13 +48,12 @@ namespace CTKS_Chart
     }
 
     #region OnOrderUpdate
-
-    private SemaphoreSlim orderLock = new SemaphoreSlim(1, 1);
+   
     private async void OnOrderUpdate(DataEvent<BinanceStreamOrderUpdate> data)
     {
       try
       {
-        await orderLock.WaitAsync();
+        await orderUpdateLock.WaitAsync();
         var orderUpdate = data.Data;
 
         if (Asset != null && data.Data.Symbol == Asset.Symbol)
@@ -80,11 +82,20 @@ namespace CTKS_Chart
 
           if (orderUpdate.Status == OrderStatus.New)
           {
-            var existingPosition = AllOpenedPositions.SingleOrDefault(x => x.Id == orderUpdate.Id);
-
-            if (existingPosition != null)
+            try
             {
-              existingPosition.CreatedDate = orderUpdate.UpdateTime;
+              await binanceOrderLock.WaitAsync();
+
+              var existingPosition = AllOpenedPositions.SingleOrDefault(x => x.Id == orderUpdate.Id);
+
+              if (existingPosition != null)
+              {
+                existingPosition.CreatedDate = orderUpdate.UpdateTime;
+              }
+            }
+            finally
+            {
+              binanceOrderLock.Release();
             }
           }
 
@@ -96,7 +107,7 @@ namespace CTKS_Chart
 
               if (existingPosition != null && existingPosition.State != PositionState.Filled)
               {
-                var fees = await GetFees(orderUpdate);
+                var fees = await GetFees(orderUpdate.Fee, orderUpdate.FeeAsset);
 
                 existingPosition.Fees = fees;
                 existingPosition.FilledDate = orderUpdate.UpdateTime;
@@ -112,7 +123,7 @@ namespace CTKS_Chart
       }
       finally
       {
-        orderLock.Release();
+        orderUpdateLock.Release();
       }
     }
 
@@ -122,29 +133,93 @@ namespace CTKS_Chart
 
     public override async Task RefreshState()
     {
-      var closedOrders = (await binanceBroker.GetClosedOrders(Asset.Symbol)).ToList();
-
-      foreach (var closed in closedOrders)
+      try
       {
-        var order = AllOpenedPositions.SingleOrDefault(x => x.Id == long.Parse(closed.Id));
+        await orderUpdateLock.WaitAsync();
+        var closedOrders = (await binanceBroker.GetClosedOrders(Asset.Symbol)).ToList();
 
-        if (order != null)
+        foreach (var closed in closedOrders)
         {
-          if (order.State == PositionState.Open)
+          var postion = AllOpenedPositions.SingleOrDefault(x => x.Id == long.Parse(closed.Id));
+
+          if (postion != null)
           {
-            if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Filled)
+            if (postion.State == PositionState.Open)
             {
-              if (order.Side == PositionSide.Buy)
-                await CloseBuy(order);
-              else
-                CloseSell(order);
-            }
-            else if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Canceled)
-            {
-              await OnCancelPosition(order, force: true);
+              if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Filled)
+              {
+                postion.FilledDate = closed.Timestamp;
+
+                if (postion.Side == PositionSide.Buy)
+                  await CloseBuy(postion);
+                else
+                  CloseSell(postion);
+              }
+              else if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Canceled)
+              {
+                await OnCancelPosition(postion, force: true);
+              }
             }
           }
         }
+      }
+      finally
+      {
+        orderUpdateLock.Release();
+      }
+    }
+
+    #endregion
+
+    #region FetchMissingInfo
+
+    public async Task FetchMissingInfo()
+    {
+      try
+      {
+        await orderUpdateLock.WaitAsync();
+
+        var tradeList = (await binanceBroker.GetAccountTradeList(Asset.Symbol, new DateTime(2023, 11, 1))).ToList();
+        var misingInfoList = AllClosedPositions.Where(x => x.Fees == null || x.FilledDate == null);
+
+        foreach (var missingInfoPosition in misingInfoList)
+        {
+          var trade = tradeList.FirstOrDefault(x => x.OrderId == missingInfoPosition.Id);
+
+          if (trade != null)
+          {
+            missingInfoPosition.FilledDate = trade.Timestamp;
+
+            if (missingInfoPosition.Fees == null)
+              missingInfoPosition.Fees = await GetFees(trade.Fee, trade.FeeAsset);
+          }
+        }
+
+        var openOrders = (await binanceBroker.GetOpenOrders(Asset.Symbol)).ToList();
+        misingInfoList = AllOpenedPositions.Where(x => x.CreatedDate == null);
+
+        foreach (var missingInfoPosition in misingInfoList)
+        {
+          var trade = openOrders.FirstOrDefault(x => x.Id == missingInfoPosition.Id.ToString());
+
+          if (trade != null)
+          {
+            missingInfoPosition.CreatedDate = trade.Timestamp;
+          }
+        }
+
+
+        RaisePropertyChanged(nameof(OpenBuyPositions));
+        RaisePropertyChanged(nameof(ClosedBuyPositions));
+
+        RaisePropertyChanged(nameof(ClosedSellPositions));
+        RaisePropertyChanged(nameof(OpenSellPositions));
+
+        RaisePropertyChanged(nameof(AllCompletedPositions));
+      }
+      finally
+      {
+        orderUpdateLock.Release();
       }
     }
 
@@ -152,29 +227,46 @@ namespace CTKS_Chart
 
     #region CancelPosition
 
-    protected override Task<bool> CancelPosition(Position position)
+    protected override async Task<bool> CancelPosition(Position position)
     {
+      try
+      {
+        await binanceOrderLock.WaitAsync();
 #if RELEASE
-      return binanceBroker.Close(Asset.Symbol, position.Id);
+      return await binanceBroker.Close(Asset.Symbol, position.Id);
 #else
-      return Task.FromResult(false);
+        return await Task.FromResult(false);
 #endif
+      }
+      finally
+      {
+        binanceOrderLock.Release();
+      }
     }
 
     #endregion
 
     #region CreatePosition
-
-    protected override Task<long> CreatePosition(Position position)
+    
+    protected override async Task<long> CreatePosition(Position position)
     {
+      try
+      {
+        await binanceOrderLock.WaitAsync();
+
 #if RELEASE
       if (position.Side == PositionSide.Buy)
-        return binanceBroker.Buy(Asset.Symbol, position.PositionSizeNative, position.Price);
+        return await binanceBroker.Buy(Asset.Symbol, position.PositionSizeNative, position.Price);
       else
-        return binanceBroker.Sell(Asset.Symbol, position.PositionSizeNative, position.Price);
+        return await binanceBroker.Sell(Asset.Symbol, position.PositionSizeNative, position.Price);
 #else
-      return Task.FromResult(0L);
+        return await Task.FromResult(0L);
 #endif
+      }
+      finally
+      {
+        binanceOrderLock.Release();
+      }
     }
 
     #endregion
@@ -270,21 +362,15 @@ namespace CTKS_Chart
 
     #endregion
 
-    private async Task<decimal?> GetFees(BinanceStreamOrderUpdate binanceStreamOrderUpdate)
+    #region GetFees
+
+    private async Task<decimal?> GetFees(decimal fee, string feeAsset)
     {
       try
       {
-        var fees = binanceStreamOrderUpdate.Fee;
-        var asset = binanceStreamOrderUpdate.FeeAsset;
+        var ticker = await binanceBroker.GetTicker(feeAsset + "USDT");
 
-        var ticker = await binanceBroker.GetTicker(asset + "USDT");
-
-        if (ticker != null)
-        {
-          return fees * ticker;
-        }
-
-        return null;
+        return fee * ticker;
       }
       catch (Exception ex)
       {
@@ -293,5 +379,7 @@ namespace CTKS_Chart
         return null;
       }
     }
+
+    #endregion
   }
 }

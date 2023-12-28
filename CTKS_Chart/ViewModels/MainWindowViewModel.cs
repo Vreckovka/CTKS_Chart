@@ -294,8 +294,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
-    #region ShowCanvas
+    #region ResetBot
 
     protected ActionCommand resetBot;
 
@@ -314,6 +313,30 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region ResetBot
+
+    protected ActionCommand fetchMissingInfo;
+
+    public ICommand FetchMissingInfo
+    {
+      get
+      {
+        return fetchMissingInfo ??= new ActionCommand(OnFetchMissingInfo);
+      }
+    }
+
+    protected virtual async void OnFetchMissingInfo()
+    {
+      if (TradingBot.Strategy is BinanceStrategy binanceStrategy)
+        await binanceStrategy.FetchMissingInfo();
+
+
+      var old = TradingBot.Strategy;
+      TradingBot.Strategy = null;
+      TradingBot.Strategy = old;
+    }
+
+    #endregion
 
     #region ShowLines
 

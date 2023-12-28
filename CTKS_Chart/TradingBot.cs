@@ -19,11 +19,32 @@ namespace CTKS_Chart
 
     }
 
-    public Strategy Strategy { get;  }
+
+
+    #region Strategy
+
+    private Strategy strategy;
+
+    public Strategy Strategy
+    {
+      get { return strategy; }
+      set
+      {
+        if (value != strategy)
+        {
+          strategy = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     public Asset Asset { get;  }
     public Dictionary<string, TimeFrame> TimeFrames { get; }
 
     public decimal StartingMinPrice { get; }
     public decimal StartingMaxPrice { get; }
+
   }
 }

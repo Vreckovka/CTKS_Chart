@@ -334,8 +334,7 @@ namespace CTKS_Chart
     }
 
     #endregion
-
-
+    
     #region AllClosedPositions
 
     public IEnumerable<Position> AllClosedPositions
@@ -571,7 +570,7 @@ namespace CTKS_Chart
 
           ClosedBuyPositions.Add(position);
           OpenBuyPositions.Remove(position);
-         // Budget -= position.Fees ?? 0;
+          // Budget -= position.Fees ?? 0;
 
           if (TotalValue / 3 < PositionSizeMapping.Single(x => x.Key == TimeFrame.M12).Value)
           {
@@ -877,9 +876,12 @@ namespace CTKS_Chart
 
     public async Task OnCancelPosition(Position position, HashSet<Position> removed = null, bool force = false)
     {
-      var cancled = await CancelPosition(position);
+      var cancled = force;
 
-      if (cancled || force)
+      if (!cancled)
+        cancled = await CancelPosition(position);
+
+      if (cancled)
       {
         if (position.Side == PositionSide.Buy)
         {

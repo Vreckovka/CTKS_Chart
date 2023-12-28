@@ -101,6 +101,9 @@
                     </Grid>
                 </Border>
             </MenuItem>
+            <MenuItem Header="Actions">
+                <MenuItem Command="{Binding FetchMissingInfo}" Header="Fetch missing info" />
+            </MenuItem>
         </Menu>
 
         <Grid Grid.Row="1">
@@ -183,7 +186,7 @@
             </Grid>
 
             <Border Grid.Row="1">
-                <TabControl Background="Transparent" DataContext="{Binding TradingBot}">
+                <TabControl Background="Transparent" DataContext="{Binding TradingBot.Strategy, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}">
                     <TabControl.Resources>
                         <Style TargetType="GroupBox">
                             <Setter Property="MaxHeight" Value="200" />
@@ -216,7 +219,7 @@
 
                     <TabItem Header="Open Buy">
                         <ScrollViewer>
-                            <ItemsControl ItemsSource="{Binding Strategy.OpenBuyPositions}">
+                            <ItemsControl ItemsSource="{Binding OpenBuyPositions, UpdateSourceTrigger=PropertyChanged}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border>
@@ -236,7 +239,7 @@
 
                     <TabItem Header="Open Sell">
                         <ScrollViewer Margin="0,10" HorizontalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding Strategy.OpenSellPositions}">
+                            <ItemsControl ItemsSource="{Binding OpenSellPositions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border>
@@ -267,7 +270,7 @@
 
                     <TabItem Header="Actual positions">
                         <ScrollViewer>
-                            <ItemsControl ItemsSource="{Binding Strategy.ActualPositions}">
+                            <ItemsControl ItemsSource="{Binding ActualPositions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border>
@@ -311,7 +314,7 @@
 
                     <TabItem Header="Completed Sell">
                         <ScrollViewer Margin="0,10" HorizontalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding Strategy.ClosedSellPositions}">
+                            <ItemsControl ItemsSource="{Binding ClosedSellPositions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border>
@@ -348,7 +351,7 @@
 
                     <TabItem Header="Completed Buy">
                         <ScrollViewer>
-                            <ItemsControl ItemsSource="{Binding Strategy.AllCompletedPositions}">
+                            <ItemsControl ItemsSource="{Binding AllCompletedPositions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border>

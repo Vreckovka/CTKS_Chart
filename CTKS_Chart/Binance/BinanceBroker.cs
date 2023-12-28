@@ -13,6 +13,7 @@ using Binance.Net;
 using Binance.Net.Clients;
 using Binance.Net.Enums;
 using Binance.Net.Interfaces;
+using Binance.Net.Objects.Models.Spot;
 using Binance.Net.Objects.Models.Spot.Socket;
 using Binance.Net.Objects.Options;
 using CryptoExchange.Net.Authentication;
@@ -325,5 +326,16 @@ namespace CTKS_Chart.Binance
 
     #endregion
 
+    #region GetAccountTradeList
+
+    public async Task<IEnumerable<BinanceTrade>> GetAccountTradeList(string symbol, DateTime? pStartTime = null)
+    {
+      using (var client = new BinanceRestClient())
+      {
+        return (await client.SpotApi.Trading.GetUserTradesAsync(symbol, startTime: pStartTime)).Data;
+      }
+    }
+
+    #endregion
   }
 }
