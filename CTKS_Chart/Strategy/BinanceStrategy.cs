@@ -24,9 +24,7 @@ namespace CTKS_Chart
     private readonly ILogger logger;
 
     string path = "State";
-
-    private SemaphoreSlim binanceOrderLock = new SemaphoreSlim(1, 1);
-    private SemaphoreSlim orderUpdateLock = new SemaphoreSlim(1, 1);
+    protected SemaphoreSlim orderUpdateLock = new SemaphoreSlim(1, 1);
 
     public BinanceStrategy(BinanceBroker binanceBroker, ILogger logger)
     {
@@ -48,12 +46,13 @@ namespace CTKS_Chart
     }
 
     #region OnOrderUpdate
-   
+
     private async void OnOrderUpdate(DataEvent<BinanceStreamOrderUpdate> data)
     {
       try
       {
         await orderUpdateLock.WaitAsync();
+
         var orderUpdate = data.Data;
 
         if (Asset != null && data.Data.Symbol == Asset.Symbol)
@@ -84,7 +83,7 @@ namespace CTKS_Chart
           {
             try
             {
-              await binanceOrderLock.WaitAsync();
+              await createOrderLock.WaitAsync();
 
               var existingPosition = AllOpenedPositions.SingleOrDefault(x => x.Id == orderUpdate.Id);
 
@@ -95,7 +94,7 @@ namespace CTKS_Chart
             }
             finally
             {
-              binanceOrderLock.Release();
+              createOrderLock.Release();
             }
           }
 
@@ -136,6 +135,7 @@ namespace CTKS_Chart
       try
       {
         await orderUpdateLock.WaitAsync();
+
         var closedOrders = (await binanceBroker.GetClosedOrders(Asset.Symbol)).ToList();
 
         foreach (var closed in closedOrders)
@@ -216,6 +216,8 @@ namespace CTKS_Chart
         RaisePropertyChanged(nameof(OpenSellPositions));
 
         RaisePropertyChanged(nameof(AllCompletedPositions));
+
+        SaveState();
       }
       finally
       {
@@ -229,30 +231,20 @@ namespace CTKS_Chart
 
     protected override async Task<bool> CancelPosition(Position position)
     {
-      try
-      {
-        await binanceOrderLock.WaitAsync();
+
 #if RELEASE
       return await binanceBroker.Close(Asset.Symbol, position.Id);
 #else
-        return await Task.FromResult(false);
+      return await Task.FromResult(false);
 #endif
-      }
-      finally
-      {
-        binanceOrderLock.Release();
-      }
     }
 
     #endregion
 
     #region CreatePosition
-    
+
     protected override async Task<long> CreatePosition(Position position)
     {
-      try
-      {
-        await binanceOrderLock.WaitAsync();
 
 #if RELEASE
       if (position.Side == PositionSide.Buy)
@@ -260,13 +252,9 @@ namespace CTKS_Chart
       else
         return await binanceBroker.Sell(Asset.Symbol, position.PositionSizeNative, position.Price);
 #else
-        return await Task.FromResult(0L);
+      return await Task.FromResult(0L);
 #endif
-      }
-      finally
-      {
-        binanceOrderLock.Release();
-      }
+
     }
 
     #endregion
