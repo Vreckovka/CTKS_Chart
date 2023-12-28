@@ -79,24 +79,6 @@ namespace CTKS_Chart
             logger.Log(MessageType.Error, $"Order update REJECTED {orderUpdate.Id} {orderUpdate.Status} {orderUpdate.UpdateTime} {orderUpdate.RejectReason}", simpleMessage: true);
           }
 
-          if (orderUpdate.Status == OrderStatus.New)
-          {
-            try
-            {
-              await createOrderLock.WaitAsync();
-
-              var existingPosition = AllOpenedPositions.SingleOrDefault(x => x.Id == orderUpdate.Id);
-
-              if (existingPosition != null)
-              {
-                existingPosition.CreatedDate = orderUpdate.UpdateTime;
-              }
-            }
-            finally
-            {
-              createOrderLock.Release();
-            }
-          }
 
           VSynchronizationContext.InvokeOnDispatcher(async () =>
           {
@@ -248,9 +230,9 @@ namespace CTKS_Chart
 
 #if RELEASE
       if (position.Side == PositionSide.Buy)
-        return await binanceBroker.Buy(Asset.Symbol, position.PositionSizeNative, position.Price);
+        return await binanceBroker.Buy(Asset.Symbol, position);
       else
-        return await binanceBroker.Sell(Asset.Symbol, position.PositionSizeNative, position.Price);
+        return await binanceBroker.Sell(Asset.Symbol, position);
 #else
       return await Task.FromResult(0L);
 #endif

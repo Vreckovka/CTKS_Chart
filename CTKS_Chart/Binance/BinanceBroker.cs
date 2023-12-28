@@ -140,7 +140,7 @@ namespace CTKS_Chart.Binance
     #region Buy
 
     private SemaphoreSlim createPositionLock = new SemaphoreSlim(1, 1);
-    public async Task<long> Buy(string symbol, decimal tradeAmount, decimal price)
+    public async Task<long> Buy(string symbol, Position position)
     {
       try
       {
@@ -151,12 +151,16 @@ namespace CTKS_Chart.Binance
           var result = await client.SpotApi.Trading.PlaceOrderAsync(symbol,
             OrderSide.Buy,
             SpotOrderType.Limit,
-            tradeAmount,
-            price: price,
+            position.PositionSizeNative,
+            price: position.Price,
             timeInForce: TimeInForce.GoodTillCanceled);
 
           if (result.Success)
+          {
+            position.CreatedDate = result.Data.CreateTime;
+            position.Id = result.Data.Id;
             return result.Data.Id;
+          }
           else
             logger.Log(MessageType.Error, result.Error?.Message);
         }
@@ -173,7 +177,7 @@ namespace CTKS_Chart.Binance
 
     #region Sell
 
-    public async Task<long> Sell(string symbol, decimal tradeAmount, decimal price)
+    public async Task<long> Sell(string symbol, Position position)
     {
 
       try
@@ -185,12 +189,18 @@ namespace CTKS_Chart.Binance
           var result = await client.SpotApi.Trading.PlaceOrderAsync(symbol,
             OrderSide.Sell,
             SpotOrderType.Limit,
-            tradeAmount,
-            price: price,
+            position.PositionSizeNative,
+            price: position.Price,
             timeInForce: TimeInForce.GoodTillCanceled);
 
           if (result.Success)
+          {
+            position.CreatedDate = result.Data.CreateTime;
+            position.Id = result.Data.Id;
+
             return result.Data.Id;
+          }
+           
           else
             logger.Log(MessageType.Error, result.Error?.Message);
         }
