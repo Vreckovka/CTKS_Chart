@@ -63,7 +63,7 @@ namespace CTKS_Chart.ViewModels
 
         lastElapsed = stopwatch.Elapsed;
 
-        if (Math.Round(activeTime.TotalSeconds, 0) % 10 == 0)
+        if (Math.Round(activeTime.TotalSeconds, 0) % 10 == 0 && IsLive)
         {
           TradingBot.Asset.RunTimeTicks = TotalRunTime.Ticks;
           var json = JsonSerializer.Serialize<Asset>(TradingBot.Asset);
@@ -124,7 +124,7 @@ namespace CTKS_Chart.ViewModels
 #endif
 
 #if DEBUG
-    public bool IsLive { get; set; } = true;
+    public bool IsLive { get; set; } = false;
 #endif
 
 #if RELEASE

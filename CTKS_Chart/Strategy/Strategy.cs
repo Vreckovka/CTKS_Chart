@@ -455,20 +455,36 @@ namespace CTKS_Chart
             leftSize = leftSize - existing;
           }
 
-          if (Budget < leftSize)
+
+          while (Budget < leftSize)
           {
+            var openLow = OpenBuyPositions.OrderBy(x => x.Price).FirstOrDefault();
+
             if (Budget - 1 > MinPositionValue)
             {
               leftSize = Budget - 1;
             }
             else
             {
-              break;
+              if (openLow != null && intersection.Value > openLow.Price)
+              {
+                await OnCancelPosition(openLow);
+
+                leftSize = maxPOsitionOnIntersection - sum;
+
+                if (existing > 0)
+                {
+                  leftSize = leftSize - existing;
+                }
+              }
+              else
+              {
+                break;
+              }
             }
           }
 
-
-          if (leftSize > MinPositionValue)
+          if (leftSize > MinPositionValue && Budget > leftSize)
           {
             await CreateBuyPosition(leftSize, intersection);
           }
@@ -836,10 +852,20 @@ namespace CTKS_Chart
       {
         newPosition.Id = id;
 
+        if (Budget - newPosition.PositionSize < 0)
+        {
+
+        }
+
         Budget -= newPosition.PositionSize;
         OpenBuyPositions.Add(newPosition);
 
         onCreatePositionSub.OnNext(newPosition);
+
+        if (Budget < 0)
+        {
+
+        }
 
       }
 

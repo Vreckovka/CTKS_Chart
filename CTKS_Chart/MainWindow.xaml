@@ -149,13 +149,19 @@
                         <TextBlock Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
                         <TextBlock Text="Starting Budget" />
                         <TextBlock Text="{Binding StartingBudget, StringFormat={}{0:N2} $}" />
-                        <TextBlock Text="Total Value" />
-                        <TextBlock Text="{Binding TotalValue, StringFormat={}{0:N2} $}" />
+                        <TextBlock FontWeight="Bold" Text="Total Value" />
+                        <TextBlock FontSize="14"
+                                   FontWeight="Bold"
+                                   Text="{Binding TotalValue, StringFormat={}{0:N2} $}" />
 
-                        <TextBlock Text="Total Profit " />
-                        <TextBlock Text="{Binding TotalProfit, StringFormat={}{0:N2} $}" />
-                        <TextBlock Text="Budget" />
-                        <TextBlock Text="{Binding Budget, StringFormat={}{0:N2} $}" />
+                        <TextBlock FontWeight="Bold" Text="Total Profit " />
+                        <TextBlock FontSize="14"
+                                   FontWeight="Bold"
+                                   Text="{Binding TotalProfit, StringFormat={}{0:N2} $}" />
+                        <TextBlock FontWeight="Bold" Text="Budget" />
+                        <TextBlock FontSize="14"
+                                   FontWeight="Bold"
+                                   Text="{Binding Budget, StringFormat={}{0:N2} $}" />
                         <TextBlock Text="Avrage Buy Price " />
                         <TextBlock Text="{Binding AvrageBuyPrice, StringFormat={}{0:N4} $}" />
 
@@ -268,7 +274,7 @@
                                                                 </DataTrigger>
                                                                 <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsGreaterConverter}, ConverterParameter=0}" Value="true">
                                                                     <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
-                                                                    <Setter Property="Margin" Value="6,0,5,0" />
+                                                                    <Setter Property="Margin" Value="6,0,20,0" />
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
