@@ -225,6 +225,7 @@ namespace CTKS_Chart
 
     #region CreatePosition
 
+    private static int FakeId = 1;
     protected override async Task<long> CreatePosition(Position position)
     {
 
@@ -234,7 +235,7 @@ namespace CTKS_Chart
       else
         return await binanceBroker.Sell(Asset.Symbol, position);
 #else
-      return await Task.FromResult(0L);
+      return await Task.FromResult(FakeId++);
 #endif
 
     }

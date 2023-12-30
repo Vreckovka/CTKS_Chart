@@ -9,12 +9,20 @@
         Title="MainWindow"
         Width="1370"
         Height="1100"
-        Background="DimGray"
+        Background="{StaticResource BackgroudBrush}"
         mc:Ignorable="d">
+
     <Window.Resources>
-        <Style TargetType="Canvas">
-            <Setter Property="ClipToBounds" Value="True" />
-        </Style>
+        <ResourceDictionary>
+            <Style TargetType="Canvas">
+                <Setter Property="ClipToBounds" Value="True" />
+            </Style>
+
+            <Style TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource 100_WhiteTransparentBrush}" />
+            </Style>
+        </ResourceDictionary>
+
     </Window.Resources>
 
     <Grid>
@@ -23,7 +31,7 @@
             <RowDefinition />
         </Grid.RowDefinitions>
 
-        <Menu>
+        <Menu Background="{StaticResource BackgroudGradientBrush}">
 
             <MenuItem Header="Settings">
                 <Border Padding="10">
@@ -32,32 +40,6 @@
                             <RowDefinition />
                             <RowDefinition />
                         </Grid.RowDefinitions>
-                        <ItemsControl Margin="5" ItemsSource="{Binding Layouts}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border>
-                                        <Button Command="{Binding DataContext.ShowCanvas, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
-                                            <TextBlock FontSize="15" Text="{Binding Title}" />
-
-                                            <Button.Style>
-                                                <Style TargetType="Button">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsOutDated}" Value="True">
-                                                            <Setter Property="Background" Value="#f25e5e" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
 
                         <StackPanel Grid.Row="1" Orientation="Horizontal">
                             <Button Width="120"
@@ -83,6 +65,11 @@
                                      Margin="10,0,10,0"
                                      Text="{Binding MinValue}" />
 
+                            <TextBox Width="120"
+                                     Margin="10,0,10,0"
+                                     Text="{Binding CandleCount}" />
+
+
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="Min buy % " />
                                 <TextBox Width="120"
@@ -101,9 +88,40 @@
                     </Grid>
                 </Border>
             </MenuItem>
+
             <MenuItem Header="Actions">
                 <MenuItem Command="{Binding FetchMissingInfo}" Header="Fetch missing info" />
             </MenuItem>
+
+            <Grid>
+                <ItemsControl Margin="5" ItemsSource="{Binding Layouts}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border>
+                                <Button Command="{Binding DataContext.ShowCanvas, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
+                                    <TextBlock FontSize="15" Text="{Binding Title}" />
+
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsOutDated}" Value="True">
+                                                    <Setter Property="Background" Value="#f25e5e" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+            </Grid>
         </Menu>
 
         <Grid Grid.Row="1">
@@ -126,9 +144,9 @@
 
                     <UniformGrid Columns="2">
                         <TextBlock Text="Total time" />
-                        <TextBlock Foreground="Black" Text="{Binding DataContext.TotalRunTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
+                        <TextBlock Text="{Binding DataContext.TotalRunTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
                         <TextBlock Text="Active time" />
-                        <TextBlock Foreground="Black" Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
+                        <TextBlock Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
                         <TextBlock Text="Starting Budget" />
                         <TextBlock Text="{Binding StartingBudget, StringFormat={}{0:N2} $}" />
                         <TextBlock Text="Total Value" />
@@ -170,8 +188,10 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="{Binding Key}" />
-                                    <TextBlock Margin="10,0,0,0" Text="{Binding Value, StringFormat={}{0:N2}}" />
+                                    <TextBlock Style="{StaticResource {x:Type TextBlock}}" Text="{Binding Key}" />
+                                    <TextBlock Margin="10,0,0,0"
+                                               Style="{StaticResource {x:Type TextBlock}}"
+                                               Text="{Binding Value, StringFormat={}{0:N2}}" />
                                 </StackPanel>
 
                             </DataTemplate>
@@ -194,9 +214,13 @@
 
                         </Style>
 
-                        <Style x:Key="PositionText" TargetType="TextBlock">
-                            <Setter Property="Margin" Value="0,0,25,0" />
+                        <Style x:Key="PositionText"
+                               BasedOn="{StaticResource {x:Type TextBlock}}"
+                               TargetType="TextBlock">
+                            <Setter Property="Margin" Value="0,0,20,0" />
                             <Setter Property="FontSize" Value="15" />
+                            <Setter Property="VerticalAlignment" Value="Center" />
+                            <Setter Property="HorizontalAlignment" Value="Right" />
                         </Style>
 
                         <DataTemplate x:Key="OppsitePositions">
@@ -204,18 +228,71 @@
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
                                 <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
-                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
+                                <TextBlock Width="70"
+                                           Style="{StaticResource PositionText}"
+                                           Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
 
-                                <TextBlock Foreground="#003500"
+                                <TextBlock Foreground="{StaticResource GreenBrush}"
                                            Style="{StaticResource PositionText}"
                                            Text="{Binding Profit, StringFormat={}{0:N3} $}" />
-                                <TextBlock Foreground="#350000"
+                                <TextBlock Foreground="{StaticResource LightRedBrush}"
                                            Style="{StaticResource PositionText}"
                                            Text="{Binding Fees, StringFormat={}{0:N3} $}" />
                             </StackPanel>
 
                         </DataTemplate>
                     </TabControl.Resources>
+
+                    <TabItem Header="Actual positions">
+                        <ScrollViewer>
+                            <ItemsControl ItemsSource="{Binding ActualPositions}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Width="130"
+                                                           Style="{StaticResource PositionText}"
+                                                           Text="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
+                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
+                                                <TextBlock Width="70"
+                                                           Style="{StaticResource PositionText}"
+                                                           Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
+
+                                                <TextBlock Text="{Binding ActualProfit, StringFormat={}{0:N3} $}">
+                                                    <TextBlock.Style>
+                                                        <Style BasedOn="{StaticResource PositionText}" TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
+                                                                    <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsGreaterConverter}, ConverterParameter=0}" Value="true">
+                                                                    <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
+                                                                    <Setter Property="Margin" Value="6,0,5,0" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+
+
+                                                <TextBlock Background="#15ffffff"
+                                                           Style="{StaticResource PositionText}"
+                                                           Text="Trades">
+                                                    <TextBlock.ToolTip>
+                                                        <Grid>
+                                                            <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
+                                                        </Grid>
+                                                    </TextBlock.ToolTip>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                    </TabItem>
 
                     <TabItem Header="Open Buy">
                         <ScrollViewer>
@@ -224,10 +301,14 @@
                                     <DataTemplate>
                                         <Border>
                                             <StackPanel Orientation="Horizontal">
-                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding CreatedDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
+                                                <TextBlock Width="130"
+                                                           Style="{StaticResource PositionText}"
+                                                           Text="{Binding CreatedDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
                                                 <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
                                                 <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
-                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
+                                                <TextBlock Width="70"
+                                                           Style="{StaticResource PositionText}"
+                                                           Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
 
                                             </StackPanel>
                                         </Border>
@@ -245,13 +326,19 @@
                                         <Border>
                                             <StackPanel>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding CreatedDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
+                                                    <TextBlock Width="130"
+                                                               Style="{StaticResource PositionText}"
+                                                               Text="{Binding CreatedDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
                                                     <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
                                                     <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
+                                                    <TextBlock Width="70"
+                                                               Style="{StaticResource PositionText}"
+                                                               Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
 
 
-                                                    <TextBlock Background="#15ffffff" Text="Trades">
+                                                    <TextBlock Background="#15ffffff"
+                                                               Style="{StaticResource PositionText}"
+                                                               Text="Trades">
                                                         <TextBlock.ToolTip>
                                                             <Grid>
                                                                 <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
@@ -268,49 +355,7 @@
                         </ScrollViewer>
                     </TabItem>
 
-                    <TabItem Header="Actual positions">
-                        <ScrollViewer>
-                            <ItemsControl ItemsSource="{Binding ActualPositions}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border>
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
-                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
-                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
-                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
 
-                                                <TextBlock Text="{Binding ActualProfit, StringFormat={}{0:N3} $}">
-                                                    <TextBlock.Style>
-                                                        <Style BasedOn="{StaticResource PositionText}" TargetType="TextBlock">
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
-                                                                    <Setter Property="Foreground" Value="#350000" />
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsGreaterConverter}, ConverterParameter=0}" Value="true">
-                                                                    <Setter Property="Foreground" Value="#003500" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-
-
-                                                <TextBlock Background="#15ffffff" Text="Trades">
-                                                    <TextBlock.ToolTip>
-                                                        <Grid>
-                                                            <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
-                                                        </Grid>
-                                                    </TextBlock.ToolTip>
-                                                </TextBlock>
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-
-                    </TabItem>
 
                     <TabItem Header="Completed Sell">
                         <ScrollViewer Margin="0,10" HorizontalScrollBarVisibility="Auto">
@@ -320,19 +365,25 @@
                                         <Border>
                                             <StackPanel>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding FilledDate}" />
+                                                    <TextBlock Width="130"
+                                                               Style="{StaticResource PositionText}"
+                                                               Text="{Binding FilledDate}" />
                                                     <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
                                                     <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
-                                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
+                                                    <TextBlock Width="70"
+                                                               Style="{StaticResource PositionText}"
+                                                               Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
 
-                                                    <TextBlock Foreground="#003500"
+                                                    <TextBlock Foreground="{StaticResource GreenBrush}"
                                                                Style="{StaticResource PositionText}"
                                                                Text="{Binding Profit, StringFormat={}{0:N3} $}" />
-                                                    <TextBlock Foreground="#350000"
+                                                    <TextBlock Foreground="{StaticResource DefaultRedBrush}"
                                                                Style="{StaticResource PositionText}"
                                                                Text="{Binding Fees, StringFormat={}{0:N3} $}" />
 
-                                                    <TextBlock Background="#15ffffff" Text="Trades">
+                                                    <TextBlock Background="#15ffffff"
+                                                               Style="{StaticResource PositionText}"
+                                                               Text="Trades">
                                                         <TextBlock.ToolTip>
                                                             <Grid>
                                                                 <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
@@ -356,22 +407,36 @@
                                     <DataTemplate>
                                         <Border>
                                             <StackPanel Orientation="Horizontal">
-                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
+                                                <TextBlock Width="130"
+                                                           Style="{StaticResource PositionText}"
+                                                           Text="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
                                                 <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
                                                 <TextBlock Style="{StaticResource PositionText}" Text="{Binding State}" />
                                                 <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
 
-                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
+                                                <TextBlock Width="70"
+                                                           Style="{StaticResource PositionText}"
+                                                           Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
 
-                                                <TextBlock Foreground="#350000"
+                                                <TextBlock Foreground="{StaticResource DefaultRedBrush}"
                                                            Style="{StaticResource PositionText}"
                                                            Text="{Binding Fees, StringFormat={}{0:N3} $}" />
 
-                                                <TextBlock Foreground="#003500"
+                                                <TextBlock Foreground="{StaticResource GreenBrush}"
                                                            Style="{StaticResource PositionText}"
                                                            Text="{Binding TotalProfit, StringFormat={}{0:N3} $}" />
 
-                                                <TextBlock Background="#15ffffff" Text="Trades">
+                                                <TextBlock Foreground="{StaticResource DefaultRedBrush}"
+                                                           Style="{StaticResource PositionText}"
+                                                           Text="{Binding TotalFees, StringFormat={}{0:N3} $}" />
+
+                                                <TextBlock Foreground="{StaticResource GreenBrush3}"
+                                                           Style="{StaticResource PositionText}"
+                                                           Text="{Binding FinalProfit, StringFormat={}{0:N3} $}" />
+
+                                                <TextBlock Background="#15ffffff"
+                                                           Style="{StaticResource PositionText}"
+                                                           Text="Trades">
                                                     <TextBlock.ToolTip>
                                                         <Grid>
                                                             <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />

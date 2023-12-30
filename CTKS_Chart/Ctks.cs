@@ -292,6 +292,11 @@ namespace CTKS_Chart
 
     public void RenderIntersections(decimal? max = null, IEnumerable<CtksIntersection> intersections = null)
     {
+      if(canvas == null)
+      {
+        return;
+      }
+      
       IntersectionsVisible = true;
 
       var lastCandle = canvas.Children.OfType<Rectangle>().Last();

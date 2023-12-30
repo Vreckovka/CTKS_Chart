@@ -570,7 +570,7 @@ namespace CTKS_Chart
 
           ClosedBuyPositions.Add(position);
           OpenBuyPositions.Remove(position);
-          // Budget -= position.Fees ?? 0;
+          Budget -= position.Fees ?? 0;
 
           if (TotalValue / 3 < PositionSizeMapping.Single(x => x.Key == TimeFrame.M12).Value)
           {
@@ -609,7 +609,7 @@ namespace CTKS_Chart
       Budget += finalSize;
       TotalNativeAsset -= position.OriginalPositionSizeNative;
 
-      //Budget -= position.Fees ?? 0;
+      Budget -= position.Fees ?? 0;
 
       Scale(position.Profit);
 
@@ -625,6 +625,8 @@ namespace CTKS_Chart
         var originalBuy = position.OpositPositions.Single();
 
         originalBuy.RaiseNotify(nameof(Position.TotalProfit));
+        originalBuy.RaiseNotify(nameof(Position.TotalFees));
+        originalBuy.RaiseNotify(nameof(Position.FinalProfit));
 
         if (originalBuy.OpositPositions.Sum(x => x.PositionSize) == 0)
         {

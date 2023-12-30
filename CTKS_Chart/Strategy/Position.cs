@@ -127,6 +127,22 @@ namespace CTKS_Chart
       }
     }
 
+    public decimal TotalFees
+    {
+      get
+      {
+        return OpositPositions.Where(x => x.Fees != null).Sum(x => x.Fees.Value) + (Fees != null ? Fees.Value : 0);
+      }
+    }
+
+    public decimal FinalProfit
+    {
+      get
+      {
+        return TotalProfit - TotalFees;
+      }
+    }
+
     public void RaiseNotify(string name)
     {
       RaisePropertyChanged(name);
