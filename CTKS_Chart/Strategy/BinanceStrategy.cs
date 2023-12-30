@@ -326,7 +326,7 @@ namespace CTKS_Chart
 
         RaisePropertyChanged(nameof(TotalBuy));
         RaisePropertyChanged(nameof(TotalSell));
-        RaisePropertyChanged(nameof(ActualPositions));
+        ActualPositions = new System.Collections.ObjectModel.ObservableCollection<Position>(ClosedBuyPositions.Where(x => x.State == PositionState.Filled));
         RaisePropertyChanged(nameof(AllCompletedPositions));
       }
     }

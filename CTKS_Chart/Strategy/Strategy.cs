@@ -57,7 +57,7 @@ namespace CTKS_Chart
 
     private StrategyData strategyData = new StrategyData()
     {
-      MinBuyPrice = (decimal)0.25,
+      MinBuyPrice = (decimal)1,
       PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
       {
         { TimeFrame.M12, 70},
@@ -313,11 +313,18 @@ namespace CTKS_Chart
 
     #region ActualPositions
 
-    public IEnumerable<Position> ActualPositions
+    private ObservableCollection<Position> actualPositions = new ObservableCollection<Position>();
+
+    public ObservableCollection<Position> ActualPositions
     {
-      get
+      get { return actualPositions; }
+      set
       {
-        return ClosedBuyPositions.Where(x => x.State == PositionState.Filled);
+        if (value != actualPositions)
+        {
+          actualPositions = value;
+          RaisePropertyChanged();
+        }
       }
     }
 
@@ -443,9 +450,8 @@ namespace CTKS_Chart
           var maxPOsitionOnIntersection = GetPositionSize(intersection.TimeFrame);
           var sum = positionsOnIntersesction.Sum(x => x.PositionSize);
 
-          var existing = AllClosedPositions
+          var existing = ActualPositions
             .Where(x => x.Intersection.Value == intersection.Value)
-            .Where(x => x.State == PositionState.Filled)
             .Sum(x => x.OpositPositions.Sum(y => y.PositionSize));
 
           var leftSize = maxPOsitionOnIntersection - sum;
@@ -460,27 +466,20 @@ namespace CTKS_Chart
           {
             var openLow = OpenBuyPositions.OrderBy(x => x.Price).FirstOrDefault();
 
-            if (Budget - 1 > MinPositionValue)
+            if (openLow != null && intersection.Value > openLow.Price)
             {
-              leftSize = Budget - 1;
+              await OnCancelPosition(openLow);
+
+              leftSize = maxPOsitionOnIntersection - sum;
+
+              if (existing > 0)
+              {
+                leftSize = leftSize - existing;
+              }
             }
             else
             {
-              if (openLow != null && intersection.Value > openLow.Price)
-              {
-                await OnCancelPosition(openLow);
-
-                leftSize = maxPOsitionOnIntersection - sum;
-
-                if (existing > 0)
-                {
-                  leftSize = leftSize - existing;
-                }
-              }
-              else
-              {
-                break;
-              }
+              break;
             }
           }
 
@@ -594,7 +593,8 @@ namespace CTKS_Chart
           }
 
           RaisePropertyChanged(nameof(TotalBuy));
-          RaisePropertyChanged(nameof(ActualPositions));
+
+          ActualPositions.Add(position);
           RaisePropertyChanged(nameof(AllCompletedPositions));
 
           SaveState();
@@ -647,13 +647,13 @@ namespace CTKS_Chart
         if (originalBuy.OpositPositions.Sum(x => x.PositionSize) == 0)
         {
           originalBuy.State = PositionState.Completed;
+          ActualPositions.Remove(originalBuy);
         }
       }
 
       position.State = PositionState.Filled;
 
       RaisePropertyChanged(nameof(TotalSell));
-      RaisePropertyChanged(nameof(ActualPositions));
 
       SaveState();
 
@@ -814,23 +814,6 @@ namespace CTKS_Chart
 
     private async Task CreateBuyPosition(decimal positionSize, CtksIntersection intersection)
     {
-
-      var existingBuys = ClosedBuyPositions
-      .Where(x => x.State == PositionState.Filled)
-      .Where(x => x.Intersection.Value == intersection.Value)
-      .ToList();
-
-
-      if (existingBuys.Any())
-      {
-        var leftSize = existingBuys.Sum(x => x.OpositPositions.Sum(y => y.OriginalPositionSize - y.PositionSize));
-
-        if (positionSize > leftSize)
-        {
-          positionSize = leftSize;
-        }
-      }
-
       var roundedNativeSize = Math.Round(positionSize / intersection.Value, Asset.NativeRound);
       positionSize = roundedNativeSize * intersection.Value;
 
