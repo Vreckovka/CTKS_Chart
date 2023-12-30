@@ -126,15 +126,23 @@
 
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="2*" />
-                <RowDefinition Height="*" />
+                <RowDefinition Height="2*" MinHeight="350" />
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="*" MinHeight="50" />
             </Grid.RowDefinitions>
 
-            <Grid>
+
+            <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="250" />
                     <ColumnDefinition />
                 </Grid.ColumnDefinitions>
+
+                <Border Grid.Row="0"
+                        Grid.Column="1"
+                        Background="#02050a">
+                    <ContentControl Content="{Binding MainGrid}" />
+                </Border>
 
                 <Grid VerticalAlignment="Top" DataContext="{Binding TradingBot.Strategy}">
                     <Grid.RowDefinitions>
@@ -204,14 +212,18 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </Grid>
-
-
-                <Border Grid.Column="1" Background="#02050a">
-                    <ContentControl Content="{Binding MainGrid}" />
-                </Border>
             </Grid>
 
-            <Border Grid.Row="1">
+            <GridSplitter Grid.Row="1"
+                          Height="3"
+                          Margin="2,0,2,0"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Center"
+                          Background="{StaticResource 30_WhiteTransparentBrush}" />
+
+            <Border Grid.Row="2"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch">
                 <TabControl Background="Transparent" DataContext="{Binding TradingBot.Strategy, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}">
                     <TabControl.Resources>
                         <Style TargetType="GroupBox">
@@ -250,7 +262,7 @@
                     </TabControl.Resources>
 
                     <TabItem Header="Actual positions">
-                        <ScrollViewer>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding ActualPositions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -301,7 +313,7 @@
                     </TabItem>
 
                     <TabItem Header="Open Buy">
-                        <ScrollViewer>
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding OpenBuyPositions, UpdateSourceTrigger=PropertyChanged}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -325,7 +337,7 @@
                     </TabItem>
 
                     <TabItem Header="Open Sell">
-                        <ScrollViewer Margin="0,10" HorizontalScrollBarVisibility="Auto">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding OpenSellPositions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -364,7 +376,7 @@
 
 
                     <TabItem Header="Completed Sell">
-                        <ScrollViewer Margin="0,10" HorizontalScrollBarVisibility="Auto">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto">
                             <ItemsControl ItemsSource="{Binding ClosedSellPositions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -407,8 +419,8 @@
                     </TabItem>
 
                     <TabItem Header="Completed Buy">
-                        <ScrollViewer>
-                            <ItemsControl ItemsSource="{Binding AllCompletedPositions}">
+                        <ScrollViewer HorizontalScrollBarVisibility="Auto">
+                            <ItemsControl  ItemsSource="{Binding AllCompletedPositions}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <Border>
@@ -496,6 +508,8 @@
                     </ScrollViewer>
                 </Grid>-->
             </Border>
+
+
         </Grid>
     </Grid>
 </Window>

@@ -124,7 +124,7 @@ namespace CTKS_Chart.ViewModels
 #endif
 
 #if DEBUG
-    public bool IsLive { get; set; } = false;
+    public bool IsLive { get; set; } = true;
 #endif
 
 #if RELEASE
