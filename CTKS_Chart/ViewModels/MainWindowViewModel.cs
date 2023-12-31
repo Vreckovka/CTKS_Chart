@@ -666,10 +666,6 @@ namespace CTKS_Chart.ViewModels
 
         await LoadLayouts(MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
       }
-
- 
-      
-
     }
 
     #endregion
@@ -900,9 +896,11 @@ namespace CTKS_Chart.ViewModels
         {
           if (!wasLoaded)
           {
+            wasLoaded = true;
+
             TradingBot.Strategy.LoadState();
             await TradingBot.Strategy.RefreshState();
-            wasLoaded = true;
+            ((MainWindow) Window).SortActualPositions();
           }
 
           TradingBot.Strategy.ValidatePositions(actual);

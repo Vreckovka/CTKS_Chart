@@ -271,6 +271,7 @@
                                   CanUserDeleteRows="False"
                                   CanUserReorderColumns="False"
                                   IsReadOnly="True"
+                                  x:Name="ActualPositions"
                                   ItemsSource="{Binding ActualPositions}"
                                   ScrollViewer.VerticalScrollBarVisibility="Auto">
 
