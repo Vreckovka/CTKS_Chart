@@ -19,7 +19,7 @@
             </Style>
 
             <Style TargetType="TextBlock">
-                <Setter Property="Foreground" Value="{StaticResource 120_WhiteTransparentBrush}" />
+                <Setter Property="Foreground" Value="#ccc" />
             </Style>
         </ResourceDictionary>
 
@@ -265,168 +265,7 @@
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <Border.Resources>
 
-                    <!--  Control colors.  -->
-                    <Color x:Key="WindowColor">#FFE8EDF9</Color>
-                    <Color x:Key="ContentAreaColorLight">#FFC5CBF9</Color>
-                    <Color x:Key="ContentAreaColorDark">#FF7381F9</Color>
-
-                    <Color x:Key="DisabledControlLightColor">#FFE8EDF9</Color>
-                    <Color x:Key="DisabledControlDarkColor">#FFC5CBF9</Color>
-                    <Color x:Key="DisabledForegroundColor">#FF888888</Color>
-
-                    <Color x:Key="SelectedBackgroundColor">#FFC5CBF9</Color>
-                    <Color x:Key="SelectedUnfocusedColor">#FFDDDDDD</Color>
-
-                    <Color x:Key="ControlLightColor">White</Color>
-                    <Color x:Key="ControlMediumColor">#FF7381F9</Color>
-                    <Color x:Key="ControlDarkColor">#FF211AA9</Color>
-
-                    <Color x:Key="ControlMouseOverColor">#FF3843C4</Color>
-                    <Color x:Key="ControlPressedColor">#FF211AA9</Color>
-
-
-                    <Color x:Key="GlyphColor">#FF444444</Color>
-                    <Color x:Key="GlyphMouseOver">sc#1, 0.004391443, 0.002428215, 0.242281124</Color>
-
-                    <!--  Border colors  -->
-                    <Color x:Key="BorderLightColor">#FFCCCCCC</Color>
-                    <Color x:Key="BorderMediumColor">#FF888888</Color>
-                    <Color x:Key="BorderDarkColor">#FF444444</Color>
-
-                    <Color x:Key="PressedBorderLightColor">#FF888888</Color>
-                    <Color x:Key="PressedBorderDarkColor">#FF444444</Color>
-
-                    <Color x:Key="DisabledBorderLightColor">#FFAAAAAA</Color>
-                    <Color x:Key="DisabledBorderDarkColor">#FF888888</Color>
-
-                    <Color x:Key="DefaultBorderBrushDarkColor">Black</Color>
-
-                    <!--  Control-specific resources.  -->
-                    <Color x:Key="HeaderTopColor">#FFC5CBF9</Color>
-                    <Color x:Key="DatagridCurrentCellBorderColor">Black</Color>
-                    <Color x:Key="SliderTrackDarkColor">#FFC5CBF9</Color>
-
-                    <Color x:Key="NavButtonFrameColor">#FF3843C4</Color>
-
-                    <LinearGradientBrush x:Key="MenuPopupBrush" StartPoint="0.5,0" EndPoint="0.5,1">
-                        <GradientStop Offset="0" Color="{DynamicResource ControlLightColor}" />
-                        <GradientStop Offset="0.5" Color="{DynamicResource ControlMediumColor}" />
-                        <GradientStop Offset="1" Color="{DynamicResource ControlLightColor}" />
-                    </LinearGradientBrush>
-
-                    <LinearGradientBrush x:Key="ProgressBarIndicatorAnimatedFill" StartPoint="0,0" EndPoint="1,0">
-                        <LinearGradientBrush.GradientStops>
-                            <GradientStopCollection>
-                                <GradientStop Offset="0" Color="#000000FF" />
-                                <GradientStop Offset="0.4" Color="#600000FF" />
-                                <GradientStop Offset="0.6" Color="#600000FF" />
-                                <GradientStop Offset="1" Color="#000000FF" />
-                            </GradientStopCollection>
-                        </LinearGradientBrush.GradientStops>
-                    </LinearGradientBrush>
-
-                    <Style TargetType="{x:Type TabControl}">
-                        <Setter Property="OverridesDefaultStyle" Value="True" />
-                        <Setter Property="SnapsToDevicePixels" Value="True" />
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="{x:Type TabControl}">
-                                    <Grid KeyboardNavigation.TabNavigation="Local">
-                                        <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto" />
-                                            <RowDefinition Height="*" />
-                                        </Grid.RowDefinitions>
-                                        <TabPanel x:Name="HeaderPanel"
-                                                  Grid.Row="0"
-                                                  Margin="0,0,4,-1"
-                                                  Panel.ZIndex="1"
-                                                  Background="Transparent"
-                                                  IsItemsHost="True"
-                                                  KeyboardNavigation.TabIndex="1" />
-                                        <Border x:Name="Border"
-                                                Grid.Row="1"
-                                                BorderThickness="1"
-                                                CornerRadius="2"
-                                                KeyboardNavigation.DirectionalNavigation="Contained"
-                                                KeyboardNavigation.TabIndex="2"
-                                                KeyboardNavigation.TabNavigation="Local">
-
-                                            <Border.BorderBrush>
-                                                <SolidColorBrush Color="{DynamicResource BorderMediumColor}" />
-                                            </Border.BorderBrush>
-                                            <ContentPresenter x:Name="PART_SelectedContentHost"
-                                                              Margin="4"
-                                                              ContentSource="SelectedContent" />
-                                        </Border>
-                                        <VisualStateManager.VisualStateGroups>
-                                            <VisualStateGroup x:Name="CommonStates">
-                                                <VisualState x:Name="Disabled">
-                                                    <Storyboard>
-                                                        <ColorAnimationUsingKeyFrames Storyboard.TargetName="Border" Storyboard.TargetProperty="(Border.BorderBrush).                     (SolidColorBrush.Color)">
-                                                            <EasingColorKeyFrame KeyTime="0" Value="#FFAAAAAA" />
-                                                        </ColorAnimationUsingKeyFrames>
-                                                    </Storyboard>
-                                                </VisualState>
-                                            </VisualStateGroup>
-                                        </VisualStateManager.VisualStateGroups>
-                                    </Grid>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-
-                    <Style TargetType="{x:Type TabItem}">
-                        <Setter Property="Foreground" Value="{StaticResource 100_WhiteTransparentBrush}" />
-                        <Setter Property="FontWeight" Value="Bold" />
-
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="{x:Type TabItem}">
-                                    <Grid x:Name="Root">
-                                        <Border x:Name="Border"
-                                                Padding="5"
-                                                Background="{StaticResource 10_WhiteTransparentBrush}">
-
-                                            <TextBlock x:Name="HeaderText"
-                                                       Foreground="White"
-                                                       Text="{Binding Header, RelativeSource={RelativeSource Mode=TemplatedParent}}" />
-                                        </Border>
-                                        <VisualStateManager.VisualStateGroups>
-                                            <VisualStateGroup x:Name="SelectionStates">
-                                                <VisualState x:Name="Unselected" />
-                                                <VisualState x:Name="Selected">
-                                                    <Storyboard>
-                                                        <ColorAnimationUsingKeyFrames Storyboard.TargetName="HeaderText" Storyboard.TargetProperty="(TextBlock.Foreground).(SolidColorBrush.Color)">
-                                                            <EasingColorKeyFrame KeyTime="0" Value="{StaticResource YellowColor}" />
-                                                        </ColorAnimationUsingKeyFrames>
-                                                    </Storyboard>
-                                                </VisualState>
-                                            </VisualStateGroup>
-                                            <VisualStateGroup x:Name="CommonStates">
-                                                <VisualState x:Name="Normal" />
-                                                <VisualState x:Name="MouseOver" />
-                                                <VisualState x:Name="Disabled">
-                                                    <Storyboard>
-                                                        <ColorAnimationUsingKeyFrames Storyboard.TargetName="Border" Storyboard.TargetProperty="(Panel.Background).(SolidColorBrush.Color)">
-                                                            <EasingColorKeyFrame KeyTime="0" Value="{StaticResource DisabledControlDarkColor}" />
-                                                        </ColorAnimationUsingKeyFrames>
-                                                    </Storyboard>
-                                                </VisualState>
-                                            </VisualStateGroup>
-                                        </VisualStateManager.VisualStateGroups>
-                                    </Grid>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsSelected" Value="True">
-                                            <Setter Property="Panel.ZIndex" Value="100" />
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Border.Resources>
                 <TabControl Background="Transparent" DataContext="{Binding TradingBot.Strategy, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}">
 
                     <TabControl.Resources>
@@ -475,9 +314,9 @@
                                   ScrollViewer.VerticalScrollBarVisibility="Auto">
 
                             <DataGrid.Columns>
-                                <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Filled date" />
+                                <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Filled Date" />
                                 <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
-                                <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Price" />
+                                <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
                                 <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
 
 
@@ -489,7 +328,7 @@
                                 <DataGridTextColumn Binding="{Binding ActualProfit, StringFormat={}{0:N3} $}" Header="Actual profit">
                                     <DataGridTextColumn.CellStyle>
                                         <Style BasedOn="{StaticResource {x:Type DataGridCell}}" TargetType="DataGridCell">
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                            <Setter Property="HorizontalContentAlignment" Value="Left" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
                                                     <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
@@ -531,9 +370,9 @@
                                   ItemsSource="{Binding OpenBuyPositions}"
                                   ScrollViewer.VerticalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Binding="{Binding CreatedDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Created date" />
+                                <DataGridTextColumn Binding="{Binding CreatedDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Created Date" />
                                 <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
-                                <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Price" />
+                                <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
                                 <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
                             </DataGrid.Columns>
                         </DataGrid>
@@ -548,9 +387,9 @@
                                   ItemsSource="{Binding OpenSellPositions}"
                                   ScrollViewer.VerticalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Binding="{Binding CreatedDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Created date" />
+                                <DataGridTextColumn Binding="{Binding CreatedDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Created Date" />
                                 <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
-                                <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Price" />
+                                <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
                                 <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
 
                                 <DataGridTemplateColumn Header="Trades">
@@ -583,9 +422,9 @@
                                   ScrollViewer.VerticalScrollBarVisibility="Auto">
 
                             <DataGrid.Columns>
-                                <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Filled date" />
+                                <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Filled Date" />
                                 <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
-                                <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Price" />
+                                <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
                                 <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
 
                                 <DataGridTextColumn Binding="{Binding Fees, StringFormat={}{0:N3} $}"
@@ -626,9 +465,9 @@
                                   ScrollViewer.VerticalScrollBarVisibility="Auto">
 
                             <DataGrid.Columns>
-                                <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Filled date" />
+                                <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Filled Date" />
                                 <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
-                                <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Price" />
+                                <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
                                 <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
 
 
@@ -668,55 +507,6 @@
                                 </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
-
-                        <!--<ScrollViewer HorizontalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding AllCompletedPositions}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border>
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Width="130"
-                                                           Style="{StaticResource PositionText}"
-                                                           Text="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
-                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
-                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding State}" />
-                                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
-
-                                                <TextBlock Width="70"
-                                                           Style="{StaticResource PositionText}"
-                                                           Text="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" />
-
-                                                <TextBlock Foreground="{StaticResource DefaultRedBrush}"
-                                                           Style="{StaticResource PositionText}"
-                                                           Text="{Binding Fees, StringFormat={}{0:N3} $}" />
-
-                                                <TextBlock Foreground="{StaticResource GreenBrush}"
-                                                           Style="{StaticResource PositionText}"
-                                                           Text="{Binding TotalProfit, StringFormat={}{0:N3} $}" />
-
-                                                <TextBlock Foreground="{StaticResource DefaultRedBrush}"
-                                                           Style="{StaticResource PositionText}"
-                                                           Text="{Binding TotalFees, StringFormat={}{0:N3} $}" />
-
-                                                <TextBlock Foreground="{StaticResource GreenBrush3}"
-                                                           Style="{StaticResource PositionText}"
-                                                           Text="{Binding FinalProfit, StringFormat={}{0:N3} $}" />
-
-                                                <TextBlock Background="#15ffffff"
-                                                           Style="{StaticResource PositionText}"
-                                                           Text="Trades">
-                                                    <TextBlock.ToolTip>
-                                                        <Grid>
-                                                            <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
-                                                        </Grid>
-                                                    </TextBlock.ToolTip>
-                                                </TextBlock>
-                                            </StackPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>-->
                     </TabItem>
                 </TabControl>
 
@@ -758,8 +548,6 @@
                     </ScrollViewer>
                 </Grid>-->
             </Border>
-
-
         </Grid>
     </Grid>
 </Window>
