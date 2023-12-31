@@ -251,12 +251,12 @@ namespace CTKS_Chart
 
     public Dictionary<TimeFrame, double> MinBuyMapping { get; } = new Dictionary<TimeFrame, double>()
     {
-      {TimeFrame.M12, 0.01},
-      {TimeFrame.M6,  0.01},
-      {TimeFrame.M3,  0.01},
-      {TimeFrame.M1,  0.01},
-      {TimeFrame.W2,  0.01},
-      {TimeFrame.W1,  0.01},
+      {TimeFrame.M12, 0.005},
+      {TimeFrame.M6,  0.005},
+      {TimeFrame.M3,  0.005},
+      {TimeFrame.M1,  0.005},
+      {TimeFrame.W2,  0.005},
+      {TimeFrame.W1,  0.005},
     };
 
     #endregion
