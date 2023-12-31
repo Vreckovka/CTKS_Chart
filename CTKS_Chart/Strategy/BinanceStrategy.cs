@@ -218,7 +218,7 @@ namespace CTKS_Chart
 #if RELEASE
       return await binanceBroker.Close(Asset.Symbol, position.Id);
 #else
-      return await Task.FromResult(false);
+      return await Task.FromResult(true);
 #endif
     }
 
@@ -245,26 +245,30 @@ namespace CTKS_Chart
 
     #region SaveState
 
+    private object saveLock = new object();
     public override void SaveState()
     {
-      var options = new JsonSerializerOptions()
+      lock (saveLock)
       {
-        WriteIndented = true
-      };
+        var options = new JsonSerializerOptions()
+        {
+          WriteIndented = true
+        };
 
-      var openBuy = JsonSerializer.Serialize(OpenBuyPositions.Select(x => new PositionDto(x)),options);
-      var openSell = JsonSerializer.Serialize(OpenSellPositions.Select(x => new PositionDto(x)), options);
-      var cloedSell = JsonSerializer.Serialize(ClosedSellPositions.Select(x => new PositionDto(x)), options);
-      var closedBuy = JsonSerializer.Serialize(ClosedBuyPositions.Select(x => new PositionDto(x)), options);
-      var data = JsonSerializer.Serialize(StrategyData, options);
+        var openBuy = JsonSerializer.Serialize(OpenBuyPositions.Select(x => new PositionDto(x)), options);
+        var openSell = JsonSerializer.Serialize(OpenSellPositions.Select(x => new PositionDto(x)), options);
+        var cloedSell = JsonSerializer.Serialize(ClosedSellPositions.Select(x => new PositionDto(x)), options);
+        var closedBuy = JsonSerializer.Serialize(ClosedBuyPositions.Select(x => new PositionDto(x)), options);
+        var data = JsonSerializer.Serialize(StrategyData, options);
 
-      Path.Combine(path, "openBuy.json").EnsureDirectoryExists();
+        Path.Combine(path, "openBuy.json").EnsureDirectoryExists();
 
-      File.WriteAllText(Path.Combine(path, "openBuy.json"), openBuy);
-      File.WriteAllText(Path.Combine(path, "openSell.json"), openSell);
-      File.WriteAllText(Path.Combine(path, "cloedSell.json"), cloedSell);
-      File.WriteAllText(Path.Combine(path, "closedBuy.json"), closedBuy);
-      File.WriteAllText(Path.Combine(path, "data.json"), data);
+        File.WriteAllText(Path.Combine(path, "openBuy.json"), openBuy);
+        File.WriteAllText(Path.Combine(path, "openSell.json"), openSell);
+        File.WriteAllText(Path.Combine(path, "cloedSell.json"), cloedSell);
+        File.WriteAllText(Path.Combine(path, "closedBuy.json"), closedBuy);
+        File.WriteAllText(Path.Combine(path, "data.json"), data);
+      } 
     }
 
     #endregion

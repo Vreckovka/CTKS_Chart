@@ -24,7 +24,18 @@
             <Style TargetType="TextBlock">
                 <Setter Property="Foreground" Value="#ccc" />
             </Style>
+
+            <Style x:Key="PositionText"
+                   BasedOn="{StaticResource {x:Type TextBlock}}"
+                   TargetType="TextBlock">
+                <Setter Property="Margin" Value="0,0,20,0" />
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="HorizontalAlignment" Value="Right" />
+            </Style>
+
         </ResourceDictionary>
+
 
     </Window.Resources>
 
@@ -40,7 +51,7 @@
                     <ColumnDefinition Width="auto" />
                     <ColumnDefinition />
                 </Grid.ColumnDefinitions>
-                <Menu Background="Transparent">
+                <Menu VerticalAlignment="Center" Background="Transparent">
                     <MenuItem Header="Settings">
                         <Border Padding="10">
                             <Grid>
@@ -129,7 +140,7 @@
                                                 <Setter Property="Background" Value="#15ffffff" />
 
                                                 <Setter Property="Padding" Value="15,5" />
-                                                <Setter Property="Margin" Value="5,0" />
+                                                <Setter Property="Margin" Value="2,0" />
                                                 <Setter Property="FontWeight" Value="SemiBold" />
                                                 <Setter Property="BorderThickness" Value="0" />
                                                 <Setter Property="Foreground" Value="{StaticResource DefaultWhiteBrush}" />
@@ -167,86 +178,39 @@
 
 
             <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="250" />
-                    <ColumnDefinition />
-                </Grid.ColumnDefinitions>
-
-                <Border Grid.Row="0"
-                        Grid.Column="1"
-                        Background="#02050a">
+                <Border Background="#02050a">
                     <ContentControl Content="{Binding MainGrid}" />
                 </Border>
 
-                <Grid VerticalAlignment="Top" DataContext="{Binding TradingBot.Strategy}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition />
-                        <RowDefinition Height="auto" />
-                    </Grid.RowDefinitions>
+                <StackPanel VerticalAlignment="Top"
+                            DataContext="{Binding TradingBot.Strategy}"
+                            Orientation="Horizontal">
+                    <StackPanel.Resources>
+                        <Style BasedOn="{StaticResource PositionText}" TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#55ffffff" />
+                        </Style>
+                    </StackPanel.Resources>
 
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <UniformGrid MinHeight="350" Columns="2">
-                            <TextBlock Text="Total time" />
-                            <TextBlock Text="{Binding DataContext.TotalRunTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
-                            <TextBlock Text="Active time" />
-                            <TextBlock Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
-                            <TextBlock Text="Starting Budget" />
-                            <TextBlock Text="{Binding StartingBudget, StringFormat={}{0:N2} $}" />
-                            <TextBlock FontWeight="Bold" Text="Total Value" />
-                            <TextBlock FontSize="14"
-                                       FontWeight="Bold"
-                                       Text="{Binding TotalValue, StringFormat={}{0:N2} $}" />
+                    <TextBlock Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
+                    <TextBlock Foreground="{StaticResource YellowBrush2}"
+                               Text="{Binding TotalValue, StringFormat={}{0:N2} $}"
+                               ToolTip="Total value" />
 
-                            <TextBlock FontWeight="Bold" Text="Total Profit " />
-                            <TextBlock FontSize="14"
-                                       FontWeight="Bold"
-                                       Text="{Binding TotalProfit, StringFormat={}{0:N2} $}" />
-                            <TextBlock FontWeight="Bold" Text="Budget" />
-                            <TextBlock FontSize="14"
-                                       FontWeight="Bold"
-                                       Text="{Binding Budget, StringFormat={}{0:N2} $}" />
-                            <TextBlock Text="Avrage Buy Price " />
-                            <TextBlock Text="{Binding AvrageBuyPrice, StringFormat={}{0:N4} $}" />
+                    <TextBlock Foreground="{StaticResource GreenBrush}"
+                               Text="{Binding TotalProfit, StringFormat={}{0:N2} $}"
+                               ToolTip="Profit" />
 
+                    <TextBlock Foreground="{StaticResource BlueBrush}"
+                               Text="{Binding Budget, StringFormat={}{0:N2} $}"
+                               ToolTip="Budget" />
 
-                            <TextBlock Text="Total Native" />
-                            <TextBlock Text="{Binding TotalNativeAsset}" />
-                            <TextBlock Text="Total Native Value" />
-                            <TextBlock Text="{Binding TotalNativeAssetValue, StringFormat={}{0:N2} $}" />
+                    <TextBlock Text="{Binding AvrageBuyPrice, StringFormat={}{0:N4} $}" ToolTip="Average buy price" />
 
-                            <TextBlock Text="Closed buy trades" />
-                            <TextBlock Text="{Binding ClosedBuyPositions.Count, StringFormat={}{0}}" />
-                            <TextBlock Text="Closed sell trades" />
-                            <TextBlock Text="{Binding ClosedSellPositions.Count, StringFormat={}{0}}" />
+                    <TextBlock Text="{Binding TotalNativeAsset}" ToolTip="Native asset size" />
 
-                            <TextBlock Text="Total Sell" />
-                            <TextBlock Text="{Binding TotalSell}" />
-                            <TextBlock Text="Total Buy" />
-                            <TextBlock Text="{Binding TotalBuy}" />
+                    <TextBlock Text="{Binding TotalNativeAssetValue, StringFormat={}{0:N2} $}" ToolTip="Native asset value $" />
+                </StackPanel>
 
-                            <TextBlock Text="Scale" />
-                            <TextBlock Text="{Binding ScaleSize}" />
-
-
-
-                        </UniformGrid>
-                    </ScrollViewer>
-                    <ItemsControl Grid.Row="1"
-                                  Margin="0,5"
-                                  ItemsSource="{Binding PositionSizeMapping}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Style="{StaticResource {x:Type TextBlock}}" Text="{Binding Key}" />
-                                    <TextBlock Margin="10,0,0,0"
-                                               Style="{StaticResource {x:Type TextBlock}}"
-                                               Text="{Binding Value, StringFormat={}{0:N2}}" />
-                                </StackPanel>
-
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Grid>
             </Grid>
 
             <GridSplitter Grid.Row="1"
@@ -278,14 +242,6 @@
 
                         </Style>
 
-                        <Style x:Key="PositionText"
-                               BasedOn="{StaticResource {x:Type TextBlock}}"
-                               TargetType="TextBlock">
-                            <Setter Property="Margin" Value="0,0,20,0" />
-                            <Setter Property="FontSize" Value="15" />
-                            <Setter Property="VerticalAlignment" Value="Center" />
-                            <Setter Property="HorizontalAlignment" Value="Right" />
-                        </Style>
 
                         <DataTemplate x:Key="OppsitePositions">
 
@@ -511,6 +467,78 @@
                                 </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
+                    </TabItem>
+
+                    <TabItem Header="Info">
+                        <Grid VerticalAlignment="Top">
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition Height="auto" />
+                            </Grid.RowDefinitions>
+
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <UniformGrid MinHeight="350" Columns="2">
+                                    <TextBlock Text="Total time" />
+                                    <TextBlock Text="{Binding DataContext.TotalRunTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
+                                    <TextBlock Text="Active time" />
+                                    <TextBlock Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
+                                    <TextBlock Text="Starting Budget" />
+                                    <TextBlock Text="{Binding StartingBudget, StringFormat={}{0:N2} $}" />
+                                    <TextBlock FontWeight="Bold" Text="Total Value" />
+                                    <TextBlock FontSize="14"
+                                               FontWeight="Bold"
+                                               Text="{Binding TotalValue, StringFormat={}{0:N2} $}" />
+
+                                    <TextBlock FontWeight="Bold" Text="Total Profit " />
+                                    <TextBlock FontSize="14"
+                                               FontWeight="Bold"
+                                               Text="{Binding TotalProfit, StringFormat={}{0:N2} $}" />
+                                    <TextBlock FontWeight="Bold" Text="Budget" />
+                                    <TextBlock FontSize="14"
+                                               FontWeight="Bold"
+                                               Text="{Binding Budget, StringFormat={}{0:N2} $}" />
+                                    <TextBlock Text="Avrage Buy Price " />
+                                    <TextBlock Text="{Binding AvrageBuyPrice, StringFormat={}{0:N4} $}" />
+
+
+                                    <TextBlock Text="Total Native" />
+                                    <TextBlock Text="{Binding TotalNativeAsset}" />
+                                    <TextBlock Text="Total Native Value" />
+                                    <TextBlock Text="{Binding TotalNativeAssetValue, StringFormat={}{0:N2} $}" />
+
+                                    <TextBlock Text="Closed buy trades" />
+                                    <TextBlock Text="{Binding ClosedBuyPositions.Count, StringFormat={}{0}}" />
+                                    <TextBlock Text="Closed sell trades" />
+                                    <TextBlock Text="{Binding ClosedSellPositions.Count, StringFormat={}{0}}" />
+
+                                    <TextBlock Text="Total Sell" />
+                                    <TextBlock Text="{Binding TotalSell}" />
+                                    <TextBlock Text="Total Buy" />
+                                    <TextBlock Text="{Binding TotalBuy}" />
+
+                                    <TextBlock Text="Scale" />
+                                    <TextBlock Text="{Binding ScaleSize}" />
+
+
+
+                                </UniformGrid>
+                            </ScrollViewer>
+                            <ItemsControl Grid.Row="1"
+                                          Margin="0,5"
+                                          ItemsSource="{Binding PositionSizeMapping}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource {x:Type TextBlock}}" Text="{Binding Key}" />
+                                            <TextBlock Margin="10,0,0,0"
+                                                       Style="{StaticResource {x:Type TextBlock}}"
+                                                       Text="{Binding Value, StringFormat={}{0:N2}}" />
+                                        </StackPanel>
+
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
                     </TabItem>
                 </TabControl>
 

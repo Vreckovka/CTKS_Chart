@@ -609,7 +609,7 @@ namespace CTKS_Chart.ViewModels
       if (!IsLive)
         strategy = new SimulationStrategy();
 
-
+      
       var adaBot = new TradingBot(new Asset()
       {
         Symbol = "ADAUSDT",
@@ -651,6 +651,7 @@ namespace CTKS_Chart.ViewModels
 
       if (IsLive)
       {
+        TradingBot.Strategy.Logger = logger;
         await LoadLayouts(MainLayout);
       }
       else
@@ -665,7 +666,8 @@ namespace CTKS_Chart.ViewModels
         await LoadLayouts(MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
       }
 
-      //Do not raise 
+ 
+      this.Title = TradingBot.Asset.Symbol;
 
     }
 

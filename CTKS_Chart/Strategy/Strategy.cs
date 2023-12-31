@@ -468,6 +468,8 @@ namespace CTKS_Chart
 
             if (openLow != null && intersection.Value > openLow.Price)
             {
+              Logger?.Log(MessageType.Warning, "Cancelling position in order to create another close to the price", simpleMessage: true);
+
               await OnCancelPosition(openLow);
 
               leftSize = maxPOsitionOnIntersection - sum;
