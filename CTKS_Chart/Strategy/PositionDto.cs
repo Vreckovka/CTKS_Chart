@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
+using CTKS_Chart.Trading;
 
-namespace CTKS_Chart
+namespace CTKS_Chart.Strategy
 {
   public class PositionDto
   {

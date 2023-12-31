@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json.Serialization;
-using Newtonsoft.Json;
+using CTKS_Chart.Trading;
 using VCore.Standard;
 
-namespace CTKS_Chart
+namespace CTKS_Chart.Strategy
 {
   //THERE IS POSITION_DTO ALSO NEED CHANGE!!!!
   public class Position : ViewModel

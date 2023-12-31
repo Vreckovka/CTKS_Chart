@@ -20,13 +20,19 @@ using System.Windows.Shapes;
 using Binance.Net.Enums;
 using Binance.Net.Interfaces;
 using CTKS_Chart.Binance;
+using CTKS_Chart.Strategy;
+using CTKS_Chart.Trading;
+using CTKS_Chart.Views;
 using Logger;
 using VCore.Standard.Factories.ViewModels;
 using VCore.Standard.Helpers;
 using VCore.WPF;
+using VCore.WPF.Interfaces.Managers;
 using VCore.WPF.Misc;
 using VCore.WPF.Other;
 using VCore.WPF.ViewModels;
+using VCore.WPF.ViewModels.Prompt;
+using PositionSide = CTKS_Chart.Strategy.PositionSide;
 
 namespace CTKS_Chart.ViewModels
 {
@@ -42,13 +48,15 @@ namespace CTKS_Chart.ViewModels
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
     private readonly ILogger logger;
+    private readonly IWindowManager windowManager;
     private Stopwatch stopwatch = new Stopwatch();
     private TimeSpan lastElapsed;
     private BinanceBroker binanceBroker;
 
-    public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
+    public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger, IWindowManager windowManager) : base(viewModelsFactory)
     {
       this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+      this.windowManager = windowManager ?? throw new ArgumentNullException(nameof(windowManager));
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
       binanceBroker = new BinanceBroker(logger);
 
@@ -113,8 +121,6 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-
-
 
 
 #if DEBUG
@@ -499,6 +505,25 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region OpenStatistics
+
+    protected ActionCommand openStatistics;
+
+    public ICommand OpenStatistics
+    {
+      get
+      {
+        return openStatistics ??= new ActionCommand(OnOpenStatistics);
+      }
+    }
+
+    protected void OnOpenStatistics()
+    {
+      windowManager.ShowPrompt<Statistics>(new StatisticsViewModel(TradingBot.Strategy));
+    }
+
+    #endregion
+
     #endregion
 
     #region Methods
@@ -604,7 +629,7 @@ namespace CTKS_Chart.ViewModels
         TimeFrame = TimeFrame.D1
       };
 
-      Strategy strategy = new BinanceStrategy(binanceBroker, logger);
+      Strategy.Strategy strategy = new BinanceStrategy(binanceBroker, logger);
 
       if (!IsLive)
         strategy = new SimulationStrategy();
@@ -1228,7 +1253,7 @@ namespace CTKS_Chart.ViewModels
     public void RenderOverlay(
       Layout layout,
       List<CtksIntersection> ctksIntersections,
-      Strategy strategy,
+      Strategy.Strategy strategy,
       IList<Candle> candles)
     {
       Pen shapeOutlinePen = new Pen(Brushes.Transparent, 1);

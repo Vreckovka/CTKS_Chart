@@ -19,7 +19,10 @@ using Binance.Net.Objects.Options;
 using CryptoExchange.Net.Authentication;
 using CryptoExchange.Net.CommonObjects;
 using CryptoExchange.Net.Sockets;
+using CTKS_Chart.Trading;
 using Logger;
+using Position = CTKS_Chart.Strategy.Position;
+using PositionSide = CTKS_Chart.Strategy.PositionSide;
 
 
 namespace CTKS_Chart.Binance

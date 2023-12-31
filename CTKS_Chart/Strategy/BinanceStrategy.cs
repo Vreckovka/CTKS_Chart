@@ -2,21 +2,19 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reactive.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
 using Binance.Net.Enums;
 using Binance.Net.Objects.Models.Spot.Socket;
 using CryptoExchange.Net.Sockets;
 using CTKS_Chart.Binance;
+using CTKS_Chart.Trading;
 using Logger;
 using VCore;
 using VCore.WPF;
 
-namespace CTKS_Chart
+namespace CTKS_Chart.Strategy
 {
 
   public class BinanceStrategy : Strategy

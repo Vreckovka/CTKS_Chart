@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
 using CTKS_Chart.ViewModels;
+using CTKS_Chart.Views;
 using Logger;
 using VCore.WPF;
 using VCore.WPF.Managers;

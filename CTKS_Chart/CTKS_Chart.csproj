@@ -6,6 +6,10 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Include="LiveCharts.Wpf" Version="0.9.7" />
+	</ItemGroup>
+
   <ItemGroup>
     <None Remove="Strategy\Strategy.cs~RFd32a78.TMP" />
   </ItemGroup>
@@ -21,6 +25,10 @@
     <ProjectReference Include="..\..\..\CustomLibraries\VCore.Standard\VCore.Standard.csproj" />
     <ProjectReference Include="..\..\..\CustomLibraries\VCore\VCore.WPF.csproj" />
     <ProjectReference Include="..\..\..\VPlayer\VPlayer.DarkTheme\VPlayer.DarkTheme.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Include="App.xaml" />
   </ItemGroup>
 
 </Project>

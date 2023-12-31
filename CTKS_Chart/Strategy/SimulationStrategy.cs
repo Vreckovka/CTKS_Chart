@@ -1,13 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Text.Json;
-using System.Threading.Tasks;
-using VCore;
-using VCore.Standard.Helpers;
+﻿using System.Threading.Tasks;
+using CTKS_Chart.Trading;
 
-namespace CTKS_Chart
+namespace CTKS_Chart.Strategy
 {
   public class SimulationStrategy : Strategy
   {

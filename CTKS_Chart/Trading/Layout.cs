@@ -1,7 +1,7 @@
 ﻿using System.Windows.Controls;
 using VCore.Standard;
 
-namespace CTKS_Chart
+namespace CTKS_Chart.Trading
 {
   public class Layout : ViewModel
   {

@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Binance.Net.Enums;
 using VCore.Standard;
 
-namespace CTKS_Chart
+namespace CTKS_Chart.Trading
 {
   public class TradingBot : ViewModel
   {
-    public TradingBot(Asset asset, Dictionary<string, TimeFrame> timeFrames, Strategy strategy)
+    public TradingBot(Asset asset, Dictionary<string, TimeFrame> timeFrames, Strategy.Strategy strategy)
     {
       Strategy = strategy ?? throw new ArgumentNullException(nameof(strategy));
       Asset = asset;
@@ -23,9 +20,9 @@ namespace CTKS_Chart
 
     #region Strategy
 
-    private Strategy strategy;
+    private Strategy.Strategy strategy;
 
-    public Strategy Strategy
+    public Strategy.Strategy Strategy
     {
       get { return strategy; }
       set

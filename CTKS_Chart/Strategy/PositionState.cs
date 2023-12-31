@@ -1,4 +1,4 @@
-﻿namespace CTKS_Chart
+﻿namespace CTKS_Chart.Strategy
 {
   public enum PositionState
   {

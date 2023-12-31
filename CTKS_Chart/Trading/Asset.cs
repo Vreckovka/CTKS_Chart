@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace CTKS_Chart
+namespace CTKS_Chart.Trading
 {
   public class Asset
   {

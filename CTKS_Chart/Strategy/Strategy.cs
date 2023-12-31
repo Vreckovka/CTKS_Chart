@@ -6,14 +6,12 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Shapes;
+using CTKS_Chart.Trading;
 using Logger;
 using VCore.Standard;
 using VCore.Standard.Helpers;
 
-namespace CTKS_Chart
+namespace CTKS_Chart.Strategy
 {
   public class StrategyData
   {
