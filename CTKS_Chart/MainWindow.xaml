@@ -10,6 +10,9 @@
         Width="1370"
         Height="1100"
         Background="{StaticResource BackgroudBrush}"
+        FontFamily="pack://application:,,,/VCore.WPF;component/Resources/Fonts/Roboto/#Roboto"
+        Style="{StaticResource {x:Type Window}}"
+        WindowStartupLocation="CenterScreen"
         mc:Ignorable="d">
 
     <Window.Resources>
@@ -287,6 +290,7 @@
                         <DataTemplate x:Key="OppsitePositions">
 
                             <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource PositionText}" Text="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
                                 <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
                                 <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
                                 <TextBlock Width="70"

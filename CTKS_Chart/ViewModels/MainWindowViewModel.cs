@@ -70,6 +70,8 @@ namespace CTKS_Chart.ViewModels
           File.WriteAllText("asset.json", json);
         }
       });
+
+      
     }
 
     #region Properties
@@ -1521,6 +1523,12 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
+    protected override void OnClose(Window window)
+    {
+      base.OnClose(window);
+      TradingBot.Strategy.SaveState();
+    }
 
     #endregion
   }

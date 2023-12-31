@@ -123,7 +123,7 @@ namespace CTKS_Chart
     {
       get
       {
-        return OpositPositions.Sum(x => x.Profit);
+        return OpositPositions != null ? OpositPositions.Sum(x => x.Profit) : 0;
       }
     }
 
@@ -131,7 +131,7 @@ namespace CTKS_Chart
     {
       get
       {
-        return OpositPositions.Where(x => x.Fees != null).Sum(x => x.Fees.Value) + (Fees != null ? Fees.Value : 0);
+        return OpositPositions != null ?  OpositPositions.Where(x => x.Fees != null).Sum(x => x.Fees.Value) + (Fees != null ? Fees.Value : 0) : 0;
       }
     }
 

@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using Binance.Net.Enums;
 using Binance.Net.Objects.Models.Spot.Socket;
 using CryptoExchange.Net.Sockets;
@@ -246,11 +247,16 @@ namespace CTKS_Chart
 
     public override void SaveState()
     {
-      var openBuy = JsonSerializer.Serialize(OpenBuyPositions.Select(x => new PositionDto(x)));
-      var openSell = JsonSerializer.Serialize(OpenSellPositions.Select(x => new PositionDto(x)));
-      var cloedSell = JsonSerializer.Serialize(ClosedSellPositions.Select(x => new PositionDto(x)));
-      var closedBuy = JsonSerializer.Serialize(ClosedBuyPositions.Select(x => new PositionDto(x)));
-      var data = JsonSerializer.Serialize(StrategyData);
+      var options = new JsonSerializerOptions()
+      {
+        WriteIndented = true
+      };
+
+      var openBuy = JsonSerializer.Serialize(OpenBuyPositions.Select(x => new PositionDto(x)),options);
+      var openSell = JsonSerializer.Serialize(OpenSellPositions.Select(x => new PositionDto(x)), options);
+      var cloedSell = JsonSerializer.Serialize(ClosedSellPositions.Select(x => new PositionDto(x)), options);
+      var closedBuy = JsonSerializer.Serialize(ClosedBuyPositions.Select(x => new PositionDto(x)), options);
+      var data = JsonSerializer.Serialize(StrategyData, options);
 
       Path.Combine(path, "openBuy.json").EnsureDirectoryExists();
 
@@ -276,36 +282,38 @@ namespace CTKS_Chart
 
         foreach (var position in openBuys)
         {
-          OpenBuyPositions.Add(position);
+          OpenBuyPositions.Add(position.GetPosition());
         }
 
         foreach (var position in openSells)
         {
-          OpenSellPositions.Add(position);
+          OpenSellPositions.Add(position.GetPosition());
         }
 
         foreach (var position in closedSells)
         {
-          ClosedSellPositions.Add(position);
+          ClosedSellPositions.Add(position.GetPosition());
         }
 
         var sells = OpenSellPositions.Concat(ClosedSellPositions).ToArray();
 
         foreach (var closedBuy in closedBuys)
         {
+          var normalPos = closedBuy.GetPosition();
+
           foreach (var op in closedBuy.OpositePositions)
           {
             var pos = sells.SingleOrDefault(x => x.Id == op);
 
             if (pos != null)
             {
-              pos.OpositPositions.Add(closedBuy);
+              pos.OpositPositions.Add(normalPos);
 
-              closedBuy.OpositPositions.Add(pos);
+              normalPos.OpositPositions.Add(pos);
             }
           }
 
-          ClosedBuyPositions.Add(closedBuy);
+          ClosedBuyPositions.Add(normalPos);
         }
 
 

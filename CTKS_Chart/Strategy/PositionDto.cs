@@ -1,8 +1,10 @@
-﻿using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CTKS_Chart
 {
-  public class PositionDto : Position
+  public class PositionDto
   {
     public PositionDto()
     {
@@ -28,6 +30,49 @@ namespace CTKS_Chart
       CreatedDate = position.CreatedDate;
     }
 
+    public Position GetPosition()
+    {
+      return new Position()
+      {
+        PositionSize = PositionSize,
+        PositionSizeNative = PositionSizeNative,
+        TimeFrame = TimeFrame,
+        OriginalPositionSize = OriginalPositionSize,
+        OriginalPositionSizeNative = OriginalPositionSizeNative,
+        Id = Id,
+        Price = Price,
+        Profit = Profit,
+        State = State,
+        Side = Side,
+        Intersection = Intersection,
+        Fees = Fees,
+        FilledDate = FilledDate,
+        CreatedDate = CreatedDate,
+      };
+    }
+
+
+
+    public long Id { get; set; }
+    public PositionSide Side { get; set; }
+    public PositionState State { get; set; }
+    public decimal Price { get; set; }
+    public decimal PositionSize { get; set; }
+    public decimal PositionSizeNative { get; set; }
+
+
+    public decimal OriginalPositionSize { get; set; }
+    public decimal OriginalPositionSizeNative { get; set; }
+
+
+    public DateTime? CreatedDate { get; set; }
+    public TimeFrame TimeFrame { get; set; }
+    public CtksIntersection Intersection { get; set; }
+    
+    
+    public DateTime? FilledDate { get; set; }
+    public decimal Profit { get; set; }
+    public decimal? Fees { get; set; }
 
     public long[] OpositePositions { get; set; }
   }

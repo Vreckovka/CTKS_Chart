@@ -648,6 +648,7 @@ namespace CTKS_Chart
         {
           originalBuy.State = PositionState.Completed;
           ActualPositions.Remove(originalBuy);
+          RaisePropertyChanged(nameof(AllCompletedPositions));
         }
       }
 
