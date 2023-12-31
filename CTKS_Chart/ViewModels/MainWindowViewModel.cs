@@ -118,7 +118,7 @@ namespace CTKS_Chart.ViewModels
 
 
 #if DEBUG
-    public bool Simulation { get; set; } = true;
+    public bool Simulation { get; set; } = false;
 #endif
 
 #if RELEASE
@@ -126,7 +126,7 @@ namespace CTKS_Chart.ViewModels
 #endif
 
 #if DEBUG
-    public bool IsLive { get; set; } = false;
+    public bool IsLive { get; set; } = true;
 #endif
 
 #if RELEASE
@@ -648,6 +648,7 @@ namespace CTKS_Chart.ViewModels
 
       maxValue = MainLayout.MaxValue;
       minValue = MainLayout.MinValue;
+      this.Title = TradingBot.Asset.Symbol;
 
       if (IsLive)
       {
@@ -667,7 +668,7 @@ namespace CTKS_Chart.ViewModels
       }
 
  
-      this.Title = TradingBot.Asset.Symbol;
+      
 
     }
 

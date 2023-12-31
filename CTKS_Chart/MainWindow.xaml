@@ -182,7 +182,8 @@
                     <ContentControl Content="{Binding MainGrid}" />
                 </Border>
 
-                <StackPanel VerticalAlignment="Top"
+                <StackPanel Margin="6,0,0,0"
+                            VerticalAlignment="Top"
                             DataContext="{Binding TradingBot.Strategy}"
                             Orientation="Horizontal">
                     <StackPanel.Resources>
