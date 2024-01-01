@@ -15,9 +15,7 @@
         <wpf:CartesianChart Background="Transparent" LegendLocation="None">
 
             <wpf:CartesianChart.AxisY>
-                <wpf:Axis Title="Total Value"
-                          LabelFormatter="{Binding YFormatter}"
-                          MinValue="0">
+                <wpf:Axis Title="Total Value" LabelFormatter="{Binding YFormatter}">
                     <wpf:Axis.Separator>
                         <wpf:Separator Stroke="{StaticResource YellowBrush}"
                                        StrokeDashArray="0"

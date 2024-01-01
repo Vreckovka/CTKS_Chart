@@ -878,7 +878,7 @@ namespace CTKS_Chart.ViewModels
         {
           var lastCandle = secondaryLayout.Ctks.Candles.Last();
 
-          if (actual.Time > GetNextTime(lastCandle.Time, secondaryLayout.TimeFrame))
+          if (actual.Time >= GetNextTime(lastCandle.Time, secondaryLayout.TimeFrame))
           {
             var innerCandles = ParseTradingView(secondaryLayout.DataLocation, actual.Time, addNotClosedCandle: true);
 
