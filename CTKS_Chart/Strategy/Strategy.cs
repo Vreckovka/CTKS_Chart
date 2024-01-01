@@ -646,6 +646,7 @@ namespace CTKS_Chart.Strategy
         originalBuy.RaiseNotify(nameof(Position.TotalProfit));
         originalBuy.RaiseNotify(nameof(Position.TotalFees));
         originalBuy.RaiseNotify(nameof(Position.FinalProfit));
+        originalBuy.RaiseNotify(nameof(Position.ExpectedProfit));
 
         if (originalBuy.OpositPositions.Sum(x => x.PositionSize) == 0)
         {
@@ -873,6 +874,8 @@ namespace CTKS_Chart.Strategy
         {
           OpenBuyPositions.Remove(position);
           Budget += position.PositionSize;
+
+          position.RaiseNotify(nameof(Position.ExpectedProfit));
         }
         else
         {

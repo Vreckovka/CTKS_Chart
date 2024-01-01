@@ -123,6 +123,7 @@ namespace CTKS_Chart.Views
     public void SortActualPositions()
     {
       SortDataGrid(ActualPositions, sortDirection: ListSortDirection.Descending);
+      SortDataGrid(Loggs, sortDirection: ListSortDirection.Descending);
     }
 
     private void SortDataGrid(DataGrid dataGrid, int columnIndex = 0, ListSortDirection sortDirection = ListSortDirection.Ascending)

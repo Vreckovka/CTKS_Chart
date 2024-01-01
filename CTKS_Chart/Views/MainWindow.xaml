@@ -543,7 +543,8 @@
                               Background="{StaticResource 30_WhiteTransparentBrush}" />
 
 
-                <DataGrid Grid.Row="2"
+                <DataGrid x:Name="Loggs"
+                          Grid.Row="2"
                           AutoGenerateColumns="False"
                           ItemsSource="{Binding ConsoleCollectionLogger.Logs}">
                     <DataGrid.CellStyle>
@@ -576,9 +577,6 @@
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>
-
-
-
         </Grid>
     </Grid>
 </Window>
