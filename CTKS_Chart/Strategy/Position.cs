@@ -72,8 +72,8 @@ namespace CTKS_Chart.Strategy
     #endregion
 
     public TimeFrame TimeFrame { get; set; }
-    public decimal OriginalPositionSize { get;  set; }
-    public decimal OriginalPositionSizeNative { get;  set; }
+    public decimal OriginalPositionSize { get; set; }
+    public decimal OriginalPositionSizeNative { get; set; }
     public IList<Position> OpositPositions { get; set; } = new List<Position>();
 
     //THERE IS POSITION_DTO ALSO NEED CHANGE!!!!
@@ -130,7 +130,7 @@ namespace CTKS_Chart.Strategy
     {
       get
       {
-        return OpositPositions != null ?  OpositPositions.Where(x => x.Fees != null).Sum(x => x.Fees.Value) + (Fees != null ? Fees.Value : 0) : 0;
+        return OpositPositions != null ? OpositPositions.Where(x => x.Fees != null).Sum(x => x.Fees.Value) + (Fees != null ? Fees.Value : 0) : 0;
       }
     }
 
@@ -146,7 +146,7 @@ namespace CTKS_Chart.Strategy
     {
       get
       {
-        if(OpositPositions != null)
+        if (OpositPositions != null)
         {
           var totalValue = OpositPositions.Sum(x => x.OriginalPositionSizeNative * x.Price);
           var totalFees = OpositPositions.Sum(x => x.OriginalPositionSizeNative * x.Price * (decimal)0.001) + Fees ?? 0;
@@ -155,6 +155,32 @@ namespace CTKS_Chart.Strategy
         }
 
         return 0;
+      }
+    }
+
+    public DateTime? CompletedDate
+    {
+      get
+      {
+        if (OpositPositions != null)
+        {
+          return OpositPositions.OrderByDescending(x => x.FilledDate).FirstOrDefault()?.FilledDate;
+        }
+
+        return null;
+      }
+    }
+
+    public decimal? TargetPrice
+    {
+      get
+      {
+        if (OpositPositions != null)
+        {
+          return OpositPositions.OrderByDescending(x => x.Price).FirstOrDefault()?.Price;
+        }
+
+        return null;
       }
     }
 

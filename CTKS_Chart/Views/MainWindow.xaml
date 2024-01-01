@@ -333,6 +333,8 @@
                                         </DataGridTextColumn.CellStyle>
                                     </DataGridTextColumn>
 
+                                    <DataGridTextColumn Binding="{Binding TargetPrice}" Header="Target Price" />
+
                                     <DataGridTemplateColumn CellTemplate="{StaticResource Trades}" Header="Trades" />
                                 </DataGrid.Columns>
                             </DataGrid>
@@ -350,6 +352,7 @@
 
                                 <DataGrid.Columns>
                                     <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Filled Date" />
+                                    <DataGridTextColumn Binding="{Binding CompletedDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Completed Date" />
                                     <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
@@ -368,6 +371,8 @@
                                                         Header="Final profit" />
 
                                     <DataGridTemplateColumn CellTemplate="{StaticResource Trades}" Header="Trades" />
+
+
                                 </DataGrid.Columns>
                             </DataGrid>
                         </TabItem>
