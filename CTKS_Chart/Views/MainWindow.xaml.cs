@@ -63,47 +63,60 @@ namespace CTKS_Chart.Views
       position.Height = ActualHeight;
       position.Width = ActualWidth;
 
-      var console = new WindowPosition();
-      RECT rct = new RECT();
-      GetWindowRect(GetConsoleWindow(), ref rct);
+      var handle = GetConsoleWindow();
 
-      console.Left = rct.Left;
-      console.Top = rct.Top;
-      console.Height = Console.WindowHeight;
-      console.Width = Console.WindowWidth;
+      if (IntPtr.Zero != handle)
+      {
+        var console = new WindowPosition();
 
+        RECT rct = new RECT();
+        GetWindowRect(handle, ref rct);
 
-      File.WriteAllText(positionPath, JsonSerializer.Serialize(new WindowPosition[] {position, console}));
+        console.Left = rct.Left;
+        console.Top = rct.Top;
+        console.Height = Console.WindowHeight;
+        console.Width = Console.WindowWidth;
+
+        File.WriteAllText(positionPath, JsonSerializer.Serialize(new WindowPosition[] { position, console }));
+      }
+      else
+      {
+        File.WriteAllText(positionPath, JsonSerializer.Serialize(new WindowPosition[] { position }));
+      }
     }
 
-    private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
       if (File.Exists(positionPath))
       {
         var positions = JsonSerializer.Deserialize<WindowPosition[]>(File.ReadAllText(positionPath));
 
         var pos = positions[0];
-        var con = positions[1];
 
-     
         Left = pos.Left;
         Top = pos.Top;
         Width = pos.Width;
         Height = pos.Height;
 
-        await Task.Delay(500);
+        if (positions.Length > 1)
+        {
+          var con = positions[1];
 
-        SetWindowPos(GetConsoleWindow(), IntPtr.Zero,
-          (int)con.Left,
-          (int)con.Top,
-          (int)con.Width,
-          (int)con.Height, SWP_NOSIZE);
+          var handle = GetConsoleWindow();
 
-        Console.WindowHeight = (int)con.Height;
-        Console.WindowWidth = (int)con.Width;
+          if (IntPtr.Zero != handle)
+          {
+            SetWindowPos(handle, IntPtr.Zero,
+              (int)con.Left,
+              (int)con.Top,
+              (int)con.Width,
+              (int)con.Height, SWP_NOSIZE);
 
-        Console.BufferWidth = (int)con.Width;
-
+            Console.WindowHeight = (int)con.Height;
+            Console.WindowWidth = (int)con.Width;
+            Console.BufferWidth = (int)con.Width;
+          }
+        }
       }
     }
 

@@ -142,6 +142,22 @@ namespace CTKS_Chart.Strategy
       }
     }
 
+    public decimal ExpectedProfit
+    {
+      get
+      {
+        if(OpositPositions != null)
+        {
+          var totalValue = OpositPositions.Sum(x => x.OriginalPositionSizeNative * x.Price);
+          var totalFees = OpositPositions.Sum(x => x.OriginalPositionSizeNative * x.Price * (decimal)0.001) + Fees ?? 0;
+
+          return totalValue - totalFees - OriginalPositionSize;
+        }
+
+        return 0;
+      }
+    }
+
     public void RaiseNotify(string name)
     {
       RaisePropertyChanged(name);

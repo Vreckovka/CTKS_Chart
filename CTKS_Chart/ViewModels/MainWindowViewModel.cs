@@ -123,9 +123,9 @@ namespace CTKS_Chart.ViewModels
     #region 
 
 
-    public ConsoleCollectionLogger ConsoleCollectionLogger
+    public CollectionLogger ConsoleCollectionLogger
     {
-      get { return (ConsoleCollectionLogger)logger.LoggerContainer; }
+      get { return (CollectionLogger)logger.LoggerContainer; }
      
     }
 
@@ -1487,7 +1487,17 @@ namespace CTKS_Chart.ViewModels
 
         if (IsLive && actual.Close != null)
         {
-          TradingBot.Strategy.ActualPositions.ForEach(x => x.ActualProfit = (x.OriginalPositionSizeNative * actual.Close.Value) - (x.Price * x.OriginalPositionSizeNative));
+          foreach (var position in TradingBot.Strategy.ActualPositions)
+          {
+            var filledSells = position.OpositPositions.Where(x => x.State == PositionState.Filled).ToList();
+
+            var realizedProfit = filledSells.Sum(x => x.OriginalPositionSize + x.Profit);
+            var leftSize = position.OpositPositions.Where(x => x.State == PositionState.Open).Sum(x => x.PositionSizeNative);
+            var fees = position.Fees ?? 0 + filledSells.Sum(x => x.Fees ?? 0);
+
+            var profit = (realizedProfit + (leftSize * actual.Close.Value)) - position.OriginalPositionSize - fees;
+            position.ActualProfit = profit;
+          }
         }
 
         VSynchronizationContext.InvokeOnDispatcher(() =>

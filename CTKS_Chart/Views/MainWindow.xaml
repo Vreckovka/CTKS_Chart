@@ -256,7 +256,7 @@
                             <DataTemplate x:Key="OppsitePositions">
 
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" />
+                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding FilledDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" />
                                     <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
                                     <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
                                     <TextBlock Width="70"
@@ -272,6 +272,22 @@
                                 </StackPanel>
 
                             </DataTemplate>
+
+                            <DataTemplate x:Key="Trades">
+                                <TextBlock Margin="10,2,0,5"
+                                           Cursor="Hand"
+                                           FontFamily="{StaticResource FontAwesome6Pro_Regular}"
+                                           Foreground="#55ffffff"
+                                           Style="{StaticResource PositionText}"
+                                           Text="">
+                                    <TextBlock.ToolTip>
+                                        <Grid>
+                                            <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
+                                        </Grid>
+                                    </TextBlock.ToolTip>
+                                </TextBlock>
+                            </DataTemplate>
+
                         </TabControl.Resources>
 
                         <TabItem Header="Actual positions">
@@ -285,16 +301,10 @@
                                       ScrollViewer.VerticalScrollBarVisibility="Auto">
 
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Filled Date" />
+                                    <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Filled Date" />
                                     <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
-
-
-                                    <DataGridTextColumn Width="55"
-                                                        Binding="{Binding Fees, StringFormat={}{0:N3} $}"
-                                                        Foreground="{StaticResource DefaultRedBrush}"
-                                                        Header="Fees" />
 
                                     <DataGridTextColumn Binding="{Binding ActualProfit, StringFormat={}{0:N3} $}" Header="Actual profit">
                                         <DataGridTextColumn.CellStyle>
@@ -312,22 +322,52 @@
                                         </DataGridTextColumn.CellStyle>
                                     </DataGridTextColumn>
 
+                                    <DataGridTextColumn Binding="{Binding ExpectedProfit, StringFormat={}{0:N3} $}"
+                                                        Foreground="{StaticResource YellowBrush3}"
+                                                        Header="Expected profit">
+                                        <DataGridTextColumn.CellStyle>
+                                            <Style BasedOn="{StaticResource {x:Type DataGridCell}}" TargetType="DataGridCell">
+                                                <Setter Property="HorizontalContentAlignment" Value="Left" />
 
-                                    <DataGridTemplateColumn Header="Trades">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Background="#15ffffff"
-                                                           Style="{StaticResource PositionText}"
-                                                           Text="Trades">
-                                                    <TextBlock.ToolTip>
-                                                        <Grid>
-                                                            <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
-                                                        </Grid>
-                                                    </TextBlock.ToolTip>
-                                                </TextBlock>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
+                                            </Style>
+                                        </DataGridTextColumn.CellStyle>
+                                    </DataGridTextColumn>
+
+                                    <DataGridTemplateColumn CellTemplate="{StaticResource Trades}" Header="Trades" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </TabItem>
+
+
+                        <TabItem Header="Completed Trades">
+                            <DataGrid AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="False"
+                                      CanUserReorderColumns="False"
+                                      IsReadOnly="True"
+                                      ItemsSource="{Binding AllCompletedPositions}"
+                                      ScrollViewer.VerticalScrollBarVisibility="Auto">
+
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Filled Date" />
+                                    <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
+                                    <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
+                                    <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
+
+                                    <DataGridTextColumn Binding="{Binding TotalProfit, StringFormat={}{0:N3} $}"
+                                                        Foreground="{StaticResource GreenBrush}"
+                                                        Header="Total profit" />
+
+                                    <DataGridTextColumn Binding="{Binding TotalFees, StringFormat={}{0:N3} $}"
+                                                        Foreground="{StaticResource DefaultRedBrush}"
+                                                        Header="Total Fees" />
+
+                                    <DataGridTextColumn Binding="{Binding FinalProfit, StringFormat={}{0:N3} $}"
+                                                        FontWeight="SemiBold"
+                                                        Foreground="{StaticResource GreenBrush3}"
+                                                        Header="Final profit" />
+
+                                    <DataGridTemplateColumn CellTemplate="{StaticResource Trades}" Header="Trades" />
                                 </DataGrid.Columns>
                             </DataGrid>
                         </TabItem>
@@ -341,7 +381,7 @@
                                       ItemsSource="{Binding OpenBuyPositions}"
                                       ScrollViewer.VerticalScrollBarVisibility="Auto">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Binding="{Binding CreatedDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Created Date" />
+                                    <DataGridTextColumn Binding="{Binding CreatedDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Created Date" />
                                     <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
@@ -358,26 +398,12 @@
                                       ItemsSource="{Binding OpenSellPositions}"
                                       ScrollViewer.VerticalScrollBarVisibility="Auto">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Binding="{Binding CreatedDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Created Date" />
+                                    <DataGridTextColumn Binding="{Binding CreatedDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Created Date" />
                                     <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
 
-                                    <DataGridTemplateColumn Header="Trades">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Background="#15ffffff"
-                                                           Style="{StaticResource PositionText}"
-                                                           Text="Trades">
-                                                    <TextBlock.ToolTip>
-                                                        <Grid>
-                                                            <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
-                                                        </Grid>
-                                                    </TextBlock.ToolTip>
-                                                </TextBlock>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn CellTemplate="{StaticResource Trades}" Header="Trades" />
 
                                 </DataGrid.Columns>
                             </DataGrid>
@@ -393,7 +419,7 @@
                                       ScrollViewer.VerticalScrollBarVisibility="Auto">
 
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Filled Date" />
+                                    <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Filled Date" />
                                     <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
@@ -405,23 +431,7 @@
                                     <DataGridTextColumn Binding="{Binding Profit, StringFormat={}{0:N3} $}"
                                                         Foreground="{StaticResource GreenBrush}"
                                                         Header="Profit" />
-
-
-                                    <DataGridTemplateColumn Header="Trades">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Background="#15ffffff"
-                                                           Style="{StaticResource PositionText}"
-                                                           Text="Trades">
-                                                    <TextBlock.ToolTip>
-                                                        <Grid>
-                                                            <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
-                                                        </Grid>
-                                                    </TextBlock.ToolTip>
-                                                </TextBlock>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn CellTemplate="{StaticResource Trades}" Header="Trades" />
                                 </DataGrid.Columns>
                             </DataGrid>
                         </TabItem>
@@ -432,50 +442,21 @@
                                       CanUserDeleteRows="False"
                                       CanUserReorderColumns="False"
                                       IsReadOnly="True"
-                                      ItemsSource="{Binding AllCompletedPositions}"
+                                      ItemsSource="{Binding ClosedBuyPositions}"
                                       ScrollViewer.VerticalScrollBarVisibility="Auto">
 
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Filled Date" />
+                                    <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Filled Date" />
+                                    <DataGridTextColumn Binding="{Binding State}" Header="State" />
                                     <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
-
 
                                     <DataGridTextColumn Binding="{Binding Fees, StringFormat={}{0:N3} $}"
                                                         Foreground="{StaticResource DefaultRedBrush}"
                                                         Header="Fees" />
 
-                                    <DataGridTextColumn Binding="{Binding TotalProfit, StringFormat={}{0:N3} $}"
-                                                        Foreground="{StaticResource GreenBrush}"
-                                                        Header="Total profit" />
-
-
-                                    <DataGridTextColumn Binding="{Binding TotalFees, StringFormat={}{0:N3} $}"
-                                                        Foreground="{StaticResource DefaultRedBrush}"
-                                                        Header="Total Fees" />
-
-                                    <DataGridTextColumn Binding="{Binding FinalProfit, StringFormat={}{0:N3} $}"
-                                                        FontWeight="SemiBold"
-                                                        Foreground="{StaticResource GreenBrush3}"
-                                                        Header="Final profit" />
-
-
-                                    <DataGridTemplateColumn Header="Trades">
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Background="#15ffffff"
-                                                           Style="{StaticResource PositionText}"
-                                                           Text="Trades">
-                                                    <TextBlock.ToolTip>
-                                                        <Grid>
-                                                            <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
-                                                        </Grid>
-                                                    </TextBlock.ToolTip>
-                                                </TextBlock>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn CellTemplate="{StaticResource Trades}" Header="Trades" />
                                 </DataGrid.Columns>
                             </DataGrid>
                         </TabItem>
@@ -564,7 +545,7 @@
 
                 <DataGrid Grid.Row="2"
                           AutoGenerateColumns="False"
-                          ItemsSource="{Binding ConsoleCollectionLogger.ObservableLogs}">
+                          ItemsSource="{Binding ConsoleCollectionLogger.Logs}">
                     <DataGrid.CellStyle>
                         <Style BasedOn="{StaticResource {x:Type DataGridCell}}" TargetType="DataGridCell">
                             <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -589,7 +570,7 @@
                         </Style>
                     </DataGrid.CellStyle>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Binding="{Binding Time, StringFormat={}{0:dd.MM.yyyy HH:mm:ss}}" Header="Time" />
+                        <DataGridTextColumn Binding="{Binding Time, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Time" />
                         <DataGridTextColumn Binding="{Binding MessageType}" Header="Type" />
                         <DataGridTextColumn Binding="{Binding Message}" Header="Message" />
                     </DataGrid.Columns>

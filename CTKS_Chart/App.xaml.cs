@@ -23,21 +23,16 @@ namespace CTKS_Chart
 
   public class CtksApplication : VApplication<MainWindow, MainWindowViewModel, SplashScreenView>
   {
-    protected override void LoadModules()
+   protected override void LoadModules()
     {
       base.LoadModules();
 
-      Kernel.Rebind<ILoggerContainer>().To<ConsoleCollectionLogger>();
+      Kernel.Rebind<ILoggerContainer>().To<CollectionLogger>();
     }
   }
 
   public partial class App : CtksApplication
   {
-    protected override void OnStartup(StartupEventArgs e)
-    {
-      IsConsoleVisible = true;
-
-      base.OnStartup(e);
-    }
+    
   }
 }
