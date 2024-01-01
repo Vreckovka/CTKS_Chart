@@ -28,6 +28,7 @@ using VCore.Standard.Factories.ViewModels;
 using VCore.Standard.Helpers;
 using VCore.WPF;
 using VCore.WPF.Interfaces.Managers;
+using VCore.WPF.Logger;
 using VCore.WPF.Misc;
 using VCore.WPF.Other;
 using VCore.WPF.ViewModels;
@@ -47,7 +48,6 @@ namespace CTKS_Chart.ViewModels
 
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
-    private readonly ILogger logger;
     private readonly IWindowManager windowManager;
     private Stopwatch stopwatch = new Stopwatch();
     private TimeSpan lastElapsed;
@@ -55,7 +55,7 @@ namespace CTKS_Chart.ViewModels
 
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger, IWindowManager windowManager) : base(viewModelsFactory)
     {
-      this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+      Logger = logger ?? throw new ArgumentNullException(nameof(logger));
       this.windowManager = windowManager ?? throw new ArgumentNullException(nameof(windowManager));
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
       binanceBroker = new BinanceBroker(logger);
@@ -78,8 +78,6 @@ namespace CTKS_Chart.ViewModels
           File.WriteAllText("asset.json", json);
         }
       });
-
-      
     }
 
     #region Properties
@@ -115,6 +113,37 @@ namespace CTKS_Chart.ViewModels
         if (value != candleCount)
         {
           candleCount = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region 
+
+
+    public ConsoleCollectionLogger ConsoleCollectionLogger
+    {
+      get { return (ConsoleCollectionLogger)logger.LoggerContainer; }
+     
+    }
+
+    #endregion
+
+
+    #region Logger
+
+    private ILogger logger;
+
+    public ILogger Logger
+    {
+      get { return logger; }
+      set
+      {
+        if (value != logger)
+        {
+          logger = value;
           RaisePropertyChanged();
         }
       }
