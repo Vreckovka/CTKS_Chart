@@ -878,13 +878,15 @@ namespace CTKS_Chart.ViewModels
         {
           var lastCandle = secondaryLayout.Ctks.Candles.Last();
 
-          if (actual.Time >= GetNextTime(lastCandle.Time, secondaryLayout.TimeFrame))
+          if (actual.Time > GetNextTime(lastCandle.Time, secondaryLayout.TimeFrame))
           {
+            var lastCount = secondaryLayout.Ctks.Candles.Count;
             var innerCandles = ParseTradingView(secondaryLayout.DataLocation, actual.Time, addNotClosedCandle: true);
 
             secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles));
 
-            shouldUpdate = true;
+            if(innerCandles.Count > lastCount)
+              shouldUpdate = true;
 
             if (IsLive)
               CheckLayout(secondaryLayout);
@@ -1446,7 +1448,7 @@ namespace CTKS_Chart.ViewModels
           High = binanceStreamKline.HighPrice,
           Low = binanceStreamKline.LowPrice,
           Open = binanceStreamKline.OpenPrice,
-          Time = binanceStreamKline.OpenTime
+          Time = binanceStreamKline.CloseTime
         };
 
         var lastCandle = ActualCandles.Last();
