@@ -862,12 +862,9 @@ namespace CTKS_Chart.Strategy
 
     public async Task OnCancelPosition(Position position, HashSet<Position> removed = null, bool force = false)
     {
-      var cancled = force;
+      var cancled = await CancelPosition(position);
 
-      if (force)
-        cancled = await CancelPosition(position);
-
-      if (cancled)
+      if (cancled || force)
       {
         if (position.Side == PositionSide.Buy)
         {
