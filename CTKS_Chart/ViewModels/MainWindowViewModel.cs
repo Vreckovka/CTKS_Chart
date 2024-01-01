@@ -877,7 +877,6 @@ namespace CTKS_Chart.ViewModels
         foreach (var secondaryLayout in secondaryLayouts)
         {
           var lastCandle = secondaryLayout.Ctks.Candles.Last();
-
           if (actual.Time > GetNextTime(lastCandle.Time, secondaryLayout.TimeFrame))
           {
             var lastCount = secondaryLayout.Ctks.Candles.Count;
@@ -885,7 +884,7 @@ namespace CTKS_Chart.ViewModels
 
             secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles));
 
-            if(innerCandles.Count > lastCount)
+            if (innerCandles.Count > lastCount)
               shouldUpdate = true;
 
             if (IsLive)
@@ -1289,12 +1288,6 @@ namespace CTKS_Chart.ViewModels
 
       DrawingImage dImageSource = new DrawingImage(dGroup);
 
-      if (ChartImage.ActualWidth > 0)
-        CanvasWidth = ChartImage.ActualWidth;
-
-      if (ChartImage.ActualHeight > 0)
-        CanvasHeight = ChartImage.ActualHeight;
-
       Chart = dImageSource;
       this.ChartImage.Source = Chart;
     }
@@ -1551,13 +1544,7 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-
-    protected override void OnClose(Window window)
-    {
-      base.OnClose(window);
-      TradingBot.Strategy.SaveState();
-    }
-
+    
     #endregion
   }
 }
