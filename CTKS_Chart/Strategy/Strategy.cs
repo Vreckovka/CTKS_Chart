@@ -464,7 +464,7 @@ namespace CTKS_Chart.Strategy
           {
             var openLow = OpenBuyPositions.OrderBy(x => x.Price).FirstOrDefault();
 
-            if (openLow != null && intersection.Value > openLow.Price)
+            if (openLow != null && intersection.Value > openLow.Price && openLow.Intersection.Value != intersection.Value)
             {
               Logger?.Log(MessageType.Warning, "Cancelling position in order to create another close to the price", simpleMessage: true);
 
