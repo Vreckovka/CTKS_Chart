@@ -864,7 +864,7 @@ namespace CTKS_Chart.Strategy
     {
       var cancled = force;
 
-      if (!cancled)
+      if (force)
         cancled = await CancelPosition(position);
 
       if (cancled)
@@ -953,7 +953,6 @@ namespace CTKS_Chart.Strategy
         {
           await OnCancelPosition(open, force: true);
         }
-
 
         LeftSize = TotalNativeAsset;
         var fakeSize = LeftSize;
