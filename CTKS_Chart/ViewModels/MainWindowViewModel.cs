@@ -46,6 +46,11 @@ namespace CTKS_Chart.ViewModels
     public DateTime Date { get; set; }
   }
 
+  public class LayoutSettings
+  {
+    public bool ShowClosedPositions { get; set; }
+  }
+
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
     private readonly IWindowManager windowManager;
@@ -53,31 +58,15 @@ namespace CTKS_Chart.ViewModels
     private TimeSpan lastElapsed;
     private BinanceBroker binanceBroker;
 
+    private string layoutPath = "layout.json";
+
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger, IWindowManager windowManager) : base(viewModelsFactory)
     {
       Logger = logger ?? throw new ArgumentNullException(nameof(logger));
       this.windowManager = windowManager ?? throw new ArgumentNullException(nameof(windowManager));
+
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
       binanceBroker = new BinanceBroker(logger);
-
-      ForexChart_Loaded();
-
-      stopwatch.Start();
-      Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
-      {
-        var diff = stopwatch.Elapsed - lastElapsed;
-        ActiveTime += diff;
-        TotalRunTime += diff;
-
-        lastElapsed = stopwatch.Elapsed;
-
-        if (Math.Round(activeTime.TotalSeconds, 0) % 10 == 0 && IsLive)
-        {
-          TradingBot.Asset.RunTimeTicks = TotalRunTime.Ticks;
-          var json = JsonSerializer.Serialize<Asset>(TradingBot.Asset);
-          File.WriteAllText("asset.json", json);
-        }
-      });
     }
 
     #region Properties
@@ -133,8 +122,28 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region 
+    #region ShowClosedPositions
 
+    private bool showClosedPositions;
+
+    public bool ShowClosedPositions
+    {
+      get { return showClosedPositions; }
+      set
+      {
+        if (value != showClosedPositions)
+        {
+          showClosedPositions = value;
+
+          RenderLayout(MainLayout, InnerLayouts, actual, ActualCandles);
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region 
 
     public CollectionLogger ConsoleCollectionLogger
     {
@@ -570,13 +579,37 @@ namespace CTKS_Chart.ViewModels
 
     #region Methods
 
+    #region Initialize
+
     public override void Initialize()
     {
       base.Initialize();
 
       MainGrid.Children.Add(ChartImage);
+
+      LoadLayoutSettings();
+      ForexChart_Loaded();
+
+      stopwatch.Start();
+      Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
+      {
+        var diff = stopwatch.Elapsed - lastElapsed;
+        ActiveTime += diff;
+        TotalRunTime += diff;
+
+        lastElapsed = stopwatch.Elapsed;
+
+        if (Math.Round(activeTime.TotalSeconds, 0) % 10 == 0 && IsLive)
+        {
+          TradingBot.Asset.RunTimeTicks = TotalRunTime.Ticks;
+          var json = JsonSerializer.Serialize<Asset>(TradingBot.Asset);
+          File.WriteAllText("asset.json", json);
+        }
+      });
     }
 
+    #endregion
+  
     #region ForexChart_Loaded
 
     private async void ForexChart_Loaded()
@@ -1140,7 +1173,7 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawChart
 
-    private Tuple<double, double> DrawChart(
+    private DrawnChart DrawChart(
       DrawingContext drawingContext,
       Layout layout,
       IList<Candle> candles,
@@ -1157,6 +1190,8 @@ namespace CTKS_Chart.ViewModels
 
       double minDrawnPoint = 0;
       double maxDrawnPoint = 0;
+      var drawnCandles = new List<ChartCandle>();
+
 
       if (candles.Any())
       {
@@ -1226,6 +1261,13 @@ namespace CTKS_Chart.ViewModels
           drawingContext.DrawRectangle(selectedBrush, wickPen, topWick);
           drawingContext.DrawRectangle(selectedBrush, wickPen, bottomWick);
 
+          drawnCandles.Add(new ChartCandle()
+          {
+            Candle = point,
+            Body = newCandle,
+            TopWick = topWick,
+            BottomWick = bottomWick
+          });
 
           y++;
 
@@ -1241,7 +1283,12 @@ namespace CTKS_Chart.ViewModels
         }
       }
 
-      return new Tuple<double, double>(minDrawnPoint, maxDrawnPoint);
+      return new DrawnChart()
+      {
+        MaxDrawnPoint = maxDrawnPoint,
+        MinDrawnPoint = minDrawnPoint,
+        Candles = drawnCandles
+      };
     }
 
     #endregion
@@ -1300,19 +1347,29 @@ namespace CTKS_Chart.ViewModels
       {
         dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(imageHeight, imageWidth));
 
-        var drawPoints = DrawChart(dc, layout, candles, imageHeight, imageWidth, CandleCount);
+        var chart = DrawChart(dc, layout, candles, imageHeight, imageWidth, CandleCount);
         double desiredCanvasHeight = imageHeight;
 
-        if (drawPoints.Item2 > imageHeight)
+        if (chart.MinDrawnPoint > imageHeight)
         {
-          desiredCanvasHeight = drawPoints.Item2;
+          desiredCanvasHeight = chart.MinDrawnPoint;
         }
 
         RenderIntersections(dc, layout, ctksIntersections,
           strategy.AllOpenedPositions.ToList(),
           desiredCanvasHeight,
-          candles, imageHeight, imageWidth,
+          imageHeight,
+          imageWidth,
           IsLive ? TimeFrame.W1 : TimeFrame.M1);
+
+        var validPositions = strategy.AllClosedPositions.Where(x => x.FilledDate > candles.First().OpenTime).ToList();
+
+        if (ShowClosedPositions)
+          RenderClosedPosiotions(dc, layout,
+            validPositions,
+            chart.Candles,
+            imageHeight,
+            imageWidth);
 
         DrawActualPrice(dc, layout, candles, imageHeight, imageWidth);
       }
@@ -1340,21 +1397,9 @@ namespace CTKS_Chart.ViewModels
       var pen = new Pen(brush, 1);
       pen.DashStyle = DashStyles.Dash;
 
-      var text = GetFormattedText(closePrice.Value.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 18);
+      var text = GetFormattedText(closePrice.Value.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 20);
       drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 25, lineY - text.Height - 5));
       drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
-    }
-
-    #endregion
-
-    #region GetFormattedText
-
-    private FormattedText GetFormattedText(string text, Brush brush, int fontSize = 12)
-    {
-      return new FormattedText(text, CultureInfo.GetCultureInfo("en-us"),
-        FlowDirection.LeftToRight,
-        new Typeface(new FontFamily("Arial").ToString()),
-        fontSize, brush);
     }
 
     #endregion
@@ -1367,7 +1412,6 @@ namespace CTKS_Chart.ViewModels
       IEnumerable<CtksIntersection> intersections,
       IList<Position> allPositions,
       double desiredHeight,
-      IList<Candle> candles,
       double canvasHeight,
       double canvasWidth,
       TimeFrame minTimeframe = TimeFrame.W1
@@ -1375,14 +1419,6 @@ namespace CTKS_Chart.ViewModels
     {
       var maxCanvasValue = (decimal)GetValueFromCanvas(desiredHeight, desiredHeight, layout.MaxValue, layout.MinValue);
       var minCanvasValue = (decimal)GetValueFromCanvas(desiredHeight, -2 * (desiredHeight - canvasHeight), layout.MaxValue, layout.MinValue);
-
-      //150 = max candle number on chart
-      var maxCandle = candles.TakeLast(150).Max(x => x.High);
-
-      if (maxCandle > maxCanvasValue)
-      {
-        maxCanvasValue = maxCandle.Value;
-      }
 
       var validIntersection = intersections
         .Where(x => x.Value > minCanvasValue && x.Value < maxCanvasValue && minTimeframe <= x.TimeFrame)
@@ -1414,7 +1450,7 @@ namespace CTKS_Chart.ViewModels
           pen.Brush = selectedBrush;
         }
 
-        if (frame >= TimeFrame.W1)
+        if (frame >= minTimeframe)
         {
           Brush positionBrush = GrayBrush;
 
@@ -1424,7 +1460,7 @@ namespace CTKS_Chart.ViewModels
           }
           else
           {
-            positionBrush = (SolidColorBrush) new BrushConverter().ConvertFrom($"#{90}{GRAY_HEX}");
+            positionBrush = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{90}{GRAY_HEX}");
           }
 
           FormattedText formattedText = GetFormattedText(intersection.Value.ToString(), positionBrush);
@@ -1433,6 +1469,44 @@ namespace CTKS_Chart.ViewModels
         }
 
         drawingContext.DrawLine(pen, new Point(canvasWidth * 0.10, lineY), new Point(canvasWidth, lineY));
+      }
+    }
+
+    #endregion
+
+    #region RenderClosedPosiotions
+
+    public void RenderClosedPosiotions(
+      DrawingContext drawingContext,
+      Layout layout,
+      IEnumerable<Position> positions,
+      IEnumerable<ChartCandle> candles,
+      double canvasHeight,
+      double canvasWidth,
+      TimeFrame minTimeframe = TimeFrame.W1
+      )
+    {
+      foreach (var position in positions)
+      {
+        Brush selectedBrush = position.Side == PositionSide.Buy ? GreenBrush : RedBrush; ;
+        Pen pen = new Pen(selectedBrush, 1);
+        pen.DashStyle = DashStyles.Dash;
+
+        var actual = GetCanvasValue(canvasHeight, position.Price, layout.MaxValue, layout.MinValue);
+
+        var frame = position.Intersection.TimeFrame;
+
+        pen.Thickness = GetPositionThickness(frame);
+
+        var lineY = canvasHeight - actual;
+        var candle = candles.SingleOrDefault(x => x.Candle.OpenTime < position.FilledDate && x.Candle.CloseTime > position.FilledDate);
+
+        if (frame >= minTimeframe && candle != null)
+        {
+          FormattedText formattedText = GetFormattedText(position.Side.ToString(), selectedBrush);
+
+          drawingContext.DrawText(formattedText, new Point(candle.Body.X - 35, lineY - formattedText.Height / 2));
+        }
       }
     }
 
@@ -1594,7 +1668,56 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region LoadLayoutSettings
+
+    private void LoadLayoutSettings()
+    {
+      if (File.Exists(layoutPath))
+      {
+        var data = File.ReadAllText(layoutPath);
+        var settings = JsonSerializer.Deserialize<LayoutSettings>(data);
+
+        if (settings != null)
+          showClosedPositions = settings.ShowClosedPositions;
+      }
+    }
+
     #endregion
+
+    #region SaveLayoutSettings
+
+    public void SaveLayoutSettings()
+    {
+      var settings = new LayoutSettings()
+      {
+        ShowClosedPositions = ShowClosedPositions
+      };
+
+      File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings));
+    }
+
+    #endregion
+
+    #region GetFormattedText
+
+    private FormattedText GetFormattedText(string text, Brush brush, int fontSize = 12)
+    {
+      return new FormattedText(text, CultureInfo.GetCultureInfo("en-us"),
+        FlowDirection.LeftToRight,
+        new Typeface(new FontFamily("Arial").ToString()),
+        fontSize, brush);
+    }
+
+    #endregion
+
+    #endregion
+  }
+
+  public class DrawnChart
+  {
+    public IEnumerable<ChartCandle> Candles { get; set; }
+    public double MaxDrawnPoint { get; set; }
+    public double MinDrawnPoint { get; set; }
   }
 }
 

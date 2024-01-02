@@ -76,6 +76,7 @@ namespace CTKS_Chart.Binance
             Low = kline.LowPrice,
             Open = kline.OpenPrice,
             OpenTime = kline.OpenTime,
+            CloseTime = kline.OpenTime.AddMinutes(interval.TotalMinutes)
           });
         }
       }
@@ -346,6 +347,51 @@ namespace CTKS_Chart.Binance
       using (var client = new BinanceRestClient())
       {
         return (await client.SpotApi.Trading.GetUserTradesAsync(symbol, startTime: pStartTime)).Data;
+      }
+    }
+
+    #endregion
+
+    #region GetTimeSpanFromInterval
+
+    public TimeSpan GetTimeSpanFromInterval(KlineInterval klineInterval)
+    {
+      switch (klineInterval)
+      {
+        case KlineInterval.OneSecond:
+          return TimeSpan.FromSeconds(1);
+        case KlineInterval.OneMinute:
+          return TimeSpan.FromMinutes(1);
+        case KlineInterval.ThreeMinutes:
+          return TimeSpan.FromMinutes(3);
+        case KlineInterval.FiveMinutes:
+          return TimeSpan.FromMinutes(5);
+        case KlineInterval.FifteenMinutes:
+          return TimeSpan.FromMinutes(15);
+        case KlineInterval.ThirtyMinutes:
+          return TimeSpan.FromMinutes(30);
+        case KlineInterval.OneHour:
+          return TimeSpan.FromHours(1);
+        case KlineInterval.TwoHour:
+          return TimeSpan.FromHours(2);
+        case KlineInterval.FourHour:
+          return TimeSpan.FromHours(4);
+        case KlineInterval.SixHour:
+          return TimeSpan.FromHours(6);
+        case KlineInterval.EightHour:
+          return TimeSpan.FromHours(8);
+        case KlineInterval.TwelveHour:
+          return TimeSpan.FromHours(12);
+        case KlineInterval.OneDay:
+          return TimeSpan.FromDays(1);
+        case KlineInterval.ThreeDay:
+          return TimeSpan.FromDays(3);
+        case KlineInterval.OneWeek:
+          return TimeSpan.FromDays(7);
+        case KlineInterval.OneMonth:
+          return TimeSpan.FromDays(30);
+        default:
+          throw new ArgumentOutOfRangeException(nameof(klineInterval), klineInterval, null);
       }
     }
 

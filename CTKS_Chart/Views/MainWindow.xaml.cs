@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using CTKS_Chart.ViewModels;
 using VCore.Standard.Modularity.Interfaces;
 
 #pragma warning disable 618
@@ -82,6 +83,11 @@ namespace CTKS_Chart.Views
       else
       {
         File.WriteAllText(positionPath, JsonSerializer.Serialize(new WindowPosition[] { position }));
+      }
+
+      if (DataContext is MainWindowViewModel viewModel)
+      {
+        viewModel.SaveLayoutSettings();
       }
     }
 

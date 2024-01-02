@@ -1,6 +1,7 @@
 ﻿<Window x:Class="CTKS_Chart.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:VCore.WPF.Controls;assembly=VCore.WPF"
         xmlns:converters="clr-namespace:VCore.WPF.Converters;assembly=VCore.WPF"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:logger="clr-namespace:Logger;assembly=Logger"
@@ -209,7 +210,7 @@
                                    Text="{Binding Budget, StringFormat={}{0:N2} $}"
                                    ToolTip="Budget" />
 
-                        <TextBlock Text="{Binding AvrageBuyPrice, StringFormat={}{0:N4} $}" ToolTip="Average buy price" />
+                        <TextBlock Text="{Binding AvrageBuyPrice}" ToolTip="Average buy price" />
 
                         <TextBlock Foreground="{StaticResource YellowBrush3}"
                                    Text="{Binding TotalNativeAsset}"
@@ -237,6 +238,12 @@
                                 </TextBlock.Style>
                             </TextBlock>
                         </StackPanel>
+
+                        <controls:PathButton IconCheckedColor="{StaticResource YellowColor}"
+                                             IconHoverColor="{StaticResource YellowColor}"
+                                             Glyph="{StaticResource square-poll-horizontal}"
+                                             GlyphFontSize="18"
+                                             IsChecked="{Binding DataContext.ShowClosedPositions, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
                     </StackPanel>
                 </Border>
 
@@ -301,7 +308,7 @@
                                            FontFamily="{StaticResource FontAwesome6Pro_Regular}"
                                            Foreground="#55ffffff"
                                            Style="{StaticResource PositionText}"
-                                           Text="">
+                                           Text="{StaticResource square-poll-horizontal}">
                                     <TextBlock.ToolTip>
                                         <Grid>
                                             <ItemsControl ItemTemplate="{StaticResource OppsitePositions}" ItemsSource="{Binding OpositPositions}" />
@@ -531,7 +538,7 @@
                                                    FontWeight="Bold"
                                                    Text="{Binding Budget, StringFormat={}{0:N2} $}" />
                                         <TextBlock Text="Avrage Buy Price " />
-                                        <TextBlock Text="{Binding AvrageBuyPrice, StringFormat={}{0:N4} $}" />
+                                        <TextBlock Text="{Binding AvrageBuyPrice}" />
 
 
                                         <TextBlock Text="Total Native" />
