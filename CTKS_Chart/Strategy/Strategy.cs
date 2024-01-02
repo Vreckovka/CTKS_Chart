@@ -32,6 +32,20 @@ namespace CTKS_Chart.Strategy
     public Strategy()
     {
       Budget = StartingBudget;
+#if DEBUG
+      var multi = 100;
+      var newss = new List<KeyValuePair<TimeFrame, decimal>>();
+
+      StartingBudget *=  multi;
+      Budget = StartingBudget;
+
+      foreach (var data in StrategyData.PositionSizeMapping)
+      {
+        newss.Add(new KeyValuePair<TimeFrame, decimal>(data.Key, data.Value * multi));
+      }
+
+      PositionSizeMapping = newss;
+#endif
     }
 
     #region Properties
@@ -66,7 +80,7 @@ namespace CTKS_Chart.Strategy
         { TimeFrame.W1, 10},
       },
       StartingBudget = 1000,
-      ScaleSize = 1.5
+      ScaleSize = 0
     };
 
     public StrategyData StrategyData
@@ -439,6 +453,8 @@ namespace CTKS_Chart.Strategy
           .OrderByDescending(x => x.Value)
           .ToList();
 
+        var minValue = PositionSizeMapping.OrderBy(x => x.Value).First().Value;
+
         foreach (var intersection in inter)
         {
           var positionsOnIntersesction = AllOpenedPositions
@@ -464,8 +480,8 @@ namespace CTKS_Chart.Strategy
           {
             var openLow = OpenBuyPositions.OrderBy(x => x.Price).FirstOrDefault();
 
-            if (openLow != null && 
-                intersection.Value > openLow.Price && 
+            if (openLow != null &&
+                intersection.Value > openLow.Price &&
                 openLow.Intersection.Value != intersection.Value &&
                 openLow.OriginalPositionSize + Budget > leftSize)
             {
@@ -486,7 +502,7 @@ namespace CTKS_Chart.Strategy
             }
           }
 
-          if (leftSize > MinPositionValue && Budget > leftSize)
+          if (leftSize > MinPositionValue && Budget > leftSize && leftSize >= minValue)
           {
             await CreateBuyPosition(leftSize, intersection);
           }

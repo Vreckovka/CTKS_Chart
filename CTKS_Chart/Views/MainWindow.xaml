@@ -370,6 +370,8 @@
                                                         Foreground="{StaticResource GreenBrush3}"
                                                         Header="Final profit" />
 
+                                    <DataGridTextColumn Binding="{Binding TargetPrice}" Header="Target Price" />
+
                                     <DataGridTemplateColumn CellTemplate="{StaticResource Trades}" Header="Trades" />
 
 
