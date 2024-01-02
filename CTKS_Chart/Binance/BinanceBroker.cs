@@ -75,7 +75,7 @@ namespace CTKS_Chart.Binance
             High = kline.HighPrice,
             Low = kline.LowPrice,
             Open = kline.OpenPrice,
-            Time = kline.OpenTime,
+            OpenTime = kline.OpenTime,
           });
         }
       }

@@ -82,6 +82,19 @@ namespace CTKS_Chart.ViewModels
 
     #region Properties
 
+    public const string GRAY_HEX = "b5b1b1";
+    public const string GREEN_HEX = "4ec940";
+    public const string RED_HEX = "f74343";
+    public const string POSITION_OPACITY = "40";
+
+    public SolidColorBrush GreenBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{GREEN_HEX}");
+    public SolidColorBrush BuyBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{POSITION_OPACITY}{GREEN_HEX}");
+
+    public SolidColorBrush GrayBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{POSITION_OPACITY}{GRAY_HEX}");
+
+    public SolidColorBrush RedBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{RED_HEX}");
+    public SolidColorBrush SellBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{POSITION_OPACITY}{RED_HEX}");
+
     #region TradingBot
 
     private TradingBot tradingBot;
@@ -126,7 +139,7 @@ namespace CTKS_Chart.ViewModels
     public CollectionLogger ConsoleCollectionLogger
     {
       get { return (CollectionLogger)logger.LoggerContainer; }
-     
+
     }
 
     #endregion
@@ -161,7 +174,7 @@ namespace CTKS_Chart.ViewModels
 #endif
 
 #if DEBUG
-    public bool IsLive { get; set; } = false;
+    public bool IsLive { get; set; } = true;
 #endif
 
 #if RELEASE
@@ -663,7 +676,7 @@ namespace CTKS_Chart.ViewModels
       if (!IsLive)
         strategy = new SimulationStrategy();
 
-      
+
       var adaBot = new TradingBot(new Asset()
       {
         Symbol = "ADAUSDT",
@@ -716,7 +729,7 @@ namespace CTKS_Chart.ViewModels
         MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
         MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
-        var maxDate = mainCandles.First().Time;
+        var maxDate = mainCandles.First().CloseTime;
 
         await LoadLayouts(MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
       }
@@ -802,7 +815,7 @@ namespace CTKS_Chart.ViewModels
     {
       var innerCandles = ParseTradingView(layout.DataLocation);
 
-      if (DateTime.Now > GetNextTime(innerCandles.Last().Time, layout.TimeFrame))
+      if (DateTime.Now > GetNextTime(innerCandles.Last().CloseTime, layout.TimeFrame))
       {
         layout.IsOutDated = true;
       }
@@ -906,10 +919,10 @@ namespace CTKS_Chart.ViewModels
         foreach (var secondaryLayout in secondaryLayouts)
         {
           var lastCandle = secondaryLayout.Ctks.Candles.Last();
-          if (actual.Time > GetNextTime(lastCandle.Time, secondaryLayout.TimeFrame))
+          if (actual.CloseTime > GetNextTime(lastCandle.CloseTime, secondaryLayout.TimeFrame))
           {
             var lastCount = secondaryLayout.Ctks.Candles.Count;
-            var innerCandles = ParseTradingView(secondaryLayout.DataLocation, actual.Time, addNotClosedCandle: true);
+            var innerCandles = ParseTradingView(secondaryLayout.DataLocation, actual.CloseTime, addNotClosedCandle: true);
 
             secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles));
 
@@ -955,7 +968,7 @@ namespace CTKS_Chart.ViewModels
 
             TradingBot.Strategy.LoadState();
             await TradingBot.Strategy.RefreshState();
-            ((MainWindow) Window).SortActualPositions();
+            ((MainWindow)Window).SortActualPositions();
           }
 
           TradingBot.Strategy.ValidatePositions(actual);
@@ -1052,7 +1065,7 @@ namespace CTKS_Chart.ViewModels
             Open = openParsed,
             High = highParsed,
             Low = lowParsed,
-            Time = dateTime,
+            CloseTime = dateTime,
             UnixTime = unixTimestamp
           });
         }
@@ -1092,7 +1105,7 @@ namespace CTKS_Chart.ViewModels
           {
             Width = width,
             Height = 25,
-            Fill = green ? Brushes.Green : Brushes.Red,
+            Fill = green ? GreenBrush : RedBrush,
           };
 
           Panel.SetZIndex(lastCandle, 99);
@@ -1144,8 +1157,6 @@ namespace CTKS_Chart.ViewModels
 
       double minDrawnPoint = 0;
       double maxDrawnPoint = 0;
-      var maxDrawinPoint = GetCanvasValue(canvasHeight, layout.MaxValue, layout.MaxValue, layout.MinValue);
-      var minDrawinPoint = GetCanvasValue(canvasHeight, layout.MinValue, layout.MaxValue, layout.MinValue);
 
       if (candles.Any())
       {
@@ -1159,7 +1170,7 @@ namespace CTKS_Chart.ViewModels
 
           var green = i > 0 ? candles[i - 1].Close < point.Close : point.Open < point.Close;
 
-          var selectedBrush = green ? Brushes.Green : Brushes.Red;
+          var selectedBrush = green ? GreenBrush : RedBrush;
 
           Pen pen = new Pen(selectedBrush, 3);
           Pen wickPen = new Pen(selectedBrush, 1);
@@ -1212,15 +1223,6 @@ namespace CTKS_Chart.ViewModels
 
 
           drawingContext.DrawRectangle(selectedBrush, pen, newCandle);
-
-          //if (topWick.Y + topWick.Height > maxDrawinPoint)
-          //  topWick.Height = CanvasHeight - wickTop;
-
-          //if (bottomWick.Y - bottomWick.Height < 0)
-          //{
-          //  bottomWick.Height = CanvasHeight - bottomWick.Y;
-          //}
-
           drawingContext.DrawRectangle(selectedBrush, wickPen, topWick);
           drawingContext.DrawRectangle(selectedBrush, wickPen, bottomWick);
 
@@ -1334,11 +1336,11 @@ namespace CTKS_Chart.ViewModels
 
       var lineY = canvasHeight - close;
 
-      var brush = Brushes.Yellow;
+      var brush = lastCandle.IsGreen ? GreenBrush : RedBrush;
       var pen = new Pen(brush, 1);
       pen.DashStyle = DashStyles.Dash;
 
-      var text = GetFormattedText(closePrice.Value.ToString($"N{TradingBot.Asset.PriceRound}"), brush);
+      var text = GetFormattedText(closePrice.Value.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 18);
       drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 25, lineY - text.Height - 5));
       drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
     }
@@ -1347,12 +1349,12 @@ namespace CTKS_Chart.ViewModels
 
     #region GetFormattedText
 
-    private FormattedText GetFormattedText(string text, Brush brush)
+    private FormattedText GetFormattedText(string text, Brush brush, int fontSize = 12)
     {
       return new FormattedText(text, CultureInfo.GetCultureInfo("en-us"),
         FlowDirection.LeftToRight,
         new Typeface(new FontFamily("Arial").ToString()),
-        12, brush);
+        fontSize, brush);
     }
 
     #endregion
@@ -1388,9 +1390,9 @@ namespace CTKS_Chart.ViewModels
 
       foreach (var intersection in validIntersection)
       {
-        Pen pen = new Pen(Brushes.Gray, 1);
+        Brush selectedBrush = GrayBrush;
+        Pen pen = new Pen(selectedBrush, 1);
         pen.DashStyle = DashStyles.Dash;
-        Brush selectedBrush = Brushes.White;
 
         var actual = GetCanvasValue(canvasHeight, intersection.Value, layout.MaxValue, layout.MinValue);
 
@@ -1405,30 +1407,32 @@ namespace CTKS_Chart.ViewModels
           .ToList();
 
         var firstPositionsOnIntersesction = positionsOnIntersesction.FirstOrDefault();
-        var sum = positionsOnIntersesction.Sum(x => x.PositionSize);
 
         if (firstPositionsOnIntersesction != null)
         {
-          selectedBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ? Brushes.Green : Brushes.Red;
+          selectedBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ? BuyBrush : SellBrush;
           pen.Brush = selectedBrush;
         }
 
-        //var text = sum > 0 ? $"{intersection.Value.ToString("N4")} - {sum.ToString("N4")}" : $"{intersection.Value.ToString("N4")}";
-
         if (frame >= TimeFrame.W1)
         {
-          FormattedText formattedText = new FormattedText(intersection.Value.ToString(),
-            CultureInfo.GetCultureInfo("en-us"),
-            FlowDirection.LeftToRight,
-            new Typeface(new FontFamily("Arial").ToString()),
-            12, selectedBrush);
+          Brush positionBrush = GrayBrush;
 
-          drawingContext.DrawText(formattedText, new Point(0, lineY));
+          if (firstPositionsOnIntersesction != null)
+          {
+            positionBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ? (SolidColorBrush)new BrushConverter().ConvertFrom($"#{90}{GREEN_HEX}") : (SolidColorBrush)new BrushConverter().ConvertFrom($"#{90}{RED_HEX}");
+          }
+          else
+          {
+            positionBrush = (SolidColorBrush) new BrushConverter().ConvertFrom($"#{90}{GRAY_HEX}");
+          }
+
+          FormattedText formattedText = GetFormattedText(intersection.Value.ToString(), positionBrush);
+
+          drawingContext.DrawText(formattedText, new Point(0, lineY - formattedText.Height / 2));
         }
 
-
-
-        drawingContext.DrawLine(pen, new Point(canvasWidth * 0.05, lineY), new Point(canvasWidth, lineY));
+        drawingContext.DrawLine(pen, new Point(canvasWidth * 0.10, lineY), new Point(canvasWidth, lineY));
       }
     }
 
@@ -1470,12 +1474,13 @@ namespace CTKS_Chart.ViewModels
           High = binanceStreamKline.HighPrice,
           Low = binanceStreamKline.LowPrice,
           Open = binanceStreamKline.OpenPrice,
-          Time = binanceStreamKline.CloseTime
+          CloseTime = binanceStreamKline.CloseTime,
+          OpenTime = binanceStreamKline.OpenTime
         };
 
         var lastCandle = ActualCandles.Last();
 
-        if (lastCandle.Time != actual.Time)
+        if (lastCandle.OpenTime != actual.OpenTime)
         {
           ActualCandles.Add(actual);
         }
@@ -1498,6 +1503,8 @@ namespace CTKS_Chart.ViewModels
             var profit = (realizedProfit + (leftSize * actual.Close.Value)) - position.OriginalPositionSize - fees;
             position.ActualProfit = profit;
           }
+
+          TradingBot.Strategy.TotalActualProfit = TradingBot.Strategy.ActualPositions.Sum(x => x.ActualProfit);
         }
 
         VSynchronizationContext.InvokeOnDispatcher(() =>
@@ -1507,22 +1514,25 @@ namespace CTKS_Chart.ViewModels
 
         if (lastDate == null)
         {
-          var last = File.ReadLines(@"state_data.txt").Last();
-          var lastState = JsonSerializer.Deserialize<State>(last);
-
-          if (lastState?.Date != null)
+          if (File.Exists("state_data.txt"))
           {
-            lastDate = lastState.Date;
+            var last = File.ReadLines(@"state_data.txt").Last();
+            var lastState = JsonSerializer.Deserialize<State>(last);
+
+            if (lastState?.Date != null)
+            {
+              lastDate = lastState.Date;
+            }
           }
         }
 
-        if ((actual.Time.Date > lastDate || lastDate == null) && TradingBot.Strategy.TotalValue > 0)
+        if ((actual.OpenTime.Date > lastDate || lastDate == null) && TradingBot.Strategy.TotalValue > 0)
         {
-          lastDate = actual.Time.Date;
+          lastDate = actual.OpenTime.Date;
 
           var state = new State()
           {
-            Date = actual.Time.Date,
+            Date = actual.OpenTime.Date,
             TotalProfit = TradingBot.Strategy.TotalProfit,
             TotalValue = TradingBot.Strategy.TotalValue,
             TotalNative = TradingBot.Strategy.TotalNativeAsset,
@@ -1583,7 +1593,7 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-    
+
     #endregion
   }
 }

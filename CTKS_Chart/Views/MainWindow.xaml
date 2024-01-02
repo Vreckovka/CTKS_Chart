@@ -182,39 +182,64 @@
 
 
             <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                <Border Background="#02050a">
+                <Border Background="#ff05080d">
                     <ContentControl Content="{Binding MainGrid}" />
                 </Border>
 
-                <StackPanel Margin="6,0,0,0"
-                            VerticalAlignment="Top"
-                            DataContext="{Binding TradingBot.Strategy}"
-                            Orientation="Horizontal">
-                    <StackPanel.Resources>
-                        <Style BasedOn="{StaticResource PositionText}" TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="#55ffffff" />
-                        </Style>
-                    </StackPanel.Resources>
+                <Border Padding="5,5,0,5"
+                        VerticalAlignment="Top"
+                        Background="#10ffffff">
+                    <StackPanel DataContext="{Binding TradingBot.Strategy}" Orientation="Horizontal">
+                        <StackPanel.Resources>
+                            <Style BasedOn="{StaticResource PositionText}" TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#55ffffff" />
+                            </Style>
+                        </StackPanel.Resources>
 
-                    <TextBlock Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
-                    <TextBlock Foreground="{StaticResource YellowBrush2}"
-                               Text="{Binding TotalValue, StringFormat={}{0:N2} $}"
-                               ToolTip="Total value" />
+                        <TextBlock Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" ToolTip="Active time" />
+                        <TextBlock Foreground="{StaticResource YellowBrush}"
+                                   Text="{Binding TotalValue, StringFormat={}{0:N2} $}"
+                                   ToolTip="Total value" />
 
-                    <TextBlock Foreground="{StaticResource GreenBrush}"
-                               Text="{Binding TotalProfit, StringFormat={}{0:N2} $}"
-                               ToolTip="Profit" />
+                        <TextBlock Foreground="{StaticResource GreenBrush3}"
+                                   Text="{Binding TotalProfit, StringFormat={}{0:N2} $}"
+                                   ToolTip="Profit" />
 
-                    <TextBlock Foreground="{StaticResource BlueBrush}"
-                               Text="{Binding Budget, StringFormat={}{0:N2} $}"
-                               ToolTip="Budget" />
+                        <TextBlock Foreground="{StaticResource BlueBrush}"
+                                   Text="{Binding Budget, StringFormat={}{0:N2} $}"
+                                   ToolTip="Budget" />
 
-                    <TextBlock Text="{Binding AvrageBuyPrice, StringFormat={}{0:N4} $}" ToolTip="Average buy price" />
+                        <TextBlock Text="{Binding AvrageBuyPrice, StringFormat={}{0:N4} $}" ToolTip="Average buy price" />
 
-                    <TextBlock Text="{Binding TotalNativeAsset}" ToolTip="Native asset size" />
+                        <TextBlock Foreground="{StaticResource YellowBrush3}"
+                                   Text="{Binding TotalNativeAsset}"
+                                   ToolTip="Native asset size" />
 
-                    <TextBlock Text="{Binding TotalNativeAssetValue, StringFormat={}{0:N2} $}" ToolTip="Native asset value $" />
-                </StackPanel>
+                        <TextBlock Foreground="{StaticResource MagentaBrush}"
+                                   Text="{Binding TotalNativeAssetValue, StringFormat={}{0:N2} $}"
+                                   ToolTip="Native asset value $" />
+
+
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding TotalActualProfit, StringFormat={}{0:N3} $}" ToolTip="Total Actual Profit">
+                                <TextBlock.Style>
+                                    <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="TextBlock">
+
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding TotalActualProfit, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
+                                                <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding TotalActualProfit, Converter={converters:IsGreaterConverter}, ConverterParameter=0}" Value="true">
+                                                <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
 
             </Grid>
 
@@ -244,14 +269,11 @@
                     </Border.Style>
 
                     <TabControl Background="Transparent" DataContext="{Binding TradingBot.Strategy, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}">
-
                         <TabControl.Resources>
                             <Style TargetType="GroupBox">
                                 <Setter Property="MaxHeight" Value="200" />
                                 <Setter Property="Margin" Value="5" />
-
                             </Style>
-
 
                             <DataTemplate x:Key="OppsitePositions">
 
@@ -287,57 +309,66 @@
                                     </TextBlock.ToolTip>
                                 </TextBlock>
                             </DataTemplate>
-
                         </TabControl.Resources>
 
                         <TabItem Header="Actual positions">
-                            <DataGrid x:Name="ActualPositions"
-                                      AutoGenerateColumns="False"
-                                      CanUserAddRows="False"
-                                      CanUserDeleteRows="False"
-                                      CanUserReorderColumns="False"
-                                      IsReadOnly="True"
-                                      ItemsSource="{Binding ActualPositions}"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="auto" />
+                                    <RowDefinition />
+                                </Grid.RowDefinitions>
 
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Filled Date" />
-                                    <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
-                                    <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
-                                    <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
 
-                                    <DataGridTextColumn Binding="{Binding ActualProfit, StringFormat={}{0:N3} $}" Header="Actual profit">
-                                        <DataGridTextColumn.CellStyle>
-                                            <Style BasedOn="{StaticResource {x:Type DataGridCell}}" TargetType="DataGridCell">
-                                                <Setter Property="HorizontalContentAlignment" Value="Left" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
-                                                        <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsGreaterConverter}, ConverterParameter=0}" Value="true">
-                                                        <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </DataGridTextColumn.CellStyle>
-                                    </DataGridTextColumn>
+                                <DataGrid x:Name="ActualPositions"
+                                          Grid.Row="1"
+                                          AutoGenerateColumns="False"
+                                          CanUserAddRows="False"
+                                          CanUserDeleteRows="False"
+                                          CanUserReorderColumns="False"
+                                          IsReadOnly="True"
+                                          ItemsSource="{Binding ActualPositions}"
+                                          ScrollViewer.VerticalScrollBarVisibility="Auto">
 
-                                    <DataGridTextColumn Binding="{Binding ExpectedProfit, StringFormat={}{0:N3} $}"
-                                                        Foreground="{StaticResource YellowBrush3}"
-                                                        Header="Expected profit">
-                                        <DataGridTextColumn.CellStyle>
-                                            <Style BasedOn="{StaticResource {x:Type DataGridCell}}" TargetType="DataGridCell">
-                                                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Filled Date" />
+                                        <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
+                                        <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
+                                        <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
 
-                                            </Style>
-                                        </DataGridTextColumn.CellStyle>
-                                    </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding ActualProfit, StringFormat={}{0:N3} $}" Header="Actual profit">
+                                            <DataGridTextColumn.CellStyle>
+                                                <Style BasedOn="{StaticResource {x:Type DataGridCell}}" TargetType="DataGridCell">
+                                                    <Setter Property="HorizontalContentAlignment" Value="Left" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
+                                                            <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ActualProfit, Converter={converters:IsGreaterConverter}, ConverterParameter=0}" Value="true">
+                                                            <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </DataGridTextColumn.CellStyle>
+                                        </DataGridTextColumn>
 
-                                    <DataGridTextColumn Binding="{Binding TargetPrice}" Header="Target Price" />
+                                        <DataGridTextColumn Binding="{Binding ExpectedProfit, StringFormat={}{0:N3} $}"
+                                                            Foreground="{StaticResource YellowBrush3}"
+                                                            Header="Expected profit">
+                                            <DataGridTextColumn.CellStyle>
+                                                <Style BasedOn="{StaticResource {x:Type DataGridCell}}" TargetType="DataGridCell">
+                                                    <Setter Property="HorizontalContentAlignment" Value="Left" />
 
-                                    <DataGridTemplateColumn CellTemplate="{StaticResource Trades}" Header="Trades" />
-                                </DataGrid.Columns>
-                            </DataGrid>
+                                                </Style>
+                                            </DataGridTextColumn.CellStyle>
+                                        </DataGridTextColumn>
+
+                                        <DataGridTextColumn Binding="{Binding TargetPrice}" Header="Target Price" />
+
+                                        <DataGridTemplateColumn CellTemplate="{StaticResource Trades}" Header="Trades" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                            </Grid>
                         </TabItem>
 
 
@@ -471,12 +502,15 @@
                         <TabItem Header="Info">
                             <Grid VerticalAlignment="Top">
                                 <Grid.RowDefinitions>
-                                    <RowDefinition />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="auto" />
                                     <RowDefinition Height="auto" />
                                 </Grid.RowDefinitions>
 
                                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                    <UniformGrid MinHeight="350" Columns="2">
+                                    <UniformGrid Width="280"
+                                                 HorizontalAlignment="Left"
+                                                 Columns="2">
                                         <TextBlock Text="Total time" />
                                         <TextBlock Text="{Binding DataContext.TotalRunTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
                                         <TextBlock Text="Active time" />
@@ -522,6 +556,7 @@
 
                                     </UniformGrid>
                                 </ScrollViewer>
+
                                 <ItemsControl Grid.Row="1"
                                               Margin="0,5"
                                               ItemsSource="{Binding PositionSizeMapping}">
@@ -537,6 +572,10 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+
+                                <StackPanel Grid.Row="2" Orientation="Vertical">
+                                    <TextBlock Foreground="#36ffffff" Text="{Binding DataContext.BuildVersion, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                </StackPanel>
                             </Grid>
                         </TabItem>
                     </TabControl>

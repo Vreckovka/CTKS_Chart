@@ -391,11 +391,31 @@ namespace CTKS_Chart.Strategy
         var closed = ClosedBuyPositions.Where(x => x.State == PositionState.Filled).ToList();
         var asd = closed.Sum(x => x.OriginalPositionSize);
         var asdddd = closed.Sum(x => x.OriginalPositionSizeNative);
-        return TotalNativeAsset > 0 && asdddd > 0 ? asd / asdddd : 0;
+        return Math.Round(TotalNativeAsset > 0 && asdddd > 0 ? asd / asdddd : 0, Asset.PriceRound);
       }
     }
 
     #endregion
+
+    #region ActualPositionProfit
+
+    private decimal totalActualProfit;
+
+    public decimal TotalActualProfit
+    {
+      get { return totalActualProfit; }
+      set
+      {
+        if (value != totalActualProfit)
+        {
+          totalActualProfit = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
 
     #endregion
 
@@ -502,7 +522,7 @@ namespace CTKS_Chart.Strategy
             }
           }
 
-          if (leftSize > MinPositionValue && Budget > leftSize && leftSize >= minValue)
+          if (leftSize > MinPositionValue && Budget > leftSize)
           {
             await CreateBuyPosition(leftSize, intersection);
           }
