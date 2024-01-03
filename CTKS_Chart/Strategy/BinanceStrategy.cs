@@ -334,10 +334,13 @@ namespace CTKS_Chart.Strategy
           TotalNativeAsset = decimal.Parse(File.ReadAllText(Path.Combine(path, "native.json")));
         }
 
+     
+        ActualPositions = new System.Collections.ObjectModel.ObservableCollection<Position>(ClosedBuyPositions.Where(x => x.State == PositionState.Filled));
+
         RaisePropertyChanged(nameof(TotalBuy));
         RaisePropertyChanged(nameof(TotalSell));
-        ActualPositions = new System.Collections.ObjectModel.ObservableCollection<Position>(ClosedBuyPositions.Where(x => x.State == PositionState.Filled));
         RaisePropertyChanged(nameof(AllCompletedPositions));
+        RaisePropertyChanged(nameof(TotalExpectedProfit));
       }
     }
 

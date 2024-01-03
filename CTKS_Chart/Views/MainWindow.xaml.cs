@@ -152,5 +152,20 @@ namespace CTKS_Chart.Views
       // Refresh items to display sort
       dataGrid.Items.Refresh();
     }
+
+    private void Border_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
+    {
+      if (DataContext is MainWindowViewModel viewModel)
+      {
+        if (e.Delta > 0)
+        {
+          viewModel.MaxValue *= (decimal)0.995;
+        }
+        else
+        {
+          viewModel.MaxValue *= (decimal)1.005;
+        }
+      }
+    }
   }
 }

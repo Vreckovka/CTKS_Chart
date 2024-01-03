@@ -28,7 +28,7 @@
             <Style x:Key="PositionText"
                    BasedOn="{StaticResource {x:Type TextBlock}}"
                    TargetType="TextBlock">
-                <Setter Property="Margin" Value="0,0,20,0" />
+                <Setter Property="Margin" Value="0,0,15,0" />
                 <Setter Property="FontSize" Value="15" />
                 <Setter Property="VerticalAlignment" Value="Center" />
                 <Setter Property="HorizontalAlignment" Value="Right" />
@@ -171,6 +171,7 @@
             </Grid>
 
         </Border>
+
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="2*" />
@@ -180,121 +181,184 @@
 
 
             <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                <Border Background="#ff05080d">
+                <Border Background="#ff05080d" MouseWheel="Border_MouseWheel">
                     <ContentControl Content="{Binding MainGrid}" />
                 </Border>
 
-                <Border Padding="5,5,0,5" VerticalAlignment="Top">
-
-
+                <Border VerticalAlignment="Top">
                     <Grid DataContext="{Binding TradingBot.Strategy}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="auto" />
                             <RowDefinition Height="auto" />
                         </Grid.RowDefinitions>
 
-                        <StackPanel Orientation="Horizontal">
-                            <StackPanel.Resources>
-                                <Style BasedOn="{StaticResource PositionText}" TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="#55ffffff" />
-                                </Style>
-                            </StackPanel.Resources>
-
-                            <TextBlock Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" ToolTip="Active time" />
-                            <TextBlock Foreground="{StaticResource YellowBrush}"
-                                       Text="{Binding TotalValue, StringFormat={}{0:N2} $}"
-                                       ToolTip="Total value" />
-
-                            <TextBlock Foreground="{StaticResource GreenBrush3}"
-                                       Text="{Binding TotalProfit, StringFormat={}{0:N2} $}"
-                                       ToolTip="Profit" />
-
-                            <TextBlock Foreground="{StaticResource BlueBrush}"
-                                       Text="{Binding Budget, StringFormat={}{0:N2} $}"
-                                       ToolTip="Budget" />
-
-                            <TextBlock Text="{Binding AvrageBuyPrice}" ToolTip="Average buy price" />
-
-                            <TextBlock Foreground="{StaticResource YellowBrush3}"
-                                       Text="{Binding TotalNativeAsset}"
-                                       ToolTip="Native asset size" />
-
-                            <TextBlock Foreground="{StaticResource MagentaBrush}"
-                                       Text="{Binding TotalNativeAssetValue, StringFormat={}{0:N2} $}"
-                                       ToolTip="Native asset value $" />
-
-
+                        <Border Padding="5,5,0,5" Background="#6005080d">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding TotalActualProfit, StringFormat={}{0:N3} $}" ToolTip="Total Actual Profit">
-                                    <TextBlock.Style>
-                                        <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="TextBlock">
+                                <StackPanel.Resources>
+                                    <Style BasedOn="{StaticResource PositionText}" TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="#55ffffff" />
+                                        <Setter Property="Margin" Value="7,0" />
+                                        <Setter Property="FontSize" Value="13" />
+                                    </Style>
+                                </StackPanel.Resources>
 
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding TotalActualProfit, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
-                                                    <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding TotalActualProfit, Converter={converters:IsGreaterConverter}, ConverterParameter=0}" Value="true">
-                                                    <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
+                                <TextBlock Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" ToolTip="Active time" />
+                                <TextBlock Foreground="{StaticResource YellowBrush}"
+                                           Text="{Binding TotalValue, StringFormat={}{0:N2} $}"
+                                           ToolTip="Total value" />
+
+                                <TextBlock Foreground="{StaticResource GreenBrush3}"
+                                           Text="{Binding TotalProfit, StringFormat={}{0:N2} $}"
+                                           ToolTip="Profit" />
+
+                                <TextBlock Foreground="{StaticResource BlueBrush}"
+                                           Text="{Binding Budget, StringFormat={}{0:N2} $}"
+                                           ToolTip="Budget" />
+
+                                <TextBlock Text="{Binding AvrageBuyPrice}" ToolTip="Average buy price" />
+
+                                <TextBlock Foreground="{StaticResource YellowBrush3}"
+                                           Text="{Binding TotalNativeAsset}"
+                                           ToolTip="Native asset size" />
+
+                                <TextBlock Foreground="{StaticResource MagentaBrush}"
+                                           Text="{Binding TotalNativeAssetValue, StringFormat={}{0:N2} $}"
+                                           ToolTip="Native asset value $" />
+
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding TotalActualProfit, StringFormat={}{0:N3} $}" ToolTip="Total Actual Profit">
+                                        <TextBlock.Style>
+                                            <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="TextBlock">
+
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding TotalActualProfit, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
+                                                        <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding TotalActualProfit, Converter={converters:IsGreaterConverter}, ConverterParameter=0}" Value="true">
+                                                        <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+
+                                <TextBlock FontSize="10"
+                                           Foreground="{StaticResource YellowBrush3}"
+                                           Text="{Binding TotalExpectedProfit, StringFormat={}{0:N2} $}"
+                                           ToolTip="Total expected profit" />
+
+                                <controls:PathButton Margin="5,0,0,0"
+                                                     Glyph="{StaticResource square-poll-horizontal}"
+                                                     GlyphFontSize="18"
+                                                     IconCheckedColor="{StaticResource YellowColor}"
+                                                     IconHoverColor="{StaticResource YellowColor}"
+                                                     IsChecked="{Binding DataContext.ShowClosedPositions, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
                             </StackPanel>
-
-                            <controls:PathButton Glyph="{StaticResource square-poll-horizontal}"
-                                                 GlyphFontSize="18"
-                                                 IconCheckedColor="{StaticResource YellowColor}"
-                                                 IconHoverColor="{StaticResource YellowColor}"
-                                                 IsChecked="{Binding DataContext.ShowClosedPositions, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
-                        </StackPanel>
+                        </Border>
 
                         <Grid Grid.Row="1">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="auto" />
-                                <ColumnDefinition Width="auto" />
-                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="auto" />
+                                <RowDefinition Height="auto" />
+                            </Grid.RowDefinitions>
 
+                            <!--<TextBlock Foreground="White" Text="{Binding DataContext.LayoutIntervals, RelativeSource={RelativeSource AncestorType=Window}}" />-->
+                            <ListView Background="#6005080d" ItemsSource="{Binding DataContext.LayoutIntervals.View, RelativeSource={RelativeSource AncestorType=Window}}">
+                                <ListView.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ListView.ItemsPanel>
 
+                                <ListView.ItemContainerStyle>
+                                    <Style BasedOn="{StaticResource ListViewItemStyle}" TargetType="ListViewItem">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ListViewItem">
+                                                    <Border Padding="5,2">
+                                                        <ContentPresenter />
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ListView.ItemContainerStyle>
 
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="auto" />
-                                    <RowDefinition Height="auto" />
-                                </Grid.RowDefinitions>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Cursor="Hand" Text="{Binding Model.Title}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="#15ffffff" />
 
-                                <ItemsControl Margin="0,5" ItemsSource="{Binding PositionSizeMapping}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Foreground="#25ffffff"
-                                                           Style="{StaticResource {x:Type TextBlock}}"
-                                                           Text="{Binding Key}" />
-                                                <TextBlock Margin="10,0,0,0"
-                                                           Foreground="#25ffffff"
-                                                           Style="{StaticResource {x:Type TextBlock}}"
-                                                           Text="{Binding Value, StringFormat={}{0:N2}}" />
-                                            </StackPanel>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource YellowBrush}" />
+                                                        </Trigger>
 
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource YellowBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
 
-                                <TextBlock Grid.Row="1"
-                                           Foreground="#25ffffff"
-                                           Text="{Binding ScaleSize, StringFormat={}{0} x}" />
+                            <Border Grid.Row="1"
+                                    Padding="5,5,0,5"
+                                    HorizontalAlignment="Left"
+                                    Background="#6005080d">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="auto" />
+                                        <ColumnDefinition Width="auto" />
+                                    </Grid.ColumnDefinitions>
 
-                            </Grid>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="auto" />
+                                            <RowDefinition Height="auto" />
+                                        </Grid.RowDefinitions>
 
-                            <controls:PathButton Grid.Column="1"
-                                                 Margin="10,10"
-                                                 VerticalAlignment="Top"
-                                                 Command="{Binding DataContext.OpenPositionSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                 Glyph="{StaticResource pencil-glyph}"
-                                                 IconHoverColor="{StaticResource YellowColor}"
-                                                 IsReadOnly="True" />
+                                        <ItemsControl Margin="0,5" ItemsSource="{Binding PositionSizeMapping}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Foreground="#25ffffff"
+                                                                   Style="{StaticResource {x:Type TextBlock}}"
+                                                                   Text="{Binding Key}" />
+                                                        <TextBlock Margin="10,0,0,0"
+                                                                   Foreground="#25ffffff"
+                                                                   Style="{StaticResource {x:Type TextBlock}}"
+                                                                   Text="{Binding Value, StringFormat={}{0:N2}}" />
+                                                    </StackPanel>
+
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <TextBlock Grid.Row="1"
+                                                   Foreground="#25ffffff"
+                                                   Text="{Binding ScaleSize, StringFormat={}{0} x}" />
+
+                                    </Grid>
+
+                                    <controls:PathButton Grid.Column="1"
+                                                         Margin="10,10"
+                                                         Padding="0"
+                                                         VerticalAlignment="Top"
+                                                         Command="{Binding DataContext.OpenPositionSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                         Glyph="{StaticResource pencil-glyph}"
+                                                         IconHoverColor="{StaticResource YellowColor}"
+                                                         IconMargin="0"
+                                                         IsReadOnly="True" />
+                                </Grid>
+                            </Border>
                         </Grid>
-
                     </Grid>
                 </Border>
 
@@ -336,6 +400,7 @@
                             <DataTemplate x:Key="OppsitePositions">
 
                                 <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource PositionText}" Text="{Binding ShortId}" />
                                     <TextBlock Style="{StaticResource PositionText}" Text="{Binding FilledDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" />
                                     <TextBlock Style="{StaticResource PositionText}" Text="{Binding Price}" />
                                     <TextBlock Style="{StaticResource PositionText}" Text="{Binding OriginalPositionSizeNative}" />
@@ -349,6 +414,7 @@
                                     <TextBlock Foreground="{StaticResource LightRedBrush}"
                                                Style="{StaticResource PositionText}"
                                                Text="{Binding Fees, StringFormat={}{0:N3} $}" />
+
                                 </StackPanel>
 
                             </DataTemplate>
@@ -388,7 +454,8 @@
                                           ScrollViewer.VerticalScrollBarVisibility="Auto">
 
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Filled Date" />
+                                        <DataGridTextColumn Binding="{Binding ShortId}" Header="Id" />
+                                        <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM HH:mm:ss}}" Header="Filled Date" />
                                         <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
                                         <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
                                         <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
@@ -440,6 +507,7 @@
                                       ScrollViewer.VerticalScrollBarVisibility="Auto">
 
                                 <DataGrid.Columns>
+                                    <DataGridTextColumn Binding="{Binding ShortId}" Header="Id" />
                                     <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Filled Date" />
                                     <DataGridTextColumn Binding="{Binding CompletedDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Completed Date" />
                                     <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
@@ -477,6 +545,7 @@
                                       ItemsSource="{Binding OpenBuyPositions}"
                                       ScrollViewer.VerticalScrollBarVisibility="Auto">
                                 <DataGrid.Columns>
+                                    <DataGridTextColumn Binding="{Binding ShortId}" Header="Id" />
                                     <DataGridTextColumn Binding="{Binding CreatedDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Created Date" />
                                     <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
@@ -494,6 +563,7 @@
                                       ItemsSource="{Binding OpenSellPositions}"
                                       ScrollViewer.VerticalScrollBarVisibility="Auto">
                                 <DataGrid.Columns>
+                                    <DataGridTextColumn Binding="{Binding ShortId}" Header="Id" />
                                     <DataGridTextColumn Binding="{Binding CreatedDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Created Date" />
                                     <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
@@ -515,6 +585,7 @@
                                       ScrollViewer.VerticalScrollBarVisibility="Auto">
 
                                 <DataGrid.Columns>
+                                    <DataGridTextColumn Binding="{Binding ShortId}" Header="Id" />
                                     <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Filled Date" />
                                     <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
                                     <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
@@ -542,6 +613,7 @@
                                       ScrollViewer.VerticalScrollBarVisibility="Auto">
 
                                 <DataGrid.Columns>
+                                    <DataGridTextColumn Binding="{Binding ShortId}" Header="Id" />
                                     <DataGridTextColumn Binding="{Binding FilledDate, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Filled Date" />
                                     <DataGridTextColumn Binding="{Binding State}" Header="State" />
                                     <DataGridTextColumn Binding="{Binding Price}" Header="Price" />
@@ -609,9 +681,6 @@
 
                                         <TextBlock Text="Scale" />
                                         <TextBlock Text="{Binding ScaleSize}" />
-
-
-
                                     </UniformGrid>
                                 </ScrollViewer>
 

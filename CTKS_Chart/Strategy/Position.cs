@@ -52,6 +52,16 @@ namespace CTKS_Chart.Strategy
     public PositionSide Side { get; set; }
     public long Id { get; set; }
 
+    public string ShortId
+    {
+      get
+      {
+        var idString = Id.ToString();
+
+        return idString.Substring(Math.Max(0, idString.Length - 4));
+      }
+    }
+
     #region State
 
     private PositionState state;
@@ -122,7 +132,10 @@ namespace CTKS_Chart.Strategy
     {
       get
       {
-        return OpositPositions != null ? OpositPositions.Sum(x => x.Profit) : 0;
+        if (Side == PositionSide.Buy)
+          return OpositPositions != null ? OpositPositions.Sum(x => x.Profit) : 0;
+
+        return Profit;
       }
     }
 
@@ -130,7 +143,10 @@ namespace CTKS_Chart.Strategy
     {
       get
       {
-        return OpositPositions != null ? OpositPositions.Where(x => x.Fees != null).Sum(x => x.Fees.Value) + (Fees != null ? Fees.Value : 0) : 0;
+        if (Side == PositionSide.Buy)
+          return OpositPositions != null ? OpositPositions.Where(x => x.Fees != null).Sum(x => x.Fees.Value) + (Fees != null ? Fees.Value : 0) : 0;
+
+        return Fees ?? 0;
       }
     }
 
@@ -146,13 +162,22 @@ namespace CTKS_Chart.Strategy
     {
       get
       {
-        if (OpositPositions != null)
+        if (Side == PositionSide.Buy)
         {
-          var totalValue = OpositPositions.Sum(x => x.OriginalPositionSizeNative * x.Price);
-          var totalFees = OpositPositions.Sum(x => x.OriginalPositionSizeNative * x.Price * (decimal)0.001) + Fees ?? 0;
+          if (OpositPositions != null)
+          {
+            var totalValue = OpositPositions.Sum(x => x.OriginalPositionSizeNative * x.Price);
+            var totalFees = OpositPositions.Sum(x => x.OriginalPositionSizeNative * x.Price * (decimal)0.001) + Fees ?? 0;
 
-          return totalValue - totalFees - OriginalPositionSize;
+            return totalValue - totalFees - OriginalPositionSize;
+          }
         }
+        else
+        {
+          var finalSize = Price * OriginalPositionSizeNative;
+          return finalSize - OriginalPositionSize - Fees ?? 0;
+        }
+
 
         return 0;
       }

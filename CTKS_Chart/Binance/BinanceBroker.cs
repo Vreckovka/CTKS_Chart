@@ -76,7 +76,7 @@ namespace CTKS_Chart.Binance
             Low = kline.LowPrice,
             Open = kline.OpenPrice,
             OpenTime = kline.OpenTime,
-            CloseTime = kline.OpenTime.AddMinutes(interval.TotalMinutes)
+            CloseTime = kline.OpenTime.AddMinutes(interval.TotalMinutes),
           });
         }
       }
@@ -255,6 +255,7 @@ namespace CTKS_Chart.Binance
         await subscribeToKlineIntervaLock.WaitAsync();
 
         await socketClient.UnsubscribeAsync(subId);
+
         var sub = await socketClient.SpotApi.ExchangeData.SubscribeToKlineUpdatesAsync(symbol, klineInterval, (x) =>
        {
          onKlineUpdate(x.Data.Data);

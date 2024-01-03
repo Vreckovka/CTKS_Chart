@@ -24,10 +24,13 @@ using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using CTKS_Chart.Views;
 using Logger;
+using VCore.ItemsCollections;
+using VCore.Standard;
 using VCore.Standard.Factories.ViewModels;
 using VCore.Standard.Helpers;
 using VCore.WPF;
 using VCore.WPF.Interfaces.Managers;
+using VCore.WPF.ItemsCollections;
 using VCore.WPF.Logger;
 using VCore.WPF.Misc;
 using VCore.WPF.Other;
@@ -37,6 +40,20 @@ using PositionSide = CTKS_Chart.Strategy.PositionSide;
 
 namespace CTKS_Chart.ViewModels
 {
+  public class LayoutInterval
+  {
+    public string Title { get; set; }
+    public KlineInterval Interval { get; set; }
+    public bool IsFavorite { get; set; }
+  }
+
+  public class LayoutIntervalViewModel : SelectableViewModel<LayoutInterval>
+  {
+    public LayoutIntervalViewModel(LayoutInterval model) : base(model)
+    {
+    }
+  }
+
   public class State
   {
     public decimal TotalValue { get; set; }
@@ -69,6 +86,53 @@ namespace CTKS_Chart.ViewModels
       binanceBroker = new BinanceBroker(logger);
 
       ShowClosedPositions = IsLive;
+
+      foreach (KlineInterval interval in EnumHelper.GetAllValues(KlineInterval.GetType()))
+      {
+        var length = GetTimeSpanFromInterval(interval);
+        var strLength = "";
+        var type = "";
+
+        if (length.TotalMinutes < 1)
+        {
+          strLength = $"{length.TotalSeconds}";
+          type = "s";
+        }
+        else if (length.TotalHours < 1)
+        {
+          strLength = $"{length.TotalMinutes}";
+          type = "m";
+        }
+        else if (length.TotalDays < 1)
+        {
+          strLength = $"{length.TotalHours}";
+          type = "H";
+        }
+        else if (length.TotalDays < 7)
+        {
+          strLength = $"{length.TotalDays}";
+          type = "D";
+        }
+        else if (length.TotalDays < 30)
+        {
+          strLength = $"{length.Days / 7}";
+          type = "W";
+        }
+        else
+        {
+          strLength = $"{length.Days / 30}";
+          type = "M";
+        }
+
+        LayoutIntervals.Add(new LayoutIntervalViewModel(new LayoutInterval()
+        {
+          Interval = interval,
+          Title = $"{strLength}{type}"
+        }));
+      }
+
+      LayoutIntervals.SelectedItem = LayoutIntervals.ViewModels[6];
+      klineInterval = LayoutIntervals.SelectedItem.Model.Interval;
     }
 
     #region Properties
@@ -187,6 +251,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    public ItemsViewModel<LayoutIntervalViewModel> LayoutIntervals { get; } = new ItemsViewModel<LayoutIntervalViewModel>();
 
 #if DEBUG
     public bool Simulation { get; set; } = false;
@@ -281,7 +346,7 @@ namespace CTKS_Chart.ViewModels
         {
           klineInterval = value;
           RaisePropertyChanged();
-          RecreateChart();
+          RecreateChart(true);
         }
       }
     }
@@ -289,6 +354,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
     public ObservableCollection<Layout> Layouts { get; set; } = new ObservableCollection<Layout>();
+
 
     #region Selected
 
@@ -620,7 +686,7 @@ namespace CTKS_Chart.ViewModels
             await TradingBot.Strategy.OnCancelPosition(buy);
           }
         }
-     
+
       }
     }
 
@@ -667,6 +733,11 @@ namespace CTKS_Chart.ViewModels
     {
       //var tradingView_12m = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\BTC-USD.csv";
 
+      LayoutIntervals.OnActualItemChanged.Subscribe(x =>
+      {
+        if (x != null)
+          KlineInterval = x.Model.Interval;
+      });
 
       var location = "Data";
 
@@ -843,6 +914,7 @@ namespace CTKS_Chart.ViewModels
       else
       {
         ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
+
         await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
       }
 
@@ -876,19 +948,21 @@ namespace CTKS_Chart.ViewModels
 
     #region RecreateChart
 
-    private async void RecreateChart()
+    private async void RecreateChart(bool fetchNewCandles = false)
     {
       if (IsLive)
       {
-        ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
-        await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
+        if (fetchNewCandles)
+        {
+          ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, GetTimeSpanFromInterval(KlineInterval))).ToList();
+          await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
+        }
 
         if (ActualCandles.Count > 0)
         {
           RenderLayout(MainLayout, InnerLayouts, ActualCandles.Last(), ActualCandles);
         }
       }
-
     }
 
     #endregion
@@ -1407,8 +1481,11 @@ namespace CTKS_Chart.ViewModels
           desiredCanvasHeight = chart.MinDrawnPoint;
         }
 
+        var chartCandles = chart.Candles.ToList();
+
         RenderIntersections(dc, layout, ctksIntersections,
           strategy.AllOpenedPositions.ToList(),
+          chartCandles,
           desiredCanvasHeight,
           imageHeight,
           imageWidth,
@@ -1420,7 +1497,7 @@ namespace CTKS_Chart.ViewModels
 
           RenderClosedPosiotions(dc, layout,
             validPositions,
-            chart.Candles,
+            chartCandles,
             imageHeight,
             imageWidth);
         }
@@ -1465,6 +1542,7 @@ namespace CTKS_Chart.ViewModels
       Layout layout,
       IEnumerable<CtksIntersection> intersections,
       IList<Position> allPositions,
+      IList<ChartCandle> candles,
       double desiredHeight,
       double canvasHeight,
       double canvasWidth,
@@ -1473,6 +1551,9 @@ namespace CTKS_Chart.ViewModels
     {
       var maxCanvasValue = (decimal)GetValueFromCanvas(desiredHeight, desiredHeight, layout.MaxValue, layout.MinValue);
       var minCanvasValue = (decimal)GetValueFromCanvas(desiredHeight, -2 * (desiredHeight - canvasHeight), layout.MaxValue, layout.MinValue);
+
+      maxCanvasValue = Math.Max(maxCanvasValue, candles.Max(x => x.Candle.High.Value));
+      minCanvasValue = Math.Min(minCanvasValue, candles.Min(x => x.Candle.Low.Value));
 
       var validIntersection = intersections
         .Where(x => x.Value > minCanvasValue && x.Value < maxCanvasValue && minTimeframe <= x.TimeFrame)
@@ -1534,7 +1615,7 @@ namespace CTKS_Chart.ViewModels
       DrawingContext drawingContext,
       Layout layout,
       IEnumerable<Position> positions,
-      IEnumerable<ChartCandle> candles,
+      IList<ChartCandle> candles,
       double canvasHeight,
       double canvasWidth,
       TimeFrame minTimeframe = TimeFrame.W1
@@ -1603,12 +1684,12 @@ namespace CTKS_Chart.ViewModels
           Low = binanceStreamKline.LowPrice,
           Open = binanceStreamKline.OpenPrice,
           CloseTime = binanceStreamKline.CloseTime,
-          OpenTime = binanceStreamKline.OpenTime
+          OpenTime = binanceStreamKline.OpenTime,
         };
 
         var lastCandle = ActualCandles.Last();
 
-        if (lastCandle.OpenTime != actual.OpenTime)
+        if (lastCandle.OpenTime != actual.OpenTime && lastCandle.OpenTime < actual.OpenTime && lastCandle.CloseTime < actual.CloseTime)
         {
           ActualCandles.Add(actual);
         }
