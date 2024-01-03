@@ -517,9 +517,11 @@ namespace CTKS_Chart.Strategy
             leftSize = leftSize - existing;
           }
 
-          var stack = new Stack<Position>(OpenBuyPositions.OrderByDescending(x => x.Price));
+          var stack = new Stack<Position>(OpenBuyPositions.Where(x => intersection.Value > x.Price).OrderByDescending(x => x.Price));
+          var openBuy = stack.Sum(x => x.PositionSize);
 
-          while (Budget < leftSize && stack.Count > 0)
+         
+          while (Budget < leftSize &&  Budget + openBuy > leftSize)
           {
             var openLow = stack.Pop();
 
