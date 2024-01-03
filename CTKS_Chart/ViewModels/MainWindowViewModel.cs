@@ -262,7 +262,7 @@ namespace CTKS_Chart.ViewModels
 #endif
 
 #if DEBUG
-    public bool IsLive { get; set; } = false;
+    public bool IsLive { get; set; } = true;
 #endif
 
 #if RELEASE
@@ -704,6 +704,12 @@ namespace CTKS_Chart.ViewModels
 
       MainGrid.Children.Add(ChartImage);
 
+      LayoutIntervals.OnActualItemChanged.Subscribe(x =>
+      {
+        if (x != null)
+          KlineInterval = x.Model.Interval;
+      });
+
       LoadLayoutSettings();
       ForexChart_Loaded();
 
@@ -733,11 +739,7 @@ namespace CTKS_Chart.ViewModels
     {
       //var tradingView_12m = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\BTC-USD.csv";
 
-      LayoutIntervals.OnActualItemChanged.Subscribe(x =>
-      {
-        if (x != null)
-          KlineInterval = x.Model.Interval;
-      });
+     
 
       var location = "Data";
 
@@ -961,7 +963,7 @@ namespace CTKS_Chart.ViewModels
 
         if (ActualCandles.Count > 0)
         {
-          RenderLayout(MainLayout, InnerLayouts, ActualCandles.Last(), ActualCandles);
+          RenderOverlay(MainLayout, ctksIntersections, TradingBot.Strategy, ActualCandles);
         }
       }
     }
@@ -1138,8 +1140,6 @@ namespace CTKS_Chart.ViewModels
         {
           Console.WriteLine("NO INTERSECTIONS, DOING NOTHING !");
         }
-
-
 
         if (!Simulation)
           RenderOverlay(layout, ctksIntersections, TradingBot.Strategy, candles);

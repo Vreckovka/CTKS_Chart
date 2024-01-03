@@ -6,8 +6,11 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Forms;
+using System.Windows.Input;
 using CTKS_Chart.ViewModels;
 using VCore.Standard.Modularity.Interfaces;
+using Control = System.Windows.Controls.Control;
 
 #pragma warning disable 618
 
@@ -155,16 +158,33 @@ namespace CTKS_Chart.Views
 
     private void Border_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
     {
+      var delta = 0.005;
       if (DataContext is MainWindowViewModel viewModel)
       {
-        if (e.Delta > 0)
+        if (Keyboard.Modifiers == ModifierKeys.Control)
         {
-          viewModel.MaxValue *= (decimal)0.995;
+          if (e.Delta > 0)
+          {
+            viewModel.MinValue *= (decimal)(1 - delta);
+          }
+          else
+          {
+            viewModel.MinValue *= (decimal)(1 + delta);
+          }
         }
         else
         {
-          viewModel.MaxValue *= (decimal)1.005;
+          if (e.Delta > 0)
+          {
+            viewModel.MaxValue *= (decimal)(1 - delta);
+          }
+          else
+          {
+            viewModel.MaxValue *= (decimal)(1 + delta);
+          }
         }
+
+       
       }
     }
   }
