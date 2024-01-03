@@ -254,7 +254,7 @@ namespace CTKS_Chart.ViewModels
     public ItemsViewModel<LayoutIntervalViewModel> LayoutIntervals { get; } = new ItemsViewModel<LayoutIntervalViewModel>();
 
 #if DEBUG
-    public bool Simulation { get; set; } = false;
+    public bool Simulation { get; set; } = true;
 #endif
 
 #if RELEASE
@@ -262,7 +262,7 @@ namespace CTKS_Chart.ViewModels
 #endif
 
 #if DEBUG
-    public bool IsLive { get; set; } = true;
+    public bool IsLive { get; set; } = false;
 #endif
 
 #if RELEASE
@@ -742,12 +742,13 @@ namespace CTKS_Chart.ViewModels
       var location = "Data";
 
       var tradingView_btc_12m = $"{location}\\INDEX BTCUSD, 12M.csv";
-      var tradingView_btc_6m = $"{location}\\INDEX BTCUSD, 6M.csv";
-      var tradingView_btc_3m = $"{location}\\INDEX BTCUSD, 3M.csv";
-      var tradingView_btc_1m = $"{location}\\INDEX BTCUSD, 1M.csv";
+      var tradingView_btc_6M = $"{location}\\INDEX BTCUSD, 6M.csv";
+      var tradingView_btc_3M = $"{location}\\INDEX BTCUSD, 3M.csv";
+      var tradingView_btc_1M = $"{location}\\INDEX BTCUSD, 1M.csv";
       var tradingView_btc_2W = $"{location}\\INDEX BTCUSD, 2W.csv";
       var tradingView_btc_1W = $"{location}\\INDEX BTCUSD, 1W.csv";
       var tradingView_btc_1D = $"{location}\\INDEX BTCUSD, 1D.csv";
+      var tradingView_btc_1m = $"{location}\\BINANCE BTCUSDT, 1.csv";
 
       var tradingView_btc_720m = $"{location}\\INDEX BTCUSD, 720.csv";
       var tradingView_btc_240m = $"{location}\\INDEX BTCUSD, 240.csv";
@@ -791,9 +792,9 @@ namespace CTKS_Chart.ViewModels
 
       var btc = new Dictionary<string, TimeFrame> {
         {tradingView_btc_12m, TimeFrame.M12},
-        {tradingView_btc_6m, TimeFrame.M6},
-        {tradingView_btc_3m, TimeFrame.M3},
-        {tradingView_btc_1m, TimeFrame.M1},
+        {tradingView_btc_6M, TimeFrame.M6},
+        {tradingView_btc_3M, TimeFrame.M3},
+        {tradingView_btc_1M, TimeFrame.M1},
         {tradingView_btc_2W, TimeFrame.W2},
         {tradingView_btc_1W, TimeFrame.W1},
       };
@@ -886,7 +887,7 @@ namespace CTKS_Chart.ViewModels
 
         var maxDate = mainCandles.First().CloseTime;
 
-        await LoadLayouts(MainLayout, mainCandles, maxDate, 0, mainCandles.Count, true);
+        await LoadLayouts(MainLayout, mainCandles, maxDate, 1500, mainCandles.Count, true);
       }
     }
 
@@ -1634,7 +1635,7 @@ namespace CTKS_Chart.ViewModels
         pen.Thickness = GetPositionThickness(frame);
 
         var lineY = canvasHeight - actual;
-        var candle = candles.SingleOrDefault(x => x.Candle.OpenTime < position.FilledDate && x.Candle.CloseTime > position.FilledDate);
+        var candle = candles.FirstOrDefault(x => x.Candle.OpenTime < position.FilledDate && x.Candle.CloseTime > position.FilledDate);
 
         if (frame >= minTimeframe && candle != null)
         {

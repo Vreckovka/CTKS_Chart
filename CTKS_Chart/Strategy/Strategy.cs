@@ -38,6 +38,7 @@ namespace CTKS_Chart.Strategy
       var multi = 100;
       var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
+      StartingBudget = 2000;
       StartingBudget *= multi;
       Budget = StartingBudget;
 
@@ -47,6 +48,8 @@ namespace CTKS_Chart.Strategy
       }
 
       PositionSizeMapping = newss;
+      ScaleSize = 0.5;
+      //499
 #endif
     }
 
@@ -514,15 +517,15 @@ namespace CTKS_Chart.Strategy
             leftSize = leftSize - existing;
           }
 
+          var stack = new Stack<Position>(OpenBuyPositions.OrderByDescending(x => x.Price));
 
-          while (Budget < leftSize)
+          while (Budget < leftSize && stack.Count > 0)
           {
-            var openLow = OpenBuyPositions.OrderBy(x => x.Price).FirstOrDefault();
+            var openLow = stack.Pop();
 
             if (openLow != null &&
                 intersection.Value > openLow.Price &&
-                openLow.Intersection.Value != intersection.Value &&
-                openLow.OriginalPositionSize + Budget > leftSize)
+                openLow.Intersection.Value != intersection.Value)
             {
               Logger?.Log(MessageType.Warning, $"Cancelling position {openLow.Intersection.Value} in order to create another {intersection.Value}", simpleMessage: true);
 

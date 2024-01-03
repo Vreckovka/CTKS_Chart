@@ -128,7 +128,7 @@ namespace CTKS_Chart.Views
 
     public void SortActualPositions()
     {
-      SortDataGrid(ActualPositions, sortDirection: ListSortDirection.Descending);
+      SortDataGrid(ActualPositions,7);
       SortDataGrid(Loggs, sortDirection: ListSortDirection.Descending);
     }
 
