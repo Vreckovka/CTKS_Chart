@@ -242,7 +242,7 @@ namespace CTKS_Chart.Binance
     }
 
     #endregion
-
+    
     #region SubscribeToKlineInterval
 
     private SemaphoreSlim subscribeToKlineIntervaLock = new SemaphoreSlim(1, 1);

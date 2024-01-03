@@ -61,8 +61,18 @@ namespace CTKS_Chart.Strategy
 
     public Asset Asset { get; set; }
     public decimal MinPositionValue { get; set; } = 6;
-
     public ILogger Logger { get; set; }
+
+    public Dictionary<TimeFrame, decimal> PositionWeight { get; } = new Dictionary<TimeFrame, decimal>()
+    {
+      {TimeFrame.M12, 7},
+      {TimeFrame.M6, 6},
+      {TimeFrame.M3, 5},
+      {TimeFrame.M1, 3},
+      {TimeFrame.W2, 2},
+      {TimeFrame.W1, 1},
+    };
+
 
 
     #region StrategyData
@@ -473,19 +483,19 @@ namespace CTKS_Chart.Strategy
           .OrderByDescending(x => x.Value)
           .ToList();
 
-        var minValue = PositionSizeMapping.OrderBy(x => x.Value).First().Value;
-
         foreach (var intersection in inter)
         {
           var positionsOnIntersesction = AllOpenedPositions
-            .Where(x => x.Intersection?.Value == intersection.Value)
+            .Where(x => x.Intersection?.Value == intersection.Value &&
+                        x.Intersection.TimeFrame == intersection.TimeFrame)
             .ToList();
 
           var maxPOsitionOnIntersection = GetPositionSize(intersection.TimeFrame);
           var sum = positionsOnIntersesction.Sum(x => x.PositionSize);
 
           var existing = ActualPositions
-            .Where(x => x.Intersection.Value == intersection.Value)
+            .Where(x => x.Intersection.Value == intersection.Value &&
+                        x.Intersection.TimeFrame == intersection.TimeFrame)
             .Sum(x => x.OpositPositions.Sum(y => y.PositionSize));
 
           var leftSize = maxPOsitionOnIntersection - sum;
@@ -824,7 +834,6 @@ namespace CTKS_Chart.Strategy
         while (id == 0)
         {
           id = await CreatePosition(sell);
-
 
           if (id > 0)
           {

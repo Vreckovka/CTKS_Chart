@@ -266,7 +266,7 @@ namespace CTKS_Chart.Strategy
         File.WriteAllText(Path.Combine(path, "cloedSell.json"), cloedSell);
         File.WriteAllText(Path.Combine(path, "closedBuy.json"), closedBuy);
         File.WriteAllText(Path.Combine(path, "data.json"), data);
-      } 
+      }
     }
 
     #endregion

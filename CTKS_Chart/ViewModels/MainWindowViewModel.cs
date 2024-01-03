@@ -67,6 +67,8 @@ namespace CTKS_Chart.ViewModels
 
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
       binanceBroker = new BinanceBroker(logger);
+
+      ShowClosedPositions = IsLive;
     }
 
     #region Properties
@@ -76,6 +78,7 @@ namespace CTKS_Chart.ViewModels
     public const string RED_HEX = "f74343";
     public const string POSITION_OPACITY = "40";
 
+#if !DEBUG
     public SolidColorBrush GreenBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{GREEN_HEX}");
     public SolidColorBrush BuyBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{POSITION_OPACITY}{GREEN_HEX}");
 
@@ -83,6 +86,16 @@ namespace CTKS_Chart.ViewModels
 
     public SolidColorBrush RedBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{RED_HEX}");
     public SolidColorBrush SellBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{POSITION_OPACITY}{RED_HEX}");
+
+#else
+    public SolidColorBrush GreenBrush { get; } = Brushes.Green;
+    public SolidColorBrush BuyBrush { get; } = Brushes.Green;
+
+    public SolidColorBrush GrayBrush { get; } = Brushes.Gray;
+
+    public SolidColorBrush RedBrush { get; } = Brushes.Red;
+    public SolidColorBrush SellBrush { get; } = Brushes.Red;
+#endif
 
     #region TradingBot
 
@@ -135,7 +148,9 @@ namespace CTKS_Chart.ViewModels
         {
           showClosedPositions = value;
 
-          RenderLayout(MainLayout, InnerLayouts, actual, ActualCandles);
+          if (MainLayout != null)
+            RenderLayout(MainLayout, InnerLayouts, actual, ActualCandles);
+
           RaisePropertyChanged();
         }
       }
@@ -143,7 +158,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region 
+    #region  ConsoleCollectionLogger
 
     public CollectionLogger ConsoleCollectionLogger
     {
@@ -152,7 +167,6 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-
 
     #region Logger
 
@@ -575,6 +589,43 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region OpenPositionSize
+
+    protected ActionCommand openPositionSize;
+
+    public ICommand OpenPositionSize
+    {
+      get
+      {
+        return openPositionSize ??= new ActionCommand(OnOpenPositionSize);
+      }
+    }
+
+    protected async void OnOpenPositionSize()
+    {
+      var vm = new PositionSizeViewModel(TradingBot.Strategy, actual, windowManager);
+      var positionResult = windowManager.ShowQuestionPrompt<PositionSizeView, PositionSizeViewModel>(vm);
+
+      if (positionResult == PromptResult.Ok)
+      {
+        var result = windowManager.ShowQuestionPrompt("Do you really want to apply these changes?", "Position size mapping");
+
+        if (result == PromptResult.Ok)
+        {
+          TradingBot.Strategy.PositionSizeMapping = vm.PositionSizeMapping;
+
+          var list = TradingBot.Strategy.OpenBuyPositions.ToList();
+          foreach (var buy in list)
+          {
+            await TradingBot.Strategy.OnCancelPosition(buy);
+          }
+        }
+     
+      }
+    }
+
+    #endregion
+
     #endregion
 
     #region Methods
@@ -609,7 +660,7 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-  
+
     #region ForexChart_Loaded
 
     private async void ForexChart_Loaded()
@@ -1004,6 +1055,7 @@ namespace CTKS_Chart.ViewModels
             ((MainWindow)Window).SortActualPositions();
           }
 
+
           TradingBot.Strategy.ValidatePositions(actual);
           TradingBot.Strategy.CreatePositions(actual);
         }
@@ -1362,14 +1414,16 @@ namespace CTKS_Chart.ViewModels
           imageWidth,
           IsLive ? TimeFrame.W1 : TimeFrame.M1);
 
-        var validPositions = strategy.AllClosedPositions.Where(x => x.FilledDate > candles.First().OpenTime).ToList();
-
         if (ShowClosedPositions)
+        {
+          var validPositions = strategy.AllClosedPositions.Where(x => x.FilledDate > candles.First().OpenTime).ToList();
+
           RenderClosedPosiotions(dc, layout,
             validPositions,
             chart.Candles,
             imageHeight,
             imageWidth);
+        }
 
         DrawActualPrice(dc, layout, candles, imageHeight, imageWidth);
       }
@@ -1672,7 +1726,7 @@ namespace CTKS_Chart.ViewModels
 
     private void LoadLayoutSettings()
     {
-      if (File.Exists(layoutPath))
+      if (File.Exists(layoutPath) && IsLive)
       {
         var data = File.ReadAllText(layoutPath);
         var settings = JsonSerializer.Deserialize<LayoutSettings>(data);
@@ -1688,12 +1742,16 @@ namespace CTKS_Chart.ViewModels
 
     public void SaveLayoutSettings()
     {
-      var settings = new LayoutSettings()
+      if (IsLive)
       {
-        ShowClosedPositions = ShowClosedPositions
-      };
+        var settings = new LayoutSettings()
+        {
+          ShowClosedPositions = ShowClosedPositions
+        };
 
-      File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings));
+        File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings));
+      }
+
     }
 
     #endregion

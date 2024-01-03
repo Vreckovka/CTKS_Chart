@@ -1,6 +1,4 @@
-﻿//ADD <GenerateAssemblyInfo>false</GenerateAssemblyInfo> to project
-
-<#@ template debug="false" hostspecific="false" language="C#" #>
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
 <#@ output extension=".cs" #>
 
 using System.Reflection;
