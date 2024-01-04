@@ -50,7 +50,8 @@ namespace CTKS_Chart.ViewModels
     FILLED_SELL,
     NO_POSITION,
     ACTIVE_BUY,
-    AVERAGE_BUY
+    AVERAGE_BUY,
+    ATH
   }
 
   public class ColorSchemeViewModel
@@ -121,6 +122,8 @@ namespace CTKS_Chart.ViewModels
     public IEnumerable<ColorSetting> ColorSettings { get; set; }
 
     public bool ShowAveragePrice { get; set; }
+
+    public bool ShowATH { get; set; }
 
   }
 
@@ -239,6 +242,11 @@ namespace CTKS_Chart.ViewModels
           Brush = "#ffFFff",
           Purpose = ColorPurpose.AVERAGE_BUY
         })},
+        {ColorPurpose.ATH, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#00FFFF",
+          Purpose = ColorPurpose.ATH
+        })},
       };
     }
 
@@ -334,8 +342,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
-
     #region ShowAveragePrice
 
     private bool showAveragePrice;
@@ -355,6 +361,24 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region ShowATH
+
+    private bool showATH;
+
+    public bool ShowATH
+    {
+      get { return showATH; }
+      set
+      {
+        if (value != showATH)
+        {
+          showATH = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
 
 
 
@@ -418,7 +442,7 @@ namespace CTKS_Chart.ViewModels
       {
         if (value != maxValue)
         {
-          maxValue = value;
+          maxValue = Math.Round(value, TradingBot.Asset.PriceRound);
           RaisePropertyChanged();
           MainLayout.MaxValue = MaxValue;
           TradingBot.Asset.StartMaxPrice = MaxValue;
@@ -441,12 +465,14 @@ namespace CTKS_Chart.ViewModels
       {
         if (value != minValue)
         {
-          minValue = value;
-          RaisePropertyChanged();
+          minValue = Math.Round(value, TradingBot.Asset.PriceRound);
+         
           MainLayout.MinValue = MinValue;
           TradingBot.Asset.StartLowPrice = MinValue;
 
           RecreateChart();
+
+          RaisePropertyChanged();
         }
       }
     }
@@ -688,7 +714,12 @@ namespace CTKS_Chart.ViewModels
 
     protected virtual async void OnResetBot()
     {
-      await TradingBot.Strategy.Reset(actual);
+      var answer = windowManager.ShowQuestionPrompt("Do you really want to RESET bot?", "Reset Bot");
+      if (answer == PromptResult.Ok)
+      {
+        await TradingBot.Strategy.Reset(actual);
+      }
+    
     }
 
     #endregion
@@ -1676,6 +1707,9 @@ namespace CTKS_Chart.ViewModels
 
         if (ShowAveragePrice)
           DrawAveragePrice(dc, layout, TradingBot.Strategy.AvrageBuyPrice, imageHeight, imageWidth);
+
+        if (ShowATH)
+          DrawPriceToATH(dc, layout, imageHeight, imageWidth);
       }
 
       DrawingImage dImageSource = new DrawingImage(dGroup);
@@ -1712,21 +1746,78 @@ namespace CTKS_Chart.ViewModels
 
     public void DrawAveragePrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
     {
-      if(price > 0)
+      if (price > 0)
       {
         var close = GetCanvasValue(canvasHeight, price, layout.MaxValue, layout.MinValue);
 
         var lineY = canvasHeight - close;
 
         var brush = GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AVERAGE_BUY].Brush);
-        var pen = new Pen(brush, 2);
+        var pen = new Pen(brush, 1.5);
         pen.DashStyle = DashStyles.Dash;
 
-        var text = GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 20);
-        drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 25, lineY - text.Height - 5));
+        var text = GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
+        drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));
         drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
       }
-   
+
+    }
+
+    #endregion
+
+    #region DrawPriceToATH
+
+    public void DrawPriceToATH(DrawingContext drawingContext, Layout layout, double canvasHeight, double canvasWidth)
+    {
+      if (lastStates.Count > 0)
+      {
+        var ath = lastStates.Max(x => x.TotalValue);
+        var strategy = TradingBot.Strategy;
+
+        var allOpen = strategy.OpenBuyPositions.Sum(x => x.PositionSize);
+        var leftValue = allOpen + strategy.Budget;
+
+        var total = leftValue;
+        var totalNative = strategy.OpenSellPositions.Sum(x => x.PositionSizeNative);
+
+        decimal price = 0;
+        var sells = strategy.OpenSellPositions.OrderBy(x => x.Price).ToList();
+        for (int i = 0; i < sells.Count; i++)
+        {
+          var sell = sells[i];
+          var nextSell = strategy.OpenSellPositions[i + 1];
+
+          total += sell.Price * sell.OriginalPositionSizeNative;
+          totalNative -= sell.OriginalPositionSizeNative;
+
+          var actualTotal = total + sell.Price * totalNative;
+          var nextTotal = total + nextSell.Price * totalNative;
+
+          if (nextTotal > ath)
+          {
+            var ntn = sell.Price * totalNative;
+            var y = (ath - actualTotal);
+
+            price = (ntn + y) / totalNative;
+            break;
+          }
+        }
+
+        if (price > 0)
+        {
+          var close = GetCanvasValue(canvasHeight, price, layout.MaxValue, layout.MinValue);
+
+          var lineY = canvasHeight - close;
+
+          var brush = GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.ATH].Brush);
+          var pen = new Pen(brush, 1.5);
+          pen.DashStyle = DashStyles.Dash;
+
+          var text = GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
+          drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));
+          drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
+        }
+      }
     }
 
     #endregion
@@ -1842,7 +1933,7 @@ namespace CTKS_Chart.ViewModels
 
         if (frame >= minTimeframe && candle != null)
         {
-          FormattedText formattedText = GetFormattedText(position.Side.ToString(), selectedBrush);
+          FormattedText formattedText = GetFormattedText(position.Side.ToString(), selectedBrush, position.State == PositionState.Filled ? 15 : 12);
 
           drawingContext.DrawText(formattedText, new Point(candle.Body.X - 35, lineY - formattedText.Height / 2));
         }
@@ -2049,6 +2140,7 @@ namespace CTKS_Chart.ViewModels
           }
 
           ShowAveragePrice = settings.ShowAveragePrice;
+          ShowATH = settings.ShowATH;
         }
       }
     }
@@ -2066,7 +2158,8 @@ namespace CTKS_Chart.ViewModels
           ShowClosedPositions = ShowClosedPositions,
           LayoutInterval = LayoutIntervals.SelectedItem.Model.Interval,
           ColorSettings = ColorScheme.ColorSettings.Select(x => x.Value.Model),
-          ShowAveragePrice = ShowAveragePrice
+          ShowAveragePrice = ShowAveragePrice,
+          ShowATH = ShowATH
         };
 
         var options = new JsonSerializerOptions()

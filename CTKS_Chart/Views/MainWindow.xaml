@@ -58,13 +58,8 @@
 
                         <MenuItem Header="Default">
                             <Border Padding="10">
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition />
-                                        <RowDefinition />
-                                    </Grid.RowDefinitions>
-
-                                    <StackPanel Grid.Row="1" Orientation="Horizontal">
+                                <UniformGrid Columns="1">
+                                    <StackPanel Margin="5" Orientation="Horizontal">
                                         <Button Width="120"
                                                 Margin="10,0,10,0"
                                                 Command="{Binding ShowLines}">
@@ -76,31 +71,40 @@
                                             Show intersections
                                         </Button>
 
-                                        <TextBox Width="120"
-                                                 Margin="10,0,10,0"
-                                                 Text="{Binding MaxValue}" />
-                                        <TextBox Width="120"
-                                                 Margin="10,0,10,0"
-                                                 Text="{Binding MinValue}" />
-
-                                        <TextBox Width="120"
-                                                 Margin="10,0,10,0"
-                                                 Text="{Binding CandleCount}" />
-
-
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="Min buy % " />
-                                            <TextBox Width="120"
-                                                     Margin="10,0,10,0"
-                                                     Text="{Binding TradingBot.Strategy.MinBuyPrice}" />
-
-                                        </StackPanel>
-
                                         <Button Width="120"
                                                 Margin="10,0,10,0"
                                                 Command="{Binding ResetBot}">
                                             Reset Bot
                                         </Button>
+
+
+
+
+                                    </StackPanel>
+
+                                    <StackPanel Margin="5" Orientation="Horizontal">
+                                        <TextBox Width="80"
+                                                 Margin="10,0,10,0"
+                                                 Text="{Binding MaxValue}" />
+                                        <TextBox Width="80"
+                                                 Margin="10,0,10,0"
+                                                 Text="{Binding MinValue}" />
+
+                                        <TextBox Width="50"
+                                                 Margin="10,0,10,0"
+                                                 Text="{Binding CandleCount}" />
+                                    </StackPanel>
+
+                                    <StackPanel Margin="5" Orientation="Horizontal">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock VerticalAlignment="Center" Text="Min buy % " />
+                                            <TextBox Width="40"
+                                                     Margin="10,0,10,0"
+                                                     Text="{Binding TradingBot.Strategy.MinBuyPrice}" />
+
+                                        </StackPanel>
+
+
 
                                         <CheckBox Width="120"
                                                   Margin="10,0,10,0"
@@ -108,8 +112,15 @@
                                             Show Average Price
                                         </CheckBox>
 
+
+                                        <CheckBox Width="120"
+                                                  Margin="10,0,10,0"
+                                                  IsChecked="{Binding ShowATH}">
+                                            Show All Time High Price
+                                        </CheckBox>
+
                                     </StackPanel>
-                                </Grid>
+                                </UniformGrid>
                             </Border>
                         </MenuItem>
 
