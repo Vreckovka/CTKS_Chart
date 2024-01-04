@@ -215,7 +215,7 @@ namespace CTKS_Chart.ViewModels
         {ColorPurpose.FILLED_SELL, new ColorSettingViewModel(new ViewModels.ColorSetting()
         {
           Brush = "#ff0000",
-          Purpose = ColorPurpose.RED
+          Purpose = ColorPurpose.FILLED_SELL
         })},
         {ColorPurpose.SELL, new ColorSettingViewModel(new ViewModels.ColorSetting()
         {
@@ -844,7 +844,12 @@ namespace CTKS_Chart.ViewModels
         if (Math.Round(activeTime.TotalSeconds, 0) % 10 == 0 && IsLive)
         {
           TradingBot.Asset.RunTimeTicks = TotalRunTime.Ticks;
-          var json = JsonSerializer.Serialize<Asset>(TradingBot.Asset);
+          var options = new JsonSerializerOptions()
+          {
+            WriteIndented = true
+          };
+
+          var json = JsonSerializer.Serialize<Asset>(TradingBot.Asset, options);
           File.WriteAllText("asset.json", json);
         }
       });
@@ -1954,7 +1959,7 @@ namespace CTKS_Chart.ViewModels
             var lsit = ColorScheme.ColorSettings.ToList();
             foreach (var setting in lsit)
             {
-              var found = settings.ColorSettings.SingleOrDefault(x => x.Purpose == setting.Key);
+              var found = settings.ColorSettings.FirstOrDefault(x => x.Purpose == setting.Key);
 
               if (found != null)
                 ColorScheme.ColorSettings[setting.Key] = new ColorSettingViewModel(found);
@@ -1979,7 +1984,12 @@ namespace CTKS_Chart.ViewModels
           ColorSettings = ColorScheme.ColorSettings.Select(x => x.Value.Model)
         };
 
-        File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings));
+        var options = new JsonSerializerOptions()
+        {
+          WriteIndented = true
+        };
+
+        File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings,options));
       }
 
     }

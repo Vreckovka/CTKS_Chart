@@ -46,7 +46,7 @@ namespace CTKS_Chart.Strategy
       await binanceBroker.SubscribeUserStream(OnOrderUpdate);
     }
 
-#region OnOrderUpdate
+    #region OnOrderUpdate
 
     private async void OnOrderUpdate(DataEvent<BinanceStreamOrderUpdate> data)
     {
@@ -109,9 +109,9 @@ namespace CTKS_Chart.Strategy
       }
     }
 
-#endregion
+    #endregion
 
-#region RefreshState
+    #region RefreshState
 
     public override async Task RefreshState()
     {
@@ -152,9 +152,9 @@ namespace CTKS_Chart.Strategy
       }
     }
 
-#endregion
+    #endregion
 
-#region FetchMissingInfo
+    #region FetchMissingInfo
 
     public async Task FetchMissingInfo()
     {
@@ -208,9 +208,9 @@ namespace CTKS_Chart.Strategy
       }
     }
 
-#endregion
+    #endregion
 
-#region CancelPosition
+    #region CancelPosition
 
     protected override async Task<bool> CancelPosition(Position position)
     {
@@ -222,9 +222,9 @@ namespace CTKS_Chart.Strategy
 #endif
     }
 
-#endregion
+    #endregion
 
-#region CreatePosition
+    #region CreatePosition
 
     private static int FakeId = 1;
     protected override async Task<long> CreatePosition(Position position)
@@ -241,9 +241,9 @@ namespace CTKS_Chart.Strategy
 
     }
 
-#endregion
+    #endregion
 
-#region SaveState
+    #region SaveState
 
     private object saveLock = new object();
     public override void SaveState()
@@ -271,9 +271,9 @@ namespace CTKS_Chart.Strategy
       }
     }
 
-#endregion
+    #endregion
 
-#region LoadState
+    #region LoadState
 
     public override void LoadState()
     {
@@ -336,7 +336,7 @@ namespace CTKS_Chart.Strategy
           TotalNativeAsset = decimal.Parse(File.ReadAllText(Path.Combine(path, "native.json")));
         }
 
-     
+
         ActualPositions = new System.Collections.ObjectModel.ObservableCollection<Position>(ClosedBuyPositions.Where(x => x.State == PositionState.Filled));
 
         RaisePropertyChanged(nameof(TotalBuy));
@@ -346,9 +346,9 @@ namespace CTKS_Chart.Strategy
       }
     }
 
-#endregion
+    #endregion
 
-#region GetFees
+    #region GetFees
 
     private async Task<decimal?> GetFees(decimal fee, string feeAsset)
     {
@@ -366,6 +366,6 @@ namespace CTKS_Chart.Strategy
       }
     }
 
-#endregion
+    #endregion
   }
 }
