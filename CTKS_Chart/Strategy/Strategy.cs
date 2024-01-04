@@ -520,36 +520,33 @@ namespace CTKS_Chart.Strategy
           var stack = new Stack<Position>(OpenBuyPositions.Where(x => intersection.Value > x.Price).OrderByDescending(x => x.Price));
           var openBuy = stack.Sum(x => x.PositionSize);
 
-         
-          while (Budget < leftSize &&  Budget + openBuy > leftSize)
+
+          if (leftSize > MinPositionValue)
           {
-            var openLow = stack.Pop();
-
-            if (openLow != null &&
-                intersection.Value > openLow.Price &&
-                openLow.Intersection.Value != intersection.Value)
+            while (Budget < leftSize && Budget + openBuy > leftSize)
             {
-              Logger?.Log(MessageType.Warning, $"Cancelling position {openLow.Intersection.Value} in order to create another {intersection.Value}", simpleMessage: true);
+              var openLow = stack.Pop();
 
-              await OnCancelPosition(openLow);
-
-              leftSize = maxPOsitionOnIntersection - sum;
-
-              if (existing > 0)
+              if (openLow != null &&
+                  intersection.Value > openLow.Price &&
+                  openLow.Intersection.Value != intersection.Value)
               {
-                leftSize = leftSize - existing;
+                Logger?.Log(MessageType.Warning, $"Cancelling position {openLow.Intersection.Value} in order to create another {intersection.Value}", simpleMessage: true);
+
+                await OnCancelPosition(openLow);
+              }
+              else
+              {
+                break;
               }
             }
-            else
+
+            if (Budget > leftSize)
             {
-              break;
+              await CreateBuyPosition(leftSize, intersection);
             }
           }
-
-          if (leftSize > MinPositionValue && Budget > leftSize)
-          {
-            await CreateBuyPosition(leftSize, intersection);
-          }
+         
         }
       }
       finally
