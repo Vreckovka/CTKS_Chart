@@ -1791,40 +1791,56 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    private long sellId = 0;
+    private decimal lastAthPrice = 0;
+
     private decimal GetToAthPrice()
     {
-      var ath = lastStates.Max(x => x.TotalValue);
       var strategy = TradingBot.Strategy;
-
-      var allOpen = strategy.OpenBuyPositions.Sum(x => x.PositionSize);
-      var leftValue = allOpen + strategy.Budget;
-
-      var total = leftValue;
-      var totalNative = strategy.OpenSellPositions.Sum(x => x.PositionSizeNative);
-
-      decimal price = 0;
       var sells = strategy.OpenSellPositions.OrderBy(x => x.Price).ToList();
-      for (int i = 0; i < sells.Count; i++)
+
+      if (!strategy.OpenSellPositions.Any())
       {
-        var sell = sells[i];
-        var nextSell = strategy.OpenSellPositions[i + 1];
-
-        total += sell.Price * sell.OriginalPositionSizeNative;
-        totalNative -= sell.OriginalPositionSizeNative;
-
-        var actualTotal = total + sell.Price * totalNative;
-        var nextTotal = total + nextSell.Price * totalNative;
-
-        if (nextTotal > ath)
-        {
-          var ntn = sell.Price * totalNative;
-          var y = (ath - actualTotal);
-
-          return (ntn + y) / totalNative;
-        }
+        return 0;
       }
 
-      return 0;
+      if (sellId != sells.FirstOrDefault()?.Id)
+      {
+        var ath = lastStates.Max(x => x.TotalValue);
+
+        var allOpen = strategy.OpenBuyPositions.Sum(x => x.PositionSize);
+        var leftValue = allOpen + strategy.Budget;
+
+        var total = leftValue;
+        var totalNative = strategy.OpenSellPositions.Sum(x => x.PositionSizeNative);
+
+        decimal price = 0;
+
+        for (int i = 0; i < sells.Count; i++)
+        {
+          var sell = sells[i];
+          var nextSell = strategy.OpenSellPositions[i + 1];
+
+          total += sell.Price * sell.OriginalPositionSizeNative;
+          totalNative -= sell.OriginalPositionSizeNative;
+
+          var actualTotal = total + sell.Price * totalNative;
+          var nextTotal = total + nextSell.Price * totalNative;
+
+          if (nextTotal > ath)
+          {
+            var ntn = sell.Price * totalNative;
+            var y = (ath - actualTotal);
+
+            sellId = sell.Id;
+            lastAthPrice = (ntn + y) / totalNative;
+            return lastAthPrice;
+          }
+        }
+      }
+     
+
+      return lastAthPrice;
     }
 
     #region RenderIntersections
