@@ -601,10 +601,18 @@ namespace CTKS_Chart.Strategy
       TotalNativeAssetValue = TotalNativeAsset * candle.Close.Value;
       RaisePropertyChanged(nameof(AvrageBuyPrice));
 
+
+      if (MaxTotalValue < TotalValue)
+      {
+        MaxTotalValue = TotalValue;
+      }
+
       RaisePropertyChanged(nameof(AllClosedPositions));
     }
 
     #endregion
+
+    public decimal MaxTotalValue { get; set; }
 
     #region CreateSellPositionForBuy
 

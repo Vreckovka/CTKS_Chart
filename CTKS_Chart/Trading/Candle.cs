@@ -7,8 +7,8 @@ namespace CTKS_Chart.Trading
   {
     public Candle Candle { get; set; }
     public Rect Body { get; set; }
-    public Rect TopWick { get; set; }
-    public Rect BottomWick { get; set; }
+    public Rect? TopWick { get; set; }
+    public Rect? BottomWick { get; set; }
 
   }
 

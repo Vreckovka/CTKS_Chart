@@ -253,6 +253,30 @@ namespace CTKS_Chart.ViewModels
 
     #region Properties
 
+
+
+    #region LockChart
+
+    private bool lockChart = true;
+
+    public bool LockChart
+    {
+      get { return lockChart; }
+      set
+      {
+        if (value != lockChart)
+        {
+          lockChart = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
+
+
     #region ColorScheme
 
     private ColorSchemeViewModel colorScheme;
@@ -439,7 +463,7 @@ namespace CTKS_Chart.ViewModels
       get { return maxValue; }
       set
       {
-        if (value != maxValue)
+        if (value != maxValue && value > minValue)
         {
           maxValue = Math.Round(value, TradingBot.Asset.PriceRound);
           RaisePropertyChanged();
@@ -462,10 +486,10 @@ namespace CTKS_Chart.ViewModels
       get { return minValue; }
       set
       {
-        if (value != minValue)
+        if (value != minValue && value < maxValue)
         {
           minValue = Math.Round(value, TradingBot.Asset.PriceRound);
-         
+
           MainLayout.MinValue = MinValue;
           TradingBot.Asset.StartLowPrice = MinValue;
 
@@ -718,7 +742,7 @@ namespace CTKS_Chart.ViewModels
       {
         await TradingBot.Strategy.Reset(actual);
       }
-    
+
     }
 
     #endregion
@@ -1561,31 +1585,56 @@ namespace CTKS_Chart.ViewModels
           else
             newCandle.Y = canvasHeight - close - newCandle.Height;
 
+          var high = candles[i].High.Value;
+          var low = candles[i].Low.Value;
 
-          var topWickCanvas = GetCanvasValue(canvasHeight, candles[i].High.Value, layout.MaxValue, layout.MinValue);
-          var bottomWickCanvas = GetCanvasValue(canvasHeight, candles[i].Low.Value, layout.MaxValue, layout.MinValue);
+          if (!LockChart)
+          {
+            if (point.Low < layout.MinValue)
+              low = layout.MinValue;
+
+            if (point.High > layout.MaxValue)
+              high = layout.MaxValue;
+          }
+
+
+          var topWickCanvas = GetCanvasValue(canvasHeight, high, layout.MaxValue, layout.MinValue);
+          var bottomWickCanvas = GetCanvasValue(canvasHeight, low, layout.MaxValue, layout.MinValue);
 
           var wickTop = green ? close : open;
           var wickBottom = green ? open : close;
 
-          var topWick = new Rect()
-          {
-            Height = topWickCanvas - wickTop,
-            X = newCandle.X,
-            Y = canvasHeight - wickTop - (topWickCanvas - wickTop),
-          };
+          Rect? topWick = null;
+          Rect? bottomWick = null;
 
-          var bottomWick = new Rect()
+          if (topWickCanvas - wickTop > 0)
           {
-            Height = wickBottom - bottomWickCanvas,
-            X = newCandle.X,
-            Y = canvasHeight - wickBottom,
-          };
+            topWick = new Rect()
+            {
+              Height = topWickCanvas - wickTop,
+              X = newCandle.X,
+              Y = canvasHeight - wickTop - (topWickCanvas - wickTop),
+            };
+          }
 
+          if (wickBottom - bottomWickCanvas > 0)
+          {
+            bottomWick = new Rect()
+            {
+              Height = wickBottom - bottomWickCanvas,
+              X = newCandle.X,
+              Y = canvasHeight - wickBottom,
+            };
+          }
 
           drawingContext.DrawRectangle(selectedBrush, pen, newCandle);
-          drawingContext.DrawRectangle(selectedBrush, wickPen, topWick);
-          drawingContext.DrawRectangle(selectedBrush, wickPen, bottomWick);
+
+
+          if (topWick != null)
+            drawingContext.DrawRectangle(selectedBrush, wickPen, topWick.Value);
+
+          if (bottomWick != null)
+            drawingContext.DrawRectangle(selectedBrush, wickPen, bottomWick.Value);
 
           drawnCandles.Add(new ChartCandle()
           {
@@ -1597,14 +1646,14 @@ namespace CTKS_Chart.ViewModels
 
           y++;
 
-          if (bottomWick.Y < minDrawnPoint)
+          if (bottomWick != null && bottomWick.Value.Y < minDrawnPoint)
           {
-            minDrawnPoint = bottomWick.Y;
+            maxDrawnPoint = bottomWick.Value.Y;
           }
 
-          if (topWick.Y > maxDrawnPoint)
+          if (topWick != null && topWick.Value.Y > maxDrawnPoint)
           {
-            maxDrawnPoint = topWick.Y;
+            minDrawnPoint = topWick.Value.Y;
           }
         }
       }
@@ -1704,11 +1753,34 @@ namespace CTKS_Chart.ViewModels
 
         DrawActualPrice(dc, layout, candles, imageHeight, imageWidth);
 
+        decimal price = TradingBot.Strategy.AvrageBuyPrice;
+
+
+        var maxCanvasValue = Math.Max(MaxValue, chartCandles.Max(x => x.Candle.High.Value));
+        var minCanvasValue = Math.Min(MinValue, chartCandles.Min(x => x.Candle.Low.Value));
+
         if (ShowAveragePrice)
-          DrawAveragePrice(dc, layout, TradingBot.Strategy.AvrageBuyPrice, imageHeight, imageWidth);
+        {
+          if (price < maxCanvasValue && price > minCanvasValue)
+            DrawAveragePrice(dc, layout, TradingBot.Strategy.AvrageBuyPrice, imageHeight, imageWidth);
+        }
+
 
         if (ShowATH)
-          DrawPriceToATH(dc, layout, imageHeight, imageWidth);
+        {
+          price = GetToAthPrice(TradingBot.Strategy.MaxTotalValue);
+
+          if (lastStates.Count > 0)
+          {
+            sellId = 0;
+            var ath = lastStates.Max(x => x.TotalValue);
+
+            price = GetToAthPrice(ath);
+          }
+
+          if (price < maxCanvasValue && price > minCanvasValue)
+            DrawPriceToATH(dc, layout, price, imageHeight, imageWidth);
+        }
       }
 
       DrawingImage dImageSource = new DrawingImage(dGroup);
@@ -1766,27 +1838,25 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawPriceToATH
 
-    public void DrawPriceToATH(DrawingContext drawingContext, Layout layout, double canvasHeight, double canvasWidth)
+    public void DrawPriceToATH(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
     {
-      if (lastStates.Count > 0)
+
+
+      if (price > 0)
       {
-        var price = GetToAthPrice();
-        
-        if (price > 0)
-        {
-          var close = GetCanvasValue(canvasHeight, price, layout.MaxValue, layout.MinValue);
+        var close = GetCanvasValue(canvasHeight, price, layout.MaxValue, layout.MinValue);
 
-          var lineY = canvasHeight - close;
+        var lineY = canvasHeight - close;
 
-          var brush = GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.ATH].Brush);
-          var pen = new Pen(brush, 1.5);
-          pen.DashStyle = DashStyles.Dash;
+        var brush = GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.ATH].Brush);
+        var pen = new Pen(brush, 1.5);
+        pen.DashStyle = DashStyles.Dash;
 
-          var text = GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
-          drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));
-          drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
-        }
+        var text = GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
+        drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));
+        drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
       }
+
     }
 
     #endregion
@@ -1796,7 +1866,7 @@ namespace CTKS_Chart.ViewModels
     private long sellId = 0;
     private decimal lastAthPrice = 0;
 
-    private decimal GetToAthPrice()
+    private decimal GetToAthPrice(decimal ath)
     {
       var strategy = TradingBot.Strategy;
       var openBuys = strategy.OpenBuyPositions;
@@ -1811,8 +1881,6 @@ namespace CTKS_Chart.ViewModels
 
       if (sellId != sells.FirstOrDefault()?.Id)
       {
-        var ath = lastStates.Max(x => x.TotalValue);
-
         var allOpen = openBuys.Sum(x => x.PositionSize);
         var leftValue = allOpen + strategy.Budget;
 
@@ -1838,7 +1906,7 @@ namespace CTKS_Chart.ViewModels
             nextTotal = total + nextSell.Price * totalNative;
           }
 
-          if (nextTotal > ath)
+          if (nextTotal > ath && totalNative > 0)
           {
             var ntn = sell.Price * totalNative;
             var y = (ath - actualTotal);
@@ -1959,11 +2027,12 @@ namespace CTKS_Chart.ViewModels
     {
       foreach (var position in positions)
       {
-        Brush selectedBrush = position.Side == PositionSide.Buy ?
-          position.State == PositionState.Completed ?
-            GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_BUY].Brush) :
-          GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.ACTIVE_BUY].Brush)
-          : GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_SELL].Brush); ;
+        var isActive = position.Side == PositionSide.Buy && position.State == PositionState.Filled;
+
+        Brush selectedBrush = isActive ? GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.ACTIVE_BUY].Brush) :
+            position.Side == PositionSide.Buy ?
+              GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_BUY].Brush) :
+              GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_SELL].Brush); ;
 
 
         Pen pen = new Pen(selectedBrush, 1);
@@ -1981,7 +2050,7 @@ namespace CTKS_Chart.ViewModels
         if (frame >= minTimeframe && candle != null)
         {
           var text = position.Side == PositionSide.Buy ? "B" : "S";
-          FormattedText formattedText = GetFormattedText(text, selectedBrush, position.State == PositionState.Filled && position.Side == PositionSide.Buy ? 20 : 9);
+          FormattedText formattedText = GetFormattedText(text, selectedBrush, isActive ? 25 : 9);
 
           drawingContext.DrawText(formattedText, new Point(candle.Body.X - 25, lineY - formattedText.Height / 2));
         }
@@ -2021,6 +2090,7 @@ namespace CTKS_Chart.ViewModels
     #region OnBinanceKlineUpdate
 
     private List<State> lastStates = new List<State>();
+    private State lastState = null;
     private void OnBinanceKlineUpdate(IBinanceStreamKline binanceStreamKline)
     {
       lock (this)
@@ -2069,8 +2139,6 @@ namespace CTKS_Chart.ViewModels
           RenderLayout(MainLayout, InnerLayouts, actual, ActualCandles);
         });
 
-        var lastState = lastStates.LastOrDefault();
-
         if (lastState == null)
         {
           if (File.Exists("state_data.txt"))
@@ -2085,6 +2153,8 @@ namespace CTKS_Chart.ViewModels
           }
         }
 
+        lastState = lastStates.LastOrDefault();
+
         if ((actual.OpenTime.Date > lastState?.Date || lastState?.Date == null) && TradingBot.Strategy.TotalValue > 0)
         {
           lastState = new State()
@@ -2094,7 +2164,7 @@ namespace CTKS_Chart.ViewModels
             TotalValue = TradingBot.Strategy.TotalValue,
             TotalNative = TradingBot.Strategy.TotalNativeAsset,
             TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
-            AthPrice  = GetToAthPrice()
+            AthPrice = GetToAthPrice(lastStates.Max(x => x.TotalValue))
           };
 
           using (StreamWriter w = File.AppendText("state_data.txt"))
