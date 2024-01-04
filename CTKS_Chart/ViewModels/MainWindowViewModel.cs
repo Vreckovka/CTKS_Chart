@@ -113,6 +113,7 @@ namespace CTKS_Chart.ViewModels
     public decimal TotalNative { get; set; }
     public decimal TotalNativeValue { get; set; }
     public DateTime Date { get; set; }
+    public decimal AthPrice { get; set; }
   }
 
   public class LayoutSettings
@@ -379,8 +380,6 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-
-
 
     #region Logger
 
@@ -1771,38 +1770,8 @@ namespace CTKS_Chart.ViewModels
     {
       if (lastStates.Count > 0)
       {
-        var ath = lastStates.Max(x => x.TotalValue);
-        var strategy = TradingBot.Strategy;
-
-        var allOpen = strategy.OpenBuyPositions.Sum(x => x.PositionSize);
-        var leftValue = allOpen + strategy.Budget;
-
-        var total = leftValue;
-        var totalNative = strategy.OpenSellPositions.Sum(x => x.PositionSizeNative);
-
-        decimal price = 0;
-        var sells = strategy.OpenSellPositions.OrderBy(x => x.Price).ToList();
-        for (int i = 0; i < sells.Count; i++)
-        {
-          var sell = sells[i];
-          var nextSell = strategy.OpenSellPositions[i + 1];
-
-          total += sell.Price * sell.OriginalPositionSizeNative;
-          totalNative -= sell.OriginalPositionSizeNative;
-
-          var actualTotal = total + sell.Price * totalNative;
-          var nextTotal = total + nextSell.Price * totalNative;
-
-          if (nextTotal > ath)
-          {
-            var ntn = sell.Price * totalNative;
-            var y = (ath - actualTotal);
-
-            price = (ntn + y) / totalNative;
-            break;
-          }
-        }
-
+        var price = GetToAthPrice();
+        
         if (price > 0)
         {
           var close = GetCanvasValue(canvasHeight, price, layout.MaxValue, layout.MinValue);
@@ -1821,6 +1790,42 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
+    private decimal GetToAthPrice()
+    {
+      var ath = lastStates.Max(x => x.TotalValue);
+      var strategy = TradingBot.Strategy;
+
+      var allOpen = strategy.OpenBuyPositions.Sum(x => x.PositionSize);
+      var leftValue = allOpen + strategy.Budget;
+
+      var total = leftValue;
+      var totalNative = strategy.OpenSellPositions.Sum(x => x.PositionSizeNative);
+
+      decimal price = 0;
+      var sells = strategy.OpenSellPositions.OrderBy(x => x.Price).ToList();
+      for (int i = 0; i < sells.Count; i++)
+      {
+        var sell = sells[i];
+        var nextSell = strategy.OpenSellPositions[i + 1];
+
+        total += sell.Price * sell.OriginalPositionSizeNative;
+        totalNative -= sell.OriginalPositionSizeNative;
+
+        var actualTotal = total + sell.Price * totalNative;
+        var nextTotal = total + nextSell.Price * totalNative;
+
+        if (nextTotal > ath)
+        {
+          var ntn = sell.Price * totalNative;
+          var y = (ath - actualTotal);
+
+          return (ntn + y) / totalNative;
+        }
+      }
+
+      return 0;
+    }
 
     #region RenderIntersections
 
@@ -2046,6 +2051,7 @@ namespace CTKS_Chart.ViewModels
             TotalValue = TradingBot.Strategy.TotalValue,
             TotalNative = TradingBot.Strategy.TotalNativeAsset,
             TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
+            AthPrice  = GetToAthPrice()
           };
 
           using (StreamWriter w = File.AppendText("state_data.txt"))
