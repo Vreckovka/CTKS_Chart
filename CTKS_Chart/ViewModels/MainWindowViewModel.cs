@@ -411,7 +411,7 @@ namespace CTKS_Chart.ViewModels
 #endif
 
 #if DEBUG
-    public bool IsLive { get; set; } = false;
+    public bool IsLive { get; set; } = true;
 #endif
 
 #if RELEASE
@@ -1791,15 +1791,20 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region GetToAthPrice
+
     private long sellId = 0;
     private decimal lastAthPrice = 0;
 
     private decimal GetToAthPrice()
     {
       var strategy = TradingBot.Strategy;
-      var sells = strategy.OpenSellPositions.OrderBy(x => x.Price).ToList();
+      var openBuys = strategy.OpenBuyPositions;
+      var openSells = strategy.OpenSellPositions;
 
-      if (!strategy.OpenSellPositions.Any())
+      var sells = openSells.OrderBy(x => x.Price).ToList();
+
+      if (!openSells.Any())
       {
         return 0;
       }
@@ -1808,24 +1813,30 @@ namespace CTKS_Chart.ViewModels
       {
         var ath = lastStates.Max(x => x.TotalValue);
 
-        var allOpen = strategy.OpenBuyPositions.Sum(x => x.PositionSize);
+        var allOpen = openBuys.Sum(x => x.PositionSize);
         var leftValue = allOpen + strategy.Budget;
 
         var total = leftValue;
-        var totalNative = strategy.OpenSellPositions.Sum(x => x.PositionSizeNative);
+        var totalNative = sells.Sum(x => x.PositionSizeNative);
 
         decimal price = 0;
 
         for (int i = 0; i < sells.Count; i++)
         {
           var sell = sells[i];
-          var nextSell = strategy.OpenSellPositions[i + 1];
 
           total += sell.Price * sell.OriginalPositionSizeNative;
           totalNative -= sell.OriginalPositionSizeNative;
 
           var actualTotal = total + sell.Price * totalNative;
-          var nextTotal = total + nextSell.Price * totalNative;
+          var nextTotal = actualTotal;
+
+          if (i + 1 < sells.Count)
+          {
+            var nextSell = sells[i + 1];
+
+            nextTotal = total + nextSell.Price * totalNative;
+          }
 
           if (nextTotal > ath)
           {
@@ -1834,14 +1845,29 @@ namespace CTKS_Chart.ViewModels
 
             sellId = sell.Id;
             lastAthPrice = (ntn + y) / totalNative;
+
+            //var leftBuys = openBuys.Where(x => x.Price >= lastAthPrice);
+
+            //foreach (var leftBuy in leftBuys)
+            //{
+            //  totalNative += leftBuy.OriginalPositionSizeNative;
+
+            //  var ntn1 = leftBuy.Price * totalNative;
+            //  var y1 = (ath - actualTotal);
+
+            //  var lastAthPrice1 = (ntn1 + y1) / totalNative;
+            //}
+
             return lastAthPrice;
           }
         }
       }
-     
+
 
       return lastAthPrice;
     }
+
+    #endregion
 
     #region RenderIntersections
 
@@ -1954,9 +1980,10 @@ namespace CTKS_Chart.ViewModels
 
         if (frame >= minTimeframe && candle != null)
         {
-          FormattedText formattedText = GetFormattedText(position.Side.ToString(), selectedBrush, position.State == PositionState.Filled ? 15 : 12);
+          var text = position.Side == PositionSide.Buy ? "B" : "S";
+          FormattedText formattedText = GetFormattedText(text, selectedBrush, position.State == PositionState.Filled && position.Side == PositionSide.Buy ? 20 : 9);
 
-          drawingContext.DrawText(formattedText, new Point(candle.Body.X - 35, lineY - formattedText.Height / 2));
+          drawingContext.DrawText(formattedText, new Point(candle.Body.X - 25, lineY - formattedText.Height / 2));
         }
       }
     }
