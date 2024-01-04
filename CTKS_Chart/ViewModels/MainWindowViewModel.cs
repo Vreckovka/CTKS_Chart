@@ -40,6 +40,56 @@ using PositionSide = CTKS_Chart.Strategy.PositionSide;
 
 namespace CTKS_Chart.ViewModels
 {
+  public enum ColorPurpose
+  {
+    GREEN,
+    BUY,
+    FILLED_BUY,
+    RED,
+    SELL,
+    FILLED_SELL,
+    NO_POSITION,
+    ACTIVE_BUY
+  }
+
+  public class ColorSchemeViewModel
+  {
+    public Dictionary<ColorPurpose, ColorSettingViewModel> ColorSettings { get; set; } = new Dictionary<ColorPurpose, ColorSettingViewModel>();
+  }
+
+  public class ColorSettingViewModel : ViewModel<ColorSetting>
+  {
+    private readonly ColorSetting model;
+
+    public ColorSettingViewModel(ColorSetting model) : base(model)
+    {
+      this.model = model ?? throw new ArgumentNullException(nameof(model));
+    }
+
+    #region Brush
+
+    public string Brush
+    {
+      get { return model.Brush; }
+      set
+      {
+        if (value != model.Brush)
+        {
+          model.Brush = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+  }
+
+  public class ColorSetting
+  {
+    public string Brush { get; set; }
+    public ColorPurpose Purpose { get; set; }
+  }
+
   public class LayoutInterval
   {
     public string Title { get; set; }
@@ -66,6 +116,10 @@ namespace CTKS_Chart.ViewModels
   public class LayoutSettings
   {
     public bool ShowClosedPositions { get; set; }
+    public KlineInterval LayoutInterval { get; set; }
+    public IEnumerable<ColorSetting> ColorSettings { get; set; }
+
+
   }
 
   public class MainWindowViewModel : BaseMainWindowViewModel
@@ -131,35 +185,76 @@ namespace CTKS_Chart.ViewModels
         }));
       }
 
-      LayoutIntervals.SelectedItem = LayoutIntervals.ViewModels[6];
+      LayoutIntervals.ViewModels[6].IsSelected = true;
       klineInterval = LayoutIntervals.SelectedItem.Model.Interval;
+
+      ColorScheme = new ColorSchemeViewModel();
+
+      ColorScheme.ColorSettings = new Dictionary<ColorPurpose, ColorSettingViewModel>()
+      {
+        {ColorPurpose.GREEN, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#00ff00",
+          Purpose = ColorPurpose.GREEN
+        })},
+        {ColorPurpose.BUY, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#00ff00",
+          Purpose = ColorPurpose.BUY
+        })},
+        {ColorPurpose.FILLED_BUY, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#00ff00",
+          Purpose = ColorPurpose.FILLED_BUY
+        })},
+        {ColorPurpose.RED, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#ff0000",
+          Purpose = ColorPurpose.RED
+        })},
+        {ColorPurpose.FILLED_SELL, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#ff0000",
+          Purpose = ColorPurpose.RED
+        })},
+        {ColorPurpose.SELL, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#ff0000",
+          Purpose = ColorPurpose.SELL
+        })},
+        {ColorPurpose.NO_POSITION, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#252525",
+          Purpose = ColorPurpose.NO_POSITION
+        })},
+        {ColorPurpose.ACTIVE_BUY, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#ff00ff",
+          Purpose = ColorPurpose.ACTIVE_BUY
+        })},
+      };
     }
 
     #region Properties
 
-    public const string GRAY_HEX = "b5b1b1";
-    public const string GREEN_HEX = "4ec940";
-    public const string RED_HEX = "f74343";
-    public const string POSITION_OPACITY = "40";
+    #region ColorScheme
 
-#if !DEBUG
-    public SolidColorBrush GreenBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{GREEN_HEX}");
-    public SolidColorBrush BuyBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{POSITION_OPACITY}{GREEN_HEX}");
+    private ColorSchemeViewModel colorScheme;
 
-    public SolidColorBrush GrayBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{POSITION_OPACITY}{GRAY_HEX}");
+    public ColorSchemeViewModel ColorScheme
+    {
+      get { return colorScheme; }
+      set
+      {
+        if (value != colorScheme)
+        {
+          colorScheme = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
 
-    public SolidColorBrush RedBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{RED_HEX}");
-    public SolidColorBrush SellBrush { get; } = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{POSITION_OPACITY}{RED_HEX}");
-
-#else
-    public SolidColorBrush GreenBrush { get; } = Brushes.Green;
-    public SolidColorBrush BuyBrush { get; } = Brushes.Green;
-
-    public SolidColorBrush GrayBrush { get; } = Brushes.Gray;
-
-    public SolidColorBrush RedBrush { get; } = Brushes.Red;
-    public SolidColorBrush SellBrush { get; } = Brushes.Red;
-#endif
+    #endregion
 
     #region TradingBot
 
@@ -254,7 +349,7 @@ namespace CTKS_Chart.ViewModels
     public ItemsViewModel<LayoutIntervalViewModel> LayoutIntervals { get; } = new ItemsViewModel<LayoutIntervalViewModel>();
 
 #if DEBUG
-    public bool Simulation { get; set; } = true;
+    public bool Simulation { get; set; } = false;
 #endif
 
 #if RELEASE
@@ -352,6 +447,30 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
+
+
+    #region DailyChange
+
+    private decimal dailyChange;
+
+    public decimal DailyChange
+    {
+      get { return dailyChange; }
+      set
+      {
+        if (value != dailyChange)
+        {
+          dailyChange = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
+
 
     public ObservableCollection<Layout> Layouts { get; set; } = new ObservableCollection<Layout>();
 
@@ -739,7 +858,7 @@ namespace CTKS_Chart.ViewModels
     {
       //var tradingView_12m = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\BTC-USD.csv";
 
-     
+
 
       var location = "Data";
 
@@ -953,7 +1072,7 @@ namespace CTKS_Chart.ViewModels
 
     private async void RecreateChart(bool fetchNewCandles = false)
     {
-      if (IsLive)
+      if (IsLive && TradingBot != null)
       {
         if (fetchNewCandles)
         {
@@ -1265,7 +1384,7 @@ namespace CTKS_Chart.ViewModels
           {
             Width = width,
             Height = 25,
-            Fill = green ? GreenBrush : RedBrush,
+            Fill = green ? GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush),
           };
 
           Panel.SetZIndex(lastCandle, 99);
@@ -1332,7 +1451,7 @@ namespace CTKS_Chart.ViewModels
 
           var green = i > 0 ? candles[i - 1].Close < point.Close : point.Open < point.Close;
 
-          var selectedBrush = green ? GreenBrush : RedBrush;
+          var selectedBrush = green ? GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
 
           Pen pen = new Pen(selectedBrush, 3);
           Pen wickPen = new Pen(selectedBrush, 1);
@@ -1525,7 +1644,7 @@ namespace CTKS_Chart.ViewModels
 
       var lineY = canvasHeight - close;
 
-      var brush = lastCandle.IsGreen ? GreenBrush : RedBrush;
+      var brush = lastCandle.IsGreen ? GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
       var pen = new Pen(brush, 1);
       pen.DashStyle = DashStyles.Dash;
 
@@ -1562,7 +1681,7 @@ namespace CTKS_Chart.ViewModels
 
       foreach (var intersection in validIntersection)
       {
-        Brush selectedBrush = GrayBrush;
+        Brush selectedBrush = GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush);
         Pen pen = new Pen(selectedBrush, 1);
         pen.DashStyle = DashStyles.Dash;
 
@@ -1582,21 +1701,23 @@ namespace CTKS_Chart.ViewModels
 
         if (firstPositionsOnIntersesction != null)
         {
-          selectedBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ? BuyBrush : SellBrush;
+          selectedBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ? GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.BUY].Brush) : GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.SELL].Brush);
           pen.Brush = selectedBrush;
         }
 
         if (frame >= minTimeframe)
         {
-          Brush positionBrush = GrayBrush;
+          Brush positionBrush = GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush);
 
           if (firstPositionsOnIntersesction != null)
           {
-            positionBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ? (SolidColorBrush)new BrushConverter().ConvertFrom($"#{90}{GREEN_HEX}") : (SolidColorBrush)new BrushConverter().ConvertFrom($"#{90}{RED_HEX}");
+            positionBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ?
+              GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.BUY].Brush) :
+              GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.SELL].Brush);
           }
           else
           {
-            positionBrush = (SolidColorBrush)new BrushConverter().ConvertFrom($"#{90}{GRAY_HEX}");
+            positionBrush = GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush);
           }
 
           FormattedText formattedText = GetFormattedText(intersection.Value.ToString(), positionBrush);
@@ -1624,7 +1745,13 @@ namespace CTKS_Chart.ViewModels
     {
       foreach (var position in positions)
       {
-        Brush selectedBrush = position.Side == PositionSide.Buy ? GreenBrush : RedBrush; ;
+        Brush selectedBrush = position.Side == PositionSide.Buy ?
+          position.State == PositionState.Completed ?
+            GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_BUY].Brush) :
+          GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.ACTIVE_BUY].Brush)
+          : GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_SELL].Brush); ;
+
+
         Pen pen = new Pen(selectedBrush, 1);
         pen.DashStyle = DashStyles.Dash;
 
@@ -1647,6 +1774,11 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
+    private SolidColorBrush GetBrushFromHex(string hex)
+    {
+      return (SolidColorBrush)new BrushConverter().ConvertFrom(hex);
+    }
 
     #region GetPositionThickness
 
@@ -1673,7 +1805,7 @@ namespace CTKS_Chart.ViewModels
 
     #region OnBinanceKlineUpdate
 
-    private DateTime? lastDate;
+    private State lastState;
     private void OnBinanceKlineUpdate(IBinanceStreamKline binanceStreamKline)
     {
       lock (this)
@@ -1722,25 +1854,18 @@ namespace CTKS_Chart.ViewModels
           RenderLayout(MainLayout, InnerLayouts, actual, ActualCandles);
         });
 
-        if (lastDate == null)
+        if (lastState == null)
         {
           if (File.Exists("state_data.txt"))
           {
             var last = File.ReadLines(@"state_data.txt").Last();
-            var lastState = JsonSerializer.Deserialize<State>(last);
-
-            if (lastState?.Date != null)
-            {
-              lastDate = lastState.Date;
-            }
+            lastState = JsonSerializer.Deserialize<State>(last);
           }
         }
 
-        if ((actual.OpenTime.Date > lastDate || lastDate == null) && TradingBot.Strategy.TotalValue > 0)
+        if ((actual.OpenTime.Date > lastState?.Date || lastState?.Date == null) && TradingBot.Strategy.TotalValue > 0)
         {
-          lastDate = actual.OpenTime.Date;
-
-          var state = new State()
+          lastState = new State()
           {
             Date = actual.OpenTime.Date,
             TotalProfit = TradingBot.Strategy.TotalProfit,
@@ -1751,9 +1876,12 @@ namespace CTKS_Chart.ViewModels
 
           using (StreamWriter w = File.AppendText("state_data.txt"))
           {
-            w.WriteLine(JsonSerializer.Serialize(state));
+            w.WriteLine(JsonSerializer.Serialize(lastState));
           }
         }
+
+        if (lastState != null)
+          DailyChange = TradingBot.Strategy.TotalValue - lastState.TotalValue;
       }
     }
 
@@ -1814,7 +1942,25 @@ namespace CTKS_Chart.ViewModels
         var settings = JsonSerializer.Deserialize<LayoutSettings>(data);
 
         if (settings != null)
+        {
           showClosedPositions = settings.ShowClosedPositions;
+          var savedLayout = LayoutIntervals.ViewModels.SingleOrDefault(x => x.Model.Interval == settings.LayoutInterval);
+
+          if (savedLayout != null)
+            savedLayout.IsSelected = true;
+
+          if (settings.ColorSettings != null)
+          {
+            var lsit = ColorScheme.ColorSettings.ToList();
+            foreach (var setting in lsit)
+            {
+              var found = settings.ColorSettings.SingleOrDefault(x => x.Purpose == setting.Key);
+
+              if (found != null)
+                ColorScheme.ColorSettings[setting.Key] = new ColorSettingViewModel(found);
+            }
+          }
+        }
       }
     }
 
@@ -1828,7 +1974,9 @@ namespace CTKS_Chart.ViewModels
       {
         var settings = new LayoutSettings()
         {
-          ShowClosedPositions = ShowClosedPositions
+          ShowClosedPositions = ShowClosedPositions,
+          LayoutInterval = LayoutIntervals.SelectedItem.Model.Interval,
+          ColorSettings = ColorScheme.ColorSettings.Select(x => x.Value.Model)
         };
 
         File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings));
