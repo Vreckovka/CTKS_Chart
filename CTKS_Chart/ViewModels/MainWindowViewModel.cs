@@ -49,7 +49,8 @@ namespace CTKS_Chart.ViewModels
     SELL,
     FILLED_SELL,
     NO_POSITION,
-    ACTIVE_BUY
+    ACTIVE_BUY,
+    AVERAGE_BUY
   }
 
   public class ColorSchemeViewModel
@@ -119,6 +120,7 @@ namespace CTKS_Chart.ViewModels
     public KlineInterval LayoutInterval { get; set; }
     public IEnumerable<ColorSetting> ColorSettings { get; set; }
 
+    public bool ShowAveragePrice { get; set; }
 
   }
 
@@ -232,6 +234,11 @@ namespace CTKS_Chart.ViewModels
           Brush = "#ff00ff",
           Purpose = ColorPurpose.ACTIVE_BUY
         })},
+        {ColorPurpose.AVERAGE_BUY, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#ffFFff",
+          Purpose = ColorPurpose.AVERAGE_BUY
+        })},
       };
     }
 
@@ -326,6 +333,30 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
+
+
+    #region ShowAveragePrice
+
+    private bool showAveragePrice;
+
+    public bool ShowAveragePrice
+    {
+      get { return showAveragePrice; }
+      set
+      {
+        if (value != showAveragePrice)
+        {
+          showAveragePrice = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
+
 
     #region Logger
 
@@ -448,8 +479,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
-
     #region DailyChange
 
     private decimal dailyChange;
@@ -469,8 +498,24 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region FromAllTimeHigh
 
+    private decimal fromAllTimeHigh;
 
+    public decimal FromAllTimeHigh
+    {
+      get { return fromAllTimeHigh; }
+      set
+      {
+        if (value != fromAllTimeHigh)
+        {
+          fromAllTimeHigh = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
 
     public ObservableCollection<Layout> Layouts { get; set; } = new ObservableCollection<Layout>();
 
@@ -1628,6 +1673,9 @@ namespace CTKS_Chart.ViewModels
         }
 
         DrawActualPrice(dc, layout, candles, imageHeight, imageWidth);
+
+        if (ShowAveragePrice)
+          DrawAveragePrice(dc, layout, TradingBot.Strategy.AvrageBuyPrice, imageHeight, imageWidth);
       }
 
       DrawingImage dImageSource = new DrawingImage(dGroup);
@@ -1656,6 +1704,29 @@ namespace CTKS_Chart.ViewModels
       var text = GetFormattedText(closePrice.Value.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 20);
       drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 25, lineY - text.Height - 5));
       drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
+    }
+
+    #endregion
+
+    #region DrawAveragePrice
+
+    public void DrawAveragePrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
+    {
+      if(price > 0)
+      {
+        var close = GetCanvasValue(canvasHeight, price, layout.MaxValue, layout.MinValue);
+
+        var lineY = canvasHeight - close;
+
+        var brush = GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AVERAGE_BUY].Brush);
+        var pen = new Pen(brush, 2);
+        pen.DashStyle = DashStyles.Dash;
+
+        var text = GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 20);
+        drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 25, lineY - text.Height - 5));
+        drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
+      }
+   
     }
 
     #endregion
@@ -1810,7 +1881,7 @@ namespace CTKS_Chart.ViewModels
 
     #region OnBinanceKlineUpdate
 
-    private State lastState;
+    private List<State> lastStates = new List<State>();
     private void OnBinanceKlineUpdate(IBinanceStreamKline binanceStreamKline)
     {
       lock (this)
@@ -1859,12 +1930,19 @@ namespace CTKS_Chart.ViewModels
           RenderLayout(MainLayout, InnerLayouts, actual, ActualCandles);
         });
 
+        var lastState = lastStates.LastOrDefault();
+
         if (lastState == null)
         {
           if (File.Exists("state_data.txt"))
           {
-            var last = File.ReadLines(@"state_data.txt").Last();
-            lastState = JsonSerializer.Deserialize<State>(last);
+            lastStates.Clear();
+            var lines = File.ReadLines(@"state_data.txt");
+
+            foreach (var line in lines)
+            {
+              lastStates.Add(JsonSerializer.Deserialize<State>(line));
+            }
           }
         }
 
@@ -1886,7 +1964,11 @@ namespace CTKS_Chart.ViewModels
         }
 
         if (lastState != null)
+        {
           DailyChange = TradingBot.Strategy.TotalValue - lastState.TotalValue;
+          FromAllTimeHigh = TradingBot.Strategy.TotalValue - lastStates.Max(x => x.TotalValue);
+        }
+
       }
     }
 
@@ -1965,6 +2047,8 @@ namespace CTKS_Chart.ViewModels
                 ColorScheme.ColorSettings[setting.Key] = new ColorSettingViewModel(found);
             }
           }
+
+          ShowAveragePrice = settings.ShowAveragePrice;
         }
       }
     }
@@ -1981,7 +2065,8 @@ namespace CTKS_Chart.ViewModels
         {
           ShowClosedPositions = ShowClosedPositions,
           LayoutInterval = LayoutIntervals.SelectedItem.Model.Interval,
-          ColorSettings = ColorScheme.ColorSettings.Select(x => x.Value.Model)
+          ColorSettings = ColorScheme.ColorSettings.Select(x => x.Value.Model),
+          ShowAveragePrice = ShowAveragePrice
         };
 
         var options = new JsonSerializerOptions()
@@ -1989,7 +2074,7 @@ namespace CTKS_Chart.ViewModels
           WriteIndented = true
         };
 
-        File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings,options));
+        File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings, options));
       }
 
     }
