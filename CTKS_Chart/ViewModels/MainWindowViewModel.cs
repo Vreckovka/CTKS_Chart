@@ -1772,7 +1772,12 @@ namespace CTKS_Chart.ViewModels
 
           if (lastStates.Count > 0)
           {
-            sellId = 0;
+            if (!wasLoadedAvg)
+            {
+              sellId = 0;
+              wasLoadedAvg = true;
+            }
+         
             var ath = lastStates.Max(x => x.TotalValue);
 
             price = GetToAthPrice(ath);
@@ -1790,6 +1795,8 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
+    private bool wasLoadedAvg = false;
 
     #region DrawActualPrice
 

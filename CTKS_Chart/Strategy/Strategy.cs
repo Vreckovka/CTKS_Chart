@@ -403,8 +403,9 @@ namespace CTKS_Chart.Strategy
       get
       {
         var positions = ActualPositions.ToList();
-       
-        var value = positions.Sum(x => x.OpositPositions.Sum(y => y.PositionSize ));
+
+        var filled = ActualPositions.Sum(x => x.OpositPositions.Sum(y => y.Profit));
+        var value = positions.Sum(x => x.OpositPositions.Sum(y => y.PositionSize)) - filled;
         var native = positions.Sum(x => x.OpositPositions.Sum(y => y.PositionSizeNative));
 
         return Math.Round(TotalNativeAsset > 0 && native > 0 ? value / native : 0, Asset.PriceRound);
