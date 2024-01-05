@@ -1908,11 +1908,25 @@ namespace CTKS_Chart.ViewModels
 
           if (nextTotal > ath && totalNative > 0)
           {
-            var ntn = sell.Price * totalNative;
-            var y = (ath - actualTotal);
+            if (i == 0)
+            {
+              totalNative = sells.Sum(x => x.PositionSizeNative);
+              actualTotal = leftValue + sell.Price * totalNative;
+
+              var ntn = sell.Price * totalNative;
+              var y = (ath - actualTotal);
+
+              lastAthPrice = (ntn + y) / totalNative;
+            }
+            else
+            {
+              var ntn = sell.Price * totalNative;
+              var y = (ath - actualTotal);
+             
+              lastAthPrice = (ntn + y) / totalNative;
+            }
 
             sellId = sell.Id;
-            lastAthPrice = (ntn + y) / totalNative;
 
             //var leftBuys = openBuys.Where(x => x.Price >= lastAthPrice);
 
@@ -2151,9 +2165,11 @@ namespace CTKS_Chart.ViewModels
               lastStates.Add(JsonSerializer.Deserialize<State>(line));
             }
           }
+
+          lastState = lastStates.LastOrDefault();
         }
 
-        lastState = lastStates.LastOrDefault();
+       
 
         if ((actual.OpenTime.Date > lastState?.Date || lastState?.Date == null) && TradingBot.Strategy.TotalValue > 0)
         {
@@ -2166,6 +2182,8 @@ namespace CTKS_Chart.ViewModels
             TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
             AthPrice = GetToAthPrice(lastStates.Max(x => x.TotalValue))
           };
+
+          lastStates.Add(lastState);
 
           using (StreamWriter w = File.AppendText("state_data.txt"))
           {

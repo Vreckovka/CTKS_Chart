@@ -402,10 +402,12 @@ namespace CTKS_Chart.Strategy
     {
       get
       {
-        var closed = ClosedBuyPositions.Where(x => x.State == PositionState.Filled).ToList();
-        var asd = closed.Sum(x => x.OriginalPositionSize);
-        var asdddd = closed.Sum(x => x.OriginalPositionSizeNative);
-        return Math.Round(TotalNativeAsset > 0 && asdddd > 0 ? asd / asdddd : 0, Asset.PriceRound);
+        var positions = ActualPositions.ToList();
+       
+        var value = positions.Sum(x => x.OpositPositions.Sum(y => y.PositionSize ));
+        var native = positions.Sum(x => x.OpositPositions.Sum(y => y.PositionSizeNative));
+
+        return Math.Round(TotalNativeAsset > 0 && native > 0 ? value / native : 0, Asset.PriceRound);
       }
     }
 
