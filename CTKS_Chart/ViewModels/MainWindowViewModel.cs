@@ -114,6 +114,7 @@ namespace CTKS_Chart.ViewModels
     public decimal TotalNativeValue { get; set; }
     public DateTime Date { get; set; }
     public decimal AthPrice { get; set; }
+    public decimal? ClosePrice { get; set; }
   }
 
   public class LayoutSettings
@@ -1755,9 +1756,11 @@ namespace CTKS_Chart.ViewModels
 
         decimal price = TradingBot.Strategy.AvrageBuyPrice;
 
+        var maxCanvasValue = (decimal)GetValueFromCanvas(desiredCanvasHeight, desiredCanvasHeight, layout.MaxValue, layout.MinValue);
+        var minCanvasValue = (decimal)GetValueFromCanvas(desiredCanvasHeight, -2 * (desiredCanvasHeight - canvasHeight), layout.MaxValue, layout.MinValue);
 
-        var maxCanvasValue = Math.Max(MaxValue, chartCandles.Max(x => x.Candle.High.Value));
-        var minCanvasValue = Math.Min(MinValue, chartCandles.Min(x => x.Candle.Low.Value));
+        maxCanvasValue = Math.Max(maxCanvasValue, chartCandles.Max(x => x.Candle.High.Value));
+        minCanvasValue = Math.Min(minCanvasValue, chartCandles.Min(x => x.Candle.Low.Value));
 
         if (ShowAveragePrice)
         {
@@ -1768,16 +1771,16 @@ namespace CTKS_Chart.ViewModels
 
         if (ShowATH)
         {
-          price = GetToAthPrice(TradingBot.Strategy.MaxTotalValue);
-
-          if (lastStates.Count > 0)
+          if (lastStates.Count == 0)
+            price = GetToAthPrice(TradingBot.Strategy.MaxTotalValue);
+          else if (lastStates.Count > 0)
           {
             if (!wasLoadedAvg)
             {
               sellId = 0;
               wasLoadedAvg = true;
             }
-         
+
             var ath = lastStates.Max(x => x.TotalValue);
 
             price = GetToAthPrice(ath);
@@ -1847,8 +1850,6 @@ namespace CTKS_Chart.ViewModels
 
     public void DrawPriceToATH(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
     {
-
-
       if (price > 0)
       {
         var close = GetCanvasValue(canvasHeight, price, layout.MaxValue, layout.MinValue);
@@ -1886,7 +1887,8 @@ namespace CTKS_Chart.ViewModels
         return 0;
       }
 
-      if (sellId != sells.FirstOrDefault()?.Id)
+      var newId = sells.FirstOrDefault()?.Id;
+      if (sellId != newId && newId != null)
       {
         var allOpen = openBuys.Sum(x => x.PositionSize);
         var leftValue = allOpen + strategy.Budget;
@@ -1915,12 +1917,12 @@ namespace CTKS_Chart.ViewModels
 
           if (nextTotal > ath && totalNative > 0)
           {
-            if (i == 0)
+            if (i == 0 && lastState?.ClosePrice != null)
             {
               totalNative = sells.Sum(x => x.PositionSizeNative);
-              actualTotal = leftValue + sell.Price * totalNative;
+              actualTotal = leftValue + lastState.ClosePrice.Value * totalNative;
 
-              var ntn = sell.Price * totalNative;
+              var ntn = lastState.ClosePrice.Value * totalNative;
               var y = (ath - actualTotal);
 
               lastAthPrice = (ntn + y) / totalNative;
@@ -1929,11 +1931,11 @@ namespace CTKS_Chart.ViewModels
             {
               var ntn = sell.Price * totalNative;
               var y = (ath - actualTotal);
-             
+
               lastAthPrice = (ntn + y) / totalNative;
             }
 
-            sellId = sell.Id;
+            sellId = newId.Value;
 
             //var leftBuys = openBuys.Where(x => x.Price >= lastAthPrice);
 
@@ -2176,7 +2178,7 @@ namespace CTKS_Chart.ViewModels
           lastState = lastStates.LastOrDefault();
         }
 
-       
+
 
         if ((actual.OpenTime.Date > lastState?.Date || lastState?.Date == null) && TradingBot.Strategy.TotalValue > 0)
         {
@@ -2187,7 +2189,8 @@ namespace CTKS_Chart.ViewModels
             TotalValue = TradingBot.Strategy.TotalValue,
             TotalNative = TradingBot.Strategy.TotalNativeAsset,
             TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
-            AthPrice = GetToAthPrice(lastStates.Max(x => x.TotalValue))
+            AthPrice = GetToAthPrice(lastStates.Max(x => x.TotalValue)),
+            ClosePrice = actual.Close
           };
 
           lastStates.Add(lastState);
