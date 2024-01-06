@@ -1912,7 +1912,9 @@ namespace CTKS_Chart.ViewModels
           {
             var nextSell = sells[i + 1];
 
-            nextTotal = total + nextSell.Price * totalNative;
+            var nextTotalNative = totalNative - nextSell.OriginalPositionSizeNative;
+
+            nextTotal = total + nextSell.Price * nextTotalNative + nextSell.Price * nextSell.OriginalPositionSizeNative;
           }
 
           if (nextTotal > ath && totalNative > 0)
@@ -1931,29 +1933,16 @@ namespace CTKS_Chart.ViewModels
             {
               var ntn = sell.Price * totalNative;
               var y = (ath - actualTotal);
-
+         
               lastAthPrice = (ntn + y) / totalNative;
             }
 
             sellId = newId.Value;
 
-            //var leftBuys = openBuys.Where(x => x.Price >= lastAthPrice);
-
-            //foreach (var leftBuy in leftBuys)
-            //{
-            //  totalNative += leftBuy.OriginalPositionSizeNative;
-
-            //  var ntn1 = leftBuy.Price * totalNative;
-            //  var y1 = (ath - actualTotal);
-
-            //  var lastAthPrice1 = (ntn1 + y1) / totalNative;
-            //}
-
             return lastAthPrice;
           }
         }
       }
-
 
       return lastAthPrice;
     }
