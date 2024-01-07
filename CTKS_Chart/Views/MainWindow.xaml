@@ -170,7 +170,17 @@
                         <MenuItem Command="{Binding FetchMissingInfo}" Header="Fetch missing info" />
                     </MenuItem>
 
-                    <MenuItem Command="{Binding OpenStatistics}" Header="Statistics" />
+                    <MenuItem Command="{Binding OpenStatistics}"
+                              Cursor="Hand"
+                              FontFamily="{StaticResource FontAwesome6Pro_Regular}"
+                              FontSize="19"
+                              Header="{StaticResource chart-line}" />
+
+                    <MenuItem Command="{Binding OpenAssetSetting}"
+                              Cursor="Hand"
+                              FontFamily="{StaticResource FontAwesome6Pro_Regular}"
+                              FontSize="19"
+                              Header="{StaticResource circle-dollar}" />
                 </Menu>
 
                 <Grid Grid.Column="1" Margin="5">

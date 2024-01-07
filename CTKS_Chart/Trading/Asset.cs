@@ -11,5 +11,9 @@ namespace CTKS_Chart.Trading
     public decimal StartMaxPrice { get; set; }
     public TimeSpan RunTime { get; set; }
     public long RunTimeTicks { get; set; }
+
+    public string DataPath { get; set; }
+    public string DataSymbol { get; set; }
+    public TimeFrame[] TimeFrames { get; set; }
   }
 }

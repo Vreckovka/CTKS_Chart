@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using CTKS_Chart.Trading;
 
 namespace CTKS_Chart.Strategy
@@ -12,14 +13,45 @@ namespace CTKS_Chart.Strategy
 
     public override bool IsPositionFilled(Candle candle, Position position)
     {
-      if (position.Side == PositionSide.Buy)
+      if (candle.High >= position.Price && candle.Low <= position.Price)
+        return true;
+
+      return false;
+    }
+
+    public override async void ValidatePositions(Candle candle)
+    {
+      var allPositions = AllOpenedPositions
+        .Where(x => x.State == PositionState.Open)
+        .OrderByDescending(x => x.Price)
+        .ToList();
+
+      foreach (var position in allPositions)
       {
-        return candle.Low.Value <= position.Price;
+        if (IsPositionFilled(candle, position))
+        {
+          position.Fees = position.OriginalPositionSize * (decimal)0.001;
+
+          if (position.Side == PositionSide.Buy)
+          {
+            await CloseBuy(position, candle.Close.Value);
+          }
+          else
+          {
+            CloseSell(position);
+          }
+        }
       }
-      else
+
+      var openSells = AllOpenedPositions.Where(x => x.State == PositionState.Open && x.Side == PositionSide.Sell && x.Price < candle.Low).ToList();
+
+      foreach (var openSell in openSells)
       {
-        return candle.High.Value >= position.Price;
+        CloseSell(openSell);
       }
+
+
+      base.ValidatePositions(candle);
     }
 
     protected override Task<bool> CancelPosition(Position position)

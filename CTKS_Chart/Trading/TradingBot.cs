@@ -1,22 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using VCore.Standard;
+using VCore.Standard.Helpers;
 
 namespace CTKS_Chart.Trading
 {
   public class TradingBot : ViewModel
   {
-    public TradingBot(Asset asset, Dictionary<string, TimeFrame> timeFrames, Strategy.Strategy strategy)
+    public TradingBot(Asset asset, Strategy.Strategy strategy)
     {
       Strategy = strategy ?? throw new ArgumentNullException(nameof(strategy));
       Asset = asset;
-      TimeFrames = timeFrames;
+      
       StartingMinPrice = asset.StartLowPrice;
       StartingMaxPrice = asset.StartMaxPrice;
-
     }
-
-
 
     #region Strategy
 
@@ -37,8 +36,26 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
+    public void LoadTimeFrames()
+    {
+      if (Asset?.TimeFrames != null)
+      {
+        var dictionary = new Dictionary<string, TimeFrame>();
+
+        foreach (var timeframe in Asset.TimeFrames)
+        {
+          var tradingView_data = $"{Asset.DataPath}\\{Asset.DataSymbol}, {EnumHelper.Description(timeframe)}.csv";
+
+          dictionary.Add(tradingView_data, timeframe);
+        }
+
+        TimeFrames = dictionary;
+      }
+    }
+
+
     public Asset Asset { get;  }
-    public Dictionary<string, TimeFrame> TimeFrames { get; }
+    public Dictionary<string, TimeFrame> TimeFrames { get; private set; }
 
     public decimal StartingMinPrice { get; }
     public decimal StartingMaxPrice { get; }

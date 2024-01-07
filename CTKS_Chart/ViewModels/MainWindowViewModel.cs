@@ -23,9 +23,9 @@ using CTKS_Chart.Binance;
 using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using CTKS_Chart.Views;
+using CTKS_Chart.Views.Prompts;
 using Logger;
 using VCore.ItemsCollections;
-using VCore.Standard;
 using VCore.Standard.Factories.ViewModels;
 using VCore.Standard.Helpers;
 using VCore.WPF;
@@ -40,95 +40,6 @@ using PositionSide = CTKS_Chart.Strategy.PositionSide;
 
 namespace CTKS_Chart.ViewModels
 {
-  public enum ColorPurpose
-  {
-    GREEN,
-    BUY,
-    FILLED_BUY,
-    RED,
-    SELL,
-    FILLED_SELL,
-    NO_POSITION,
-    ACTIVE_BUY,
-    AVERAGE_BUY,
-    ATH
-  }
-
-  public class ColorSchemeViewModel
-  {
-    public Dictionary<ColorPurpose, ColorSettingViewModel> ColorSettings { get; set; } = new Dictionary<ColorPurpose, ColorSettingViewModel>();
-  }
-
-  public class ColorSettingViewModel : ViewModel<ColorSetting>
-  {
-    private readonly ColorSetting model;
-
-    public ColorSettingViewModel(ColorSetting model) : base(model)
-    {
-      this.model = model ?? throw new ArgumentNullException(nameof(model));
-    }
-
-    #region Brush
-
-    public string Brush
-    {
-      get { return model.Brush; }
-      set
-      {
-        if (value != model.Brush)
-        {
-          model.Brush = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-  }
-
-  public class ColorSetting
-  {
-    public string Brush { get; set; }
-    public ColorPurpose Purpose { get; set; }
-  }
-
-  public class LayoutInterval
-  {
-    public string Title { get; set; }
-    public KlineInterval Interval { get; set; }
-    public bool IsFavorite { get; set; }
-  }
-
-  public class LayoutIntervalViewModel : SelectableViewModel<LayoutInterval>
-  {
-    public LayoutIntervalViewModel(LayoutInterval model) : base(model)
-    {
-    }
-  }
-
-  public class State
-  {
-    public decimal TotalValue { get; set; }
-    public decimal TotalProfit { get; set; }
-    public decimal TotalNative { get; set; }
-    public decimal TotalNativeValue { get; set; }
-    public DateTime Date { get; set; }
-    public decimal AthPrice { get; set; }
-    public decimal? ClosePrice { get; set; }
-  }
-
-  public class LayoutSettings
-  {
-    public bool ShowClosedPositions { get; set; }
-    public KlineInterval LayoutInterval { get; set; }
-    public IEnumerable<ColorSetting> ColorSettings { get; set; }
-
-    public bool ShowAveragePrice { get; set; }
-
-    public bool ShowATH { get; set; }
-
-  }
-
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
     private readonly IWindowManager windowManager;
@@ -137,6 +48,8 @@ namespace CTKS_Chart.ViewModels
     private BinanceBroker binanceBroker;
 
     private string layoutPath = "layout.json";
+
+    #region Constructors
 
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger, IWindowManager windowManager) : base(viewModelsFactory)
     {
@@ -252,9 +165,9 @@ namespace CTKS_Chart.ViewModels
       };
     }
 
+    #endregion
+
     #region Properties
-
-
 
     #region LockChart
 
@@ -274,9 +187,6 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-
-
-
 
     #region ColorScheme
 
@@ -428,7 +338,7 @@ namespace CTKS_Chart.ViewModels
     public ItemsViewModel<LayoutIntervalViewModel> LayoutIntervals { get; } = new ItemsViewModel<LayoutIntervalViewModel>();
 
 #if DEBUG
-    public bool Simulation { get; set; } = false;
+    public bool Simulation { get; set; } = true;
 #endif
 
 #if RELEASE
@@ -436,7 +346,7 @@ namespace CTKS_Chart.ViewModels
 #endif
 
 #if DEBUG
-    public bool IsLive { get; set; } = true;
+    public bool IsLive { get; set; } = false;
 #endif
 
 #if RELEASE
@@ -705,7 +615,7 @@ namespace CTKS_Chart.ViewModels
           if (index >= 0)
           {
             InnerLayouts.RemoveAt(index);
-            InnerLayouts.Insert(index, CreateCtksChart(layout.DataLocation, layout.TimeFrame));
+            InnerLayouts.Insert(index, CreateCtksChart(layout.DataLocation, layout.TimeFrame, ChartImage.ActualWidth, ChartImage.ActualHeight));
             layout = InnerLayouts[index];
 
             Layouts.RemoveAt(globalIndex);
@@ -911,6 +821,36 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region OpenAssetSetting
+
+    protected ActionCommand openAssetSetting;
+
+    public ICommand OpenAssetSetting
+    {
+      get
+      {
+        return openAssetSetting ??= new ActionCommand(OnOpenAssetSetting);
+      }
+    }
+
+    protected void OnOpenAssetSetting()
+    {
+      var vm = new AssetSettingViewModel(TradingBot.Asset);
+      var positionResult = windowManager.ShowQuestionPrompt<AssetSettingView, AssetSettingViewModel>(vm);
+
+      if (positionResult == PromptResult.Ok)
+      {
+        var result = windowManager.ShowQuestionPrompt("Do you really want to apply these changes?", "Asset setting mapping");
+
+        if (result == PromptResult.Ok)
+        {
+
+        }
+      }
+    }
+
+    #endregion
+
     #endregion
 
     #region Methods
@@ -961,91 +901,21 @@ namespace CTKS_Chart.ViewModels
 
     private async void ForexChart_Loaded()
     {
-      //var tradingView_12m = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\BTC-USD.csv";
+      string path = "Data";
 
-
-
-      var location = "Data";
-
-      var tradingView_btc_12m = $"{location}\\INDEX BTCUSD, 12M.csv";
-      var tradingView_btc_6M = $"{location}\\INDEX BTCUSD, 6M.csv";
-      var tradingView_btc_3M = $"{location}\\INDEX BTCUSD, 3M.csv";
-      var tradingView_btc_1M = $"{location}\\INDEX BTCUSD, 1M.csv";
-      var tradingView_btc_2W = $"{location}\\INDEX BTCUSD, 2W.csv";
-      var tradingView_btc_1W = $"{location}\\INDEX BTCUSD, 1W.csv";
-      var tradingView_btc_1D = $"{location}\\INDEX BTCUSD, 1D.csv";
-      var tradingView_btc_1m = $"{location}\\BINANCE BTCUSDT, 1.csv";
-
-      var tradingView_btc_720m = $"{location}\\INDEX BTCUSD, 720.csv";
-      var tradingView_btc_240m = $"{location}\\INDEX BTCUSD, 240.csv";
-
-      var tradingView__ada_12M = $"{location}\\BINANCE ADAUSD, 12M.csv";
-      var tradingView__ada_6M = $"{location}\\BINANCE ADAUSD, 6M.csv";
-      var tradingView__ada_3M = $"{location}\\BINANCE ADAUSD, 3M.csv";
-      var tradingView__ada_1M = $"{location}\\BINANCE ADAUSD, 1M.csv";
-      var tradingView__ada_2W = $"{location}\\BINANCE ADAUSD, 2W.csv";
-      var tradingView__ada_1W = $"{location}\\BINANCE ADAUSD, 1W.csv";
-      var tradingView__ada_1D = $"{location}\\BINANCE ADAUSD, 1D.csv";
-      var tradingView__ada_1D_2 = $"{location}\\BINANCE ADAUSDT, 1D_2.0.csv";
-      var tradingView__ada_360 = $"{location}\\BINANCE ADAUSD, 360.csv";
-      var tradingView__ada_240 = $"{location}\\BINANCE ADAUSD, 240.csv";
-      var tradingView__ada_120 = $"{location}\\BINANCE ADAUSDT, 120.csv";
-      var tradingView__ada_15 = $"{location}\\BINANCE ADAUSDT, 15.csv";
-
-      var tradingView__eth_1W = $"{location}\\BITSTAMP ETHUSD, 1W.csv";
-
-
-      var tradingView_ltc_240 = $"{location}\\BINANCE LTCUSD.P, 240.csv";
-
-      var tradingView_spy_12 = $"{location}\\BATS SPY, 12M.csv";
-      var tradingView_spy_6 = $"{location}\\BATS SPY, 6M.csv";
-      var tradingView_spy_3 = $"{location}\\BATS SPY, 3M.csv";
-      var tradingView_spy_1D = $"{location}\\BATS SPY, 1D.csv";
-
-      var tradingView__ltc_12M = $"{location}\\BINANCE LTCUSD, 12M.csv";
-      var tradingView__ltc_6M = $"{location}\\BINANCE LTCUSD, 6M.csv";
-      var tradingView__ltc_3M = $"{location}\\BINANCE LTCUSD, 3M.csv";
-      var tradingView__ltc_1M = $"{location}\\BINANCE LTCUSD, 1M.csv";
-      var tradingView__ltc_2W = $"{location}\\BINANCE LTCUSD, 2W.csv";
-      var tradingView__ltc_1W = $"{location}\\BINANCE LTCUSD, 1W.csv";
-
-
-      var spy = new[] {
-        new Tuple<string, TimeFrame>(tradingView_spy_12, TimeFrame.M12),
-        new Tuple<string, TimeFrame>(tradingView_spy_6, TimeFrame.M6),
-        new Tuple<string, TimeFrame>(tradingView_spy_3, TimeFrame.M3)
-      };
-
-      var btc = new Dictionary<string, TimeFrame> {
-        {tradingView_btc_12m, TimeFrame.M12},
-        {tradingView_btc_6M, TimeFrame.M6},
-        {tradingView_btc_3M, TimeFrame.M3},
-        {tradingView_btc_1M, TimeFrame.M1},
-        {tradingView_btc_2W, TimeFrame.W2},
-        {tradingView_btc_1W, TimeFrame.W1},
-      };
-
-      var ada = new Dictionary<string, TimeFrame> {
-        {tradingView__ada_12M, TimeFrame.M12},
-        {tradingView__ada_6M, TimeFrame.M6},
-        {tradingView__ada_3M, TimeFrame.M3},
-        {tradingView__ada_1M, TimeFrame.M1},
-        {tradingView__ada_2W, TimeFrame.W2},
-        {tradingView__ada_1W, TimeFrame.W1},
-      };
-
-      var ltc = new Dictionary<string, TimeFrame> {
-        {tradingView__ltc_12M, TimeFrame.M12},
-        {tradingView__ltc_6M, TimeFrame.M6},
-        {tradingView__ltc_3M, TimeFrame.M3},
-        {tradingView__ltc_1M, TimeFrame.M1},
-        {tradingView__ltc_2W, TimeFrame.W2},
-        {tradingView__ltc_1W, TimeFrame.W1},
-      };
+      if (!IsLive)
+        path = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data";
 
       var asset = JsonSerializer.Deserialize<Asset>(File.ReadAllText("asset.json"));
 
       asset.RunTime = TimeSpan.FromTicks(asset.RunTimeTicks);
+      var timeFrames = new TimeFrame[] { 
+        TimeFrame.W1, 
+        TimeFrame.W2,
+        TimeFrame.M1,
+        TimeFrame.M3,
+        TimeFrame.M6,
+        TimeFrame.M12 };
 
       MainLayout = new Layout()
       {
@@ -1063,32 +933,41 @@ namespace CTKS_Chart.ViewModels
       {
         Symbol = "ADAUSDT",
         NativeRound = 1,
-        PriceRound = 4
-      }, ada, strategy);
+        PriceRound = 4,
+        DataPath = path,
+        DataSymbol = "BINANCE ADAUSD",
+        TimeFrames = timeFrames,
+      }, strategy);
 
       var ltcBot = new TradingBot(new Asset()
       {
         Symbol = "LTCUSDT",
         NativeRound = 3,
-        PriceRound = 2
-      }, ltc, strategy);
+        PriceRound = 2,
+        DataPath = path,
+        DataSymbol = "BINANCE LTCUSD",
+        TimeFrames = timeFrames,
+      }, strategy);
 
       var btcBot = new TradingBot(new Asset()
       {
         Symbol = "BTCUSDT",
         NativeRound = 5,
-        PriceRound = 2
-      }, btc, strategy);
-
-
-      var dic = asset.Symbol == "BTCUSDT" ? btc : asset.Symbol == "ADAUSDT" ? ada : ltc;
+        PriceRound = 2,
+        DataPath = path,
+        DataSymbol = "INDEX BTCUSD",
+        TimeFrames = timeFrames,
+      }, strategy);
 
       if (IsLive)
-        TradingBot = new TradingBot(asset, dic, strategy);
+        TradingBot = new TradingBot(asset, strategy);
       else
       {
         TradingBot = adaBot;
       }
+
+      TradingBot.LoadTimeFrames();
+
 
       strategy.Asset = TradingBot.Asset;
 
@@ -1106,14 +985,19 @@ namespace CTKS_Chart.ViewModels
       }
       else
       {
+        var tradingView__ada_1D = $"{TradingBot.Asset.DataPath}\\{TradingBot.Asset.DataSymbol}, 1D.csv";
+
         var mainCandles = ParseTradingView(tradingView__ada_1D);
 
         MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
         MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
         var maxDate = mainCandles.First().CloseTime;
+        //246
+        await LoadLayouts(MainLayout, mainCandles, maxDate, fromTime: new DateTime(1022, 1, 1), simulate: true);
 
-        await LoadLayouts(MainLayout, mainCandles, maxDate, 1500, mainCandles.Count, true);
+        MaxValue = MainLayout.MaxValue;
+        MinValue = MainLayout.MinValue;
       }
     }
 
@@ -1130,13 +1014,24 @@ namespace CTKS_Chart.ViewModels
       DateTime? maxTime = null,
       int skip = 0,
       int cut = 0,
+      DateTime? fromTime = null,
       bool simulate = false)
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, CanvasHeight, CanvasWidth, TradingBot.Asset);
+      List<Candle> cutCandles = new List<Candle>();
 
       if (simulate && mainCandles != null)
       {
         ActualCandles = mainCandles.Skip(skip).SkipLast(cut).ToList();
+
+        if (fromTime != null)
+        {
+          cutCandles = mainCandles.Where(x => x.CloseTime > fromTime.Value).ToList();
+          ActualCandles = mainCandles.Where(x => x.CloseTime < fromTime.Value).ToList();
+
+          MainLayout.MaxValue = cutCandles.Max(x => x.High.Value);
+          MainLayout.MinValue = cutCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
+        }
       }
       else
       {
@@ -1147,7 +1042,7 @@ namespace CTKS_Chart.ViewModels
 
       foreach (var layoutData in TradingBot.TimeFrames)
       {
-        var layout = CreateCtksChart(layoutData.Key, layoutData.Value, maxTime);
+        var layout = CreateCtksChart(layoutData.Key, layoutData.Value, CanvasWidth, CanvasHeight, maxTime);
 
         Layouts.Add(layout);
         InnerLayouts.Add(layout);
@@ -1165,9 +1060,7 @@ namespace CTKS_Chart.ViewModels
 
       if (simulate && mainCandles != null)
       {
-        var cutCandles = mainCandles.Skip(skip).TakeLast(cut).ToList();
-
-        Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts, 1);
+        Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts,1);
       }
     }
 
@@ -1177,7 +1070,7 @@ namespace CTKS_Chart.ViewModels
 
     private async void RecreateChart(bool fetchNewCandles = false)
     {
-      if (IsLive && TradingBot != null)
+      if (TradingBot != null)
       {
         if (fetchNewCandles)
         {
@@ -1297,7 +1190,9 @@ namespace CTKS_Chart.ViewModels
       try
       {
         await semaphoreSlim.WaitAsync();
-        RenderOverlay(layout, ctksIntersections, TradingBot.Strategy, candles);
+
+        if (IsLive)
+          RenderOverlay(layout, ctksIntersections, TradingBot.Strategy, candles);
 
         this.actual = actual;
 
@@ -1365,8 +1260,8 @@ namespace CTKS_Chart.ViewModels
           Console.WriteLine("NO INTERSECTIONS, DOING NOTHING !");
         }
 
-        if (!Simulation)
-          RenderOverlay(layout, ctksIntersections, TradingBot.Strategy, candles);
+
+        RenderOverlay(layout, ctksIntersections, TradingBot.Strategy, candles);
       }
       finally
       {
@@ -1378,7 +1273,7 @@ namespace CTKS_Chart.ViewModels
 
     #region CreateCtksChart
 
-    private Layout CreateCtksChart(string location, TimeFrame timeFrame, DateTime? maxTime = null)
+    private Layout CreateCtksChart(string location, TimeFrame timeFrame, double canvasWidth, double canvasHeight, DateTime? maxTime = null)
     {
       var candles = ParseTradingView(location, maxTime);
 
@@ -1394,12 +1289,12 @@ namespace CTKS_Chart.ViewModels
         DataLocation = location,
       };
 
-      canvas.Width = CanvasWidth;
-      canvas.Height = CanvasHeight;
+      canvas.Width = canvasWidth;
+      canvas.Height = canvasHeight;
 
-      var ctks = new Ctks(layout, timeFrame, CanvasHeight, CanvasWidth, TradingBot.Asset);
+      var ctks = new Ctks(layout, timeFrame, canvasHeight, canvasWidth, TradingBot.Asset);
 
-      ctks.CrateCtks(candles, () => CreateChart(layout, CanvasHeight, CanvasWidth, candles));
+      ctks.CrateCtks(candles, () => CreateChart(layout, canvasHeight, canvasWidth, candles));
 
       layout.Ctks = ctks;
 
@@ -1739,7 +1634,7 @@ namespace CTKS_Chart.ViewModels
           desiredCanvasHeight,
           imageHeight,
           imageWidth,
-          IsLive ? TimeFrame.W1 : TimeFrame.M1);
+          !Simulation ? TimeFrame.W1 : TimeFrame.M1);
 
         if (ShowClosedPositions)
         {
@@ -1933,7 +1828,7 @@ namespace CTKS_Chart.ViewModels
             {
               var ntn = sell.Price * totalNative;
               var y = (ath - actualTotal);
-         
+
               lastAthPrice = (ntn + y) / totalNative;
             }
 
@@ -2323,13 +2218,6 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
     #endregion
-  }
-
-  public class DrawnChart
-  {
-    public IEnumerable<ChartCandle> Candles { get; set; }
-    public double MaxDrawnPoint { get; set; }
-    public double MinDrawnPoint { get; set; }
   }
 }
 
