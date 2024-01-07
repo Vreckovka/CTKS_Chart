@@ -172,6 +172,17 @@ namespace CTKS_Chart.Views
             viewModel.MinValue *= (decimal)(1 + delta);
           }
         }
+        else if (Keyboard.Modifiers == ModifierKeys.Alt)
+        {
+          if (e.Delta > 0)
+          {
+            viewModel.CandleCount -= 1;
+          }
+          else
+          {
+            viewModel.CandleCount += 1;
+          }
+        }
         else
         {
           if (e.Delta > 0)

@@ -35,7 +35,7 @@ namespace CTKS_Chart.Strategy
     {
       Budget = StartingBudget;
 #if DEBUG
-      var multi = 100;
+      var multi = 1;
       var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
       StartingBudget = 1000;
@@ -733,9 +733,12 @@ namespace CTKS_Chart.Strategy
       try
       {
         await sellLock.WaitAsync();
-
+  
         var minPrice = position.Price * (decimal)(1.0 + MinSellProfitMapping[position.TimeFrame]);
-        var nextLines = ctksIntersections.Where(x => x.Value > minPrice && x.Value > minForcePrice).ToList();
+        var nextLines = ctksIntersections
+          .Where(x => x.Value > minPrice && x.Value > minForcePrice)
+          .OrderBy(x => x.Value)
+          .ToList();
 
         int i = 0;
         List<Position> createdPositions = new List<Position>();

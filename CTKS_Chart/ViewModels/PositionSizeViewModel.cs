@@ -22,12 +22,35 @@ namespace CTKS_Chart.ViewModels
       this.windowManager = windowManager ?? throw new ArgumentNullException(nameof(windowManager));
 
       PositionSizeMapping = strategy.PositionSizeMapping;
+
       CancelVisibility = System.Windows.Visibility.Visible;
       CanExecuteOkCommand = () => { return IsDirty; };
       CalculatePositionSum();
     }
 
     public bool IsDirty { get; set; }
+
+
+
+    #region ScaleSize
+
+    public double ScaleSize
+    {
+      get { return strategy.ScaleSize; }
+      set
+      {
+        if (value != strategy.ScaleSize)
+        {
+          strategy.ScaleSize = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
+
 
     #region PositionSizeMapping
 

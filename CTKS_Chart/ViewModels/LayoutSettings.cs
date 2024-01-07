@@ -13,5 +13,7 @@ namespace CTKS_Chart.ViewModels
 
     public bool ShowATH { get; set; }
 
+    public int CandleCount { get; set; }
+
   }
 }

@@ -238,6 +238,8 @@ namespace CTKS_Chart.ViewModels
         if (value != candleCount)
         {
           candleCount = value;
+          RecreateChart();
+
           RaisePropertyChanged();
         }
       }
@@ -338,7 +340,7 @@ namespace CTKS_Chart.ViewModels
     public ItemsViewModel<LayoutIntervalViewModel> LayoutIntervals { get; } = new ItemsViewModel<LayoutIntervalViewModel>();
 
 #if DEBUG
-    public bool Simulation { get; set; } = true;
+    public bool Simulation { get; set; } = false;
 #endif
 
 #if RELEASE
@@ -346,7 +348,7 @@ namespace CTKS_Chart.ViewModels
 #endif
 
 #if DEBUG
-    public bool IsLive { get; set; } = false;
+    public bool IsLive { get; set; } = true;
 #endif
 
 #if RELEASE
@@ -377,11 +379,14 @@ namespace CTKS_Chart.ViewModels
         if (value != maxValue && value > minValue)
         {
           maxValue = Math.Round(value, TradingBot.Asset.PriceRound);
-          RaisePropertyChanged();
+
           MainLayout.MaxValue = MaxValue;
           TradingBot.Asset.StartMaxPrice = MaxValue;
+          SelectedLayout.MaxValue = MaxValue;
 
           RecreateChart();
+
+          RaisePropertyChanged();
         }
       }
     }
@@ -403,6 +408,7 @@ namespace CTKS_Chart.ViewModels
 
           MainLayout.MinValue = MinValue;
           TradingBot.Asset.StartLowPrice = MinValue;
+          SelectedLayout.MinValue = MinValue;
 
           RecreateChart();
 
@@ -599,35 +605,54 @@ namespace CTKS_Chart.ViewModels
 
     protected virtual void OnShowCanvas(Layout layout)
     {
-      MainGrid.Children.Clear();
-
       if (layout.Canvas == null)
       {
+        MainGrid.Children.Clear();
+
         MainGrid.Children.Add(ChartImage);
+
+        SelectedLayout = layout;
       }
       else
       {
-        if (layout.Canvas.Height != ChartImage.ActualHeight)
-        {
-          var index = InnerLayouts.IndexOf(layout);
-          var globalIndex = Layouts.IndexOf(layout);
+        ScaleCanvas(layout);
+      }
+    }
 
-          if (index >= 0)
-          {
-            InnerLayouts.RemoveAt(index);
-            InnerLayouts.Insert(index, CreateCtksChart(layout.DataLocation, layout.TimeFrame, ChartImage.ActualWidth, ChartImage.ActualHeight));
-            layout = InnerLayouts[index];
+    #endregion
 
-            Layouts.RemoveAt(globalIndex);
-            Layouts.Insert(globalIndex, layout);
-          }
-        }
+    #region ScaleCanvas
+
+    private void ScaleCanvas(Layout layout, decimal? maxValue = null, decimal? minValue = null)
+    {
+      MainGrid.Children.Clear();
+
+      var index = InnerLayouts.IndexOf(layout);
+      var globalIndex = Layouts.IndexOf(layout);
+
+      if (index >= 0)
+      {
+        layout = CreateCtksChart(
+          layout.DataLocation,
+          layout.TimeFrame,
+          ChartImage.ActualWidth,
+          ChartImage.ActualHeight,
+          null,
+          maxValue,
+          minValue);
+
+        InnerLayouts.RemoveAt(index);
+        InnerLayouts.Insert(index, layout);
+
+        Layouts.RemoveAt(globalIndex);
+        Layouts.Insert(globalIndex, layout);
 
         layout.Canvas.Height = ChartImage.ActualHeight;
         layout.Canvas.Width = ChartImage.ActualWidth;
-
-        MainGrid.Children.Add(layout.Canvas);
       }
+
+      if (layout != null)
+        MainGrid.Children.Add(layout.Canvas);
 
       SelectedLayout = layout;
     }
@@ -815,7 +840,6 @@ namespace CTKS_Chart.ViewModels
             await TradingBot.Strategy.OnCancelPosition(buy);
           }
         }
-
       }
     }
 
@@ -909,8 +933,8 @@ namespace CTKS_Chart.ViewModels
       var asset = JsonSerializer.Deserialize<Asset>(File.ReadAllText("asset.json"));
 
       asset.RunTime = TimeSpan.FromTicks(asset.RunTimeTicks);
-      var timeFrames = new TimeFrame[] { 
-        TimeFrame.W1, 
+      var timeFrames = new TimeFrame[] {
+        TimeFrame.W1,
         TimeFrame.W2,
         TimeFrame.M1,
         TimeFrame.M3,
@@ -963,7 +987,7 @@ namespace CTKS_Chart.ViewModels
         TradingBot = new TradingBot(asset, strategy);
       else
       {
-        TradingBot = adaBot;
+        TradingBot = btcBot;
       }
 
       TradingBot.LoadTimeFrames();
@@ -994,7 +1018,7 @@ namespace CTKS_Chart.ViewModels
 
         var maxDate = mainCandles.First().CloseTime;
         //246
-        await LoadLayouts(MainLayout, mainCandles, maxDate, fromTime: new DateTime(1022, 1, 1), simulate: true);
+        await LoadLayouts(MainLayout, mainCandles, maxDate, fromTime: new DateTime(2023, 12, 1), simulate: true);
 
         MaxValue = MainLayout.MaxValue;
         MinValue = MainLayout.MinValue;
@@ -1060,7 +1084,7 @@ namespace CTKS_Chart.ViewModels
 
       if (simulate && mainCandles != null)
       {
-        Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts,1);
+        Simulate(cutCandles, mainLayout, ActualCandles, InnerLayouts, 1);
       }
     }
 
@@ -1273,18 +1297,26 @@ namespace CTKS_Chart.ViewModels
 
     #region CreateCtksChart
 
-    private Layout CreateCtksChart(string location, TimeFrame timeFrame, double canvasWidth, double canvasHeight, DateTime? maxTime = null)
+    private Layout CreateCtksChart(string location, TimeFrame timeFrame,
+      double canvasWidth,
+      double canvasHeight,
+      DateTime? maxTime = null,
+      decimal? pmax = null,
+      decimal? pmin = null)
     {
       var candles = ParseTradingView(location, maxTime);
 
       var canvas = new Canvas();
 
+      var max = pmax ?? candles.Max(x => x.High.Value);
+      var min = pmin ?? candles.Min(x => x.Low.Value);
+
       var layout = new Layout()
       {
         Title = timeFrame.ToString(),
         Canvas = canvas,
-        MaxValue = candles.Max(x => x.High.Value),
-        MinValue = candles.Min(x => x.Low.Value),
+        MaxValue = max,
+        MinValue = min,
         TimeFrame = timeFrame,
         DataLocation = location,
       };
@@ -1437,7 +1469,6 @@ namespace CTKS_Chart.ViewModels
       double minDrawnPoint = 0;
       double maxDrawnPoint = 0;
       var drawnCandles = new List<ChartCandle>();
-
 
       if (candles.Any())
       {
@@ -1628,68 +1659,71 @@ namespace CTKS_Chart.ViewModels
 
         var chartCandles = chart.Candles.ToList();
 
-        RenderIntersections(dc, layout, ctksIntersections,
-          strategy.AllOpenedPositions.ToList(),
-          chartCandles,
-          desiredCanvasHeight,
-          imageHeight,
-          imageWidth,
-          !Simulation ? TimeFrame.W1 : TimeFrame.M1);
-
-        if (ShowClosedPositions)
+        if (chartCandles.Any())
         {
-          var validPositions = strategy.AllClosedPositions.Where(x => x.FilledDate > candles.First().OpenTime).ToList();
+          RenderIntersections(dc, layout, ctksIntersections,
+        strategy.AllOpenedPositions.ToList(),
+        chartCandles,
+        desiredCanvasHeight,
+        imageHeight,
+        imageWidth,
+        !Simulation ? TimeFrame.W1 : TimeFrame.M1);
 
-          RenderClosedPosiotions(dc, layout,
-            validPositions,
-            chartCandles,
-            imageHeight,
-            imageWidth);
-        }
-
-        DrawActualPrice(dc, layout, candles, imageHeight, imageWidth);
-
-        decimal price = TradingBot.Strategy.AvrageBuyPrice;
-
-        var maxCanvasValue = (decimal)GetValueFromCanvas(desiredCanvasHeight, desiredCanvasHeight, layout.MaxValue, layout.MinValue);
-        var minCanvasValue = (decimal)GetValueFromCanvas(desiredCanvasHeight, -2 * (desiredCanvasHeight - canvasHeight), layout.MaxValue, layout.MinValue);
-
-        maxCanvasValue = Math.Max(maxCanvasValue, chartCandles.Max(x => x.Candle.High.Value));
-        minCanvasValue = Math.Min(minCanvasValue, chartCandles.Min(x => x.Candle.Low.Value));
-
-        if (ShowAveragePrice)
-        {
-          if (price < maxCanvasValue && price > minCanvasValue)
-            DrawAveragePrice(dc, layout, TradingBot.Strategy.AvrageBuyPrice, imageHeight, imageWidth);
-        }
-
-
-        if (ShowATH)
-        {
-          if (lastStates.Count == 0)
-            price = GetToAthPrice(TradingBot.Strategy.MaxTotalValue);
-          else if (lastStates.Count > 0)
+          if (ShowClosedPositions)
           {
-            if (!wasLoadedAvg)
-            {
-              sellId = 0;
-              wasLoadedAvg = true;
-            }
+            var validPositions = strategy.AllClosedPositions.Where(x => x.FilledDate > candles.First().OpenTime).ToList();
 
-            var ath = lastStates.Max(x => x.TotalValue);
-
-            price = GetToAthPrice(ath);
+            RenderClosedPosiotions(dc, layout,
+              validPositions,
+              chartCandles,
+              imageHeight,
+              imageWidth);
           }
 
-          if (price < maxCanvasValue && price > minCanvasValue)
-            DrawPriceToATH(dc, layout, price, imageHeight, imageWidth);
+          DrawActualPrice(dc, layout, candles, imageHeight, imageWidth);
+
+          decimal price = TradingBot.Strategy.AvrageBuyPrice;
+
+          var maxCanvasValue = (decimal)GetValueFromCanvas(desiredCanvasHeight, desiredCanvasHeight, layout.MaxValue, layout.MinValue);
+          var minCanvasValue = (decimal)GetValueFromCanvas(desiredCanvasHeight, -2 * (desiredCanvasHeight - canvasHeight), layout.MaxValue, layout.MinValue);
+
+          maxCanvasValue = Math.Max(maxCanvasValue, chartCandles.Max(x => x.Candle.High.Value));
+          minCanvasValue = Math.Min(minCanvasValue, chartCandles.Min(x => x.Candle.Low.Value));
+
+          if (ShowAveragePrice)
+          {
+            if (price < maxCanvasValue && price > minCanvasValue)
+              DrawAveragePrice(dc, layout, TradingBot.Strategy.AvrageBuyPrice, imageHeight, imageWidth);
+          }
+
+
+          if (ShowATH)
+          {
+            if (lastStates.Count == 0)
+              price = GetToAthPrice(TradingBot.Strategy.MaxTotalValue);
+            else if (lastStates.Count > 0)
+            {
+              if (!wasLoadedAvg)
+              {
+                sellId = 0;
+                wasLoadedAvg = true;
+              }
+
+              var ath = lastStates.Max(x => x.TotalValue);
+
+              price = GetToAthPrice(ath);
+            }
+
+            if (price < maxCanvasValue && price > minCanvasValue)
+              DrawPriceToATH(dc, layout, price, imageHeight, imageWidth);
+          }
         }
+
+        DrawingImage dImageSource = new DrawingImage(dGroup);
+
+        Chart = dImageSource;
+        this.ChartImage.Source = Chart;
       }
-
-      DrawingImage dImageSource = new DrawingImage(dGroup);
-
-      Chart = dImageSource;
-      this.ChartImage.Source = Chart;
     }
 
     #endregion
@@ -2043,7 +2077,8 @@ namespace CTKS_Chart.ViewModels
 
         VSynchronizationContext.InvokeOnDispatcher(() =>
         {
-          RenderLayout(MainLayout, InnerLayouts, actual, ActualCandles);
+          if (SelectedLayout.Canvas == null)
+            RenderLayout(MainLayout, InnerLayouts, actual, ActualCandles);
         });
 
         if (lastState == null)
@@ -2172,6 +2207,9 @@ namespace CTKS_Chart.ViewModels
 
           ShowAveragePrice = settings.ShowAveragePrice;
           ShowATH = settings.ShowATH;
+
+          if (settings.CandleCount > 0)
+            CandleCount = settings.CandleCount;
         }
       }
     }
@@ -2190,7 +2228,8 @@ namespace CTKS_Chart.ViewModels
           LayoutInterval = LayoutIntervals.SelectedItem.Model.Interval,
           ColorSettings = ColorScheme.ColorSettings.Select(x => x.Value.Model),
           ShowAveragePrice = ShowAveragePrice,
-          ShowATH = ShowATH
+          ShowATH = ShowATH,
+          CandleCount = CandleCount
         };
 
         var options = new JsonSerializerOptions()

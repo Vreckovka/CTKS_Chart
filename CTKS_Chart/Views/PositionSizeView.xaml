@@ -56,6 +56,22 @@
                                      IsReadOnly="True" />
             </StackPanel>
 
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Margin="10,0"
+                           VerticalAlignment="Center"
+                           Text="Scale Size" />
+                <TextBox VerticalAlignment="Center"
+                         VerticalContentAlignment="Center"
+                         Text="{Binding ScaleSize}" />
+                <controls:PathButton Focusable="True"
+                                     Glyph="{StaticResource floppy-disk-glyph}"
+                                     GlyphFontSize="17"
+                                     IconDefaultColor="{StaticResource BlueColor}"
+                                     IconHoverColor="{StaticResource BlueColor}"
+                                     IsReadOnly="True" />
+            </StackPanel>
+
+
             <prompts:GenericPromptFooter />
 
         </StackPanel>

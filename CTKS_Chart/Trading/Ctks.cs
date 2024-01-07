@@ -379,7 +379,7 @@ namespace CTKS_Chart.Trading
         Canvas.SetBottom(text, actual);
 
 
-        //canvas.Children.Add(circle);
+        canvas.Children.Add(circle);
         canvas.Children.Add(target);
         canvas.Children.Add(text);
 
@@ -387,7 +387,7 @@ namespace CTKS_Chart.Trading
         {
           Line = target,
           Text = text,
-          //Mark = circle
+          Mark = circle
         });
       }
     }

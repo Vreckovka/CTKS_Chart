@@ -45,6 +45,44 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region TotalValue
+
+    private IChartValues athPrice;
+
+    public IChartValues AthPrice
+    {
+      get { return athPrice; }
+      set
+      {
+        if (value != athPrice)
+        {
+          athPrice = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region ClosePice
+
+    private IChartValues closePice;
+
+    public IChartValues ClosePice
+    {
+      get { return closePice; }
+      set
+      {
+        if (value != closePice)
+        {
+          closePice = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     #region TotalProfit
 
     private IChartValues totalProfit;
@@ -118,6 +156,14 @@ namespace CTKS_Chart.ViewModels
 
       TotalValue = new ChartValues<decimal>(states.Select(x => x.TotalValue));
       TotalProfit = new ChartValues<decimal>(states.Select(x => x.TotalProfit));
+
+
+      var stats = states.Where(x => x.AthPrice > 0 && x.ClosePrice > 0).ToList();
+
+      AthPrice = new ChartValues<decimal>(stats.Select(x => x.AthPrice));
+      ClosePice = new ChartValues<decimal>(stats.Select(x => x.ClosePrice.Value));
+
+
       Labels = dates.ToArray();
       YFormatter = value => value.ToString("N2");
     }
