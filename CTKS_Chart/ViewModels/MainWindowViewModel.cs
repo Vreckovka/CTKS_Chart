@@ -340,7 +340,7 @@ namespace CTKS_Chart.ViewModels
     public ItemsViewModel<LayoutIntervalViewModel> LayoutIntervals { get; } = new ItemsViewModel<LayoutIntervalViewModel>();
 
 #if DEBUG
-    public bool Simulation { get; set; } = false;
+    public bool Simulation { get; set; } = true;
 #endif
 
 #if RELEASE
@@ -348,7 +348,7 @@ namespace CTKS_Chart.ViewModels
 #endif
 
 #if DEBUG
-    public bool IsLive { get; set; } = true;
+    public bool IsLive { get; set; } = false;
 #endif
 
 #if RELEASE
@@ -987,7 +987,7 @@ namespace CTKS_Chart.ViewModels
         TradingBot = new TradingBot(asset, strategy);
       else
       {
-        TradingBot = btcBot;
+        TradingBot = adaBot;
       }
 
       TradingBot.LoadTimeFrames();
@@ -1018,7 +1018,7 @@ namespace CTKS_Chart.ViewModels
 
         var maxDate = mainCandles.First().CloseTime;
         //246
-        await LoadLayouts(MainLayout, mainCandles, maxDate, fromTime: new DateTime(2023, 12, 1), simulate: true);
+        await LoadLayouts(MainLayout, mainCandles, maxDate, fromTime: new DateTime(1023, 12, 1), simulate: true);
 
         MaxValue = MainLayout.MaxValue;
         MinValue = MainLayout.MinValue;

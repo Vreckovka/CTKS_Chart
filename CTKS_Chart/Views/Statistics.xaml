@@ -20,7 +20,7 @@
         <wpf:CartesianChart Background="Transparent" LegendLocation="None">
 
             <wpf:CartesianChart.AxisY>
-                <wpf:Axis Title="Total Value" LabelFormatter="{Binding YFormatter}">
+                <wpf:Axis Title="Total Value" LabelFormatter="{Binding ValueFormatter}">
                     <wpf:Axis.Separator>
                         <wpf:Separator Stroke="{StaticResource YellowBrush}"
                                        StrokeDashArray="0"
@@ -30,7 +30,7 @@
 
                 <wpf:Axis Title="Total Profit"
                           Foreground="{StaticResource GreenBrush}"
-                          LabelFormatter="{Binding YFormatter}"
+                          LabelFormatter="{Binding ValueFormatter}"
                           Position="RightTop">
                     <wpf:Axis.Separator>
                         <wpf:Separator Stroke="{StaticResource GreenBrush}"
@@ -79,7 +79,7 @@
                             LegendLocation="None">
 
             <wpf:CartesianChart.AxisY>
-                <wpf:Axis Title="Ath Price" LabelFormatter="{Binding YFormatter}">
+                <wpf:Axis Title="Ath Price" LabelFormatter="{Binding PriceFormatter}">
                     <wpf:Axis.Separator>
                         <wpf:Separator Stroke="{StaticResource YellowBrush3}"
                                        StrokeDashArray="0"
@@ -89,7 +89,7 @@
 
                 <wpf:Axis Title="Close Price"
                           Foreground="{StaticResource LightRedBrush}"
-                          LabelFormatter="{Binding YFormatter}"
+                          LabelFormatter="{Binding PriceFormatter}"
                           Position="RightTop">
                     <wpf:Axis.Separator>
                         <wpf:Separator Stroke="{StaticResource GreenBrush}"

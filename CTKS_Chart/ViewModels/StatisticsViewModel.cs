@@ -121,18 +121,37 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region YFormatter
+    #region ValueFormatter
 
-    private Func<double, string> yFormatter;
+    private Func<double, string> valueFormatter;
 
-    public Func<double, string> YFormatter
+    public Func<double, string> ValueFormatter
     {
-      get { return yFormatter; }
+      get { return valueFormatter; }
       set
       {
-        if (value != yFormatter)
+        if (value != valueFormatter)
         {
-          yFormatter = value;
+          valueFormatter = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region PriceFormatter
+
+    private Func<double, string> priceFormatter;
+
+    public Func<double, string> PriceFormatter
+    {
+      get { return priceFormatter; }
+      set
+      {
+        if (value != priceFormatter)
+        {
+          priceFormatter = value;
           RaisePropertyChanged();
         }
       }
@@ -165,7 +184,8 @@ namespace CTKS_Chart.ViewModels
 
 
       Labels = dates.ToArray();
-      YFormatter = value => value.ToString("N2");
+      ValueFormatter = value => value.ToString("N2");
+      PriceFormatter = value => value.ToString($"N{strategy.Asset.PriceRound}");
     }
   }
 }

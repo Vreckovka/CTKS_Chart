@@ -446,20 +446,19 @@ namespace CTKS_Chart.Strategy
 
     #region Methods
 
-    #region GetMinBuy
+    #region GetMaxBuy
 
-    private decimal GetMinBuy(decimal low, TimeFrame timeFrame)
+    private decimal GetMaxBuy(decimal low, TimeFrame timeFrame)
     {
-      var min = low * (decimal)(1 - MinBuyMapping[timeFrame]);
+      var max = low * (decimal)(1 - MinBuyMapping[timeFrame]);
 
-      return min;
+      return max;
     }
 
     #endregion
 
     #region CreatePositions
-
-
+    
     public async void CreatePositions(Candle actualCandle)
     {
       try
@@ -491,11 +490,12 @@ namespace CTKS_Chart.Strategy
           await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close.Value));
         }
 
+        
         var inter = Intersections
           .Where(x => x.Value < actualCandle.Close.Value &&
                       x.Value > minBuy &&
-                      x.Value < GetMinBuy(actualCandle.Close.Value, x.TimeFrame))
-          .OrderByDescending(x => x.Value)
+                      x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame))
+            .OrderByDescending(x => x.Value)
           .ToList();
 
         foreach (var intersection in inter)
@@ -733,8 +733,9 @@ namespace CTKS_Chart.Strategy
       try
       {
         await sellLock.WaitAsync();
-  
+
         var minPrice = position.Price * (decimal)(1.0 + MinSellProfitMapping[position.TimeFrame]);
+
         var nextLines = ctksIntersections
           .Where(x => x.Value > minPrice && x.Value > minForcePrice)
           .OrderBy(x => x.Value)
