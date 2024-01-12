@@ -42,16 +42,10 @@ namespace CTKS_Chart.ViewModels
 {
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
-    private readonly BinanceBroker binanceBroker;
-
     #region Constructors
 
-    public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger, BinanceBroker binanceBroker) : base(viewModelsFactory)
+    public MainWindowViewModel(IViewModelsFactory viewModelsFactory) : base(viewModelsFactory)
     {
-      this.binanceBroker = binanceBroker ?? throw new ArgumentNullException(nameof(binanceBroker));
-
-      Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
     }
 
@@ -59,35 +53,6 @@ namespace CTKS_Chart.ViewModels
 
     #region Properties
 
-    #region  ConsoleCollectionLogger
-
-    public CollectionLogger ConsoleCollectionLogger
-    {
-      get { return (CollectionLogger)logger.LoggerContainer; }
-
-    }
-
-    #endregion
-
-    #region Logger
-
-    private ILogger logger;
-
-    public ILogger Logger
-    {
-      get { return logger; }
-      set
-      {
-        if (value != logger)
-        {
-          logger = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-    
     #region TradingBotViewModel
 
     private TradingBotViewModel tradingBotViewModel;
@@ -151,7 +116,7 @@ namespace CTKS_Chart.ViewModels
         TimeFrame.M6,
         TimeFrame.M12 };
 
-      Strategy.Strategy strategy = new BinanceStrategy(binanceBroker, logger);
+      Strategy.Strategy strategy = ViewModelsFactory.Create<BinanceStrategy>();
 
       if (!IsLive)
         strategy = new SimulationStrategy();

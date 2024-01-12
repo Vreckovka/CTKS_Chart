@@ -27,6 +27,7 @@ using VCore.Standard.Helpers;
 using VCore.WPF;
 using VCore.WPF.Interfaces.Managers;
 using VCore.WPF.ItemsCollections;
+using VCore.WPF.Logger;
 using VCore.WPF.Misc;
 using VCore.WPF.ViewModels.Prompt;
 
@@ -34,7 +35,6 @@ namespace CTKS_Chart.ViewModels
 {
   public class TradingBotViewModel : ViewModel
   {
-    private readonly ILogger logger;
     private readonly IWindowManager windowManager;
     private readonly BinanceBroker binanceBroker;
     private readonly IViewModelsFactory viewModelsFactory;
@@ -62,6 +62,36 @@ namespace CTKS_Chart.ViewModels
     //TODO: Replace by TradingBotView
     public MainWindow MainWindow { get; set; }
     public TradingBot TradingBot { get; }
+
+
+    #region  ConsoleCollectionLogger
+
+    public CollectionLogger ConsoleCollectionLogger
+    {
+      get { return (CollectionLogger)logger.LoggerContainer; }
+
+    }
+
+    #endregion
+
+    #region Logger
+
+    private ILogger logger;
+
+    public ILogger Logger
+    {
+      get { return logger; }
+      set
+      {
+        if (value != logger)
+        {
+          logger = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
 
 
     public ObservableCollection<Layout> Layouts { get; set; } = new ObservableCollection<Layout>();
