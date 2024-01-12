@@ -90,7 +90,7 @@ namespace CTKS_Chart.Views
 
       if (DataContext is MainWindowViewModel viewModel)
       {
-        viewModel.SaveLayoutSettings();
+        viewModel.TradingBotViewModel.SaveLayoutSettings(viewModel.TradingBotViewModel.IsLive);
       }
     }
 
@@ -165,33 +165,33 @@ namespace CTKS_Chart.Views
         {
           if (e.Delta > 0)
           {
-            viewModel.MinValue *= (decimal)(1 - delta);
+            viewModel.TradingBotViewModel.DrawingViewModel.MinValue *= (decimal)(1 - delta);
           }
           else
           {
-            viewModel.MinValue *= (decimal)(1 + delta);
+            viewModel.TradingBotViewModel.DrawingViewModel.MinValue *= (decimal)(1 + delta);
           }
         }
         else if (Keyboard.Modifiers == ModifierKeys.Alt)
         {
           if (e.Delta > 0)
           {
-            viewModel.CandleCount -= 1;
+            viewModel.TradingBotViewModel.DrawingViewModel.CandleCount -= 1;
           }
           else
           {
-            viewModel.CandleCount += 1;
+            viewModel.TradingBotViewModel.DrawingViewModel.CandleCount += 1;
           }
         }
         else
         {
           if (e.Delta > 0)
           {
-            viewModel.MaxValue *= (decimal)(1 - delta);
+            viewModel.TradingBotViewModel.DrawingViewModel.MaxValue *= (decimal)(1 - delta);
           }
           else
           {
-            viewModel.MaxValue *= (decimal)(1 + delta);
+            viewModel.TradingBotViewModel.DrawingViewModel.MaxValue *= (decimal)(1 + delta);
           }
         }
 

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
+using CTKS_Chart.Binance;
 using CTKS_Chart.ViewModels;
 using CTKS_Chart.Views;
 using Logger;
@@ -28,6 +29,10 @@ namespace CTKS_Chart
       base.LoadModules();
 
       Kernel.Rebind<ILoggerContainer>().To<CollectionLogger>();
+
+      Kernel.Bind<BinanceBroker>()
+        .To<BinanceBroker>()
+        .InSingletonScope();
     }
   }
 

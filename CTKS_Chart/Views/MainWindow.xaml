@@ -40,7 +40,7 @@
 
     </Window.Resources>
 
-    <Grid>
+    <Grid DataContext="{Binding TradingBotViewModel}" Margin="5">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto" />
             <RowDefinition />
@@ -82,7 +82,9 @@
 
                                     </StackPanel>
 
-                                    <StackPanel Margin="5" Orientation="Horizontal">
+                                    <StackPanel Margin="5"
+                                                DataContext="{Binding DrawingViewModel}"
+                                                Orientation="Horizontal">
                                         <TextBox Width="80"
                                                  Margin="10,0,10,0"
                                                  Text="{Binding MaxValue}" />
@@ -95,7 +97,9 @@
                                                  Text="{Binding CandleCount}" />
                                     </StackPanel>
 
-                                    <StackPanel Margin="5" Orientation="Horizontal">
+                                    <StackPanel Margin="5"
+                                                DataContext="{Binding DrawingViewModel}"
+                                                Orientation="Horizontal">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock VerticalAlignment="Center" Text="Min buy % " />
                                             <TextBox Width="40"
@@ -124,7 +128,7 @@
                             </Border>
                         </MenuItem>
 
-                        <MenuItem Header="Color">
+                        <MenuItem DataContext="{Binding DrawingViewModel}" Header="Color">
                             <Border Padding="10">
                                 <Grid>
                                     <ItemsControl ItemsSource="{Binding ColorScheme.ColorSettings}">
@@ -193,7 +197,7 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <Border>
-                                    <Button Command="{Binding DataContext.ShowCanvas, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
+                                    <Button Command="{Binding DataContext.TradingBotViewModel.ShowCanvas, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
                                         <TextBlock FontSize="15" Text="{Binding Title}" />
 
                                         <Button.Style>
@@ -273,7 +277,7 @@
                                     </Style>
                                 </StackPanel.Resources>
 
-                                <TextBlock Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" ToolTip="Active time" />
+                                <TextBlock Text="{Binding DataContext.TradingBotViewModel.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" ToolTip="Active time" />
                                 <TextBlock Foreground="{StaticResource YellowBrush}"
                                            Text="{Binding TotalValue, StringFormat={}{0:N2} $}"
                                            ToolTip="Total value" />
@@ -323,7 +327,7 @@
                                            Text="{Binding TotalExpectedProfit, StringFormat={}{0:N2} $}"
                                            ToolTip="Total expected profit" />
 
-                                <TextBlock DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}"
+                                <TextBlock DataContext="{Binding DataContext.TradingBotViewModel, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}"
                                            FontSize="10"
                                            Text="{Binding DailyChange, StringFormat={}{0:N2} $}"
                                            ToolTip="Daily PnL">
@@ -342,7 +346,7 @@
                                     </TextBlock.Style>
                                 </TextBlock>
 
-                                <TextBlock DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}"
+                                <TextBlock DataContext="{Binding DataContext.TradingBotViewModel, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}"
                                            FontSize="10"
                                            Text="{Binding FromAllTimeHigh, StringFormat={}{0:N2} $}"
                                            ToolTip="From All Time High">
@@ -366,7 +370,7 @@
                                                      GlyphFontSize="18"
                                                      IconCheckedColor="{StaticResource YellowColor}"
                                                      IconHoverColor="{StaticResource YellowColor}"
-                                                     IsChecked="{Binding DataContext.ShowClosedPositions, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
+                                                     IsChecked="{Binding DataContext.TradingBotViewModel.DrawingViewModel.ShowClosedPositions, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
                             </StackPanel>
                         </Border>
 
@@ -376,8 +380,7 @@
                                 <RowDefinition Height="auto" />
                             </Grid.RowDefinitions>
 
-                            <!--<TextBlock Foreground="White" Text="{Binding DataContext.LayoutIntervals, RelativeSource={RelativeSource AncestorType=Window}}" />-->
-                            <ListView Background="#6005080d" ItemsSource="{Binding DataContext.LayoutIntervals.View, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <ListView Background="#6005080d" ItemsSource="{Binding DataContext.TradingBotViewModel.LayoutIntervals.View, RelativeSource={RelativeSource AncestorType=Window}}">
                                 <ListView.ItemsPanel>
                                     <ItemsPanelTemplate>
                                         <StackPanel Orientation="Horizontal" />
@@ -464,7 +467,7 @@
                                                          Margin="10,10"
                                                          Padding="0"
                                                          VerticalAlignment="Top"
-                                                         Command="{Binding DataContext.OpenPositionSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                         Command="{Binding DataContext.TradingBotViewModel.OpenPositionSize, RelativeSource={RelativeSource AncestorType=Window}}"
                                                          Glyph="{StaticResource pencil-glyph}"
                                                          IconHoverColor="{StaticResource YellowColor}"
                                                          IconMargin="0"
@@ -496,7 +499,7 @@
                     <Border.Style>
                         <Style TargetType="Border">
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding DataContext.Simulation, RelativeSource={RelativeSource AncestorType=Window}}" Value="true">
+                                <DataTrigger Binding="{Binding DataContext.TradingBotViewModel.Simulation, RelativeSource={RelativeSource AncestorType=Window}}" Value="true">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </Style.Triggers>
@@ -755,9 +758,9 @@
                                                  HorizontalAlignment="Left"
                                                  Columns="2">
                                         <TextBlock Text="Total time" />
-                                        <TextBlock Text="{Binding DataContext.TotalRunTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
+                                        <TextBlock Text="{Binding DataContext.TradingBotViewModel.TotalRunTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
                                         <TextBlock Text="Active time" />
-                                        <TextBlock Text="{Binding DataContext.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
+                                        <TextBlock Text="{Binding DataContext.TradingBotViewModel.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
                                         <TextBlock Text="Starting Budget" />
                                         <TextBlock Text="{Binding StartingBudget, StringFormat={}{0:N2} $}" />
                                         <TextBlock FontWeight="Bold" Text="Total Value" />
@@ -814,7 +817,7 @@
                                 </ItemsControl>
 
                                 <StackPanel Grid.Row="2" Orientation="Vertical">
-                                    <TextBlock Foreground="#36ffffff" Text="{Binding DataContext.BuildVersion, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    <TextBlock Foreground="#36ffffff" Text="{Binding DataContext.TradingBotViewModel.BuildVersion, RelativeSource={RelativeSource AncestorType=Window}}" />
                                 </StackPanel>
                             </Grid>
                         </TabItem>

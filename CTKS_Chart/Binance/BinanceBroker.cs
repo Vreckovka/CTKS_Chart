@@ -249,7 +249,6 @@ namespace CTKS_Chart.Binance
     private int subId;
     public async Task SubscribeToKlineInterval(string symbol, Action<IBinanceStreamKline> onKlineUpdate, KlineInterval klineInterval)
     {
-
       try
       {
         await subscribeToKlineIntervaLock.WaitAsync();

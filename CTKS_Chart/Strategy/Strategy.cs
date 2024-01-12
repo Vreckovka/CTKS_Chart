@@ -520,12 +520,11 @@ namespace CTKS_Chart.Strategy
             leftSize = leftSize - existing;
           }
 
-          var stack = new Stack<Position>(OpenBuyPositions.Where(x => intersection.Value > x.Price).OrderByDescending(x => x.Price));
-          var openBuy = stack.Sum(x => x.PositionSize);
-
-
           if (leftSize > MinPositionValue)
           {
+            var stack = new Stack<Position>(OpenBuyPositions.Where(x => intersection.Value > x.Price).OrderByDescending(x => x.Price));
+            var openBuy = stack.Sum(x => x.PositionSize);
+
             while (Budget < leftSize && Budget + openBuy > leftSize)
             {
               var openLow = stack.Pop();
@@ -634,11 +633,6 @@ namespace CTKS_Chart.Strategy
           ClosedBuyPositions.Add(position);
           OpenBuyPositions.Remove(position);
           Budget -= position.Fees ?? 0;
-
-          if (TotalValue / 3 < PositionSizeMapping.Single(x => x.Key == TimeFrame.M12).Value)
-          {
-            Scale(-1 * TotalValue * (decimal)0.01);
-          }
 
           RaisePropertyChanged(nameof(TotalBuy));
 
