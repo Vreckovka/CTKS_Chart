@@ -11,5 +11,7 @@ namespace CTKS_Chart.ViewModels
     public DateTime Date { get; set; }
     public decimal AthPrice { get; set; }
     public decimal? ClosePrice { get; set; }
+    public decimal ValueToNative { get; set; }
+    public decimal ValueToBTC { get; set; }
   }
 }

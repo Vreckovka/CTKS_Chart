@@ -179,7 +179,7 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-    
+
     #region CanvasHeight
 
     private double canvasHeight = 1000;
@@ -643,14 +643,14 @@ namespace CTKS_Chart.ViewModels
         if (x != null)
           KlineInterval = x.Model.Interval;
       });
-      
+
     }
 
     #endregion
 
     public void Start()
     {
-     LoadLayoutSettings();
+      LoadLayoutSettings();
 
       stopwatch.Start();
 
@@ -683,7 +683,7 @@ namespace CTKS_Chart.ViewModels
 
     private async void ForexChart_Loaded()
     {
-     if (IsLive)
+      if (IsLive)
       {
         TradingBot.Strategy.Logger = logger;
         await LoadLayouts(MainLayout);
@@ -1029,10 +1029,14 @@ namespace CTKS_Chart.ViewModels
 
     private List<State> lastStates = new List<State>();
     private State lastState = null;
-    private void OnBinanceKlineUpdate(IBinanceStreamKline binanceStreamKline)
+    private SemaphoreSlim binanceKlineUpdateLock = new SemaphoreSlim(1, 1);
+
+    private async void OnBinanceKlineUpdate(IBinanceStreamKline binanceStreamKline)
     {
-      lock (this)
+      try
       {
+        await binanceKlineUpdateLock.WaitAsync();
+
         var actual = new Candle()
         {
           Close = binanceStreamKline.ClosePrice,
@@ -1106,8 +1110,25 @@ namespace CTKS_Chart.ViewModels
             TotalNative = TradingBot.Strategy.TotalNativeAsset,
             TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
             AthPrice = GetToAthPrice(lastStates.Max(x => x.TotalValue)),
-            ClosePrice = actual.Close
+            ClosePrice = actual.Close,
           };
+
+          lastState.ValueToNative = Math.Round(lastState.TotalValue / lastState.ClosePrice.Value, TradingBot.Asset.NativeRound);
+
+          if (TradingBot.Asset.Symbol == "BTCUSDT")
+          {
+            lastState.ValueToBTC = lastState.ValueToNative;
+          }
+          else
+          {
+            var btcPrice = await binanceBroker.GetTicker("BTCUSDT");
+
+            if (btcPrice != null)
+            {
+              lastState.ValueToBTC = Math.Round(lastState.TotalValue / btcPrice.Value, 5);
+            }
+          }
+
 
           lastStates.Add(lastState);
 
@@ -1122,7 +1143,10 @@ namespace CTKS_Chart.ViewModels
           DailyChange = TradingBot.Strategy.TotalValue - lastState.TotalValue;
           FromAllTimeHigh = TradingBot.Strategy.TotalValue - lastStates.Max(x => x.TotalValue);
         }
-
+      }
+      finally
+      {
+        binanceKlineUpdateLock.Release();
       }
     }
 
@@ -1296,7 +1320,7 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-    
+
     #region GetAthPrice
 
     private bool wasLoadedAvg = false;

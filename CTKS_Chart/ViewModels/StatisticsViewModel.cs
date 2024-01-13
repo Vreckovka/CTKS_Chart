@@ -102,6 +102,44 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region ValueToNative
+
+    private IChartValues valueToNative;
+
+    public IChartValues ValueToNative
+    {
+      get { return valueToNative; }
+      set
+      {
+        if (value != valueToNative)
+        {
+          valueToNative = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region ValueToBTC
+
+    private IChartValues valueToBTC;
+
+    public IChartValues ValueToBTC
+    {
+      get { return valueToBTC; }
+      set
+      {
+        if (value != valueToBTC)
+        {
+          valueToBTC = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     #region Labels
 
     private string[] labels;
@@ -159,6 +197,44 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region NativeFormatter
+
+    private Func<double, string> nativeFormatter;
+
+    public Func<double, string> NativeFormatter
+    {
+      get { return nativeFormatter; }
+      set
+      {
+        if (value != nativeFormatter)
+        {
+          nativeFormatter = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region BTCFormatter
+
+    private Func<double, string> bTCFormatter;
+
+    public Func<double, string> BTCFormatter
+    {
+      get { return bTCFormatter; }
+      set
+      {
+        if (value != bTCFormatter)
+        {
+          bTCFormatter = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     #region PriceFormatter
 
     private Func<double, string> priceFormatter;
@@ -198,9 +274,11 @@ namespace CTKS_Chart.ViewModels
 
       var stats = states.Where(x => x.AthPrice > 0 && x.ClosePrice > 0).ToList();
 
-      AthPrice = new ChartValues<decimal>(stats.Select(x => x.AthPrice));
-      ClosePice = new ChartValues<decimal>(stats.Select(x => x.ClosePrice.Value));
+      AthPrice = new ChartValues<decimal>(stats.Where(x => x.AthPrice > 0).Select(x => x.AthPrice));
+      ClosePice = new ChartValues<decimal>(stats.Where(x => x.ClosePrice > 0).Select(x => x.ClosePrice.Value));
 
+      ValueToNative = new ChartValues<decimal>(stats.Where(x => x.ValueToNative > 0).Select(x => x.ValueToNative));
+      ValueToBTC = new ChartValues<decimal>(stats.Where(x => x.ValueToBTC > 0).Select(x => x.ValueToBTC));
 
       Labels = dates.ToArray();
       Labels2 = stats.Select(x => x.Date.ToShortDateString()).ToArray();
@@ -208,6 +286,8 @@ namespace CTKS_Chart.ViewModels
 
       ValueFormatter = value => value.ToString("N2");
       PriceFormatter = value => value.ToString($"N{strategy.Asset.PriceRound}");
+      NativeFormatter = value => value.ToString($"N{strategy.Asset.NativeRound}");
+      BTCFormatter = value => value.ToString($"N5");
     }
   }
 }
