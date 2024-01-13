@@ -121,6 +121,25 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region Labels2
+
+    private string[] labels2;
+
+    public string[] Labels2
+    {
+      get { return labels2; }
+      set
+      {
+        if (value != labels2)
+        {
+          labels2 = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     #region ValueFormatter
 
     private Func<double, string> valueFormatter;
@@ -184,6 +203,9 @@ namespace CTKS_Chart.ViewModels
 
 
       Labels = dates.ToArray();
+      Labels2 = stats.Select(x => x.Date.ToShortDateString()).ToArray();
+
+
       ValueFormatter = value => value.ToString("N2");
       PriceFormatter = value => value.ToString($"N{strategy.Asset.PriceRound}");
     }
