@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Logger", "..\..\CustomLibra
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VPlayer.DarkTheme", "..\..\VPlayer\VPlayer.DarkTheme\VPlayer.DarkTheme.csproj", "{7268CFC6-7720-4473-BA76-B7014FE36EA3}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DomainCore", "..\..\CustomLibraries\DomainCore\DomainCore.csproj", "{21B39F82-9F78-4161-AAB3-738A67D81D4A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{7268CFC6-7720-4473-BA76-B7014FE36EA3}.Release|x64.Build.0 = Release|Any CPU
 		{7268CFC6-7720-4473-BA76-B7014FE36EA3}.Release|x86.ActiveCfg = Release|Any CPU
 		{7268CFC6-7720-4473-BA76-B7014FE36EA3}.Release|x86.Build.0 = Release|Any CPU
+		{21B39F82-9F78-4161-AAB3-738A67D81D4A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21B39F82-9F78-4161-AAB3-738A67D81D4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21B39F82-9F78-4161-AAB3-738A67D81D4A}.Debug|x64.ActiveCfg = Debug|x64
+		{21B39F82-9F78-4161-AAB3-738A67D81D4A}.Debug|x64.Build.0 = Debug|x64
+		{21B39F82-9F78-4161-AAB3-738A67D81D4A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{21B39F82-9F78-4161-AAB3-738A67D81D4A}.Debug|x86.Build.0 = Debug|Any CPU
+		{21B39F82-9F78-4161-AAB3-738A67D81D4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21B39F82-9F78-4161-AAB3-738A67D81D4A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21B39F82-9F78-4161-AAB3-738A67D81D4A}.Release|x64.ActiveCfg = Release|x64
+		{21B39F82-9F78-4161-AAB3-738A67D81D4A}.Release|x64.Build.0 = Release|x64
+		{21B39F82-9F78-4161-AAB3-738A67D81D4A}.Release|x86.ActiveCfg = Release|Any CPU
+		{21B39F82-9F78-4161-AAB3-738A67D81D4A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -599,7 +599,7 @@ namespace CTKS_Chart.ViewModels
         var lineY = canvasHeight - actual;
 
         var positionsOnIntersesction = allPositions
-          .Where(x => x.Intersection?.Value == intersection.Value)
+          .Where(x => x.Intersection.IsSame(intersection))
           .ToList();
 
         var firstPositionsOnIntersesction = positionsOnIntersesction.FirstOrDefault();

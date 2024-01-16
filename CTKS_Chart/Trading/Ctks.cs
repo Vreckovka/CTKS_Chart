@@ -194,6 +194,7 @@ namespace CTKS_Chart.Trading
         {
           Value = value,
           TimeFrame = line.TimeFrame,
+          Line = line
         };
 
         ctksIntersections.Add(intersection);

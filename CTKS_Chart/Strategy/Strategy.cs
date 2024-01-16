@@ -468,10 +468,10 @@ namespace CTKS_Chart.Strategy
         var minBuy = actualCandle.Close * (1 - MinBuyPrice);
 
         var openedBuy = OpenBuyPositions
-          .Where(x => !Intersections.Any(y => y.Value == x.Intersection.Value) || x.Price < minBuy)
+          .Where(x => !Intersections.Any(y => y.IsSame(x.Intersection)) || x.Price < minBuy)
           .ToList();
 
-        var openedSell = OpenSellPositions.Where(x => !Intersections.Any(y => y.Value == x.Intersection.Value)).ToList();
+        var openedSell = OpenSellPositions.Where(x => !Intersections.Any(y => y.IsSame(x.Intersection))).ToList();
 
         foreach (var buyPosition in openedBuy)
         {
@@ -501,7 +501,7 @@ namespace CTKS_Chart.Strategy
         foreach (var intersection in inter)
         {
           var positionsOnIntersesction = AllOpenedPositions
-            .Where(x => x.Intersection?.Value == intersection.Value &&
+            .Where(x => x.Intersection.IsSame(intersection) &&
                         x.Intersection.TimeFrame == intersection.TimeFrame)
             .ToList();
 
@@ -509,7 +509,7 @@ namespace CTKS_Chart.Strategy
           var sum = positionsOnIntersesction.Sum(x => x.PositionSize);
 
           var existing = ActualPositions
-            .Where(x => x.Intersection.Value == intersection.Value &&
+            .Where(x => x.Intersection.IsSame(intersection) &&
                         x.Intersection.TimeFrame == intersection.TimeFrame)
             .Sum(x => x.OpositPositions.Sum(y => y.PositionSize));
 
@@ -531,7 +531,7 @@ namespace CTKS_Chart.Strategy
 
               if (openLow != null &&
                   intersection.Value > openLow.Price &&
-                  openLow.Intersection.Value != intersection.Value)
+                  !openLow.Intersection.IsSame(intersection))
               {
                 Logger?.Log(MessageType.Warning, $"Cancelling position {openLow.Intersection.Value} in order to create another {intersection.Value}", simpleMessage: true);
 
@@ -758,7 +758,7 @@ namespace CTKS_Chart.Strategy
             var maxPOsitionOnIntersection = (decimal)GetPositionSize(ctksIntersection.TimeFrame);
 
             var positionsOnIntersesction = OpenSellPositions
-              .Where(x => x.Intersection?.Value == ctksIntersection.Value)
+              .Where(x => x.Intersection.IsSame(ctksIntersection))
               .Sum(x => x.PositionSize);
 
             leftPositionSize = (decimal)maxPOsitionOnIntersection - positionsOnIntersesction;

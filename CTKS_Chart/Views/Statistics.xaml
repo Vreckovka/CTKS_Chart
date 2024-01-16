@@ -135,17 +135,10 @@
                             Background="Transparent"
                             LegendLocation="None">
 
-            <wpf:CartesianChart.AxisY>
-                <wpf:Axis Title="Value to Native" LabelFormatter="{Binding NativeFormatter}">
-                    <wpf:Axis.Separator>
-                        <wpf:Separator Stroke="{StaticResource MagentaBrush}"
-                                       StrokeDashArray="0"
-                                       StrokeThickness="0" />
-                    </wpf:Axis.Separator>
-                </wpf:Axis>
-
+            <wpf:CartesianChart.AxisY >
+             
                 <wpf:Axis Title="Value to BTC"
-                          LabelFormatter="{Binding BTCFormatter}"
+                          
                           Position="RightTop">
                     <wpf:Axis.Separator>
                         <wpf:Separator Stroke="{StaticResource OrangeBrush}"
@@ -153,6 +146,15 @@
                                        StrokeThickness="0" />
                     </wpf:Axis.Separator>
                 </wpf:Axis>
+              
+                 <wpf:Axis Title="Value to Native" LabelFormatter="{Binding NativeFormatter}">
+                    <wpf:Axis.Separator>
+                        <wpf:Separator Stroke="{StaticResource MagentaBrush}"
+                                       StrokeDashArray="0"
+                                       StrokeThickness="0" />
+                    </wpf:Axis.Separator>
+                </wpf:Axis>
+
 
             </wpf:CartesianChart.AxisY>
 
@@ -174,12 +176,13 @@
 
                 <wpf:LineSeries Title="Value To BTC"
                                 Fill="Transparent"
+                                
                                 LineSmoothness="1"
                                 PointForeground="{StaticResource OrangeBrush}"
                                 PointGeometrySize="0"
                                 ScalesYAt="0"
                                 Stroke="{StaticResource OrangeBrush}"
-                                Values="{Binding ValueToBTC}" />
+                                Values="{Binding ValueToBTC, StringFormat={}{0:N5}}" />
 
             </wpf:CartesianChart.Series>
         </wpf:CartesianChart>
