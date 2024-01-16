@@ -8,8 +8,12 @@
 
     public bool IsSame(CtksIntersection other)
     {
-      //return Value == other.Value;
-      return Line.IsSame(other.Line);
+      if (Line != null && other.Line != null)
+      {
+        return Line.IsSame(other.Line) && TimeFrame == other.TimeFrame;
+      }
+      else
+        return Value == other.Value && TimeFrame == other.TimeFrame;
     }
   }
 }
