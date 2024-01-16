@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -9,65 +8,6 @@ using System.Windows.Shapes;
 
 namespace CTKS_Chart.Trading
 {
-  public enum LineType
-  {
-    LeftBottom,
-    RightBttom,
-    LeftTop,
-    RightTop
-  }
-
-  public enum TimeFrame
-  {
-    [Description("Null")]
-    Null = 8,
-    [Description("12M")]
-    M12 = 7,
-    [Description("6M")]
-    M6 = 6,
-    [Description("3M")]
-    M3 = 5,
-    [Description("1M")]
-    M1 = 4,
-    [Description("2W")]
-    W2 = 3,
-    [Description("1W")]
-    W1 = 2,
-    [Description("1D")]
-    D1 = 1
-  }
-
-
-  public class CtksIntersection
-  {
-    public decimal Value { get; set; }
-    public TimeFrame TimeFrame { get; set; }
-  }
-
-  public class CtksLine
-  {
-    public double X1 { get; set; }
-    public double Y1 { get; set; }
-    public double X2 { get; set; }
-    public double Y2 { get; set; }
-
-    public Point StartPoint { get; set; }
-    public Point EndPoint { get; set; }
-
-    public TimeFrame TimeFrame { get; set; }
-
-  }
-
-  public class RenderedIntersection
-  {
-    public Line Line { get; set; }
-    public Ellipse Mark { get; set; }
-    public TextBlock Text { get; set; }
-  }
-
-
-
-
   public class Ctks
   {
     private Canvas canvas;
@@ -243,7 +183,7 @@ namespace CTKS_Chart.Trading
     public void AddIntersections()
     {
       var lastCandle = canvas.Children.OfType<Rectangle>().Last();
-      
+
       foreach (var line in ctksLines)
       {
         var actualLeft = Canvas.GetLeft(lastCandle) + lastCandle.Width / 2;
@@ -299,11 +239,11 @@ namespace CTKS_Chart.Trading
 
     public void RenderIntersections(decimal? max = null, IEnumerable<CtksIntersection> intersections = null)
     {
-      if(canvas == null)
+      if (canvas == null)
       {
         return;
       }
-      
+
       IntersectionsVisible = true;
 
       var lastCandle = canvas.Children.OfType<Rectangle>().Last();
