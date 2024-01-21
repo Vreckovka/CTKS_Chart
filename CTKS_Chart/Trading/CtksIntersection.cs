@@ -12,7 +12,10 @@
     {
       if (Line != null && other.Line != null)
       {
-        var result = Line.IsSame(other.Line);
+        //Simulation is giving significant less value without Value == other.Value;
+        var result =
+          Line.IsSame(other.Line) && 
+          Value == other.Value;
 
         return result;
       }

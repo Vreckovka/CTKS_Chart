@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Windows.Media;
 using Binance.Net.Enums;
 using VCore.Standard.Helpers;
 
@@ -90,15 +89,6 @@ namespace CTKS_Chart.Trading
       double diffrence = logValue - logMinValue;
 
       return diffrence * canvasHeight / logRange;
-    }
-
-    #endregion
-
-    #region GetBrushFromHex
-
-    public static SolidColorBrush GetBrushFromHex(string hex)
-    {
-      return (SolidColorBrush)new BrushConverter().ConvertFrom(hex);
     }
 
     #endregion
@@ -191,6 +181,23 @@ namespace CTKS_Chart.Trading
       }
 
       return DateTime.MinValue;
+    }
+
+    #endregion
+
+    #region GetPointOnLine
+
+    public static double GetPointOnLine(double x1, double y1, double x2, double y2, double x3)
+    {
+      double deltaY = y2 - y1;
+      double deltaX = x2 - x1;
+
+      var slope = deltaY / deltaX;
+      //https://www.mathsisfun.com/algebra/line-equation-point-slope.html
+      //y − y1 = m(x − x1)
+      //x = x1 + ((y -y1) / m)
+      //y = m(x − x1) + y1
+      return (slope * (x3 - x1)) + y1;
     }
 
     #endregion

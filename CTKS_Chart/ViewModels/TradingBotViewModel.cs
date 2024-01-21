@@ -409,6 +409,26 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region OpenArchitectView
+
+    protected ActionCommand openArchitectView;
+
+    public ICommand OpenArchitectView
+    {
+      get
+      {
+        return openArchitectView ??= new ActionCommand(OnOpenArchitectView);
+      }
+    }
+
+    protected virtual void OnOpenArchitectView()
+    {
+      var arch = new ArchitectViewModel(Layouts, DrawingViewModel.ColorScheme, TradingBot.Asset);
+
+      windowManager.ShowPrompt<ArchitectView>(arch);
+    }
+
+    #endregion
 
     #region ResetBot
 
@@ -944,8 +964,6 @@ namespace CTKS_Chart.ViewModels
 
     private void CreateChart(Layout layout, double canvasHeight, double canvasWidth, IList<Candle> candles, int? pmaxCount = null)
     {
-      canvasWidth = canvasWidth * 0.85;
-
       var maxCount = pmaxCount ?? candles.Count;
 
       var skip = candles.Count - maxCount > 0 ? candles.Count - maxCount : 0;
@@ -965,7 +983,7 @@ namespace CTKS_Chart.ViewModels
           {
             Width = width,
             Height = 25,
-            Fill = green ? TradingHelper.GetBrushFromHex(DrawingViewModel.ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : TradingHelper.GetBrushFromHex(DrawingViewModel.ColorScheme.ColorSettings[ColorPurpose.RED].Brush),
+            Fill = green ? DrawingHelper.GetBrushFromHex(DrawingViewModel.ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(DrawingViewModel.ColorScheme.ColorSettings[ColorPurpose.RED].Brush),
           };
 
           Panel.SetZIndex(lastCandle, 99);

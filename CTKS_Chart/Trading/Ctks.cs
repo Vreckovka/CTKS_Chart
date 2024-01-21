@@ -41,26 +41,17 @@ namespace CTKS_Chart.Trading
 
     public IList<Candle> Candles { get; set; }
 
-    #region GetPointOnLine
-
-    private double GetPointOnLine(double x1, double y1, double x2, double y2, double x3)
-    {
-      double deltaY = y2 - y1;
-      double deltaX = x2 - x1;
-
-      var slope = deltaY / deltaX;
-      //https://www.mathsisfun.com/algebra/line-equation-point-slope.html
-      //y − y1 = m(x − x1)
-      //x = x1 + ((y -y1) / m)
-      //y = m(x − x1) + y1
-      return (slope * (x3 - x1)) + y1;
-    }
-
-    #endregion
+  
 
     #region CreateLine
 
-    public CtksLine CreateLine(int firstCandleIndex, int secondCandleIndex, LineType lineType, TimeFrame timeFrame)
+    public CtksLine CreateLine(
+      int firstCandleIndex, 
+      int secondCandleIndex,
+      Candle firstCandle,
+      Candle secondCandle,
+      LineType lineType, 
+      TimeFrame timeFrame)
     {
       var candles = canvas.Children.OfType<Rectangle>().ToList();
       var firstRect = candles[firstCandleIndex];
@@ -142,7 +133,9 @@ namespace CTKS_Chart.Trading
         TimeFrame = timeFrame,
         FirstIndex = firstCandleIndex,
         SecondIndex = secondCandleIndex,
-        LineType = lineType
+        LineType = lineType,
+        FirstCandleUnixTime = firstCandle.UnixTime,
+        SecondCandleUnixTime = secondCandle.UnixTime
       };
 
       ctksLines.Add(line);
@@ -164,17 +157,17 @@ namespace CTKS_Chart.Trading
         if (currentCandle.IsGreen)
         {
           if (nextCandle.IsGreen)
-            CreateLine(i, i + 1, LineType.LeftTop, timeFrame);
+            CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftTop, timeFrame);
 
           if (currentCandle.Close < nextCandle.Close || (currentCandle.Open < nextCandle.Close))
-           CreateLine(i, i + 1, LineType.RightBttom, timeFrame);
+           CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightBttom, timeFrame);
         }
         else
         {
           if (!nextCandle.IsGreen)
           {
-            CreateLine(i, i + 1, LineType.RightTop, timeFrame);
-            CreateLine(i, i + 1, LineType.LeftBottom, timeFrame);
+            CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightTop, timeFrame);
+            CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftBottom, timeFrame);
           }
         }
       }
@@ -192,7 +185,7 @@ namespace CTKS_Chart.Trading
       foreach (var line in ctksLines)
       {
         var actualLeft = Canvas.GetLeft(lastCandle) + lastCandle.Width / 2;
-        var actual = GetPointOnLine(line.X1, line.Y1, line.X2, line.Y2, actualLeft);
+        var actual = TradingHelper.GetPointOnLine(line.X1, line.Y1, line.X2, line.Y2, actualLeft);
         var value = Math.Round(TradingHelper.GetValueFromCanvas(canvasHeight, actual, layout.MaxValue, layout.MinValue), asset.PriceRound);
 
         var intersection = new CtksIntersection()
@@ -346,8 +339,8 @@ namespace CTKS_Chart.Trading
     {
       foreach (var ctksLine in ctksLines)
       {
-        var x3 = canvasWidth * 1.5;
-        var y3 = GetPointOnLine(ctksLine.X1, ctksLine.Y1, ctksLine.X2, ctksLine.Y2, x3);
+        var x3 = canvasWidth;
+        var y3 = TradingHelper.GetPointOnLine(ctksLine.X1, ctksLine.Y1, ctksLine.X2, ctksLine.Y2, x3);
 
         PathFigure pathFigure = new PathFigure();
         LineSegment segment = new LineSegment();

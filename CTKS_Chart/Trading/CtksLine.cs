@@ -19,16 +19,16 @@ namespace CTKS_Chart.Trading
 
     public LineType LineType { get; set; }
 
+    public float FirstCandleUnixTime { get; set; }
+    public float SecondCandleUnixTime { get; set; }
+
     public bool IsSame(CtksLine other)
     {
-      return StartPoint == other.StartPoint && EndPoint == other.EndPoint && TimeFrame == other.TimeFrame;
-
-      //Simulation is giving significant less value
-      //return 
-      //  FirstIndex == other.FirstIndex && 
-      //  LineType == other.LineType &&
-      //  SecondIndex == other.SecondIndex &&
-      //  TimeFrame == other.TimeFrame;
+      return
+        FirstIndex == other.FirstIndex &&
+        LineType == other.LineType &&
+        SecondIndex == other.SecondIndex &&
+        TimeFrame == other.TimeFrame;
     }
   }
 }
