@@ -14,9 +14,21 @@ namespace CTKS_Chart.Trading
 
     public TimeFrame TimeFrame { get; set; }
 
+    public int? FirstIndex { get; set; }
+    public int? SecondIndex { get; set; }
+
+    public LineType LineType { get; set; }
+
     public bool IsSame(CtksLine other)
     {
-      return StartPoint == other.StartPoint && EndPoint == other.EndPoint;
+      return StartPoint == other.StartPoint && EndPoint == other.EndPoint && TimeFrame == other.TimeFrame;
+
+      //Simulation is giving significant less value
+      //return 
+      //  FirstIndex == other.FirstIndex && 
+      //  LineType == other.LineType &&
+      //  SecondIndex == other.SecondIndex &&
+      //  TimeFrame == other.TimeFrame;
     }
   }
 }

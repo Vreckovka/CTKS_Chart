@@ -852,7 +852,7 @@ namespace CTKS_Chart.ViewModels
           if (actual.CloseTime > TradingHelper.GetNextTime(lastCandle.CloseTime, secondaryLayout.TimeFrame))
           {
             var lastCount = secondaryLayout.Ctks.Candles.Count;
-            var innerCandles = TradingHelper.ParseTradingView(secondaryLayout.DataLocation, actual.CloseTime, addNotClosedCandle: true);
+            var innerCandles = TradingHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
 
             secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles));
 
@@ -879,11 +879,22 @@ namespace CTKS_Chart.ViewModels
             ctksIntersections.AddRange(validIntersections);
           }
 
-          ctksIntersections = ctksIntersections.OrderByDescending(x => x.Value).ToList();
+          ctksIntersections = ctksIntersections
+            .Where(x => Math.Round(x.Value, TradingBot.Asset.PriceRound) > 0)
+            .OrderByDescending(x => x.Value).ToList();
           shouldUpdate = false;
+
+
+          if (ctksIntersections.Count > 0)
+            TradingBot.Strategy.UpdateIntersections(ctksIntersections);
         }
 
         if (ctksIntersections.Count == 0)
+        {
+          return;
+        }
+
+        if (ctksIntersections.Count(x => x.Value > actual.Close) == 0)
         {
           return;
         }
@@ -900,6 +911,9 @@ namespace CTKS_Chart.ViewModels
           if (!wasLoaded)
           {
             wasLoaded = true;
+
+            if (ctksIntersections.Count > 0)
+              TradingBot.Strategy.UpdateIntersections(ctksIntersections);
 
             TradingBot.Strategy.LoadState();
             await TradingBot.Strategy.RefreshState();

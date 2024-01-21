@@ -458,7 +458,7 @@ namespace CTKS_Chart.Strategy
     #endregion
 
     #region CreatePositions
-    
+
     public async void CreatePositions(Candle actualCandle)
     {
       try
@@ -468,10 +468,10 @@ namespace CTKS_Chart.Strategy
         var minBuy = actualCandle.Close * (1 - MinBuyPrice);
 
         var openedBuy = OpenBuyPositions
-          .Where(x => !Intersections.Any(y => y.IsSame(x.Intersection)) || x.Price < minBuy)
+          .Where(x => x.Price != x.Intersection.Value || x.Price < minBuy)
           .ToList();
 
-        var openedSell = OpenSellPositions.Where(x => !Intersections.Any(y => y.IsSame(x.Intersection))).ToList();
+        var openedSell = OpenSellPositions.Where(x => x.Price != x.Intersection.Value).ToList();
 
         foreach (var buyPosition in openedBuy)
         {
@@ -490,8 +490,9 @@ namespace CTKS_Chart.Strategy
           await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close.Value));
         }
 
-        
+
         var inter = Intersections
+          .Where(x => x.IsEnabled)
           .Where(x => x.Value < actualCandle.Close.Value &&
                       x.Value > minBuy &&
                       x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame))
@@ -623,6 +624,11 @@ namespace CTKS_Chart.Strategy
         {
           var ordered = Intersections.OrderBy(x => x.Value).ToList();
 
+          //var inter = Intersections.SingleOrDefault(x => x.IsSame(position.Intersection));
+
+          //if (inter != null)
+          //  inter.IsEnabled = false;
+
           TotalNativeAsset += position.PositionSizeNative;
           LeftSize += position.PositionSizeNative;
 
@@ -681,6 +687,11 @@ namespace CTKS_Chart.Strategy
         TotalNativeAsset = newTotalNativeAsset;
 
         Budget -= position.Fees ?? 0;
+
+        //var inter = Intersections.SingleOrDefault(x => x.IsSame(position.Intersection));
+
+        //if (inter != null)
+        //  inter.IsEnabled = false;
 
         Scale(position.Profit);
         position.State = PositionState.Filled;
@@ -990,6 +1001,40 @@ namespace CTKS_Chart.Strategy
     }
 
     #endregion
+
+    public void UpdateIntersections(List<CtksIntersection> ctksIntersections)
+    {
+      foreach (var postion in AllOpenedPositions)
+      {
+        var inter = postion.Intersection;
+        var found = ctksIntersections.SingleOrDefault(y => y.IsSame(inter));
+
+        if (found != null)
+        {
+          found.IsEnabled = inter.IsEnabled;
+
+          postion.Intersection = found;
+        }
+        else
+          postion.Intersection = new CtksIntersection();
+      }
+
+
+      foreach (var postion in ActualPositions)
+      {
+        var inter = postion.Intersection;
+        var found = ctksIntersections.SingleOrDefault(y => y.IsSame(inter));
+        
+        if (found != null)
+        {
+          found.IsEnabled = inter.IsEnabled;
+          postion.Intersection = found;
+        }
+        else
+          postion.Intersection = new CtksIntersection();
+      }
+
+    }
 
 
     protected abstract Task<bool> CancelPosition(Position position);

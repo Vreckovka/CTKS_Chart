@@ -13,7 +13,11 @@ namespace CTKS_Chart.Strategy
 
     public override bool IsPositionFilled(Candle candle, Position position)
     {
-      if (candle.High >= position.Price && candle.Low <= position.Price)
+      if (position.Side == PositionSide.Buy && candle.Low < position.Price)
+      {
+        return true;
+      }
+      else if (position.Side == PositionSide.Sell && candle.High > position.Price)
         return true;
 
       return false;
@@ -70,12 +74,12 @@ namespace CTKS_Chart.Strategy
 
     public override void SaveState()
     {
-    
+
     }
 
     public override void LoadState()
     {
-     
+
     }
 
   }

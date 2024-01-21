@@ -102,7 +102,7 @@ namespace CTKS_Chart.Trading
 
     #region ParseTradingView
 
-    public static List<Candle> ParseTradingView(string path, DateTime? maxDate = null, int skip = 0, int cut = 0, bool addNotClosedCandle = false)
+    public static List<Candle> ParseTradingView(string path, DateTime? maxDate = null, int skip = 0, int cut = 0, bool addNotClosedCandle = false, int? indexCut = null)
     {
       var list = new List<Candle>();
 
@@ -110,6 +110,7 @@ namespace CTKS_Chart.Trading
 
       var lines = file.Split("\n").Skip(1 + skip).ToArray();
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
+      int index = 0;
 
       foreach (var line in lines.TakeLast(lines.Length - cut))
       {
@@ -132,6 +133,11 @@ namespace CTKS_Chart.Trading
           addNotClosedCandle = false;
         }
 
+        if (indexCut == index)
+        {
+          isOverDate = true;
+        }
+
         if (!isOverDate)
         {
           list.Add(new Candle()
@@ -148,6 +154,8 @@ namespace CTKS_Chart.Trading
         {
           break;
         }
+
+        index++;
       }
 
       return list;

@@ -60,11 +60,11 @@ namespace CTKS_Chart.Trading
 
     #region CreateLine
 
-    public void CreateLine(int candleIndex, int secondIndex, LineType lineType, TimeFrame timeFrame)
+    public CtksLine CreateLine(int firstCandleIndex, int secondCandleIndex, LineType lineType, TimeFrame timeFrame)
     {
       var candles = canvas.Children.OfType<Rectangle>().ToList();
-      var firstRect = candles[candleIndex];
-      var secondrect = candles[secondIndex];
+      var firstRect = candles[firstCandleIndex];
+      var secondrect = candles[secondCandleIndex];
 
       var bottom1 = Canvas.GetBottom(firstRect);
       var bottom2 = Canvas.GetBottom(secondrect);
@@ -139,10 +139,15 @@ namespace CTKS_Chart.Trading
         Y2 = y2,
         StartPoint = startPoint,
         EndPoint = endPoint,
-        TimeFrame = timeFrame
+        TimeFrame = timeFrame,
+        FirstIndex = firstCandleIndex,
+        SecondIndex = secondCandleIndex,
+        LineType = lineType
       };
 
       ctksLines.Add(line);
+
+      return line;
     }
 
     #endregion
@@ -162,7 +167,7 @@ namespace CTKS_Chart.Trading
             CreateLine(i, i + 1, LineType.LeftTop, timeFrame);
 
           if (currentCandle.Close < nextCandle.Close || (currentCandle.Open < nextCandle.Close))
-            CreateLine(i, i + 1, LineType.RightBttom, timeFrame);
+           CreateLine(i, i + 1, LineType.RightBttom, timeFrame);
         }
         else
         {

@@ -587,14 +587,10 @@ namespace CTKS_Chart.ViewModels
       foreach (var intersection in validIntersection)
       {
         Brush selectedBrush = TradingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush);
-        Pen pen = new Pen(selectedBrush, 1);
-        pen.DashStyle = DashStyles.Dash;
 
         var actual = TradingHelper.GetCanvasValue(canvasHeight, intersection.Value, layout.MaxValue, layout.MinValue);
 
         var frame = intersection.TimeFrame;
-
-        pen.Thickness = GetPositionThickness(frame);
 
         var lineY = canvasHeight - actual;
 
@@ -609,30 +605,32 @@ namespace CTKS_Chart.ViewModels
           selectedBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ?
             TradingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.BUY].Brush) :
             TradingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.SELL].Brush);
-          pen.Brush = selectedBrush;
         }
 
         if (frame >= minTimeframe)
         {
-          Brush positionBrush = TradingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush);
-
           if (firstPositionsOnIntersesction != null)
           {
-            positionBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ?
+            selectedBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ?
               TradingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.BUY].Brush) :
               TradingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.SELL].Brush);
           }
-          else
+         
+          if (!intersection.IsEnabled)
           {
-            positionBrush = TradingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush);
+            selectedBrush = TradingHelper.GetBrushFromHex("#FFC0CB");
           }
 
-          FormattedText formattedText = GetFormattedText(intersection.Value.ToString(), positionBrush);
+          FormattedText formattedText = GetFormattedText(intersection.Value.ToString(), selectedBrush);
 
           drawingContext.DrawText(formattedText, new Point(0, lineY - formattedText.Height / 2));
-        }
 
-        drawingContext.DrawLine(pen, new Point(canvasWidth * 0.10, lineY), new Point(canvasWidth, lineY));
+          Pen pen = new Pen(selectedBrush, 1);
+          pen.DashStyle = DashStyles.Dash;
+          pen.Thickness = GetPositionThickness(frame);
+
+          drawingContext.DrawLine(pen, new Point(canvasWidth * 0.10, lineY), new Point(canvasWidth, lineY));
+        }
       }
     }
 
