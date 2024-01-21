@@ -38,7 +38,7 @@ namespace CTKS_Chart.Strategy
       var multi = 1;
       var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
-      StartingBudget = 1000;
+      StartingBudget = 5000;
       StartingBudget *= multi;
       Budget = StartingBudget;
 

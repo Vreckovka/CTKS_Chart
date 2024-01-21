@@ -25,9 +25,9 @@ namespace CTKS_Chart.Trading
     public bool IsSame(CtksLine other)
     {
       return
-        FirstIndex == other.FirstIndex &&
+        FirstCandleUnixTime == other.FirstCandleUnixTime &&
         LineType == other.LineType &&
-        SecondIndex == other.SecondIndex &&
+        SecondCandleUnixTime == other.SecondCandleUnixTime &&
         TimeFrame == other.TimeFrame;
     }
   }
