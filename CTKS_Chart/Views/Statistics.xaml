@@ -65,7 +65,6 @@
         <wpf:LineSeries
           Title="Total Value"
           Fill="Transparent"
-          LineSmoothness="1"
           PointForeground="{StaticResource YellowBrush3}"
           PointGeometrySize="0"
           ScalesYAt="0"
@@ -75,7 +74,6 @@
         <wpf:LineSeries
           Title="Total Profit"
           Fill="Transparent"
-          LineSmoothness="1"
           PointForeground="{StaticResource GreenBrush2}"
           PointGeometrySize="0"
           ScalesYAt="1"
@@ -92,7 +90,10 @@
       LegendLocation="None">
 
       <wpf:CartesianChart.AxisY>
-        <wpf:Axis Title="Price" LabelFormatter="{Binding PriceFormatter}">
+        <wpf:Axis
+          Title="Price"
+          LabelFormatter="{Binding PriceFormatter}"
+          Position="RightTop">
           <wpf:Axis.Separator>
             <wpf:Separator
               Stroke="{StaticResource YellowBrush3}"
@@ -123,7 +124,6 @@
         <wpf:LineSeries
           Title="Ath Price"
           Fill="Transparent"
-          LineSmoothness="1"
           PointForeground="{StaticResource YellowBrush3}"
           PointGeometrySize="0"
           ScalesYAt="0"
@@ -133,7 +133,6 @@
         <wpf:LineSeries
           Title="Close Price"
           Fill="Transparent"
-          LineSmoothness="1"
           PointForeground="{StaticResource LightRedBrush}"
           PointGeometrySize="0"
           ScalesYAt="0"
@@ -151,19 +150,23 @@
 
       <wpf:CartesianChart.AxisY>
 
-        <wpf:Axis Title="Value to BTC" Position="RightTop">
-          <wpf:Axis.Separator>
-            <wpf:Separator
-              Stroke="{StaticResource OrangeBrush}"
-              StrokeDashArray="0"
-              StrokeThickness="0" />
-          </wpf:Axis.Separator>
-        </wpf:Axis>
 
         <wpf:Axis Title="Value to Native" LabelFormatter="{Binding NativeFormatter}">
           <wpf:Axis.Separator>
             <wpf:Separator
               Stroke="{StaticResource MagentaBrush}"
+              StrokeDashArray="0"
+              StrokeThickness="0" />
+          </wpf:Axis.Separator>
+        </wpf:Axis>
+
+        <wpf:Axis
+          Title="Value to BTC"
+          LabelFormatter="{Binding BTCFormatter}"
+          Position="RightTop">
+          <wpf:Axis.Separator>
+            <wpf:Separator
+              Stroke="{StaticResource OrangeBrush}"
               StrokeDashArray="0"
               StrokeThickness="0" />
           </wpf:Axis.Separator>
@@ -183,7 +186,6 @@
         <wpf:LineSeries
           Title="Value To Native"
           Fill="Transparent"
-          LineSmoothness="1"
           PointForeground="{StaticResource MagentaBrush}"
           PointGeometrySize="0"
           ScalesYAt="0"
@@ -193,7 +195,6 @@
         <wpf:LineSeries
           Title="Value To BTC"
           Fill="Transparent"
-          LineSmoothness="1"
           PointForeground="{StaticResource OrangeBrush}"
           PointGeometrySize="0"
           ScalesYAt="1"

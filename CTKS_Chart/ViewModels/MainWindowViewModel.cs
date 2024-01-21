@@ -40,6 +40,9 @@ using PositionSide = CTKS_Chart.Strategy.PositionSide;
 
 namespace CTKS_Chart.ViewModels
 {
+  //TODO: CTKSLines save to extra file and load from there
+          //TODO: Every layout could be separate file
+  //TODO: Put all settings in same folder (Now it is scattered in main folder + State + Data) 
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
     #region Constructors
@@ -73,7 +76,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
     
 #if DEBUG
-    public bool IsLive { get; set; } = false;
+    public bool IsLive { get; set; } = true;
 #endif
 
 #if RELEASE
@@ -82,7 +85,7 @@ namespace CTKS_Chart.ViewModels
 
 
 #if DEBUG
-    public bool Simulation { get; set; } = true;
+    public bool Simulation { get; set; } = false;
 #endif
 
 #if RELEASE
