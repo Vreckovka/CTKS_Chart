@@ -46,6 +46,7 @@
         </wpf:Axis>
 
       </wpf:CartesianChart.AxisY>
+
       <wpf:CartesianChart.AxisX>
         <wpf:Axis Title="Time" Labels="{Binding Labels}">
           <wpf:Axis.Separator>
@@ -65,6 +66,7 @@
         <wpf:LineSeries
           Title="Total Value"
           Fill="Transparent"
+          LineSmoothness="0"
           PointForeground="{StaticResource YellowBrush3}"
           PointGeometrySize="0"
           ScalesYAt="0"
@@ -74,6 +76,7 @@
         <wpf:LineSeries
           Title="Total Profit"
           Fill="Transparent"
+          LineSmoothness="0"
           PointForeground="{StaticResource GreenBrush2}"
           PointGeometrySize="0"
           ScalesYAt="1"
@@ -124,6 +127,7 @@
         <wpf:LineSeries
           Title="Ath Price"
           Fill="Transparent"
+          LineSmoothness="0"
           PointForeground="{StaticResource YellowBrush3}"
           PointGeometrySize="0"
           ScalesYAt="0"
@@ -133,6 +137,7 @@
         <wpf:LineSeries
           Title="Close Price"
           Fill="Transparent"
+          LineSmoothness="0"
           PointForeground="{StaticResource LightRedBrush}"
           PointGeometrySize="0"
           ScalesYAt="0"
@@ -149,8 +154,6 @@
       LegendLocation="None">
 
       <wpf:CartesianChart.AxisY>
-
-
         <wpf:Axis Title="Value to Native" LabelFormatter="{Binding NativeFormatter}">
           <wpf:Axis.Separator>
             <wpf:Separator
@@ -186,6 +189,7 @@
         <wpf:LineSeries
           Title="Value To Native"
           Fill="Transparent"
+          LineSmoothness="0"
           PointForeground="{StaticResource MagentaBrush}"
           PointGeometrySize="0"
           ScalesYAt="0"
@@ -195,6 +199,7 @@
         <wpf:LineSeries
           Title="Value To BTC"
           Fill="Transparent"
+          LineSmoothness="0"
           PointForeground="{StaticResource OrangeBrush}"
           PointGeometrySize="0"
           ScalesYAt="1"

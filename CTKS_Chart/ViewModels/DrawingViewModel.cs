@@ -435,6 +435,9 @@ namespace CTKS_Chart.ViewModels
       double maxDrawnPoint = 0;
       var drawnCandles = new List<ChartCandle>();
 
+      var maxPoint = TradingHelper.GetCanvasValue(canvasHeight, layout.MaxValue, layout.MaxValue, layout.MinValue);
+      var minPoint = TradingHelper.GetCanvasValue(canvasHeight, layout.MinValue, layout.MaxValue, layout.MinValue);
+
       if (candles.Any())
       {
         int y = 0;
@@ -493,8 +496,12 @@ namespace CTKS_Chart.ViewModels
           var topWickCanvas = TradingHelper.GetCanvasValue(canvasHeight, high, layout.MaxValue, layout.MinValue);
           var bottomWickCanvas = TradingHelper.GetCanvasValue(canvasHeight, low, layout.MaxValue, layout.MinValue);
 
+
           var wickTop = green ? close : open;
           var wickBottom = green ? open : close;
+
+          var topY = canvasHeight - wickTop - (topWickCanvas - wickTop);
+          var bottomY = canvasHeight - wickBottom;
 
           Rect? topWick = null;
           Rect? bottomWick = null;
@@ -505,7 +512,7 @@ namespace CTKS_Chart.ViewModels
             {
               Height = topWickCanvas - wickTop,
               X = newCandle.X,
-              Y = canvasHeight - wickTop - (topWickCanvas - wickTop),
+              Y = topY,
             };
           }
 
@@ -515,7 +522,7 @@ namespace CTKS_Chart.ViewModels
             {
               Height = wickBottom - bottomWickCanvas,
               X = newCandle.X,
-              Y = canvasHeight - wickBottom,
+              Y = bottomY,
             };
           }
 
@@ -538,12 +545,12 @@ namespace CTKS_Chart.ViewModels
 
           y++;
 
-          if (bottomWick != null && bottomWick.Value.Y < minDrawnPoint)
+          if (bottomWick != null && bottomWick.Value.Y > maxDrawnPoint)
           {
             maxDrawnPoint = bottomWick.Value.Y;
           }
 
-          if (topWick != null && topWick.Value.Y > maxDrawnPoint)
+          if (topWick != null && topWick.Value.Y < minDrawnPoint)
           {
             minDrawnPoint = topWick.Value.Y;
           }

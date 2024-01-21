@@ -193,7 +193,7 @@ namespace CTKS_Chart.Trading
       {
         var actualLeft = Canvas.GetLeft(lastCandle) + lastCandle.Width / 2;
         var actual = GetPointOnLine(line.X1, line.Y1, line.X2, line.Y2, actualLeft);
-        var value = Math.Round(GetValueFromCanvas(canvasHeight, actual), asset.PriceRound);
+        var value = Math.Round(TradingHelper.GetValueFromCanvas(canvasHeight, actual, layout.MaxValue, layout.MinValue), asset.PriceRound);
 
         var intersection = new CtksIntersection()
         {
@@ -256,8 +256,8 @@ namespace CTKS_Chart.Trading
 
       var inter = intersections ?? ctksIntersections;
 
-      var maxCanvasValue = GetValueFromCanvas(canvasHeight, canvasHeight);
-      var minCanvasValue = GetValueFromCanvas(canvasHeight, 0);
+      var maxCanvasValue = TradingHelper.GetValueFromCanvas(canvasHeight, canvasHeight, layout.MaxValue, layout.MinValue);
+      var minCanvasValue = TradingHelper.GetValueFromCanvas(canvasHeight, 0, layout.MaxValue, layout.MinValue);
 
       foreach (var intersection in inter.Where(x => x.Value > minCanvasValue && x.Value < maxCanvasValue))
       {
@@ -269,7 +269,7 @@ namespace CTKS_Chart.Trading
 
         var actualLeft = Canvas.GetLeft(lastCandle) + lastCandle.Width / 2;
 
-        var actual = GetCanvasValue(canvasHeight, intersection.Value);
+        var actual = TradingHelper.GetCanvasValue(canvasHeight, intersection.Value, layout.MaxValue, layout.MinValue);
 
         Canvas.SetLeft(circle, actualLeft - size / 2.0);
         Canvas.SetBottom(circle, actual - size / 2.0);
@@ -336,47 +336,6 @@ namespace CTKS_Chart.Trading
           Mark = circle
         });
       }
-    }
-
-    #endregion
-
-    #region GetValueFromCanvas
-
-    private decimal GetValueFromCanvas(double canvasHeight, double value)
-    {
-      canvasHeight = canvasHeight * 0.75;
-
-      var logMaxValue = Math.Log10((double)layout.MaxValue);
-      var logMinValue = Math.Log10((double)layout.MinValue);
-
-      var logRange = logMaxValue - logMinValue;
-
-      var valued = Math.Pow(10, (value * logRange / canvasHeight) + logMinValue);
-
-      if ((double)decimal.MaxValue < valued)
-      {
-        return decimal.MaxValue;
-      }
-
-      return (decimal)valued;
-    }
-
-    #endregion
-
-    #region GetCanvasValue
-
-    private double GetCanvasValue(double canvasHeight, decimal value)
-    {
-      canvasHeight = canvasHeight * 0.75;
-
-      var logValue = Math.Log10((double)value);
-      var logMaxValue = Math.Log10((double)layout.MaxValue);
-      var logMinValue = Math.Log10((double)layout.MinValue);
-
-      var logRange = logMaxValue - logMinValue;
-      double diffrence = logValue - logMinValue;
-
-      return diffrence * canvasHeight / logRange;
     }
 
     #endregion
