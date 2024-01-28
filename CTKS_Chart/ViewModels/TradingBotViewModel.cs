@@ -719,7 +719,7 @@ namespace CTKS_Chart.ViewModels
 
         var maxDate = mainCandles.First().CloseTime;
         //246
-        await LoadLayouts(MainLayout, mainCandles, maxDate, fromTime: new DateTime(2021, 12, 1), simulate: true);
+        await LoadLayouts(MainLayout, mainCandles, maxDate, fromTime: new DateTime(1021, 12, 1), simulate: true);
 
         DrawingViewModel.MaxValue = MainLayout.MaxValue;
         DrawingViewModel.MinValue = MainLayout.MinValue;
@@ -932,12 +932,12 @@ namespace CTKS_Chart.ViewModels
           {
             wasLoaded = true;
 
-            if (ctksIntersections.Count > 0)
-              TradingBot.Strategy.UpdateIntersections(ctksIntersections);
-
             TradingBot.Strategy.LoadState();
             await TradingBot.Strategy.RefreshState();
             MainWindow.SortActualPositions();
+
+            if (ctksIntersections.Count > 0)
+              TradingBot.Strategy.UpdateIntersections(ctksIntersections);
           }
 
 

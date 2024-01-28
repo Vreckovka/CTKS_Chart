@@ -422,7 +422,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region RenderIntersections
+    #region RenderLines
 
     public void RenderLines(
       DrawingContext drawingContext,

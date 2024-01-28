@@ -38,7 +38,7 @@ namespace CTKS_Chart.Strategy
       var multi = 1;
       var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
-      StartingBudget = 5000;
+      StartingBudget = 1000;
       StartingBudget *= multi;
       Budget = StartingBudget;
 
@@ -458,12 +458,21 @@ namespace CTKS_Chart.Strategy
     #endregion
 
     #region CreatePositions
-
+    decimal lastSell = decimal.MaxValue;
     public async void CreatePositions(Candle actualCandle)
     {
       try
       {
         await buyLock.WaitAsync();
+
+        if(lastSell == decimal.MaxValue && ClosedSellPositions.Any())
+        {
+          lastSell = ClosedSellPositions.Last().Price;
+        }
+        else if(!ActualPositions.Any())
+        {
+          lastSell = decimal.MaxValue;
+        }
 
         var minBuy = actualCandle.Close * (1 - MinBuyPrice);
 
@@ -495,7 +504,9 @@ namespace CTKS_Chart.Strategy
           .Where(x => x.IsEnabled)
           .Where(x => x.Value < actualCandle.Close.Value &&
                       x.Value > minBuy &&
-                      x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame))
+                      x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame)
+                     // && x.Value < lastSell
+                      )
             .OrderByDescending(x => x.Value)
           .ToList();
 
@@ -721,6 +732,8 @@ namespace CTKS_Chart.Strategy
 
         RaisePropertyChanged(nameof(TotalSell));
         SaveState();
+
+        lastSell = position.Price;
       }
       finally
       {

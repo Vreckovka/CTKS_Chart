@@ -425,7 +425,7 @@ namespace CTKS_Chart.ViewModels
     {
       var skip = candles.Count - maxCount > 0 ? candles.Count - maxCount : 0;
 
-      canvasWidth *= 0.9;
+      canvasWidth *= 0.85;
       var startGap = canvasWidth * 0.15;
       canvasWidth -= startGap;
 
@@ -656,8 +656,7 @@ namespace CTKS_Chart.ViewModels
       IEnumerable<Position> positions,
       IList<ChartCandle> candles,
       double canvasHeight,
-      double canvasWidth,
-      TimeFrame minTimeframe = TimeFrame.W1
+      double canvasWidth
       )
     {
       foreach (var position in positions)
@@ -682,7 +681,7 @@ namespace CTKS_Chart.ViewModels
         var lineY = canvasHeight - actual;
         var candle = candles.FirstOrDefault(x => x.Candle.OpenTime < position.FilledDate && x.Candle.CloseTime > position.FilledDate);
 
-        if (frame >= minTimeframe && candle != null)
+        if (candle != null)
         {
           var text = position.Side == PositionSide.Buy ? "B" : "S";
           FormattedText formattedText = DrawingHelper.GetFormattedText(text, selectedBrush, isActive ? 25 : 9);
