@@ -732,7 +732,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
     #region LoadLAyouts
-
+    TimeFrame minTimeframe = TimeFrame.W1;
     private List<Layout> InnerLayouts = new List<Layout>();
 
     private async Task LoadLayouts(
@@ -767,7 +767,7 @@ namespace CTKS_Chart.ViewModels
         await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
       }
 
-      foreach (var layoutData in TradingBot.TimeFrames)
+      foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
         var layout = CreateCtksChart(layoutData.Key, layoutData.Value, CanvasWidth, CanvasHeight, maxTime);
 
@@ -834,13 +834,12 @@ namespace CTKS_Chart.ViewModels
 
     #region CheckLayout
 
-    private void CheckLayout(Layout layout)
+    private void CheckLayout(Layout layout, List<Candle> innerCandles)
     {
-      var innerCandles = TradingHelper.ParseTradingView(layout.DataLocation);
-
       if (DateTime.Now > TradingHelper.GetNextTime(innerCandles.Last().CloseTime, layout.TimeFrame))
       {
         layout.IsOutDated = true;
+        lastFileCheck = DateTime.Now;
       }
       else
       {
@@ -858,6 +857,7 @@ namespace CTKS_Chart.ViewModels
     private bool shouldUpdate = true;
     private bool wasLoaded = false;
     List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
+    DateTime lastFileCheck = DateTime.Now;
 
     public async void RenderLayout(List<Layout> secondaryLayouts, Candle actual)
     {
@@ -871,16 +871,19 @@ namespace CTKS_Chart.ViewModels
 
           if (actual.CloseTime > TradingHelper.GetNextTime(lastCandle.CloseTime, secondaryLayout.TimeFrame))
           {
-            var lastCount = secondaryLayout.Ctks.Candles.Count;
-            var innerCandles = TradingHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
+            if(!secondaryLayout.IsOutDated || (secondaryLayout.IsOutDated && lastFileCheck < DateTime.Now.AddMinutes(1)))
+            {
+              var lastCount = secondaryLayout.Ctks.Candles.Count;
+              var innerCandles = TradingHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
 
-            secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles));
+              secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles));
 
-            if (innerCandles.Count > lastCount)
-              shouldUpdate = true;
+              if (innerCandles.Count > lastCount)
+                shouldUpdate = true;
 
-            if (IsLive)
-              CheckLayout(secondaryLayout);
+              if (IsLive)
+                CheckLayout(secondaryLayout, innerCandles);
+            }
           }
         }
 

@@ -67,7 +67,7 @@ namespace CTKS_Chart.Strategy
     public Asset Asset { get; set; }
     public decimal MinPositionValue { get; set; } = 6;
     public ILogger Logger { get; set; }
-
+    TimeFrame minTimeframe = TimeFrame.D1;
     public Dictionary<TimeFrame, decimal> PositionWeight { get; } = new Dictionary<TimeFrame, decimal>()
     {
       {TimeFrame.M12, 7},
@@ -459,6 +459,7 @@ namespace CTKS_Chart.Strategy
 
     #region CreatePositions
     decimal lastSell = decimal.MaxValue;
+    
     public async void CreatePositions(Candle actualCandle)
     {
       try
@@ -499,13 +500,15 @@ namespace CTKS_Chart.Strategy
           await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close.Value));
         }
 
+       
 
         var inter = Intersections
+          .Where(x => x.TimeFrame >= minTimeframe)
           .Where(x => x.IsEnabled)
           .Where(x => x.Value < actualCandle.Close.Value &&
                       x.Value > minBuy &&
                       x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame)
-                     // && x.Value < lastSell
+                     && x.Value < lastSell
                       )
             .OrderByDescending(x => x.Value)
           .ToList();
@@ -611,7 +614,7 @@ namespace CTKS_Chart.Strategy
     {
       if (position.PositionSize > 0)
       {
-        await CreateSell(position, ctksIntersections, minForcePrice);
+        await CreateSell(position, ctksIntersections.ToList(), minForcePrice);
 
         var sumOposite = position.OpositPositions.Sum(x => x.OriginalPositionSizeNative);
         if (sumOposite != position.OriginalPositionSizeNative)
@@ -746,7 +749,7 @@ namespace CTKS_Chart.Strategy
 
     #region CreateSell
 
-    private async Task CreateSell(Position position, IEnumerable<CtksIntersection> ctksIntersections, decimal minForcePrice = 0)
+    private async Task CreateSell(Position position, IList<CtksIntersection> ctksIntersections, decimal minForcePrice = 0)
     {
       try
       {
@@ -755,9 +758,18 @@ namespace CTKS_Chart.Strategy
         var minPrice = position.Price * (decimal)(1.0 + MinSellProfitMapping[position.TimeFrame]);
 
         var nextLines = ctksIntersections
+          .Where(x => x.TimeFrame >= minTimeframe)
           .Where(x => x.Value > minPrice && x.Value > minForcePrice)
           .OrderBy(x => x.Value)
           .ToList();
+
+        if(nextLines.Count == 0)
+        {
+          nextLines = ctksIntersections
+            .Where(x => x.Value > minPrice && x.Value > minForcePrice)
+            .OrderBy(x => x.Value)
+            .ToList();
+        }
 
         int i = 0;
         List<Position> createdPositions = new List<Position>();
