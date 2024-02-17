@@ -36,12 +36,18 @@ using VCore.WPF.Misc;
 using VCore.WPF.Other;
 using VCore.WPF.ViewModels;
 using VCore.WPF.ViewModels.Prompt;
+using Path = System.IO.Path;
 using PositionSide = CTKS_Chart.Strategy.PositionSide;
 
 namespace CTKS_Chart.ViewModels
 {
+  public static class Settings
+  {
+    public const string DataPath = "Data";
+  }
+
   //TODO: CTKSLines save to extra file and load from there
-          //TODO: Every layout could be separate file
+  //TODO: Every layout could be separate file
   //TODO: Put all settings in same folder (Now it is scattered in main folder + State + Data) 
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
@@ -74,9 +80,9 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-    
+
 #if DEBUG
-    public bool IsLive { get; set; } = false;
+    public static bool IsLive { get; set; } = false;
 #endif
 
 #if RELEASE
@@ -85,7 +91,7 @@ namespace CTKS_Chart.ViewModels
 
 
 #if DEBUG
-    public bool Simulation { get; set; } = true;
+    public bool Simulation { get; set; } = !IsLive;
 #endif
 
 #if RELEASE
@@ -103,14 +109,34 @@ namespace CTKS_Chart.ViewModels
     {
       base.Initialize();
 
-      string path = "Data";
-      
-      if (!IsLive)
-        path = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data";
-
-      var asset = JsonSerializer.Deserialize<Asset>(File.ReadAllText("asset.json"));
+      var asset = JsonSerializer.Deserialize<Asset>(File.ReadAllText(Path.Combine(Settings.DataPath, "asset.json")));
 
       asset.RunTime = TimeSpan.FromTicks(asset.RunTimeTicks);
+
+      TradingBot selectedBot = null;
+
+      if (IsLive)
+      {
+        selectedBot = new TradingBot(asset, ViewModelsFactory.Create<BinanceStrategy>());
+      }
+      else
+      {
+        selectedBot = GetSimulationBot("D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data");
+      }
+
+      TradingBotViewModel = ViewModelsFactory.Create<TradingBotViewModel>(selectedBot);
+      TradingBotViewModel.IsLive = IsLive;
+      TradingBotViewModel.Simulation = Simulation;
+      TradingBotViewModel.MainWindow = (MainWindow)Window;
+
+      TradingBotViewModel.Start();
+      Title = selectedBot.Asset.Symbol;
+    }
+
+    #endregion
+
+    private TradingBot GetSimulationBot(string path)
+    {
       var timeFrames = new TimeFrame[] {
         TimeFrame.W1,
         TimeFrame.W2,
@@ -119,12 +145,7 @@ namespace CTKS_Chart.ViewModels
         TimeFrame.M6,
         TimeFrame.M12 };
 
-      Strategy.Strategy strategy = ViewModelsFactory.Create<BinanceStrategy>();
-
-      if (!IsLive)
-        strategy = new SimulationStrategy();
-
-      TradingBot selectedBot = null;
+      var strategy = new SimulationStrategy();
 
       var adaBot = new TradingBot(new Asset()
       {
@@ -156,26 +177,10 @@ namespace CTKS_Chart.ViewModels
         TimeFrames = timeFrames,
       }, strategy);
 
-      if (IsLive)
-        selectedBot = new TradingBot(asset, strategy);
-      else
-      {
-        selectedBot = adaBot;
-      }
 
-      strategy.Asset = selectedBot.Asset;
 
-      TradingBotViewModel = ViewModelsFactory.Create<TradingBotViewModel>(selectedBot);
-      TradingBotViewModel.IsLive = IsLive;
-      TradingBotViewModel.Simulation = Simulation;
-      TradingBotViewModel.MainWindow = (MainWindow) Window;
-
-      TradingBotViewModel.Start();
-      Title = selectedBot.Asset.Symbol;
+      return adaBot;
     }
-
-    #endregion
-
     #endregion
   }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using CTKS_Chart.ViewModels;
 using VCore.Standard;
 using VCore.Standard.Helpers;
 
@@ -12,7 +13,9 @@ namespace CTKS_Chart.Trading
     {
       Strategy = strategy ?? throw new ArgumentNullException(nameof(strategy));
       Asset = asset;
-      
+
+      strategy.Asset = asset;
+
       StartingMinPrice = asset.StartLowPrice;
       StartingMaxPrice = asset.StartMaxPrice;
     }
@@ -46,7 +49,7 @@ namespace CTKS_Chart.Trading
         {
           var tradingView_data = $"{Asset.DataPath}\\{Asset.DataSymbol}, {EnumHelper.Description(timeframe)}.csv";
 
-          dictionary.Add(tradingView_data, timeframe);
+          dictionary.Add(Path.Combine(Settings.DataPath, tradingView_data), timeframe);
         }
 
         TimeFrames = dictionary;

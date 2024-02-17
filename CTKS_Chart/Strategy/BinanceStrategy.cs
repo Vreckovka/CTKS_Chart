@@ -10,6 +10,7 @@ using Binance.Net.Objects.Models.Spot.Socket;
 using CryptoExchange.Net.Sockets;
 using CTKS_Chart.Binance;
 using CTKS_Chart.Trading;
+using CTKS_Chart.ViewModels;
 using Logger;
 using VCore;
 using VCore.WPF;
@@ -22,7 +23,7 @@ namespace CTKS_Chart.Strategy
     private readonly BinanceBroker binanceBroker;
     private readonly ILogger logger;
 
-    string path = "State";
+    string path = Path.Combine(Settings.DataPath, "State");
     protected SemaphoreSlim orderUpdateLock = new SemaphoreSlim(1, 1);
 
     public BinanceStrategy(BinanceBroker binanceBroker, ILogger logger)
@@ -259,7 +260,6 @@ namespace CTKS_Chart.Strategy
         var openSell = JsonSerializer.Serialize(OpenSellPositions.Select(x => new PositionDto(x)), options);
         var cloedSell = JsonSerializer.Serialize(ClosedSellPositions.Select(x => new PositionDto(x)), options);
         var closedBuy = JsonSerializer.Serialize(ClosedBuyPositions.Select(x => new PositionDto(x)), options);
-        var data = JsonSerializer.Serialize(StrategyData, options);
 
         Path.Combine(path, "openBuy.json").EnsureDirectoryExists();
 
@@ -267,8 +267,25 @@ namespace CTKS_Chart.Strategy
         File.WriteAllText(Path.Combine(path, "openSell.json"), openSell);
         File.WriteAllText(Path.Combine(path, "cloedSell.json"), cloedSell);
         File.WriteAllText(Path.Combine(path, "closedBuy.json"), closedBuy);
-        File.WriteAllText(Path.Combine(path, "data.json"), data);
+
+        SaveStrategyData();
       }
+    }
+
+    #endregion
+
+    #region SaveStrategyData
+
+    public override void SaveStrategyData()
+    {
+      var options = new JsonSerializerOptions()
+      {
+        WriteIndented = true
+      };
+
+      var data = JsonSerializer.Serialize(StrategyData, options);
+
+      File.WriteAllText(Path.Combine(path, "data.json"), data);
     }
 
     #endregion
@@ -324,6 +341,7 @@ namespace CTKS_Chart.Strategy
         if (File.Exists(Path.Combine(path, "data.json")))
         {
           StrategyData = JsonSerializer.Deserialize<StrategyData>(File.ReadAllText(Path.Combine(path, "data.json")));
+          wasStrategyDataLoaded = true;
         }
         else
         {

@@ -30,6 +30,7 @@ using VCore.WPF.ItemsCollections;
 using VCore.WPF.Logger;
 using VCore.WPF.Misc;
 using VCore.WPF.ViewModels.Prompt;
+using Path = System.IO.Path;
 
 namespace CTKS_Chart.ViewModels
 {
@@ -41,6 +42,7 @@ namespace CTKS_Chart.ViewModels
     private Stopwatch stopwatch = new Stopwatch();
     private TimeSpan lastElapsed;
     private string layoutPath = "layout.json";
+    private string stateDataPath = Path.Combine(Settings.DataPath, "state_data.txt");
 
     public TradingBotViewModel(
       TradingBot tradingBot,
@@ -274,6 +276,24 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
+    #region MaxBuyPrice
+
+    public decimal? MaxBuyPrice
+    {
+      get { return TradingBot.Strategy.MaxBuyPrice; }
+      set
+      {
+        if (value != TradingBot.Strategy.MaxBuyPrice)
+        {
+          TradingBot.Strategy.MaxBuyPrice = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
 
     public Grid MainGrid { get; } = new Grid();
 
@@ -588,6 +608,29 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region ClearMaxBuyPrice
+
+    protected ActionCommand clearMaxBuyPrice;
+
+    public ICommand ClearMaxBuyPrice
+    {
+      get
+      {
+        return clearMaxBuyPrice ??= new ActionCommand(OnClearMaxBuyPrice);
+      }
+    }
+
+    protected void OnClearMaxBuyPrice()
+    {
+      var positionResult = windowManager.ShowQuestionPrompt("Do you really want to clear MAX BUY PRICE?", "Clear MAX BUY PRICE");
+
+      if (positionResult == PromptResult.Ok)
+      {
+        TradingBot.Strategy.MaxBuyPrice = null;
+      }
+    }
+
+    #endregion
 
     #endregion
 
@@ -668,6 +711,8 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region Start
+
     public void Start()
     {
       LoadLayoutSettings();
@@ -698,6 +743,7 @@ namespace CTKS_Chart.ViewModels
       ForexChart_Loaded();
     }
 
+    #endregion
 
     #region ForexChart_Loaded
 
@@ -732,6 +778,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
     #region LoadLAyouts
+
     TimeFrame minTimeframe = TimeFrame.W1;
     private List<Layout> InnerLayouts = new List<Layout>();
 
@@ -850,7 +897,6 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
     #region RenderLayout
-
 
     private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
 
@@ -1119,10 +1165,10 @@ namespace CTKS_Chart.ViewModels
 
         if (lastState == null)
         {
-          if (File.Exists("state_data.txt"))
+          if (File.Exists(stateDataPath))
           {
             lastStates.Clear();
-            var lines = File.ReadLines(@"state_data.txt");
+            var lines = File.ReadLines(stateDataPath);
 
             foreach (var line in lines)
             {
@@ -1167,7 +1213,7 @@ namespace CTKS_Chart.ViewModels
 
           lastStates.Add(lastState);
 
-          using (StreamWriter w = File.AppendText("state_data.txt"))
+          using (StreamWriter w = File.AppendText(stateDataPath))
           {
             w.WriteLine(JsonSerializer.Serialize(lastState));
           }

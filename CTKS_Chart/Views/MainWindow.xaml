@@ -470,39 +470,50 @@
                     <ColumnDefinition Width="auto" />
                   </Grid.ColumnDefinitions>
 
-                  <Grid>
-                    <Grid.RowDefinitions>
-                      <RowDefinition Height="auto" />
-                      <RowDefinition Height="auto" />
-                    </Grid.RowDefinitions>
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="auto" />
+                    <RowDefinition Height="auto" />
+                    <RowDefinition Height="auto" />
+                  </Grid.RowDefinitions>
 
-                    <ItemsControl Margin="0,5" ItemsSource="{Binding PositionSizeMapping}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                          <StackPanel Orientation="Horizontal">
-                            <TextBlock
-                              Foreground="#25ffffff"
-                              Style="{StaticResource {x:Type TextBlock}}"
-                              Text="{Binding Key}" />
-                            <TextBlock
-                              Margin="10,0,0,0"
-                              Foreground="#25ffffff"
-                              Style="{StaticResource {x:Type TextBlock}}"
-                              Text="{Binding Value, StringFormat={}{0:N2}}" />
-                          </StackPanel>
+                  <ItemsControl Margin="0,5" ItemsSource="{Binding PositionSizeMapping}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                          <TextBlock
+                            Foreground="#25ffffff"
+                            Style="{StaticResource {x:Type TextBlock}}"
+                            Text="{Binding Key}" />
+                          <TextBlock
+                            Margin="10,0,0,0"
+                            Foreground="#25ffffff"
+                            Style="{StaticResource {x:Type TextBlock}}"
+                            Text="{Binding Value, StringFormat={}{0:N2}}" />
+                        </StackPanel>
 
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
 
-                    <TextBlock
-                      Grid.Row="1"
-                      Foreground="#25ffffff"
-                      Text="{Binding ScaleSize, StringFormat={}{0} x}" />
+                  <TextBlock
+                    Grid.Row="1"
+                    Grid.Column="0"
+                    Foreground="#25ffffff"
+                    Text="{Binding ScaleSize, StringFormat={}{0} x}" />
 
-                  </Grid>
+                  <TextBox
+                    Grid.Row="2"
+                    Grid.Column="0"
+                    Width="70"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Foreground="#25ffffff"
+                    Text="{Binding MaxBuyPrice, UpdateSourceTrigger=LostFocus}"
+                    ToolTip="Maximum buy price" />
+
 
                   <controls:PathButton
+                    Grid.Row="0"
                     Grid.Column="1"
                     Margin="10,10"
                     Padding="0"
@@ -512,6 +523,32 @@
                     IconHoverColor="{StaticResource YellowColor}"
                     IconMargin="0"
                     IsReadOnly="True" />
+
+
+                  <StackPanel
+                    Grid.Row="2"
+                    Grid.Column="1"
+                    Margin="-30,0,0,0"
+                    Orientation="Horizontal">
+                    <controls:PathButton
+                      VerticalAlignment="Center"
+                      Focusable="True"
+                      Glyph="{StaticResource floppy-disk-glyph}"
+                      IconHoverColor="{StaticResource BlueColor}"
+                      IconMargin="5 0"
+                      IsReadOnly="True"
+                      ToolTip="Save MAX BUY PRICE" />
+
+                    <controls:PathButton
+                      VerticalAlignment="Center"
+                      Command="{Binding DataContext.TradingBotViewModel.ClearMaxBuyPrice, RelativeSource={RelativeSource AncestorType=Window}}"
+                      Glyph="{StaticResource xmark-glyph}"
+                      IconHoverColor="{StaticResource DefaultRedColor}"
+                      IconMargin="0"
+                      IsReadOnly="True"
+                      ToolTip="Clear MAX BUY PRICE" />
+                  </StackPanel>
+
                 </Grid>
               </Border>
             </Grid>

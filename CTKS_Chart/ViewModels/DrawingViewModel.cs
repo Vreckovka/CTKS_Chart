@@ -32,7 +32,7 @@ namespace CTKS_Chart.ViewModels
     public Layout Layout { get; }
     public TradingBot TradingBot { get; }
 
-     #region Chart
+    #region Chart
 
     private DrawingImage chart;
 
@@ -307,6 +307,11 @@ namespace CTKS_Chart.ViewModels
           Brush = "#00FFFF",
           Purpose = ColorPurpose.ATH
         })},
+        {ColorPurpose.MAX_BUY_PRICE, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#9bff3d",
+          Purpose = ColorPurpose.MAX_BUY_PRICE
+        })},
       };
 
     }
@@ -318,7 +323,11 @@ namespace CTKS_Chart.ViewModels
     private List<CtksIntersection> last = null;
     private decimal? lastAthPrice = null;
 
-    public new void RenderOverlay(List<CtksIntersection> ctksIntersections = null, bool isSimulaton = false, decimal? athPrice = null, double canvasHeight = 1000)
+    public new void RenderOverlay(
+      List<CtksIntersection> ctksIntersections = null, 
+      bool isSimulaton = false, 
+      decimal? athPrice = null,
+      double canvasHeight = 1000)
     {
       if (ctksIntersections == null)
       {
@@ -396,12 +405,15 @@ namespace CTKS_Chart.ViewModels
               DrawAveragePrice(dc, Layout, TradingBot.Strategy.AvrageBuyPrice, imageHeight, imageWidth);
           }
 
-
           if (ShowATH)
           {
             if (lastAthPrice < maxCanvasValue && lastAthPrice > minCanvasValue)
               DrawPriceToATH(dc, Layout, lastAthPrice.Value, imageHeight, imageWidth);
           }
+
+
+          if (TradingBot.Strategy.MaxBuyPrice < maxCanvasValue && TradingBot.Strategy.MaxBuyPrice > minCanvasValue)
+            DrawMaxBuyPrice(dc, Layout, TradingBot.Strategy.MaxBuyPrice.Value, imageHeight, imageWidth);
         }
 
         DrawingImage dImageSource = new DrawingImage(dGroup);
@@ -432,7 +444,7 @@ namespace CTKS_Chart.ViewModels
       var width = canvasWidth / maxCount;
       var margin = width * 0.25 > 5 ? width * 0.25 : 5;
 
-      if(margin > width)
+      if (margin > width)
       {
         margin = width * 0.95;
       }
@@ -480,7 +492,7 @@ namespace CTKS_Chart.ViewModels
           }
 
           var position = (y + 1) * width;
-          newCandle.X = startGap + position  + margin / 2;
+          newCandle.X = startGap + position + margin / 2;
 
           if (green)
             newCandle.Y = canvasHeight - close;
@@ -627,7 +639,7 @@ namespace CTKS_Chart.ViewModels
               DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.BUY].Brush) :
               DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.SELL].Brush);
           }
-         
+
           if (!intersection.IsEnabled)
           {
             selectedBrush = DrawingHelper.GetBrushFromHex("#FFC0CB");
@@ -761,8 +773,29 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region DrawPriceToATH
+
+    public void DrawMaxBuyPrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
+    {
+      if (price > 0)
+      {
+        var close = TradingHelper.GetCanvasValue(canvasHeight, price, layout.MaxValue, layout.MinValue);
+
+        var lineY = canvasHeight - close;
+
+        var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.MAX_BUY_PRICE].Brush);
+        var pen = new Pen(brush, 1.5);
+        pen.DashStyle = DashStyles.Dash;
+
+        var text = DrawingHelper.GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
+        drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));
+        drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
+      }
+
+    }
+
     #endregion
 
-   
+    #endregion
   }
 }

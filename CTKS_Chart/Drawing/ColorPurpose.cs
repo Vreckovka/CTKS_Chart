@@ -11,6 +11,7 @@
     NO_POSITION,
     ACTIVE_BUY,
     AVERAGE_BUY,
-    ATH
+    ATH,
+    MAX_BUY_PRICE
   }
 }

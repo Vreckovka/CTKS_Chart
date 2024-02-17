@@ -77,6 +77,11 @@ namespace CTKS_Chart.Strategy
 
     }
 
+    public override void SaveStrategyData()
+    {
+      return;
+    }
+
     public override void LoadState()
     {
 

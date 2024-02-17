@@ -6,10 +6,15 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using CTKS_Chart.Trading;
+using CTKS_Chart.ViewModels;
+using CTKS_Chart.Views.Prompts;
 using Logger;
 using VCore.Standard;
 using VCore.Standard.Helpers;
+using VCore.WPF.Misc;
+using VCore.WPF.ViewModels.Prompt;
 
 namespace CTKS_Chart.Strategy
 {
@@ -22,6 +27,7 @@ namespace CTKS_Chart.Strategy
     public decimal TotalNativeAsset { get; set; }
     public decimal MinBuyPrice { get; set; }
     public IEnumerable<KeyValuePair<TimeFrame, decimal>> PositionSizeMapping { get; set; }
+    public decimal? MaxBuyPrice { get; set; }
   }
 
 
@@ -97,6 +103,8 @@ namespace CTKS_Chart.Strategy
       ScaleSize = 0
     };
 
+    protected bool wasStrategyDataLoaded;
+
     public StrategyData StrategyData
     {
       get { return strategyData; }
@@ -116,6 +124,7 @@ namespace CTKS_Chart.Strategy
           RaisePropertyChanged(nameof(TotalSell));
           RaisePropertyChanged(nameof(PositionSizeMapping));
           RaisePropertyChanged(nameof(ScaleSize));
+          RaisePropertyChanged(nameof(MaxBuyPrice));
         }
       }
     }
@@ -184,6 +193,31 @@ namespace CTKS_Chart.Strategy
         {
           StrategyData.MinBuyPrice = value;
           RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region MaxBuyPrice
+
+    public decimal? MaxBuyPrice
+    {
+      get
+      {
+        return StrategyData.MaxBuyPrice;
+      }
+      set
+      {
+        if (value != StrategyData.MaxBuyPrice)
+        {
+          StrategyData.MaxBuyPrice = value;
+          RaisePropertyChanged();
+
+          if (wasStrategyDataLoaded)
+          {
+            SaveStrategyData();
+          }
         }
       }
     }
@@ -458,27 +492,31 @@ namespace CTKS_Chart.Strategy
     #endregion
 
     #region CreatePositions
+
     decimal lastSell = decimal.MaxValue;
-    
+
     public async void CreatePositions(Candle actualCandle)
     {
       try
       {
         await buyLock.WaitAsync();
 
-        if(lastSell == decimal.MaxValue && ClosedSellPositions.Any())
+        if (lastSell == decimal.MaxValue && ClosedSellPositions.Any())
         {
           lastSell = ClosedSellPositions.Last().Price;
         }
-        else if(!ActualPositions.Any())
+        else if (!ActualPositions.Any())
         {
           lastSell = decimal.MaxValue;
         }
 
         var minBuy = actualCandle.Close * (1 - MinBuyPrice);
+        var maxBuy = Math.Min(lastSell, MaxBuyPrice ?? decimal.MaxValue);
 
         var openedBuy = OpenBuyPositions
-          .Where(x => x.Price != x.Intersection.Value || x.Price < minBuy)
+          .Where(x => x.Price != x.Intersection.Value ||
+                      x.Price < minBuy ||
+                      x.Price > maxBuy)
           .ToList();
 
         var openedSell = OpenSellPositions.Where(x => x.Price != x.Intersection.Value).ToList();
@@ -500,16 +538,15 @@ namespace CTKS_Chart.Strategy
           await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close.Value));
         }
 
-       
+
 
         var inter = Intersections
           .Where(x => x.TimeFrame >= minTimeframe)
           .Where(x => x.IsEnabled)
           .Where(x => x.Value < actualCandle.Close.Value &&
                       x.Value > minBuy &&
-                      x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame)
-                     && x.Value < lastSell
-                      )
+                      x.Value < maxBuy &&
+                      x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame))
             .OrderByDescending(x => x.Value)
           .ToList();
 
@@ -763,7 +800,7 @@ namespace CTKS_Chart.Strategy
           .OrderBy(x => x.Value)
           .ToList();
 
-        if(nextLines.Count == 0)
+        if (nextLines.Count == 0)
         {
           nextLines = ctksIntersections
             .Where(x => x.Value > minPrice && x.Value > minForcePrice)
@@ -1027,6 +1064,8 @@ namespace CTKS_Chart.Strategy
 
     #endregion
 
+    #region UpdateIntersections
+
     public void UpdateIntersections(List<CtksIntersection> ctksIntersections)
     {
       foreach (var postion in AllOpenedPositions)
@@ -1049,7 +1088,7 @@ namespace CTKS_Chart.Strategy
       {
         var inter = postion.Intersection;
         var found = ctksIntersections.SingleOrDefault(y => y.IsSame(inter));
-        
+
         if (found != null)
         {
           found.IsEnabled = inter.IsEnabled;
@@ -1061,10 +1100,12 @@ namespace CTKS_Chart.Strategy
 
     }
 
+    #endregion
 
     protected abstract Task<bool> CancelPosition(Position position);
     protected abstract Task<long> CreatePosition(Position position);
     public abstract void SaveState();
+    public abstract void SaveStrategyData();
     public abstract void LoadState();
     public abstract Task RefreshState();
     public abstract bool IsPositionFilled(Candle candle, Position position);
