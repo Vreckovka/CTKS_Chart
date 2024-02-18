@@ -312,6 +312,11 @@ namespace CTKS_Chart.ViewModels
           Brush = "#9bff3d",
           Purpose = ColorPurpose.MAX_BUY_PRICE
         })},
+        {ColorPurpose.MIN_SELL_PRICE, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#fc4e03",
+          Purpose = ColorPurpose.MIN_SELL_PRICE
+        })},
       };
 
     }
@@ -414,6 +419,9 @@ namespace CTKS_Chart.ViewModels
 
           if (TradingBot.Strategy.MaxBuyPrice < maxCanvasValue && TradingBot.Strategy.MaxBuyPrice > minCanvasValue)
             DrawMaxBuyPrice(dc, Layout, TradingBot.Strategy.MaxBuyPrice.Value, imageHeight, imageWidth);
+
+          if (TradingBot.Strategy.MinSellPrice < maxCanvasValue && TradingBot.Strategy.MinSellPrice > minCanvasValue)
+            DrawMinSellPrice(dc, Layout, TradingBot.Strategy.MinSellPrice.Value, imageHeight, imageWidth);
         }
 
         DrawingImage dImageSource = new DrawingImage(dGroup);
@@ -773,7 +781,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region DrawPriceToATH
+    #region DrawMaxBuyPrice
 
     public void DrawMaxBuyPrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
     {
@@ -784,6 +792,29 @@ namespace CTKS_Chart.ViewModels
         var lineY = canvasHeight - close;
 
         var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.MAX_BUY_PRICE].Brush);
+        var pen = new Pen(brush, 1.5);
+        pen.DashStyle = DashStyles.Dash;
+
+        var text = DrawingHelper.GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
+        drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));
+        drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
+      }
+
+    }
+
+    #endregion
+
+    #region DrawMaxBuyPrice
+
+    public void DrawMinSellPrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
+    {
+      if (price > 0)
+      {
+        var close = TradingHelper.GetCanvasValue(canvasHeight, price, layout.MaxValue, layout.MinValue);
+
+        var lineY = canvasHeight - close;
+
+        var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.MIN_SELL_PRICE].Brush);
         var pen = new Pen(brush, 1.5);
         pen.DashStyle = DashStyles.Dash;
 

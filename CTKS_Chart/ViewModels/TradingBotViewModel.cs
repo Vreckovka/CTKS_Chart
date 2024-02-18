@@ -42,7 +42,7 @@ namespace CTKS_Chart.ViewModels
     private Stopwatch stopwatch = new Stopwatch();
     private TimeSpan lastElapsed;
     private string layoutPath = "layout.json";
-    private string stateDataPath = Path.Combine(Settings.DataPath, "state_data.txt");
+    public static string stateDataPath = Path.Combine(Settings.DataPath, "state_data.txt");
 
     public TradingBotViewModel(
       TradingBot tradingBot,
@@ -116,7 +116,6 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-
 
     #region Selected
 
@@ -627,6 +626,30 @@ namespace CTKS_Chart.ViewModels
       if (positionResult == PromptResult.Ok)
       {
         TradingBot.Strategy.MaxBuyPrice = null;
+      }
+    }
+
+    #endregion
+
+    #region clearMinSellPrice
+
+    protected ActionCommand clearMinSellPrice;
+
+    public ICommand ClearMinSellPrice
+    {
+      get
+      {
+        return clearMinSellPrice ??= new ActionCommand(OnClearMinSellPrice);
+      }
+    }
+
+    protected void OnClearMinSellPrice()
+    {
+      var positionResult = windowManager.ShowQuestionPrompt("Do you really want to clear MIN SELL PRICE?", "Clear MIN SELL PRICE");
+
+      if (positionResult == PromptResult.Ok)
+      {
+        TradingBot.Strategy.MinSellPrice = null;
       }
     }
 

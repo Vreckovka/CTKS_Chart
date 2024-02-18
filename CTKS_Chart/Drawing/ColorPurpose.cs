@@ -12,6 +12,7 @@
     ACTIVE_BUY,
     AVERAGE_BUY,
     ATH,
-    MAX_BUY_PRICE
+    MAX_BUY_PRICE,
+    MIN_SELL_PRICE
   }
 }

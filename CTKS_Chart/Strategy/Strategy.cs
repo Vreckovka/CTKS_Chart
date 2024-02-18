@@ -25,9 +25,10 @@ namespace CTKS_Chart.Strategy
     public decimal Budget { get; set; }
     public decimal TotalProfit { get; set; }
     public decimal TotalNativeAsset { get; set; }
-    public decimal MinBuyPrice { get; set; }
     public IEnumerable<KeyValuePair<TimeFrame, decimal>> PositionSizeMapping { get; set; }
+    public decimal MinBuyPrice { get; set; }
     public decimal? MaxBuyPrice { get; set; }
+    public decimal? MinSellPrice { get; set; }
   }
 
 
@@ -125,6 +126,7 @@ namespace CTKS_Chart.Strategy
           RaisePropertyChanged(nameof(PositionSizeMapping));
           RaisePropertyChanged(nameof(ScaleSize));
           RaisePropertyChanged(nameof(MaxBuyPrice));
+          RaisePropertyChanged(nameof(MinSellPrice));
         }
       }
     }
@@ -223,6 +225,36 @@ namespace CTKS_Chart.Strategy
     }
 
     #endregion
+
+    #region MinSellPrice
+
+    private bool forceRecreateSell;
+    public decimal? MinSellPrice
+    {
+      get
+      {
+        return StrategyData.MinSellPrice;
+      }
+       set 
+      {
+        if (value != StrategyData.MinSellPrice)
+        {
+          StrategyData.MinSellPrice = value;
+          RaisePropertyChanged();
+
+          if (wasStrategyDataLoaded)
+          {
+            SaveStrategyData();
+          }
+
+          forceRecreateSell = true;
+        }
+      }
+    }
+
+    #endregion
+
+    public decimal MaxTotalValue { get; set; }
 
     #region Budget
 
@@ -494,12 +526,14 @@ namespace CTKS_Chart.Strategy
     #region CreatePositions
 
     decimal lastSell = decimal.MaxValue;
+    Candle lastCandle = null;
 
     public async void CreatePositions(Candle actualCandle)
     {
       try
       {
         await buyLock.WaitAsync();
+        lastCandle = actualCandle;
 
         if (lastSell == decimal.MaxValue && ClosedSellPositions.Any())
         {
@@ -519,36 +553,35 @@ namespace CTKS_Chart.Strategy
                       x.Price > maxBuy)
           .ToList();
 
-        var openedSell = OpenSellPositions.Where(x => x.Price != x.Intersection.Value).ToList();
+
 
         foreach (var buyPosition in openedBuy)
         {
           await OnCancelPosition(buyPosition);
         }
 
-        var removedBu = new HashSet<Position>();
+        var openedSell = OpenSellPositions
+          .Where(x => x.Price != x.Intersection.Value || x.Price < MinSellPrice)
+          .ToList();
 
-        foreach (var sellPosition in openedSell)
+        if(forceRecreateSell)
         {
-          await OnCancelPosition(sellPosition, removedBu);
+          openedSell = OpenSellPositions.ToList();
+          forceRecreateSell = false;
         }
 
-        foreach (var opened in removedBu)
-        {
-          await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close.Value));
-        }
-
+        await RecreateSellPositions(actualCandle, openedSell);
 
 
         var inter = Intersections
-          .Where(x => x.TimeFrame >= minTimeframe)
-          .Where(x => x.IsEnabled)
-          .Where(x => x.Value < actualCandle.Close.Value &&
-                      x.Value > minBuy &&
-                      x.Value < maxBuy &&
-                      x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame))
-            .OrderByDescending(x => x.Value)
-          .ToList();
+                    .Where(x => x.TimeFrame >= minTimeframe)
+                    .Where(x => x.IsEnabled)
+                    .Where(x => x.Value < actualCandle.Close.Value &&
+                                x.Value > minBuy &&
+                                x.Value < maxBuy &&
+                                x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame))
+                      .OrderByDescending(x => x.Value)
+                    .ToList();
 
         foreach (var intersection in inter)
         {
@@ -602,6 +635,8 @@ namespace CTKS_Chart.Strategy
           }
 
         }
+
+        RaisePropertyChanged(nameof(TotalExpectedProfit));
       }
       finally
       {
@@ -610,6 +645,21 @@ namespace CTKS_Chart.Strategy
     }
 
     #endregion
+
+    private async Task RecreateSellPositions(Candle actualCandle, IEnumerable<Position> positionsToCancel)
+    {
+      var removedBu = new HashSet<Position>();
+
+      foreach (var sellPosition in positionsToCancel)
+      {
+        await OnCancelPosition(sellPosition, removedBu);
+      }
+
+      foreach (var opened in removedBu)
+      {
+        await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close.Value));
+      }
+    }
 
     #region GetPositionSize
 
@@ -642,8 +692,6 @@ namespace CTKS_Chart.Strategy
     }
 
     #endregion
-
-    public decimal MaxTotalValue { get; set; }
 
     #region CreateSellPositionForBuy
 
@@ -792,7 +840,7 @@ namespace CTKS_Chart.Strategy
       {
         await sellLock.WaitAsync();
 
-        var minPrice = position.Price * (decimal)(1.0 + MinSellProfitMapping[position.TimeFrame]);
+        var minPrice = Math.Max(position.Price * (decimal)(1.0 + MinSellProfitMapping[position.TimeFrame]), MinSellPrice ?? 0);
 
         var nextLines = ctksIntersections
           .Where(x => x.TimeFrame >= minTimeframe)
@@ -1018,16 +1066,20 @@ namespace CTKS_Chart.Strategy
         }
         else
         {
-          var buy = position.OpositPositions[0];
-          buy.OpositPositions.Remove(position);
-          buy.PositionSize += position.OriginalPositionSize;
-          buy.PositionSizeNative += position.OriginalPositionSizeNative;
+          if (position.OpositPositions.Count > 0)
+          {
+            var buy = position.OpositPositions[0];
+            buy.OpositPositions.Remove(position);
+            buy.PositionSize += position.OriginalPositionSize;
+            buy.PositionSizeNative += position.OriginalPositionSizeNative;
+
+            if (removed != null)
+              removed.Add(buy);
+          }
+
           LeftSize += position.OriginalPositionSizeNative;
 
           OpenSellPositions.Remove(position);
-
-          if (removed != null)
-            removed.Add(buy);
         }
       }
 

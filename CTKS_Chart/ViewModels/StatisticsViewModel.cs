@@ -256,7 +256,7 @@ namespace CTKS_Chart.ViewModels
 
     private void LoadStats()
     {
-      var lines = File.ReadLines(@"state_data.txt");
+      var lines = File.ReadLines(TradingBotViewModel.stateDataPath);
       var states = new List<State>();
       var dates = new List<string>();
 
