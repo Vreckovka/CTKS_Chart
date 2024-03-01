@@ -82,7 +82,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 #if DEBUG
-    public static bool IsLive { get; set; } = true;
+    public static bool IsLive { get; set; } = false;
 #endif
 
 #if RELEASE
@@ -122,6 +122,8 @@ namespace CTKS_Chart.ViewModels
       else
       {
         selectedBot = GetSimulationBot("D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data");
+        //selectedBot.Strategy.StrategyData.AutoATHPriceAsMaxBuy = true;
+        //1471
       }
 
       TradingBotViewModel = ViewModelsFactory.Create<TradingBotViewModel>(selectedBot);
@@ -178,7 +180,7 @@ namespace CTKS_Chart.ViewModels
       }, strategy);
 
 
-
+      
       return adaBot;
     }
     #endregion

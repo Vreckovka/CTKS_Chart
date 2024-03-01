@@ -869,7 +869,7 @@ namespace CTKS_Chart.ViewModels
     private void SimulateCandle(List<Layout> secondaryLayouts, Candle candle)
     {
       DrawingViewModel.ActualCandles.Add(candle);
-
+   
       RenderLayout(secondaryLayouts, candle);
     }
 
@@ -927,6 +927,7 @@ namespace CTKS_Chart.ViewModels
     private bool wasLoaded = false;
     List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
     DateTime lastFileCheck = DateTime.Now;
+    private decimal? lastAthPriceUpdated = null;
 
     public async void RenderLayout(List<Layout> secondaryLayouts, Candle actual)
     {
@@ -940,7 +941,7 @@ namespace CTKS_Chart.ViewModels
 
           if (actual.CloseTime > TradingHelper.GetNextTime(lastCandle.CloseTime, secondaryLayout.TimeFrame))
           {
-            if(!secondaryLayout.IsOutDated || (secondaryLayout.IsOutDated && lastFileCheck < DateTime.Now.AddMinutes(1)))
+            if (!secondaryLayout.IsOutDated || (secondaryLayout.IsOutDated && lastFileCheck < DateTime.Now.AddMinutes(1)))
             {
               var lastCount = secondaryLayout.Ctks.Candles.Count;
               var innerCandles = TradingHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
@@ -992,9 +993,10 @@ namespace CTKS_Chart.ViewModels
         }
 
         TradingBot.Strategy.Intersections = ctksIntersections;
+        var athPrice = GetAthPrice();
 
         if (IsLive)
-          DrawingViewModel.RenderOverlay(ctksIntersections, Simulation, GetAthPrice(), CanvasHeight);
+          DrawingViewModel.RenderOverlay(ctksIntersections, Simulation, athPrice, CanvasHeight);
 
         this.actual = actual;
 
@@ -1012,6 +1014,20 @@ namespace CTKS_Chart.ViewModels
               TradingBot.Strategy.UpdateIntersections(ctksIntersections);
           }
 
+        
+          if (lastAthPriceUpdated != athPrice && TradingBot.Strategy.AutoATHPriceAsMaxBuy)
+          {
+            lastAthPriceUpdated = athPrice;
+
+            if (athPrice > 0 && TradingBot.Strategy.OpenSellPositions.Count > 1)
+            {
+              TradingBot.Strategy.MaxBuyPrice = athPrice;
+            }
+            else
+            {
+              TradingBot.Strategy.MaxBuyPrice = decimal.MaxValue;
+            }
+          }
 
           TradingBot.Strategy.ValidatePositions(actual);
           TradingBot.Strategy.CreatePositions(actual);
@@ -1022,7 +1038,7 @@ namespace CTKS_Chart.ViewModels
         }
 
 
-        DrawingViewModel.RenderOverlay(ctksIntersections, Simulation, GetAthPrice(), CanvasHeight);
+        DrawingViewModel.RenderOverlay(ctksIntersections, Simulation, athPrice, CanvasHeight);
       }
       finally
       {
