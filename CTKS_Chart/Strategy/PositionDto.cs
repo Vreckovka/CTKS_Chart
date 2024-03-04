@@ -28,6 +28,7 @@ namespace CTKS_Chart.Strategy
       Fees = position.Fees;
       FilledDate = position.FilledDate;
       CreatedDate = position.CreatedDate;
+      IsAutomatic = position.IsAutomatic;
     }
 
     public Position GetPosition()
@@ -48,6 +49,7 @@ namespace CTKS_Chart.Strategy
         Fees = Fees,
         FilledDate = FilledDate,
         CreatedDate = CreatedDate,
+        IsAutomatic = IsAutomatic
       };
     }
 
@@ -59,7 +61,7 @@ namespace CTKS_Chart.Strategy
     public decimal Price { get; set; }
     public decimal PositionSize { get; set; }
     public decimal PositionSizeNative { get; set; }
-
+    public bool IsAutomatic { get; set; }
 
     public decimal OriginalPositionSize { get; set; }
     public decimal OriginalPositionSizeNative { get; set; }

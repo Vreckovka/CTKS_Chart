@@ -463,7 +463,7 @@
                 Grid.Row="1"
                 Padding="5,5,0,5"
                 HorizontalAlignment="Left"
-                Background="#6005080d">
+                Background="#cc050505">
                 <Grid>
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="auto" />
@@ -471,6 +471,8 @@
                   </Grid.ColumnDefinitions>
 
                   <Grid.RowDefinitions>
+                    <RowDefinition Height="auto" />
+                    <RowDefinition Height="auto" />
                     <RowDefinition Height="auto" />
                     <RowDefinition Height="auto" />
                     <RowDefinition Height="auto" />
@@ -535,6 +537,38 @@
                     Foreground="#25ffffff"
                     Text="{Binding MinSellPrice, UpdateSourceTrigger=LostFocus}"
                     ToolTip="Minimum SELL price" />
+
+                  <TextBox
+                    Grid.Row="4"
+                    Grid.Column="0"
+                    Width="70"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Foreground="#25ffffff"
+                    Text="{Binding AutomaticPositionSize, UpdateSourceTrigger=LostFocus}"
+                    ToolTip="Automatic position size * W1 position size" />
+
+                  <TextBlock
+                    Grid.Row="4"
+                    Grid.Column="1"
+                    Width="70"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Foreground="#25ffffff"
+                    Text="{Binding AutomaticPositionSizeValue, UpdateSourceTrigger=LostFocus}"
+                    ToolTip="Max Automatic Budget" />
+
+
+                  <TextBox
+                    Grid.Row="5"
+                    Grid.Column="0"
+                    Width="70"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Foreground="#25ffffff"
+                    Text="{Binding MaxAutomaticBudget, UpdateSourceTrigger=LostFocus}"
+                    ToolTip="Max Automatic Budget" />
+
 
 
 

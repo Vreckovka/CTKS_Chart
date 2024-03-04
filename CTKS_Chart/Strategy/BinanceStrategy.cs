@@ -13,6 +13,7 @@ using CTKS_Chart.Trading;
 using CTKS_Chart.ViewModels;
 using Logger;
 using VCore;
+using VCore.Standard.Helpers;
 using VCore.WPF;
 
 namespace CTKS_Chart.Strategy
@@ -36,6 +37,8 @@ namespace CTKS_Chart.Strategy
       Subscribe();
 #endif
     }
+
+
 
     public override bool IsPositionFilled(Candle candle, Position position)
     {
@@ -145,6 +148,16 @@ namespace CTKS_Chart.Strategy
               }
             }
           }
+        }
+
+
+        var valids = ActualPositions
+          .Where(x => x.OpositPositions.All(y => y.State == PositionState.Filled)).ToList();
+
+        foreach (var valid in valids)
+        {
+          valid.State = PositionState.Filled;
+          ActualPositions.Remove(valid);
         }
       }
       finally

@@ -759,7 +759,7 @@ namespace CTKS_Chart.ViewModels
           };
 
           var json = JsonSerializer.Serialize<Asset>(TradingBot.Asset, options);
-          File.WriteAllText("asset.json", json);
+          File.WriteAllText(Path.Combine(Settings.DataPath, "asset.json"), json);
         }
       });
 

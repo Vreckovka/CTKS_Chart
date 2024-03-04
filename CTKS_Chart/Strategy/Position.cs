@@ -90,6 +90,8 @@ namespace CTKS_Chart.Strategy
     public DateTime? FilledDate { get; set; }
     public DateTime? CreatedDate { get; set; }
 
+    public bool IsAutomatic { get; set; }
+
     #region PositionSize
 
     private decimal positionSize;

@@ -317,6 +317,26 @@ namespace CTKS_Chart.ViewModels
           Brush = "#fc4e03",
           Purpose = ColorPurpose.MIN_SELL_PRICE
         })},
+        {ColorPurpose.AUTOMATIC_BUY, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#88ff80",
+          Purpose = ColorPurpose.AUTOMATIC_BUY
+        })},
+        {ColorPurpose.AUTOMATIC_SELL, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#ff8080",
+          Purpose = ColorPurpose.AUTOMATIC_SELL
+        })},
+        {ColorPurpose.COMBINED_BUY, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#068204",
+          Purpose = ColorPurpose.COMBINED_BUY
+        })},
+        {ColorPurpose.COMBINED_SELL, new ColorSettingViewModel(new ViewModels.ColorSetting()
+        {
+          Brush = "#820404",
+          Purpose = ColorPurpose.COMBINED_SELL
+        })},
       };
 
     }
@@ -631,21 +651,22 @@ namespace CTKS_Chart.ViewModels
           .ToList();
 
         var firstPositionsOnIntersesction = positionsOnIntersesction.FirstOrDefault();
-
-        if (firstPositionsOnIntersesction != null)
-        {
-          selectedBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ?
-            DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.BUY].Brush) :
-            DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.SELL].Brush);
-        }
+        var isOnlyAuto = positionsOnIntersesction.All(x => x.IsAutomatic);
+        var isCombined = positionsOnIntersesction.Any(x => x.IsAutomatic) && positionsOnIntersesction.Any(x => !x.IsAutomatic);
 
         if (frame >= minTimeframe)
         {
           if (firstPositionsOnIntersesction != null)
           {
-            selectedBrush = firstPositionsOnIntersesction.Side == PositionSide.Buy ?
-              DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.BUY].Brush) :
-              DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.SELL].Brush);
+            selectedBrush = 
+              firstPositionsOnIntersesction.Side == PositionSide.Buy ?
+                  isOnlyAuto ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_BUY].Brush) :
+                  isCombined ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.COMBINED_BUY].Brush) : 
+                  DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.BUY].Brush) :
+
+                  isOnlyAuto ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_SELL].Brush) :
+                  isCombined ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.COMBINED_SELL].Brush) :
+                  DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.SELL].Brush);
           }
 
           if (!intersection.IsEnabled)
