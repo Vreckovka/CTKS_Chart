@@ -443,6 +443,7 @@
                         <Style TargetType="TextBlock">
                           <Setter Property="Foreground" Value="#15ffffff" />
 
+
                           <Style.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                               <Setter Property="Foreground" Value="{StaticResource YellowBrush}" />
@@ -461,9 +462,12 @@
 
               <Border
                 Grid.Row="1"
-                Padding="5,5,0,5"
+                Margin="2,0,0,0"
+                Padding="10,0,0,5"
                 HorizontalAlignment="Left"
-                Background="#cc050505">
+                Background="#cc050505"
+                BorderBrush="#50ffffff"
+                BorderThickness="1">
                 <Grid>
                   <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="auto" />
@@ -483,13 +487,9 @@
                     <ItemsControl.ItemTemplate>
                       <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                          <TextBlock
-                            Foreground="#25ffffff"
-                            Style="{StaticResource {x:Type TextBlock}}"
-                            Text="{Binding Key}" />
+                          <TextBlock Style="{StaticResource {x:Type TextBlock}}" Text="{Binding Key}" />
                           <TextBlock
                             Margin="10,0,0,0"
-                            Foreground="#25ffffff"
                             Style="{StaticResource {x:Type TextBlock}}"
                             Text="{Binding Value, StringFormat={}{0:N2}}" />
                         </StackPanel>
@@ -514,7 +514,6 @@
                   <TextBlock
                     Grid.Row="1"
                     Grid.Column="0"
-                    Foreground="#25ffffff"
                     Text="{Binding ScaleSize, StringFormat={}{0} x}" />
 
                   <TextBox
@@ -523,7 +522,6 @@
                     Width="70"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    Foreground="#25ffffff"
                     Text="{Binding MaxBuyPrice, UpdateSourceTrigger=LostFocus}"
                     ToolTip="Maximum BUY price" />
 
@@ -534,7 +532,6 @@
                     Width="70"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    Foreground="#25ffffff"
                     Text="{Binding MinSellPrice, UpdateSourceTrigger=LostFocus}"
                     ToolTip="Minimum SELL price" />
 
@@ -544,7 +541,6 @@
                     Width="70"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    Foreground="#25ffffff"
                     Text="{Binding AutomaticPositionSize, UpdateSourceTrigger=LostFocus}"
                     ToolTip="Automatic position size * W1 position size" />
 
@@ -552,10 +548,10 @@
                     Grid.Row="4"
                     Grid.Column="1"
                     Width="70"
-                    HorizontalAlignment="Left"
+                    Margin="-20,0,0,0"
+                    HorizontalAlignment="Right"
                     VerticalAlignment="Center"
-                    Foreground="#25ffffff"
-                    Text="{Binding AutomaticPositionSizeValue, UpdateSourceTrigger=LostFocus}"
+                    Text="{Binding AutomaticPositionSizeValue, StringFormat={}{0:N2}}"
                     ToolTip="Max Automatic Budget" />
 
 
@@ -565,7 +561,6 @@
                     Width="70"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Center"
-                    Foreground="#25ffffff"
                     Text="{Binding MaxAutomaticBudget, UpdateSourceTrigger=LostFocus}"
                     ToolTip="Max Automatic Budget" />
 

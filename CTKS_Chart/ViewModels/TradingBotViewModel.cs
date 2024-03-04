@@ -1222,6 +1222,23 @@ namespace CTKS_Chart.ViewModels
 
         if ((actual.OpenTime.Date > lastState?.Date || lastState?.Date == null) && TradingBot.Strategy.TotalValue > 0)
         {
+          var totalManualProfit = TradingBot.Strategy.ClosedBuyPositions.Where(x => !x.IsAutomatic).Sum(x => x.TotalProfit);
+
+          var totalAutoProfit = TradingBot.Strategy.ClosedBuyPositions
+            .Where(x => x.IsAutomatic)
+            .Sum(x => x.TotalProfit);
+
+          var actualAutoValue = totalAutoProfit + TradingBot.Strategy.ActualPositions
+            .Where(x => x.IsAutomatic)
+            .Sum(x => x.ActualProfit);
+
+          var actualValue =
+            totalManualProfit + 
+            TradingBot.Strategy
+            .ActualPositions.Where(x => !x.IsAutomatic)
+            .Sum(x => x.ActualProfit);
+
+          var athPrice = GetToAthPrice(lastStates.Max(x => x.TotalValue));
           lastState = new State()
           {
             Date = actual.OpenTime.Date,
@@ -1229,8 +1246,12 @@ namespace CTKS_Chart.ViewModels
             TotalValue = TradingBot.Strategy.TotalValue,
             TotalNative = TradingBot.Strategy.TotalNativeAsset,
             TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
-            AthPrice = GetToAthPrice(lastStates.Max(x => x.TotalValue)),
+            AthPrice = athPrice != 0 ? athPrice : lastStates.Last(x => x.AthPrice > 0).AthPrice,
             ClosePrice = actual.Close,
+            ActualAutoValue = actualAutoValue,
+            ActualValue = actualValue,
+            TotalAutoProfit = totalAutoProfit,
+            TotalManualProfit = totalManualProfit,
           };
 
           lastState.ValueToNative = Math.Round(lastState.TotalValue / lastState.ClosePrice.Value, TradingBot.Asset.NativeRound);

@@ -13,5 +13,9 @@ namespace CTKS_Chart.ViewModels
     public decimal? ClosePrice { get; set; }
     public decimal ValueToNative { get; set; }
     public decimal ValueToBTC { get; set; }
+    public decimal? TotalAutoProfit { get; set; }
+    public decimal? TotalManualProfit { get; set; }
+    public decimal? ActualValue { get; set; }
+    public decimal? ActualAutoValue { get; set; }
   }
 }

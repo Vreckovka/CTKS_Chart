@@ -102,6 +102,82 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region ActualAutoValue
+
+    private IChartValues actualAutoValue;
+
+    public IChartValues ActualAutoValue
+    {
+      get { return actualAutoValue; }
+      set
+      {
+        if (value != actualAutoValue)
+        {
+          actualAutoValue = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region ActualValue
+
+    private IChartValues actualValue;
+
+    public IChartValues ActualValue
+    {
+      get { return actualValue; }
+      set
+      {
+        if (value != actualValue)
+        {
+          actualValue = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region TotalManualProfit
+
+    private IChartValues totalManualProfit;
+
+    public IChartValues TotalManualProfit
+    {
+      get { return totalManualProfit; }
+      set
+      {
+        if (value != totalManualProfit)
+        {
+          totalManualProfit = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region TotalAutoProfit
+
+    private IChartValues totalAutoProfit;
+
+    public IChartValues TotalAutoProfit
+    {
+      get { return totalAutoProfit; }
+      set
+      {
+        if (value != totalAutoProfit)
+        {
+          totalAutoProfit = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     #region ValueToNative
 
     private IChartValues valueToNative;
@@ -268,9 +344,16 @@ namespace CTKS_Chart.ViewModels
         dates.Add(stat.Date.ToShortDateString());
       }
 
-      TotalValue = new ChartValues<decimal>(states.Select(x => x.TotalValue));
-      TotalProfit = new ChartValues<decimal>(states.Select(x => x.TotalProfit));
+      
 
+      TotalValue = new ChartValues<decimal>(states.Select(x => x.TotalValue));
+      ActualValue = new ChartValues<decimal>(states.Where(x => x.ActualValue != null).Select(x => x.ActualValue.Value));
+      ActualAutoValue = new ChartValues<decimal>(states.Where(x => x.ActualAutoValue != null).Select(x => x.ActualAutoValue.Value));
+
+
+      TotalAutoProfit = new ChartValues<decimal>(states.Where(x => x.TotalAutoProfit != null).Select(x => x.TotalAutoProfit.Value));
+      TotalManualProfit = new ChartValues<decimal>(states.Where(x => x.TotalManualProfit != null).Select(x => x.TotalManualProfit.Value));
+      TotalProfit = new ChartValues<decimal>(states.Select(x => x.TotalProfit));
 
       var stats = states.Where(x => x.AthPrice > 0 && x.ClosePrice > 0).ToList();
 
@@ -282,7 +365,6 @@ namespace CTKS_Chart.ViewModels
 
       Labels = dates.ToArray();
       Labels2 = stats.Select(x => x.Date.ToShortDateString()).ToArray();
-
 
       ValueFormatter = value => value.ToString("N2");
       PriceFormatter = value => value.ToString($"N{strategy.Asset.PriceRound}");
