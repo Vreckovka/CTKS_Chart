@@ -96,6 +96,9 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 
+
+  
+
     public ObservableCollection<Layout> Layouts { get; set; } = new ObservableCollection<Layout>();
 
     #region DrawingViewModel

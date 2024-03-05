@@ -241,6 +241,26 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region ShowAutoPositions
+
+    private bool showAutoPositions = true;
+
+    public bool ShowAutoPositions
+    {
+      get { return showAutoPositions; }
+      set
+      {
+        if (value != showAutoPositions)
+        {
+          showAutoPositions = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
     public Image ChartImage { get; } = new Image();
 
     #endregion
@@ -700,14 +720,19 @@ namespace CTKS_Chart.ViewModels
       double canvasWidth
       )
     {
+      if(!ShowAutoPositions)
+      {
+        positions = positions.Where(x => !x.IsAutomatic);
+      }
+
       foreach (var position in positions)
       {
         var isActive = position.Side == PositionSide.Buy && position.State == PositionState.Filled;
 
         Brush selectedBrush = isActive ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.ACTIVE_BUY].Brush) :
             position.Side == PositionSide.Buy ?
-              DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_BUY].Brush) :
-              DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_SELL].Brush); ;
+              position.IsAutomatic ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_BUY].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_BUY].Brush) :
+              position.IsAutomatic ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_SELL].Brush): DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_SELL].Brush); ;
 
 
         Pen pen = new Pen(selectedBrush, 1);
@@ -725,7 +750,14 @@ namespace CTKS_Chart.ViewModels
         if (candle != null)
         {
           var text = position.Side == PositionSide.Buy ? "B" : "S";
-          FormattedText formattedText = DrawingHelper.GetFormattedText(text, selectedBrush, isActive ? 25 : 9);
+          var fontSize = isActive ? 25 : 9;
+
+          if(position.IsAutomatic)
+          {
+            fontSize = fontSize / 2;
+          }
+
+          FormattedText formattedText = DrawingHelper.GetFormattedText(text, selectedBrush, fontSize);
 
           drawingContext.DrawText(formattedText, new Point(candle.Body.X - 25, lineY - formattedText.Height / 2));
         }

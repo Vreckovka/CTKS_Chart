@@ -353,7 +353,6 @@ namespace CTKS_Chart.Strategy
 
     #region MinSellPrice
 
-    private bool forceRecreateSell;
     public decimal? MinSellPrice
     {
       get
@@ -369,10 +368,8 @@ namespace CTKS_Chart.Strategy
 
           if (wasStrategyDataLoaded)
           {
-            SaveStrategyData();
+            RecreateAllManualSell();
           }
-
-          forceRecreateSell = true;
         }
       }
     }
@@ -737,21 +734,18 @@ namespace CTKS_Chart.Strategy
           .Where(x => x.Price != x.Intersection.Value || x.Price < MinSellPrice)
           .ToList();
 
-        if (forceRecreateSell)
-        {
-          openedSell = OpenSellPositions.ToList();
-          forceRecreateSell = false;
-        }
+        if (openedSell.Any())
+          await RecreateSellPositions(actualCandle, openedSell);
 
-        await RecreateSellPositions(actualCandle, openedSell);
+       
 
-
-        openedSell = OpenSellPositions
+        var openedAutoSell = OpenSellPositions
           .Where(x => x.IsAutomatic)
           .Where(x => x.Price != x.Intersection.Value)
           .ToList();
 
-        await RecreateSellPositions(actualCandle, openedSell);
+        if (openedAutoSell.Any())
+          await RecreateSellPositions(actualCandle, openedAutoSell);
 
         var inter = Intersections
                     .Where(x => x.TimeFrame >= minTimeframe)
@@ -883,6 +877,19 @@ namespace CTKS_Chart.Strategy
 
     #endregion
 
+    #region RecreateAllManualSell
+
+    private async void RecreateAllManualSell()
+    {
+      var openedSell = OpenSellPositions
+        .OrderBy(x => x.Price)
+        .Where(x => !x.IsAutomatic).ToList();
+
+      await RecreateSellPositions(lastCandle, openedSell);
+    }
+
+    #endregion
+
     private decimal GetBudget(bool automatic = false)
     {
       return automatic ? Math.Min(AutomaticBudget, Budget) : Budget;
@@ -901,7 +908,9 @@ namespace CTKS_Chart.Strategy
 
       foreach (var opened in removedBu)
       {
-        await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close.Value));
+        await CreateSellPositionForBuy(opened,
+          Intersections.OrderBy(x => x.Value)
+          .Where(x => x.Value > actualCandle.Close.Value));
       }
     }
 

@@ -131,11 +131,11 @@ namespace CTKS_Chart.Views
 
     public void SortActualPositions()
     {
-      SortDataGrid(ActualPositions,7);
-      SortDataGrid(Loggs, sortDirection: ListSortDirection.Descending);
+      SortDataGrid(ActualPositions,1);
+      SortDataGrid(Loggs);
     }
 
-    private void SortDataGrid(DataGrid dataGrid, int columnIndex = 0, ListSortDirection sortDirection = ListSortDirection.Ascending)
+    private void SortDataGrid(DataGrid dataGrid, int columnIndex = 0, ListSortDirection sortDirection = ListSortDirection.Descending)
     {
       var column = dataGrid.Columns[columnIndex];
 

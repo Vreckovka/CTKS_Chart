@@ -132,7 +132,6 @@
     </wpf:CartesianChart>
 
     <wpf:CartesianChart
-      Grid.Row="2"
       Margin="0,20,0,0"
       Background="Transparent"
       LegendLocation="None">
@@ -261,7 +260,7 @@
 
       <wpf:CartesianChart.AxisY>
         <wpf:Axis
-          Title="Profit"
+          Title="Value"
           Foreground="{StaticResource GreenBrush}"
           LabelFormatter="{Binding GreenBrush}">
           <wpf:Axis.Separator>
