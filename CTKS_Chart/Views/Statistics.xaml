@@ -6,24 +6,350 @@
   xmlns:local="clr-namespace:CTKS_Chart.Views"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:wpf="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
-  Height="750"
+  Height="800"
   d:DesignWidth="800"
   mc:Ignorable="d">
-  <UniformGrid MinWidth="850" Columns="2">
-    <wpf:CartesianChart Background="Transparent" LegendLocation="None">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition />
+      <RowDefinition Height="120" />
+    </Grid.RowDefinitions>
 
+    <UniformGrid MinWidth="850" Columns="2">
+      <wpf:CartesianChart Background="Transparent" LegendLocation="None">
+
+        <wpf:CartesianChart.AxisY>
+          <wpf:Axis
+            Title="Total Value"
+            Foreground="{StaticResource YellowBrush3}"
+            LabelFormatter="{Binding ValueFormatter}">
+            <wpf:Axis.Separator>
+              <wpf:Separator
+                Stroke="{StaticResource YellowBrush3}"
+                StrokeDashArray="0"
+                StrokeThickness="0" />
+            </wpf:Axis.Separator>
+          </wpf:Axis>
+        </wpf:CartesianChart.AxisY>
+
+        <wpf:CartesianChart.AxisX>
+          <wpf:Axis Title="Time" Labels="{Binding Labels[0]}">
+            <wpf:Axis.Separator>
+              <wpf:Separator Stroke="#252525" StrokeThickness="1" />
+            </wpf:Axis.Separator>
+
+          </wpf:Axis>
+        </wpf:CartesianChart.AxisX>
+        <wpf:CartesianChart.DataTooltip>
+          <wpf:DefaultTooltip
+            Background="#252525"
+            BorderBrush="#35ffffff"
+            BorderThickness="1" />
+        </wpf:CartesianChart.DataTooltip>
+
+        <wpf:CartesianChart.Series>
+          <wpf:LineSeries
+            Title="Total Value"
+            Fill="Transparent"
+            LineSmoothness="0"
+            PointForeground="{StaticResource YellowBrush3}"
+            PointGeometrySize="0"
+            ScalesYAt="0"
+            Stroke="{StaticResource YellowBrush3}"
+            Values="{Binding TotalValue}" />
+
+
+        </wpf:CartesianChart.Series>
+      </wpf:CartesianChart>
+
+
+      <wpf:CartesianChart Background="Transparent" LegendLocation="None">
+
+        <wpf:CartesianChart.AxisY>
+          <wpf:Axis
+            Title="Total Profit"
+            Foreground="{StaticResource GreenBrush}"
+            LabelFormatter="{Binding GreenBrush}">
+            <wpf:Axis.Separator>
+              <wpf:Separator
+                Stroke="{StaticResource GreenBrush}"
+                StrokeDashArray="0"
+                StrokeThickness="0" />
+            </wpf:Axis.Separator>
+          </wpf:Axis>
+
+        </wpf:CartesianChart.AxisY>
+
+        <wpf:CartesianChart.AxisX>
+          <wpf:Axis Title="Time" Labels="{Binding Labels[0]}">
+            <wpf:Axis.Separator>
+              <wpf:Separator Stroke="#252525" StrokeThickness="1" />
+            </wpf:Axis.Separator>
+
+          </wpf:Axis>
+        </wpf:CartesianChart.AxisX>
+        <wpf:CartesianChart.DataTooltip>
+          <wpf:DefaultTooltip
+            Background="#252525"
+            BorderBrush="#35ffffff"
+            BorderThickness="1" />
+        </wpf:CartesianChart.DataTooltip>
+
+        <wpf:CartesianChart.Series>
+          <wpf:StepLineSeries
+            Title="Total Profit"
+            AlternativeStroke="{StaticResource GreenBrush}"
+            Fill="Transparent"
+            PointForeground="{StaticResource GreenBrush}"
+            PointGeometrySize="0"
+            Stroke="{StaticResource LightRedBrush}"
+            Values="{Binding TotalProfit}" />
+
+        </wpf:CartesianChart.Series>
+      </wpf:CartesianChart>
+
+      <wpf:CartesianChart
+        Margin="0,20,0,0"
+        Background="Transparent"
+        LegendLocation="None">
+
+        <wpf:CartesianChart.AxisY>
+          <wpf:Axis
+            Title="Price"
+            LabelFormatter="{Binding PriceFormatter}"
+            Position="RightTop">
+            <wpf:Axis.Separator>
+              <wpf:Separator
+                Stroke="{StaticResource YellowBrush3}"
+                StrokeDashArray="0"
+                StrokeThickness="0" />
+            </wpf:Axis.Separator>
+          </wpf:Axis>
+
+        </wpf:CartesianChart.AxisY>
+
+        <wpf:CartesianChart.AxisX>
+          <wpf:Axis Title="Time" Labels="{Binding Labels[1]}">
+            <wpf:Axis.Separator>
+              <wpf:Separator Stroke="#252525" StrokeThickness="1" />
+            </wpf:Axis.Separator>
+
+          </wpf:Axis>
+        </wpf:CartesianChart.AxisX>
+
+        <wpf:CartesianChart.DataTooltip>
+          <wpf:DefaultTooltip
+            Background="#252525"
+            BorderBrush="#35ffffff"
+            BorderThickness="1" />
+        </wpf:CartesianChart.DataTooltip>
+
+        <wpf:CartesianChart.Series>
+          <wpf:LineSeries
+            Title="Ath Price"
+            Fill="Transparent"
+            LineSmoothness="0"
+            PointForeground="{StaticResource YellowBrush3}"
+            PointGeometrySize="0"
+            ScalesYAt="0"
+            Stroke="{StaticResource YellowBrush3}"
+            Values="{Binding AthPrice}" />
+
+          <wpf:LineSeries
+            Title="Close Price"
+            Fill="Transparent"
+            LineSmoothness="0"
+            PointForeground="{StaticResource LightRedBrush}"
+            PointGeometrySize="0"
+            ScalesYAt="0"
+            Stroke="{StaticResource LightRedBrush}"
+            Values="{Binding ClosePice}" />
+
+        </wpf:CartesianChart.Series>
+      </wpf:CartesianChart>
+
+
+      <wpf:CartesianChart
+        Margin="0,20,0,0"
+        Background="Transparent"
+        LegendLocation="None">
+
+        <wpf:CartesianChart.AxisX>
+          <wpf:Axis Title="Time" Labels="{Binding Labels[3]}">
+            <wpf:Axis.Separator>
+              <wpf:Separator Stroke="#252525" StrokeThickness="1" />
+            </wpf:Axis.Separator>
+
+          </wpf:Axis>
+        </wpf:CartesianChart.AxisX>
+
+        <wpf:CartesianChart.AxisY>
+          <wpf:Axis Title="Value to Native" LabelFormatter="{Binding NativeFormatter}">
+            <wpf:Axis.Separator>
+              <wpf:Separator
+                Stroke="{StaticResource MagentaBrush}"
+                StrokeDashArray="0"
+                StrokeThickness="0" />
+            </wpf:Axis.Separator>
+          </wpf:Axis>
+
+          <wpf:Axis
+            Title="Value to BTC"
+            LabelFormatter="{Binding BTCFormatter}"
+            Position="RightTop">
+            <wpf:Axis.Separator>
+              <wpf:Separator
+                Stroke="{StaticResource OrangeBrush}"
+                StrokeDashArray="0"
+                StrokeThickness="0" />
+            </wpf:Axis.Separator>
+          </wpf:Axis>
+
+
+        </wpf:CartesianChart.AxisY>
+
+        <wpf:CartesianChart.DataTooltip>
+          <wpf:DefaultTooltip
+            Background="#252525"
+            BorderBrush="#35ffffff"
+            BorderThickness="1" />
+        </wpf:CartesianChart.DataTooltip>
+
+        <wpf:CartesianChart.Series>
+          <wpf:LineSeries
+            Title="Value To Native"
+            Fill="Transparent"
+            LineSmoothness="0"
+            PointForeground="{StaticResource MagentaBrush}"
+            PointGeometrySize="0"
+            ScalesYAt="0"
+            Stroke="{StaticResource MagentaBrush}"
+            Values="{Binding ValueToNative}" />
+
+          <wpf:LineSeries
+            Title="Value To BTC"
+            Fill="Transparent"
+            LineSmoothness="0"
+            PointForeground="{StaticResource OrangeBrush}"
+            PointGeometrySize="0"
+            ScalesYAt="1"
+            Stroke="{StaticResource OrangeBrush}"
+            Values="{Binding ValueToBTC, StringFormat={}{0:N5}}" />
+
+        </wpf:CartesianChart.Series>
+      </wpf:CartesianChart>
+
+
+      <wpf:CartesianChart Background="Transparent" LegendLocation="None">
+
+        <wpf:CartesianChart.AxisY>
+          <wpf:Axis Title="Profit" LabelFormatter="{Binding ValueFormatter}">
+            <wpf:Axis.Separator>
+              <wpf:Separator StrokeDashArray="0" StrokeThickness="0" />
+            </wpf:Axis.Separator>
+          </wpf:Axis>
+
+        </wpf:CartesianChart.AxisY>
+
+        <wpf:CartesianChart.AxisX>
+          <wpf:Axis Title="Time" Labels="{Binding Labels[2]}">
+            <wpf:Axis.Separator>
+              <wpf:Separator Stroke="#252525" StrokeThickness="1" />
+            </wpf:Axis.Separator>
+
+          </wpf:Axis>
+        </wpf:CartesianChart.AxisX>
+        <wpf:CartesianChart.DataTooltip>
+          <wpf:DefaultTooltip
+            Background="#252525"
+            BorderBrush="#35ffffff"
+            BorderThickness="1" />
+        </wpf:CartesianChart.DataTooltip>
+
+        <wpf:CartesianChart.Series>
+          <wpf:StepLineSeries
+            Title="Total Manual Profit"
+            AlternativeStroke="{StaticResource GreenBrush}"
+            Fill="Transparent"
+            PointForeground="{StaticResource YellowBrush}"
+            PointGeometrySize="0"
+            Stroke="{StaticResource YellowBrush}"
+            Values="{Binding TotalManualProfit}" />
+
+          <wpf:StepLineSeries
+            Title="Total Auto Profit"
+            AlternativeStroke="{StaticResource GreenBrush}"
+            Fill="Transparent"
+            PointForeground="{StaticResource BlueBrush}"
+            PointGeometrySize="0"
+            Stroke="{StaticResource BlueBrush}"
+            Values="{Binding TotalAutoProfit}" />
+
+
+        </wpf:CartesianChart.Series>
+      </wpf:CartesianChart>
+
+      <wpf:CartesianChart Background="Transparent" LegendLocation="None">
+
+        <wpf:CartesianChart.AxisY>
+          <wpf:Axis Title="Value" LabelFormatter="{Binding ValueFormatter}">
+            <wpf:Axis.Separator>
+              <wpf:Separator StrokeDashArray="0" StrokeThickness="0" />
+            </wpf:Axis.Separator>
+          </wpf:Axis>
+
+        </wpf:CartesianChart.AxisY>
+
+        <wpf:CartesianChart.AxisX>
+          <wpf:Axis Title="Time" Labels="{Binding Labels[2]}">
+            <wpf:Axis.Separator>
+              <wpf:Separator Stroke="#252525" StrokeThickness="1" />
+            </wpf:Axis.Separator>
+
+          </wpf:Axis>
+        </wpf:CartesianChart.AxisX>
+        <wpf:CartesianChart.DataTooltip>
+          <wpf:DefaultTooltip
+            Background="#252525"
+            BorderBrush="#35ffffff"
+            BorderThickness="1" />
+        </wpf:CartesianChart.DataTooltip>
+
+        <wpf:CartesianChart.Series>
+          <wpf:LineSeries
+            Title="Actual Value"
+            Fill="Transparent"
+            LineSmoothness="0"
+            PointForeground="{StaticResource YellowBrush}"
+            PointGeometrySize="0"
+            Stroke="{StaticResource YellowBrush}"
+            Values="{Binding ActualValue}" />
+
+          <wpf:LineSeries
+            Title="Actual Auto Value"
+            Fill="Transparent"
+            LineSmoothness="0"
+            PointForeground="{StaticResource BlueBrush}"
+            PointGeometrySize="0"
+            Stroke="{StaticResource BlueBrush}"
+            Values="{Binding ActualAutoValue}" />
+        </wpf:CartesianChart.Series>
+      </wpf:CartesianChart>
+
+
+    </UniformGrid>
+
+    <wpf:CartesianChart
+      Grid.Row="1"
+      Background="Transparent"
+      LegendLocation="None">
       <wpf:CartesianChart.AxisY>
-        <wpf:Axis
-          Title="Total Value"
-          Foreground="{StaticResource YellowBrush3}"
-          LabelFormatter="{Binding ValueFormatter}">
+        <wpf:Axis Title="Profits" LabelFormatter="{Binding ValueFormatter}">
           <wpf:Axis.Separator>
-            <wpf:Separator
-              Stroke="{StaticResource YellowBrush3}"
-              StrokeDashArray="0"
-              StrokeThickness="0" />
+            <wpf:Separator StrokeDashArray="0" StrokeThickness="0" />
           </wpf:Axis.Separator>
         </wpf:Axis>
+
       </wpf:CartesianChart.AxisY>
 
       <wpf:CartesianChart.AxisX>
@@ -42,305 +368,26 @@
       </wpf:CartesianChart.DataTooltip>
 
       <wpf:CartesianChart.Series>
-        <wpf:LineSeries
-          Title="Total Value"
-          Fill="Transparent"
-          LineSmoothness="0"
-          PointForeground="{StaticResource YellowBrush3}"
-          PointGeometrySize="0"
-          ScalesYAt="0"
-          Stroke="{StaticResource YellowBrush3}"
-          Values="{Binding TotalValue}" />
+        <wpf:StackedColumnSeries
+          Title="Realized Outer Day profit"
+          Fill="{StaticResource GreenBrush}"
+          StackMode="Values"
+          Values="{Binding IntraDayProfits}" />
 
+        <wpf:StackedColumnSeries
+          Title="Realized Intra Day Manual Profit"
+          Fill="{StaticResource OrangeBrush}"
+          StackMode="Values"
+          Values="{Binding IntraDayManualProfits}" />
 
-      </wpf:CartesianChart.Series>
-    </wpf:CartesianChart>
-
-
-    <wpf:CartesianChart Background="Transparent" LegendLocation="None">
-
-      <wpf:CartesianChart.AxisY>
-        <wpf:Axis
-          Title="Total Profit"
-          Foreground="{StaticResource GreenBrush}"
-          LabelFormatter="{Binding GreenBrush}">
-          <wpf:Axis.Separator>
-            <wpf:Separator
-              Stroke="{StaticResource GreenBrush}"
-              StrokeDashArray="0"
-              StrokeThickness="0" />
-          </wpf:Axis.Separator>
-        </wpf:Axis>
-
-      </wpf:CartesianChart.AxisY>
-
-      <wpf:CartesianChart.AxisX>
-        <wpf:Axis Title="Time" Labels="{Binding Labels[0]}">
-          <wpf:Axis.Separator>
-            <wpf:Separator Stroke="#252525" StrokeThickness="1" />
-          </wpf:Axis.Separator>
-
-        </wpf:Axis>
-      </wpf:CartesianChart.AxisX>
-      <wpf:CartesianChart.DataTooltip>
-        <wpf:DefaultTooltip
-          Background="#252525"
-          BorderBrush="#35ffffff"
-          BorderThickness="1" />
-      </wpf:CartesianChart.DataTooltip>
-
-      <wpf:CartesianChart.Series>
-        <wpf:StepLineSeries
-          Title="Total Profit"
-          AlternativeStroke="{StaticResource GreenBrush}"
-          Fill="Transparent"
-          PointForeground="{StaticResource GreenBrush}"
-          PointGeometrySize="0"
-          Stroke="{StaticResource LightRedBrush}"
-          Values="{Binding TotalProfit}" />
+        <wpf:StackedColumnSeries
+          Title="Realized Intra Day Auto Profit"
+          Fill="{StaticResource BlueBrush}"
+          StackMode="Values"
+          Values="{Binding IntraDayAutoProfits}" />
 
       </wpf:CartesianChart.Series>
     </wpf:CartesianChart>
+  </Grid>
 
-    <wpf:CartesianChart
-      Margin="0,20,0,0"
-      Background="Transparent"
-      LegendLocation="None">
-
-      <wpf:CartesianChart.AxisY>
-        <wpf:Axis
-          Title="Price"
-          LabelFormatter="{Binding PriceFormatter}"
-          Position="RightTop">
-          <wpf:Axis.Separator>
-            <wpf:Separator
-              Stroke="{StaticResource YellowBrush3}"
-              StrokeDashArray="0"
-              StrokeThickness="0" />
-          </wpf:Axis.Separator>
-        </wpf:Axis>
-
-      </wpf:CartesianChart.AxisY>
-
-      <wpf:CartesianChart.AxisX>
-        <wpf:Axis Title="Time" Labels="{Binding Labels[1]}">
-          <wpf:Axis.Separator>
-            <wpf:Separator Stroke="#252525" StrokeThickness="1" />
-          </wpf:Axis.Separator>
-
-        </wpf:Axis>
-      </wpf:CartesianChart.AxisX>
-
-      <wpf:CartesianChart.DataTooltip>
-        <wpf:DefaultTooltip
-          Background="#252525"
-          BorderBrush="#35ffffff"
-          BorderThickness="1" />
-      </wpf:CartesianChart.DataTooltip>
-
-      <wpf:CartesianChart.Series>
-        <wpf:LineSeries
-          Title="Ath Price"
-          Fill="Transparent"
-          LineSmoothness="0"
-          PointForeground="{StaticResource YellowBrush3}"
-          PointGeometrySize="0"
-          ScalesYAt="0"
-          Stroke="{StaticResource YellowBrush3}"
-          Values="{Binding AthPrice}" />
-
-        <wpf:LineSeries
-          Title="Close Price"
-          Fill="Transparent"
-          LineSmoothness="0"
-          PointForeground="{StaticResource LightRedBrush}"
-          PointGeometrySize="0"
-          ScalesYAt="0"
-          Stroke="{StaticResource LightRedBrush}"
-          Values="{Binding ClosePice}" />
-
-      </wpf:CartesianChart.Series>
-    </wpf:CartesianChart>
-
-
-    <wpf:CartesianChart
-      Margin="0,20,0,0"
-      Background="Transparent"
-      LegendLocation="None">
-
-      <wpf:CartesianChart.AxisX>
-        <wpf:Axis Title="Time" Labels="{Binding Labels[3]}">
-          <wpf:Axis.Separator>
-            <wpf:Separator Stroke="#252525" StrokeThickness="1" />
-          </wpf:Axis.Separator>
-
-        </wpf:Axis>
-      </wpf:CartesianChart.AxisX>
-
-      <wpf:CartesianChart.AxisY>
-        <wpf:Axis Title="Value to Native" LabelFormatter="{Binding NativeFormatter}">
-          <wpf:Axis.Separator>
-            <wpf:Separator
-              Stroke="{StaticResource MagentaBrush}"
-              StrokeDashArray="0"
-              StrokeThickness="0" />
-          </wpf:Axis.Separator>
-        </wpf:Axis>
-
-        <wpf:Axis
-          Title="Value to BTC"
-          LabelFormatter="{Binding BTCFormatter}"
-          Position="RightTop">
-          <wpf:Axis.Separator>
-            <wpf:Separator
-              Stroke="{StaticResource OrangeBrush}"
-              StrokeDashArray="0"
-              StrokeThickness="0" />
-          </wpf:Axis.Separator>
-        </wpf:Axis>
-
-
-      </wpf:CartesianChart.AxisY>
-
-      <wpf:CartesianChart.DataTooltip>
-        <wpf:DefaultTooltip
-          Background="#252525"
-          BorderBrush="#35ffffff"
-          BorderThickness="1" />
-      </wpf:CartesianChart.DataTooltip>
-
-      <wpf:CartesianChart.Series>
-        <wpf:LineSeries
-          Title="Value To Native"
-          Fill="Transparent"
-          LineSmoothness="0"
-          PointForeground="{StaticResource MagentaBrush}"
-          PointGeometrySize="0"
-          ScalesYAt="0"
-          Stroke="{StaticResource MagentaBrush}"
-          Values="{Binding ValueToNative}" />
-
-        <wpf:LineSeries
-          Title="Value To BTC"
-          Fill="Transparent"
-          LineSmoothness="0"
-          PointForeground="{StaticResource OrangeBrush}"
-          PointGeometrySize="0"
-          ScalesYAt="1"
-          Stroke="{StaticResource OrangeBrush}"
-          Values="{Binding ValueToBTC, StringFormat={}{0:N5}}" />
-
-      </wpf:CartesianChart.Series>
-    </wpf:CartesianChart>
-
-
-    <wpf:CartesianChart Background="Transparent" LegendLocation="None">
-
-      <wpf:CartesianChart.AxisY>
-        <wpf:Axis
-          Title="Profit"
-          Foreground="{StaticResource GreenBrush}"
-          LabelFormatter="{Binding GreenBrush}">
-          <wpf:Axis.Separator>
-            <wpf:Separator
-              Stroke="{StaticResource GreenBrush}"
-              StrokeDashArray="0"
-              StrokeThickness="0" />
-          </wpf:Axis.Separator>
-        </wpf:Axis>
-
-      </wpf:CartesianChart.AxisY>
-
-      <wpf:CartesianChart.AxisX>
-        <wpf:Axis Title="Time" Labels="{Binding Labels[2]}">
-          <wpf:Axis.Separator>
-            <wpf:Separator Stroke="#252525" StrokeThickness="1" />
-          </wpf:Axis.Separator>
-
-        </wpf:Axis>
-      </wpf:CartesianChart.AxisX>
-      <wpf:CartesianChart.DataTooltip>
-        <wpf:DefaultTooltip
-          Background="#252525"
-          BorderBrush="#35ffffff"
-          BorderThickness="1" />
-      </wpf:CartesianChart.DataTooltip>
-
-      <wpf:CartesianChart.Series>
-        <wpf:StepLineSeries
-          Title="Total Manual Profit"
-          AlternativeStroke="{StaticResource GreenBrush}"
-          Fill="Transparent"
-          PointForeground="{StaticResource YellowBrush}"
-          PointGeometrySize="0"
-          Stroke="{StaticResource YellowBrush}"
-          Values="{Binding TotalManualProfit}" />
-
-        <wpf:StepLineSeries
-          Title="Total Auto Profit"
-          AlternativeStroke="{StaticResource GreenBrush}"
-          Fill="Transparent"
-          PointForeground="{StaticResource BlueBrush}"
-          PointGeometrySize="0"
-          Stroke="{StaticResource BlueBrush}"
-          Values="{Binding TotalAutoProfit}" />
-
-
-      </wpf:CartesianChart.Series>
-    </wpf:CartesianChart>
-
-    <wpf:CartesianChart Background="Transparent" LegendLocation="None">
-
-      <wpf:CartesianChart.AxisY>
-        <wpf:Axis
-          Title="Value"
-          Foreground="{StaticResource GreenBrush}"
-          LabelFormatter="{Binding GreenBrush}">
-          <wpf:Axis.Separator>
-            <wpf:Separator
-              Stroke="{StaticResource GreenBrush}"
-              StrokeDashArray="0"
-              StrokeThickness="0" />
-          </wpf:Axis.Separator>
-        </wpf:Axis>
-
-      </wpf:CartesianChart.AxisY>
-
-      <wpf:CartesianChart.AxisX>
-        <wpf:Axis Title="Time" Labels="{Binding Labels[2]}">
-          <wpf:Axis.Separator>
-            <wpf:Separator Stroke="#252525" StrokeThickness="1" />
-          </wpf:Axis.Separator>
-
-        </wpf:Axis>
-      </wpf:CartesianChart.AxisX>
-      <wpf:CartesianChart.DataTooltip>
-        <wpf:DefaultTooltip
-          Background="#252525"
-          BorderBrush="#35ffffff"
-          BorderThickness="1" />
-      </wpf:CartesianChart.DataTooltip>
-
-      <wpf:CartesianChart.Series>
-        <wpf:LineSeries
-          Title="Actual Value"
-          Fill="Transparent"
-          LineSmoothness="0"
-          PointForeground="{StaticResource YellowBrush}"
-          PointGeometrySize="0"
-          Stroke="{StaticResource YellowBrush}"
-          Values="{Binding ActualValue}" />
-
-        <wpf:LineSeries
-          Title="Actual Auto Value"
-          Fill="Transparent"
-          LineSmoothness="0"
-          PointForeground="{StaticResource BlueBrush}"
-          PointGeometrySize="0"
-          Stroke="{StaticResource BlueBrush}"
-          Values="{Binding ActualAutoValue}" />
-      </wpf:CartesianChart.Series>
-    </wpf:CartesianChart>
-
-  </UniformGrid>
 </UserControl>

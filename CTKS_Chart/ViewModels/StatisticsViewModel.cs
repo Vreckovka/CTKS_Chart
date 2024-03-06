@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using LiveCharts;
+using LiveCharts.Wpf;
 using VCore.Standard.Helpers;
 using VCore.WPF.ViewModels.Prompt;
 
@@ -153,6 +154,63 @@ namespace CTKS_Chart.ViewModels
         if (value != totalManualProfit)
         {
           totalManualProfit = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region IntraDayProfits
+
+    private IChartValues intraDayProfits;
+
+    public IChartValues IntraDayProfits
+    {
+      get { return intraDayProfits; }
+      set
+      {
+        if (value != intraDayProfits)
+        {
+          intraDayProfits = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region IntraDayAutoProfits
+
+    private IChartValues intraDayAutoProfits;
+
+    public IChartValues IntraDayAutoProfits
+    {
+      get { return intraDayAutoProfits; }
+      set
+      {
+        if (value != intraDayAutoProfits)
+        {
+          intraDayAutoProfits = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region IntraDayManualProfits
+
+    private IChartValues intraDayManualProfits;
+
+    public IChartValues IntraDayManualProfits
+    {
+      get { return intraDayManualProfits; }
+      set
+      {
+        if (value != intraDayManualProfits)
+        {
+          intraDayManualProfits = value;
           RaisePropertyChanged();
         }
       }
@@ -360,13 +418,41 @@ namespace CTKS_Chart.ViewModels
       var states2Date = sanitizedStates.First(x => x.TotalManualProfit != null).Date;
       var states3Date = sanitizedStates.First(x => x.ValueToNative != null).Date;
 
-      AthPrice = new ChartValues<decimal>(sanitizedStates.Where(x => x.AthPrice != null).Select(x => x.AthPrice.Value));
+      AthPrice = new ChartValues<decimal>(sanitizedStates.Where(x => x.AthPrice != null && x.ClosePrice != null).Select(x => x.AthPrice.Value));
       ClosePice = new ChartValues<decimal>(sanitizedStates.Where(x => x.ClosePrice != null).Select(x => x.ClosePrice.Value));
 
       ValueToNative = new ChartValues<decimal>(sanitizedStates.Where(x => x.ValueToNative != null).Select(x => x.ValueToNative.Value));
       ValueToBTC = new ChartValues<decimal>(sanitizedStates.Where(x => x.ValueToBTC != null).Select(x => x.ValueToBTC.Value));
 
-         
+      var nonItraDaytakenProfits = this.strategy
+        .ClosedBuyPositions
+        .Where(x => x.FilledDate != null && x.CreatedDate != null && x.FilledDate.Value.Date != x.CreatedDate.Value.Date)
+        .GroupBy(x => x.FilledDate.Value.Date)
+        .Select(x => new Tuple<DateTime, decimal>(x.Key, x.Sum(y => y.TotalProfit))).ToList();
+
+      var intraDayAutoProfits = this.strategy
+        .ClosedBuyPositions
+        .Where(x => x.IsAutomatic)
+        .Where(x => x.FilledDate != null && x.CreatedDate != null && x.FilledDate.Value.Date == x.CreatedDate.Value.Date)
+        .GroupBy(x => x.FilledDate.Value.Date)
+        .Select(x => new Tuple<DateTime, decimal>(x.Key, x.Sum(y => y.TotalProfit)))
+        .ToList();
+
+    
+
+      var intraDayManualProfits = this.strategy
+        .ClosedBuyPositions
+        .Where(x => !x.IsAutomatic)
+        .Where(x => x.FilledDate != null && x.CreatedDate != null && x.FilledDate.Value.Date == x.CreatedDate.Value.Date)
+        .GroupBy(x => x.FilledDate.Value.Date)
+        .Select(x => new Tuple<DateTime, decimal>(x.Key, x.Sum(y => y.TotalProfit)))
+        .ToList();
+
+   
+
+      IntraDayProfits = new ChartValues<decimal>(SanitziedProfits(dates, nonItraDaytakenProfits));
+      IntraDayManualProfits = new ChartValues<decimal>(SanitziedProfits(dates, intraDayManualProfits));
+      IntraDayAutoProfits = new ChartValues<decimal>(SanitziedProfits(dates, intraDayAutoProfits));
 
       Labels = new List<string[]>();
 
@@ -374,11 +460,26 @@ namespace CTKS_Chart.ViewModels
       Labels.Add(dates.Where( x => x >= states1Date).Select(x => x.Date.ToShortDateString()).ToArray());
       Labels.Add(dates.Where(x => x >= states2Date).Select(x => x.Date.ToShortDateString()).ToArray());
       Labels.Add(dates.Where(x => x >= states3Date).Select(x => x.Date.ToShortDateString()).ToArray());
+      Labels.Add(dates.Select(x => x.ToShortDateString()).ToArray());
 
       ValueFormatter = value => value.ToString("N2");
       PriceFormatter = value => value.ToString($"N{strategy.Asset.PriceRound}");
       NativeFormatter = value => value.ToString($"N{strategy.Asset.NativeRound}");
       BTCFormatter = value => value.ToString($"N5");
+    }
+
+    private IEnumerable<decimal> SanitziedProfits(IEnumerable<DateTime> dates, List<Tuple<DateTime,decimal>> keyValuePair)
+    {
+      var result = new List<decimal>();
+
+      foreach(var date in dates)
+      {
+        var item = keyValuePair.SingleOrDefault(x => x.Item1 == date);
+
+        result.Add(item?.Item2 ?? 0);
+      }
+
+      return result;
     }
 
     private List<State> SanitzedStates(List<State> states)
