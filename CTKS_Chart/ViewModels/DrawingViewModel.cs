@@ -260,6 +260,25 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region ShowManualPositions
+
+    private bool showManualPositions = true;
+
+    public bool ShowManualPositions
+    {
+      get { return showManualPositions; }
+      set
+      {
+        if (value != showManualPositions)
+        {
+          showManualPositions = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
 
     public Image ChartImage { get; } = new Image();
 
@@ -725,6 +744,12 @@ namespace CTKS_Chart.ViewModels
         positions = positions.Where(x => !x.IsAutomatic);
       }
 
+      if (!ShowManualPositions)
+      {
+        positions = positions.Where(x => x.IsAutomatic);
+      }
+
+
       foreach (var position in positions)
       {
         var isActive = position.Side == PositionSide.Buy && position.State == PositionState.Filled;
@@ -755,7 +780,7 @@ namespace CTKS_Chart.ViewModels
 
           if(position.IsAutomatic)
           {
-            fontSize = fontSize / 2;
+            fontSize = (int)(fontSize / 1.5);
           }
 
           FormattedText formattedText = DrawingHelper.GetFormattedText(text, selectedBrush, fontSize);

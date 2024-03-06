@@ -51,10 +51,10 @@
 
     <Border Background="{StaticResource BackgroudGradientBrush}">
       <Grid>
-        <Grid.ColumnDefinitions>
-          <ColumnDefinition Width="auto" />
-          <ColumnDefinition />
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+          <RowDefinition Height="auto" />
+          <RowDefinition />
+        </Grid.RowDefinitions>
 
         <Menu VerticalAlignment="Center" Background="Transparent">
           <MenuItem Header="Settings">
@@ -212,7 +212,7 @@
             Header="" />
         </Menu>
 
-        <Grid Grid.Column="1" Margin="5">
+        <Grid Grid.Row="1" Margin="5">
           <ItemsControl ItemsSource="{Binding Layouts}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
@@ -243,7 +243,7 @@
                         <Setter Property="Background" Value="#15ffffff" />
 
                         <Setter Property="Padding" Value="15,5" />
-                        <Setter Property="Margin" Value="2,0" />
+                        <Setter Property="Margin" Value="0,0,5,0" />
                         <Setter Property="FontWeight" Value="SemiBold" />
                         <Setter Property="BorderThickness" Value="0" />
                         <Setter Property="Foreground" Value="{StaticResource DefaultWhiteBrush}" />
@@ -401,12 +401,46 @@
                 </TextBlock>
 
                 <controls:PathButton
+                  x:Name="show_positions_toggle"
                   Margin="5,0,0,0"
                   Glyph="{StaticResource square-poll-horizontal}"
                   GlyphFontSize="18"
                   IconCheckedColor="{StaticResource YellowColor}"
-                  IconHoverColor="{StaticResource YellowColor}"
-                  IsChecked="{Binding DataContext.TradingBotViewModel.DrawingViewModel.ShowClosedPositions, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
+                  IconDefaultColor="{StaticResource YellowColor}"
+                  IconHoverColor="{StaticResource YellowColor}" />
+
+
+                <Popup
+                  IsOpen="{Binding ElementName=show_positions_toggle, Path=IsChecked, Mode=TwoWay}"
+                  Placement="Bottom"
+                  PlacementTarget="{Binding ElementName=show_positions_toggle}"
+                  StaysOpen="False">
+                  <Border Padding="5" Background="#101010">
+                    <StackPanel Orientation="Vertical">
+                      <CheckBox
+                        Margin="0,5"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        DataContext="{Binding DataContext.TradingBotViewModel.DrawingViewModel, RelativeSource={RelativeSource AncestorType=Window}}"
+                        IsChecked="{Binding ShowAutoPositions}">
+                        Show auto positions
+                      </CheckBox>
+
+
+                      <CheckBox
+                        Margin="0,5"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        DataContext="{Binding DataContext.TradingBotViewModel.DrawingViewModel, RelativeSource={RelativeSource AncestorType=Window}}"
+                        IsChecked="{Binding ShowManualPositions}">
+                        Show manual positions
+                      </CheckBox>
+
+                    </StackPanel>
+                  </Border>
+
+                </Popup>
+
               </StackPanel>
             </Border>
 
@@ -463,161 +497,199 @@
 
               <Border
                 Grid.Row="1"
-                Margin="2,0,0,0"
-                Padding="10,0,0,5"
+                Margin="5,0"
                 HorizontalAlignment="Left"
-                Background="#cc050505"
-                BorderBrush="#50ffffff"
-                BorderThickness="1">
+                Background="#cc050505">
                 <Grid>
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="auto" />
-                    <ColumnDefinition Width="auto" />
-                  </Grid.ColumnDefinitions>
-
                   <Grid.RowDefinitions>
                     <RowDefinition Height="auto" />
-                    <RowDefinition Height="auto" />
-                    <RowDefinition Height="auto" />
-                    <RowDefinition Height="auto" />
-                    <RowDefinition Height="auto" />
-                    <RowDefinition Height="auto" />
+                    <RowDefinition />
                   </Grid.RowDefinitions>
 
-                  <ItemsControl Margin="0,5" ItemsSource="{Binding PositionSizeMapping}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                          <TextBlock Style="{StaticResource {x:Type TextBlock}}" Text="{Binding Key}" />
-                          <TextBlock
-                            Margin="10,0,0,0"
-                            Style="{StaticResource {x:Type TextBlock}}"
-                            Text="{Binding Value, StringFormat={}{0:N2}}" />
-                        </StackPanel>
-
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-
                   <controls:PathButton
-                    Grid.Row="0"
-                    Grid.Column="1"
-                    Margin="10,10"
-                    Padding="0"
-                    VerticalAlignment="Top"
-                    Command="{Binding DataContext.TradingBotViewModel.OpenPositionSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                    Glyph="{StaticResource pencil-glyph}"
-                    IconHoverColor="{StaticResource YellowColor}"
-                    IconMargin="0"
-                    IsReadOnly="True" />
+                    x:Name="show_positions_size_toggle"
+                    Margin="0,10"
+                    Content="Show position size"
+                    ForegroundCheckedColor="#ccc"
+                    Glyph="{StaticResource square-poll-horizontal}"
+                    GlyphFontSize="18"
+                    IconCheckedColor="{StaticResource YellowColor}"
+                    IconDefaultColor="{StaticResource YellowColor}"
+                    IconHoverColor="{StaticResource YellowColor}" />
 
-
-                  <TextBlock
+                  <Border
                     Grid.Row="1"
-                    Grid.Column="0"
-                    Text="{Binding ScaleSize, StringFormat={}{0} x}" />
+                    Margin="2,0,0,0"
+                    Padding="10,0,0,5"
+                    Background="#cc050505"
+                    BorderBrush="#50ffffff"
+                    BorderThickness="1">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="auto" />
+                        <ColumnDefinition Width="auto" />
+                      </Grid.ColumnDefinitions>
 
-                  <TextBox
-                    Grid.Row="2"
-                    Grid.Column="0"
-                    Width="70"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Text="{Binding MaxBuyPrice, UpdateSourceTrigger=LostFocus}"
-                    ToolTip="Maximum BUY price" />
+                      <Grid.RowDefinitions>
+                        <RowDefinition Height="auto" />
+                        <RowDefinition Height="auto" />
+                        <RowDefinition Height="auto" />
+                        <RowDefinition Height="auto" />
+                        <RowDefinition Height="auto" />
+                        <RowDefinition Height="auto" />
+                      </Grid.RowDefinitions>
 
+                      <ItemsControl Margin="0,5" ItemsSource="{Binding PositionSizeMapping}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                              <TextBlock Style="{StaticResource {x:Type TextBlock}}" Text="{Binding Key}" />
+                              <TextBlock
+                                Margin="10,0,0,0"
+                                Style="{StaticResource {x:Type TextBlock}}"
+                                Text="{Binding Value, StringFormat={}{0:N2}}" />
+                            </StackPanel>
 
-                  <TextBox
-                    Grid.Row="3"
-                    Grid.Column="0"
-                    Width="70"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Text="{Binding MinSellPrice, UpdateSourceTrigger=LostFocus}"
-                    ToolTip="Minimum SELL price" />
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
 
-                  <TextBox
-                    Grid.Row="4"
-                    Grid.Column="0"
-                    Width="70"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Text="{Binding AutomaticPositionSize, UpdateSourceTrigger=LostFocus}"
-                    ToolTip="Automatic position size * W1 position size" />
-
-                  <TextBlock
-                    Grid.Row="4"
-                    Grid.Column="1"
-                    Width="70"
-                    Margin="-20,0,0,0"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Center"
-                    Text="{Binding AutomaticPositionSizeValue, StringFormat={}{0:N2}}"
-                    ToolTip="Max Automatic Budget" />
-
-
-                  <TextBox
-                    Grid.Row="5"
-                    Grid.Column="0"
-                    Width="70"
-                    HorizontalAlignment="Left"
-                    VerticalAlignment="Center"
-                    Text="{Binding MaxAutomaticBudget, UpdateSourceTrigger=LostFocus}"
-                    ToolTip="Max Automatic Budget" />
+                      <controls:PathButton
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Margin="10,10"
+                        Padding="0"
+                        VerticalAlignment="Top"
+                        Command="{Binding DataContext.TradingBotViewModel.OpenPositionSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                        Glyph="{StaticResource pencil-glyph}"
+                        IconHoverColor="{StaticResource YellowColor}"
+                        IconMargin="0"
+                        IsReadOnly="True" />
 
 
+                      <TextBlock
+                        Grid.Row="1"
+                        Grid.Column="0"
+                        Text="{Binding ScaleSize, StringFormat={}{0} x}" />
+
+                      <TextBox
+                        Grid.Row="2"
+                        Grid.Column="0"
+                        Width="70"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        Text="{Binding MaxBuyPrice, UpdateSourceTrigger=LostFocus}"
+                        ToolTip="Maximum BUY price" />
 
 
-                  <StackPanel
-                    Grid.Row="2"
-                    Grid.Column="1"
-                    Margin="-30,0,0,0"
-                    Orientation="Horizontal">
-                    <controls:PathButton
-                      VerticalAlignment="Center"
-                      Focusable="True"
-                      Glyph="{StaticResource floppy-disk-glyph}"
-                      IconHoverColor="{StaticResource BlueColor}"
-                      IconMargin="5 0"
-                      IsReadOnly="True"
-                      ToolTip="Save MAX BUY PRICE" />
+                      <TextBox
+                        Grid.Row="3"
+                        Grid.Column="0"
+                        Width="70"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        Text="{Binding MinSellPrice, UpdateSourceTrigger=LostFocus}"
+                        ToolTip="Minimum SELL price" />
 
-                    <controls:PathButton
-                      VerticalAlignment="Center"
-                      Command="{Binding DataContext.TradingBotViewModel.ClearMaxBuyPrice, RelativeSource={RelativeSource AncestorType=Window}}"
-                      Glyph="{StaticResource xmark-glyph}"
-                      IconHoverColor="{StaticResource DefaultRedColor}"
-                      IconMargin="0"
-                      IsReadOnly="True"
-                      ToolTip="Clear MAX BUY PRICE" />
-                  </StackPanel>
+                      <TextBox
+                        Grid.Row="4"
+                        Grid.Column="0"
+                        Width="70"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        Text="{Binding AutomaticPositionSize, UpdateSourceTrigger=LostFocus}"
+                        ToolTip="Automatic position size * W1 position size" />
 
-                  <StackPanel
-                    Grid.Row="3"
-                    Grid.Column="1"
-                    Margin="-30,0,0,0"
-                    Orientation="Horizontal">
-                    <controls:PathButton
-                      VerticalAlignment="Center"
-                      Focusable="True"
-                      Glyph="{StaticResource floppy-disk-glyph}"
-                      IconHoverColor="{StaticResource BlueColor}"
-                      IconMargin="5 0"
-                      IsReadOnly="True"
-                      ToolTip="Save MAX BUY PRICE" />
+                      <TextBlock
+                        Grid.Row="4"
+                        Grid.Column="1"
+                        Width="70"
+                        Margin="-20,0,0,0"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Center"
+                        Text="{Binding AutomaticPositionSizeValue, StringFormat={}{0:N2}}"
+                        ToolTip="Max Automatic Budget" />
 
-                    <controls:PathButton
-                      VerticalAlignment="Center"
-                      Command="{Binding DataContext.TradingBotViewModel.ClearMinSellPrice, RelativeSource={RelativeSource AncestorType=Window}}"
-                      Glyph="{StaticResource xmark-glyph}"
-                      IconHoverColor="{StaticResource DefaultRedColor}"
-                      IconMargin="0"
-                      IsReadOnly="True"
-                      ToolTip="Clear MAX BUY PRICE" />
-                  </StackPanel>
+
+                      <TextBox
+                        Grid.Row="5"
+                        Grid.Column="0"
+                        Width="70"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        Text="{Binding MaxAutomaticBudget, UpdateSourceTrigger=LostFocus}"
+                        ToolTip="Max Automatic Budget" />
+
+
+
+
+                      <StackPanel
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Margin="-30,0,0,0"
+                        Orientation="Horizontal">
+                        <controls:PathButton
+                          VerticalAlignment="Center"
+                          Focusable="True"
+                          Glyph="{StaticResource floppy-disk-glyph}"
+                          IconHoverColor="{StaticResource BlueColor}"
+                          IconMargin="5 0"
+                          IsReadOnly="True"
+                          ToolTip="Save MAX BUY PRICE" />
+
+                        <controls:PathButton
+                          VerticalAlignment="Center"
+                          Command="{Binding DataContext.TradingBotViewModel.ClearMaxBuyPrice, RelativeSource={RelativeSource AncestorType=Window}}"
+                          Glyph="{StaticResource xmark-glyph}"
+                          IconHoverColor="{StaticResource DefaultRedColor}"
+                          IconMargin="0"
+                          IsReadOnly="True"
+                          ToolTip="Clear MAX BUY PRICE" />
+                      </StackPanel>
+
+                      <StackPanel
+                        Grid.Row="3"
+                        Grid.Column="1"
+                        Margin="-30,0,0,0"
+                        Orientation="Horizontal">
+                        <controls:PathButton
+                          VerticalAlignment="Center"
+                          Focusable="True"
+                          Glyph="{StaticResource floppy-disk-glyph}"
+                          IconHoverColor="{StaticResource BlueColor}"
+                          IconMargin="5 0"
+                          IsReadOnly="True"
+                          ToolTip="Save MAX BUY PRICE" />
+
+                        <controls:PathButton
+                          VerticalAlignment="Center"
+                          Command="{Binding DataContext.TradingBotViewModel.ClearMinSellPrice, RelativeSource={RelativeSource AncestorType=Window}}"
+                          Glyph="{StaticResource xmark-glyph}"
+                          IconHoverColor="{StaticResource DefaultRedColor}"
+                          IconMargin="0"
+                          IsReadOnly="True"
+                          ToolTip="Clear MAX BUY PRICE" />
+                      </StackPanel>
+
+                    </Grid>
+
+                    <Border.Style>
+                      <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Collapsed" />
+
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding ElementName=show_positions_size_toggle, Path=IsChecked}" Value="true">
+                            <Setter Property="Visibility" Value="Visible" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Border.Style>
+                  </Border>
 
                 </Grid>
+
               </Border>
+
             </Grid>
           </Grid>
         </Border>
@@ -708,7 +780,6 @@
                     <RowDefinition />
                   </Grid.RowDefinitions>
 
-
                   <DataGrid
                     x:Name="ActualPositions"
                     Grid.Row="1"
@@ -744,7 +815,7 @@
                       <DataGridTextColumn Binding="{Binding OriginalPositionSizeNative}" Header="Size" />
                       <DataGridTextColumn Binding="{Binding OriginalPositionSize, StringFormat={}{0:N2} $}" Header="Value" />
 
-                      <DataGridTextColumn Binding="{Binding ActualProfit, StringFormat={}{0:N3} $}" Header="Actual profit">
+                      <DataGridTextColumn Binding="{Binding ActualProfit, StringFormat={}{0:N2} $}" Header="Act. profit">
                         <DataGridTextColumn.CellStyle>
                           <Style BasedOn="{StaticResource {x:Type DataGridCell}}" TargetType="DataGridCell">
                             <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -761,9 +832,9 @@
                       </DataGridTextColumn>
 
                       <DataGridTextColumn
-                        Binding="{Binding ExpectedProfit, StringFormat={}{0:N3} $}"
+                        Binding="{Binding ExpectedProfit, StringFormat={}{0:N2} $}"
                         Foreground="{StaticResource YellowBrush3}"
-                        Header="Expected profit">
+                        Header="Exp. profit">
                         <DataGridTextColumn.CellStyle>
                           <Style BasedOn="{StaticResource {x:Type DataGridCell}}" TargetType="DataGridCell">
                             <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -1084,16 +1155,6 @@
               </TabItem>
             </TabControl>
 
-            <CheckBox
-              Width="140"
-              Height="25"
-              Margin="640,0,0,0"
-              HorizontalAlignment="Left"
-              VerticalAlignment="Top"
-              DataContext="{Binding DataContext.TradingBotViewModel.DrawingViewModel, RelativeSource={RelativeSource AncestorType=Window}}"
-              IsChecked="{Binding ShowAutoPositions}">
-              Show auto positions
-            </CheckBox>
 
           </Grid>
 
