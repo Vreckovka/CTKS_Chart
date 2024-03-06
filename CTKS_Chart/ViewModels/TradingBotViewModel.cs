@@ -1241,7 +1241,7 @@ namespace CTKS_Chart.ViewModels
             .ActualPositions.Where(x => !x.IsAutomatic)
             .Sum(x => x.ActualProfit);
 
-          var athPrice = GetToAthPrice(lastStates.Max(x => x.TotalValue));
+          var athPrice = GetToAthPrice(lastStates.Max(x => x.TotalValue) ?? 0);
           lastState = new State()
           {
             Date = actual.OpenTime.Date,
@@ -1250,14 +1250,14 @@ namespace CTKS_Chart.ViewModels
             TotalNative = TradingBot.Strategy.TotalNativeAsset,
             TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
             AthPrice = athPrice != 0 ? athPrice : lastStates.Last(x => x.AthPrice > 0).AthPrice,
-            ClosePrice = actual.Close,
+            ClosePrice = actual.Close ?? 0,
             ActualAutoValue = actualAutoValue,
             ActualValue = actualValue,
             TotalAutoProfit = totalAutoProfit,
             TotalManualProfit = totalManualProfit,
           };
 
-          lastState.ValueToNative = Math.Round(lastState.TotalValue / lastState.ClosePrice.Value, TradingBot.Asset.NativeRound);
+          lastState.ValueToNative = Math.Round(lastState.TotalValue.Value / lastState.ClosePrice.Value, TradingBot.Asset.NativeRound);
 
           if (TradingBot.Asset.Symbol == "BTCUSDT")
           {
@@ -1269,7 +1269,7 @@ namespace CTKS_Chart.ViewModels
 
             if (btcPrice != null)
             {
-              lastState.ValueToBTC = Math.Round(lastState.TotalValue / btcPrice.Value, 5);
+              lastState.ValueToBTC = Math.Round(lastState.TotalValue.Value / btcPrice.Value, 5);
             }
           }
 
@@ -1284,8 +1284,8 @@ namespace CTKS_Chart.ViewModels
 
         if (lastState != null)
         {
-          DailyChange = TradingBot.Strategy.TotalValue - lastState.TotalValue;
-          FromAllTimeHigh = TradingBot.Strategy.TotalValue - lastStates.Max(x => x.TotalValue);
+          DailyChange = TradingBot.Strategy.TotalValue - lastState.TotalValue ?? 0;
+          FromAllTimeHigh = TradingBot.Strategy.TotalValue - lastStates.Max(x => x.TotalValue ?? 0);
         }
       }
       finally
@@ -1482,7 +1482,7 @@ namespace CTKS_Chart.ViewModels
           wasLoadedAvg = true;
         }
 
-        var ath = lastStates.Max(x => x.TotalValue);
+        var ath = lastStates.Max(x => x.TotalValue ?? 0);
 
         price = GetToAthPrice(ath);
       }

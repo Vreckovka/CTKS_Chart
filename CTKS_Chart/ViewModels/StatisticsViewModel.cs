@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using LiveCharts;
+using VCore.Standard.Helpers;
 using VCore.WPF.ViewModels.Prompt;
 
 namespace CTKS_Chart.ViewModels
@@ -178,6 +179,25 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region DailyPnl
+
+    private IChartValues dailyPnl;
+
+    public IChartValues DailyPnl
+    {
+      get { return dailyPnl; }
+      set
+      {
+        if (value != dailyPnl)
+        {
+          dailyPnl = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     #region ValueToNative
 
     private IChartValues valueToNative;
@@ -218,9 +238,9 @@ namespace CTKS_Chart.ViewModels
 
     #region Labels
 
-    private string[] labels;
+    private IList<string[]> labels;
 
-    public string[] Labels
+    public IList<string[]> Labels
     {
       get { return labels; }
       set
@@ -228,25 +248,6 @@ namespace CTKS_Chart.ViewModels
         if (value != labels)
         {
           labels = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region Labels2
-
-    private string[] labels2;
-
-    public string[] Labels2
-    {
-      get { return labels2; }
-      set
-      {
-        if (value != labels2)
-        {
-          labels2 = value;
           RaisePropertyChanged();
         }
       }
@@ -334,42 +335,75 @@ namespace CTKS_Chart.ViewModels
     {
       var lines = File.ReadLines(TradingBotViewModel.stateDataPath);
       var states = new List<State>();
-      var dates = new List<string>();
+      var dates = new List<DateTime>();
 
       foreach (var line in lines)
       {
         var stat = JsonSerializer.Deserialize<State>(line);
 
         states.Add(stat);
-        dates.Add(stat.Date.ToShortDateString());
+        dates.Add(stat.Date);
       }
 
-      
+      var sanitizedStates = SanitzedStates(states);
 
-      TotalValue = new ChartValues<decimal>(states.Select(x => x.TotalValue));
-      ActualValue = new ChartValues<decimal>(states.Where(x => x.ActualValue != null).Select(x => x.ActualValue.Value));
-      ActualAutoValue = new ChartValues<decimal>(states.Where(x => x.ActualAutoValue != null).Select(x => x.ActualAutoValue.Value));
+      TotalValue = new ChartValues<decimal>(sanitizedStates.Where(x => x.TotalValue != null).Select(x => x.TotalValue.Value));
+      ActualValue = new ChartValues<decimal>(sanitizedStates.Where(x => x.ActualValue != null).Select(x => x.ActualValue.Value));
+      ActualAutoValue = new ChartValues<decimal>(sanitizedStates.Where(x => x.ActualAutoValue != null).Select(x => x.ActualAutoValue.Value));
 
 
-      TotalAutoProfit = new ChartValues<decimal>(states.Where(x => x.TotalAutoProfit != null).Select(x => x.TotalAutoProfit.Value));
-      TotalManualProfit = new ChartValues<decimal>(states.Where(x => x.TotalManualProfit != null).Select(x => x.TotalManualProfit.Value));
-      TotalProfit = new ChartValues<decimal>(states.Select(x => x.TotalProfit));
+      TotalAutoProfit = new ChartValues<decimal>(sanitizedStates.Where(x => x.TotalAutoProfit != null).Select(x => x.TotalAutoProfit.Value));
+      TotalManualProfit = new ChartValues<decimal>(sanitizedStates.Where(x => x.TotalManualProfit != null).Select(x => x.TotalManualProfit.Value));
+      TotalProfit = new ChartValues<decimal>(sanitizedStates.Where(x => x.TotalProfit != null).Select(x => x.TotalProfit.Value));
 
-      var stats = states.Where(x => x.AthPrice > 0 && x.ClosePrice > 0).ToList();
+      var states1Date = sanitizedStates.First(x => x.AthPrice > 0 && x.ClosePrice > 0).Date;
+      var states2Date = sanitizedStates.First(x => x.TotalManualProfit != null).Date;
+      var states3Date = sanitizedStates.First(x => x.ValueToNative != null).Date;
 
-      AthPrice = new ChartValues<decimal>(stats.Where(x => x.AthPrice > 0).Select(x => x.AthPrice));
-      ClosePice = new ChartValues<decimal>(stats.Where(x => x.ClosePrice > 0).Select(x => x.ClosePrice.Value));
+      AthPrice = new ChartValues<decimal>(sanitizedStates.Where(x => x.AthPrice != null).Select(x => x.AthPrice.Value));
+      ClosePice = new ChartValues<decimal>(sanitizedStates.Where(x => x.ClosePrice != null).Select(x => x.ClosePrice.Value));
 
-      ValueToNative = new ChartValues<decimal>(stats.Where(x => x.ValueToNative > 0).Select(x => x.ValueToNative));
-      ValueToBTC = new ChartValues<decimal>(stats.Where(x => x.ValueToBTC > 0).Select(x => x.ValueToBTC));
+      ValueToNative = new ChartValues<decimal>(sanitizedStates.Where(x => x.ValueToNative != null).Select(x => x.ValueToNative.Value));
+      ValueToBTC = new ChartValues<decimal>(sanitizedStates.Where(x => x.ValueToBTC != null).Select(x => x.ValueToBTC.Value));
 
-      Labels = dates.ToArray();
-      Labels2 = stats.Select(x => x.Date.ToShortDateString()).ToArray();
+         
+
+      Labels = new List<string[]>();
+
+      Labels.Add(dates.Select(x => x.ToShortDateString()).ToArray());
+      Labels.Add(dates.Where( x => x >= states1Date).Select(x => x.Date.ToShortDateString()).ToArray());
+      Labels.Add(dates.Where(x => x >= states2Date).Select(x => x.Date.ToShortDateString()).ToArray());
+      Labels.Add(dates.Where(x => x >= states3Date).Select(x => x.Date.ToShortDateString()).ToArray());
 
       ValueFormatter = value => value.ToString("N2");
       PriceFormatter = value => value.ToString($"N{strategy.Asset.PriceRound}");
       NativeFormatter = value => value.ToString($"N{strategy.Asset.NativeRound}");
       BTCFormatter = value => value.ToString($"N5");
+    }
+
+    private List<State> SanitzedStates(List<State> states)
+    {
+      var newStates = new List<State>();
+
+      for (int i = 0; i < states.Count; i++)
+      {
+        var state = states[i];
+        var newState = state.DeepClone();
+
+        if(state.AthPrice == 0)
+        {
+          var existing = states.LastOrDefault(x => x.Date < state.Date && x.AthPrice != 0);
+
+          if(existing != null)
+          {
+            newState.AthPrice = existing.AthPrice;
+          }
+        }
+
+        newStates.Add(newState);
+      }
+
+      return newStates;
     }
   }
 }
