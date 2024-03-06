@@ -19,7 +19,7 @@
       <wpf:CartesianChart Background="Transparent" LegendLocation="None">
 
         <wpf:CartesianChart.AxisY>
-          <wpf:Axis
+          <wpf:LogarithmicAxis
             Title="Total Value"
             Foreground="{StaticResource YellowBrush3}"
             LabelFormatter="{Binding ValueFormatter}">
@@ -29,7 +29,7 @@
                 StrokeDashArray="0"
                 StrokeThickness="0" />
             </wpf:Axis.Separator>
-          </wpf:Axis>
+          </wpf:LogarithmicAxis>
         </wpf:CartesianChart.AxisY>
 
         <wpf:CartesianChart.AxisX>
@@ -62,11 +62,10 @@
         </wpf:CartesianChart.Series>
       </wpf:CartesianChart>
 
-
       <wpf:CartesianChart Background="Transparent" LegendLocation="None">
 
         <wpf:CartesianChart.AxisY>
-          <wpf:Axis
+          <wpf:LogarithmicAxis
             Title="Total Profit"
             Foreground="{StaticResource GreenBrush}"
             LabelFormatter="{Binding GreenBrush}">
@@ -76,7 +75,7 @@
                 StrokeDashArray="0"
                 StrokeThickness="0" />
             </wpf:Axis.Separator>
-          </wpf:Axis>
+          </wpf:LogarithmicAxis>
 
         </wpf:CartesianChart.AxisY>
 
@@ -114,17 +113,14 @@
         LegendLocation="None">
 
         <wpf:CartesianChart.AxisY>
-          <wpf:Axis
-            Title="Price"
-            LabelFormatter="{Binding PriceFormatter}"
-            Position="RightTop">
+          <wpf:LogarithmicAxis Title="Price" LabelFormatter="{Binding PriceFormatter}">
             <wpf:Axis.Separator>
               <wpf:Separator
                 Stroke="{StaticResource YellowBrush3}"
                 StrokeDashArray="0"
                 StrokeThickness="0" />
             </wpf:Axis.Separator>
-          </wpf:Axis>
+          </wpf:LogarithmicAxis>
 
         </wpf:CartesianChart.AxisY>
 
@@ -168,30 +164,20 @@
         </wpf:CartesianChart.Series>
       </wpf:CartesianChart>
 
-
       <wpf:CartesianChart
         Margin="0,20,0,0"
         Background="Transparent"
         LegendLocation="None">
 
-        <wpf:CartesianChart.AxisX>
-          <wpf:Axis Title="Time" Labels="{Binding Labels[3]}">
-            <wpf:Axis.Separator>
-              <wpf:Separator Stroke="#252525" StrokeThickness="1" />
-            </wpf:Axis.Separator>
-
-          </wpf:Axis>
-        </wpf:CartesianChart.AxisX>
-
         <wpf:CartesianChart.AxisY>
-          <wpf:Axis Title="Value to Native" LabelFormatter="{Binding NativeFormatter}">
+          <wpf:LogarithmicAxis Title="Value to Native" LabelFormatter="{Binding NativeFormatter}">
             <wpf:Axis.Separator>
               <wpf:Separator
                 Stroke="{StaticResource MagentaBrush}"
                 StrokeDashArray="0"
                 StrokeThickness="0" />
             </wpf:Axis.Separator>
-          </wpf:Axis>
+          </wpf:LogarithmicAxis>
 
           <wpf:Axis
             Title="Value to BTC"
@@ -207,6 +193,17 @@
 
 
         </wpf:CartesianChart.AxisY>
+
+
+        <wpf:CartesianChart.AxisX>
+          <wpf:Axis Title="Time" Labels="{Binding Labels[3]}">
+            <wpf:Axis.Separator>
+              <wpf:Separator Stroke="#252525" StrokeThickness="1" />
+            </wpf:Axis.Separator>
+
+          </wpf:Axis>
+        </wpf:CartesianChart.AxisX>
+
 
         <wpf:CartesianChart.DataTooltip>
           <wpf:DefaultTooltip
@@ -239,15 +236,14 @@
         </wpf:CartesianChart.Series>
       </wpf:CartesianChart>
 
-
       <wpf:CartesianChart Background="Transparent" LegendLocation="None">
 
         <wpf:CartesianChart.AxisY>
-          <wpf:Axis Title="Profit" LabelFormatter="{Binding ValueFormatter}">
+          <wpf:LogarithmicAxis Title="Profit" LabelFormatter="{Binding ValueFormatter}">
             <wpf:Axis.Separator>
               <wpf:Separator StrokeDashArray="0" StrokeThickness="0" />
             </wpf:Axis.Separator>
-          </wpf:Axis>
+          </wpf:LogarithmicAxis>
 
         </wpf:CartesianChart.AxisY>
 
@@ -292,11 +288,11 @@
       <wpf:CartesianChart Background="Transparent" LegendLocation="None">
 
         <wpf:CartesianChart.AxisY>
-          <wpf:Axis Title="Value" LabelFormatter="{Binding ValueFormatter}">
+          <wpf:LogarithmicAxis Title="Value" LabelFormatter="{Binding ValueFormatter}">
             <wpf:Axis.Separator>
               <wpf:Separator StrokeDashArray="0" StrokeThickness="0" />
             </wpf:Axis.Separator>
-          </wpf:Axis>
+          </wpf:LogarithmicAxis>
 
         </wpf:CartesianChart.AxisY>
 
@@ -335,7 +331,6 @@
             Values="{Binding ActualAutoValue}" />
         </wpf:CartesianChart.Series>
       </wpf:CartesianChart>
-
 
     </UniformGrid>
 

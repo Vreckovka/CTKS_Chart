@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using LiveCharts;
+using LiveCharts.Configurations;
+using LiveCharts.Defaults;
 using LiveCharts.Wpf;
 using VCore.Standard.Helpers;
 using VCore.WPF.ViewModels.Prompt;
