@@ -411,19 +411,24 @@ namespace CTKS_Chart.ViewModels
       ActualValue = new ChartValues<decimal>(sanitizedStates.Where(x => x.ActualValue != null).Select(x => x.ActualValue.Value));
       ActualAutoValue = new ChartValues<decimal>(sanitizedStates.Where(x => x.ActualAutoValue != null).Select(x => x.ActualAutoValue.Value));
 
-      TotalAutoProfit = new ChartValues<decimal>(sanitizedStates.Where(x => x.TotalAutoProfit != null).Select(x => x.TotalAutoProfit.Value));
-      TotalManualProfit = new ChartValues<decimal>(sanitizedStates.Where(x => x.TotalManualProfit != null).Select(x => x.TotalManualProfit.Value));
+      var profits = sanitizedStates.Where(x => x.TotalAutoProfit != null && x.TotalManualProfit != null).ToList();
+
+      TotalAutoProfit = new ChartValues<decimal>(profits.Select(x => x.TotalAutoProfit.Value));
+      TotalManualProfit = new ChartValues<decimal>(profits.Select(x => x.TotalManualProfit.Value));
+      
+      
       TotalProfit = new ChartValues<decimal>(sanitizedStates.Where(x => x.TotalProfit != null).Select(x => x.TotalProfit.Value));
 
-      var states1Date = sanitizedStates.First(x => x.AthPrice != null && x.ClosePrice != null).Date;
-      var states2Date = sanitizedStates.First(x => x.TotalManualProfit != null).Date;
-      var states3Date = sanitizedStates.First(x => x.ValueToNative != null && x.ValueToBTC != null).Date;
 
-      AthPrice = new ChartValues<decimal>(sanitizedStates.Where(x => x.AthPrice != null && x.ClosePrice != null).Select(x => x.AthPrice.Value));
-      ClosePice = new ChartValues<decimal>(sanitizedStates.Where(x => x.AthPrice != null && x.ClosePrice != null).Select(x => x.ClosePrice.Value));
+      var athPrices = sanitizedStates.Where(x => x.AthPrice != null && x.ClosePrice != null).ToList();
+      var btcValues = sanitizedStates.Where(x => x.ValueToNative != null && x.ValueToBTC != null).ToList();
 
-      ValueToNative = new ChartValues<decimal>(sanitizedStates.Where(x => x.ValueToNative != null && x.ValueToBTC != null).Select(x => x.ValueToNative.Value));
-      ValueToBTC = new ChartValues<decimal>(sanitizedStates.Where(x => x.ValueToNative != null && x.ValueToBTC != null).Select(x => x.ValueToBTC.Value));
+
+      AthPrice = new ChartValues<decimal>(athPrices.Select(x => x.AthPrice.Value));
+      ClosePice = new ChartValues<decimal>(athPrices.Select(x => x.ClosePrice.Value));
+
+      ValueToNative = new ChartValues<decimal>(btcValues.Select(x => x.ValueToNative.Value));
+      ValueToBTC = new ChartValues<decimal>(btcValues.Select(x => x.ValueToBTC.Value));
 
 
       var intraDayAutoProfits = this.strategy
@@ -460,10 +465,9 @@ namespace CTKS_Chart.ViewModels
       Labels = new List<string[]>();
 
       Labels.Add(dates.Select(x => x.ToShortDateString()).ToArray());
-      Labels.Add(dates.Where( x => x >= states1Date).Select(x => x.Date.ToShortDateString()).ToArray());
-      Labels.Add(dates.Where(x => x >= states2Date).Select(x => x.Date.ToShortDateString()).ToArray());
-      Labels.Add(dates.Where(x => x >= states3Date).Select(x => x.Date.ToShortDateString()).ToArray());
-      Labels.Add(dates.Select(x => x.ToShortDateString()).ToArray());
+      Labels.Add(athPrices.Select(x => x.Date.ToShortDateString()).ToArray());
+      Labels.Add(profits.Select(x => x.Date.ToShortDateString()).ToArray());
+      Labels.Add(btcValues.Select(x => x.Date.ToShortDateString()).ToArray());
 
       ValueFormatter = value => value.ToString("N2");
       PriceFormatter = value => value.ToString($"N{strategy.Asset.PriceRound}");
