@@ -163,18 +163,18 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region IntraDayProfits
+    #region DailyProfits
 
-    private IChartValues intraDayProfits;
+    private IChartValues dailyProfits;
 
-    public IChartValues IntraDayProfits
+    public IChartValues DailyProfits
     {
-      get { return intraDayProfits; }
+      get { return dailyProfits; }
       set
       {
-        if (value != intraDayProfits)
+        if (value != dailyProfits)
         {
-          intraDayProfits = value;
+          dailyProfits = value;
           RaisePropertyChanged();
         }
       }
@@ -411,48 +411,49 @@ namespace CTKS_Chart.ViewModels
       ActualValue = new ChartValues<decimal>(sanitizedStates.Where(x => x.ActualValue != null).Select(x => x.ActualValue.Value));
       ActualAutoValue = new ChartValues<decimal>(sanitizedStates.Where(x => x.ActualAutoValue != null).Select(x => x.ActualAutoValue.Value));
 
-
       TotalAutoProfit = new ChartValues<decimal>(sanitizedStates.Where(x => x.TotalAutoProfit != null).Select(x => x.TotalAutoProfit.Value));
       TotalManualProfit = new ChartValues<decimal>(sanitizedStates.Where(x => x.TotalManualProfit != null).Select(x => x.TotalManualProfit.Value));
       TotalProfit = new ChartValues<decimal>(sanitizedStates.Where(x => x.TotalProfit != null).Select(x => x.TotalProfit.Value));
 
-      var states1Date = sanitizedStates.First(x => x.AthPrice > 0 && x.ClosePrice > 0).Date;
+      var states1Date = sanitizedStates.First(x => x.AthPrice != null && x.ClosePrice != null).Date;
       var states2Date = sanitizedStates.First(x => x.TotalManualProfit != null).Date;
-      var states3Date = sanitizedStates.First(x => x.ValueToNative != null).Date;
+      var states3Date = sanitizedStates.First(x => x.ValueToNative != null && x.ValueToBTC != null).Date;
 
       AthPrice = new ChartValues<decimal>(sanitizedStates.Where(x => x.AthPrice != null && x.ClosePrice != null).Select(x => x.AthPrice.Value));
-      ClosePice = new ChartValues<decimal>(sanitizedStates.Where(x => x.ClosePrice != null).Select(x => x.ClosePrice.Value));
+      ClosePice = new ChartValues<decimal>(sanitizedStates.Where(x => x.AthPrice != null && x.ClosePrice != null).Select(x => x.ClosePrice.Value));
 
-      ValueToNative = new ChartValues<decimal>(sanitizedStates.Where(x => x.ValueToNative != null).Select(x => x.ValueToNative.Value));
-      ValueToBTC = new ChartValues<decimal>(sanitizedStates.Where(x => x.ValueToBTC != null).Select(x => x.ValueToBTC.Value));
+      ValueToNative = new ChartValues<decimal>(sanitizedStates.Where(x => x.ValueToNative != null && x.ValueToBTC != null).Select(x => x.ValueToNative.Value));
+      ValueToBTC = new ChartValues<decimal>(sanitizedStates.Where(x => x.ValueToNative != null && x.ValueToBTC != null).Select(x => x.ValueToBTC.Value));
 
-      var nonItraDaytakenProfits = this.strategy
-        .ClosedBuyPositions
-        .Where(x => x.FilledDate != null && x.CreatedDate != null && x.FilledDate.Value.Date != x.CreatedDate.Value.Date)
-        .GroupBy(x => x.FilledDate.Value.Date)
-        .Select(x => new Tuple<DateTime, decimal>(x.Key, x.Sum(y => y.TotalProfit))).ToList();
 
       var intraDayAutoProfits = this.strategy
         .ClosedBuyPositions
         .Where(x => x.IsAutomatic)
-        .Where(x => x.FilledDate != null && x.CreatedDate != null && x.FilledDate.Value.Date == x.CreatedDate.Value.Date)
+        .Where(x => x.CompletedDate != null && x.FilledDate != null && x.CompletedDate.Value.Date == x.FilledDate.Value.Date)
         .GroupBy(x => x.FilledDate.Value.Date)
         .Select(x => new Tuple<DateTime, decimal>(x.Key, x.Sum(y => y.TotalProfit)))
         .ToList();
-
-    
 
       var intraDayManualProfits = this.strategy
         .ClosedBuyPositions
         .Where(x => !x.IsAutomatic)
-        .Where(x => x.FilledDate != null && x.CreatedDate != null && x.FilledDate.Value.Date == x.CreatedDate.Value.Date)
+        .Where(x => x.CompletedDate != null && x.FilledDate != null && x.CompletedDate.Value.Date == x.FilledDate.Value.Date)
         .GroupBy(x => x.FilledDate.Value.Date)
         .Select(x => new Tuple<DateTime, decimal>(x.Key, x.Sum(y => y.TotalProfit)))
         .ToList();
 
-   
+      var dailyProfits = this.strategy
+        .ClosedSellPositions
+        .Where(x => x.FilledDate != null && x.OpositPositions.Count > 0)
+        .Where(x => x.OpositPositions[0].CompletedDate != null && x.OpositPositions[0].FilledDate != null)
+        .Where(x => x.OpositPositions[0].CompletedDate.Value.Date != x.OpositPositions[0].FilledDate.Value.Date)
+        .GroupBy(x => x.FilledDate.Value.Date)
+        .Select(x => new Tuple<DateTime, decimal>(x.Key, x.Sum(y => y.Profit)))
+        .ToList();
 
-      IntraDayProfits = new ChartValues<decimal>(SanitziedProfits(dates, nonItraDaytakenProfits));
+
+
+      DailyProfits = new ChartValues<decimal>(SanitziedProfits(dates, dailyProfits));
       IntraDayManualProfits = new ChartValues<decimal>(SanitziedProfits(dates, intraDayManualProfits));
       IntraDayAutoProfits = new ChartValues<decimal>(SanitziedProfits(dates, intraDayAutoProfits));
 
