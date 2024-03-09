@@ -752,6 +752,7 @@ namespace CTKS_Chart.Strategy
                     .Where(x => x.IsEnabled)
                     .Where(x => x.Value < actualCandle.Close.Value &&
                                 x.Value > minBuy &&
+                                x.Value < lastSell &&
                                 x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame))
                       .OrderByDescending(x => x.Value)
                     .ToList();

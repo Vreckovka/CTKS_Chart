@@ -85,7 +85,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 #if DEBUG
-    public static bool IsLive { get; set; } = true;
+    public static bool IsLive { get; set; } = false;
 #endif
 
 #if RELEASE
