@@ -31,7 +31,7 @@ namespace CTKS_Chart.Trading
       get { return Close > Open; }
     }
 
-    public float UnixTime { get; set; }
+    public long UnixTime { get; set; }
     public DateTime OpenTime { get; set; }
     public DateTime CloseTime { get; set; }
   }

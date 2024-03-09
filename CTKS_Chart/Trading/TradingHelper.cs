@@ -105,9 +105,16 @@ namespace CTKS_Chart.Trading
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
       int index = 0;
 
+      TimeSpan? dateDiff = null;
+
       foreach (var line in lines.TakeLast(lines.Length - cut))
       {
         var data = line.Split(",");
+
+        if (data.Length < 4)
+        {
+          continue;
+        }
 
         long.TryParse(data[0], out var unixTimestamp);
         decimal.TryParse(data[1], out var openParsed);
@@ -131,17 +138,32 @@ namespace CTKS_Chart.Trading
           isOverDate = true;
         }
 
+        if (dateDiff == null && list.Count > 1)
+        {
+          dateDiff = list[0].CloseTime - list[1].CloseTime;
+
+          list[0].OpenTime = list[0].CloseTime.AddMinutes(dateDiff.Value.TotalMinutes);
+          list[1].OpenTime = list[1].CloseTime.AddMinutes(dateDiff.Value.TotalMinutes);
+        }
+
         if (!isOverDate)
         {
-          list.Add(new Candle()
+          var newCandle = new Candle()
           {
             Close = closeParsed,
             Open = openParsed,
             High = highParsed,
             Low = lowParsed,
             CloseTime = dateTime,
-            UnixTime = unixTimestamp
-          });
+            UnixTime = unixTimestamp,
+          };
+
+          if(dateDiff != null)
+          {
+            newCandle.OpenTime = newCandle.CloseTime.AddMinutes(dateDiff.Value.TotalMinutes);
+          }
+
+          list.Add(newCandle);
         }
         else
         {

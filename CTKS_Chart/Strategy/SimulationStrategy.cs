@@ -13,11 +13,11 @@ namespace CTKS_Chart.Strategy
 
     public override bool IsPositionFilled(Candle candle, Position position)
     {
-      if (position.Side == PositionSide.Buy && candle.Low < position.Price)
+      if (position.Side == PositionSide.Buy && candle.Low <= position.Price)
       {
         return true;
       }
-      else if (position.Side == PositionSide.Sell && candle.High > position.Price)
+      else if (position.Side == PositionSide.Sell && candle.High >= position.Price)
         return true;
 
       return false;
@@ -35,6 +35,7 @@ namespace CTKS_Chart.Strategy
         if (IsPositionFilled(candle, position))
         {
           position.Fees = position.OriginalPositionSize * (decimal)0.001;
+          position.FilledDate = candle.OpenTime;
 
           if (position.Side == PositionSide.Buy)
           {

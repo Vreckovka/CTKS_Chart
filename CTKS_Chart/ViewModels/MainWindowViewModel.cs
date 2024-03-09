@@ -20,6 +20,7 @@ using System.Windows.Shapes;
 using Binance.Net.Enums;
 using Binance.Net.Interfaces;
 using CTKS_Chart.Binance;
+using CTKS_Chart.Binance.Data;
 using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using CTKS_Chart.Views;
@@ -51,6 +52,8 @@ namespace CTKS_Chart.ViewModels
   //TODO: Put all settings in same folder (Now it is scattered in main folder + State + Data) 
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
+    private readonly BinanceDataProvider binanceDataProvider;
+
     #region Constructors
 
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory) : base(viewModelsFactory)
@@ -118,20 +121,20 @@ namespace CTKS_Chart.ViewModels
       if (IsLive)
       {
         selectedBot = new TradingBot(asset, ViewModelsFactory.Create<BinanceStrategy>());
+
+        TradingBotViewModel = ViewModelsFactory.Create<TradingBotViewModel>(selectedBot);
       }
       else
       {
         selectedBot = GetSimulationBot("D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data");
-        //selectedBot.Strategy.StrategyData.AutoATHPriceAsMaxBuy = true;
-        //1471
+
+        TradingBotViewModel = ViewModelsFactory.Create<SimulationTradingBot>(selectedBot);
       }
 
-      TradingBotViewModel = ViewModelsFactory.Create<TradingBotViewModel>(selectedBot);
-      TradingBotViewModel.IsLive = IsLive;
-      TradingBotViewModel.Simulation = Simulation;
-      TradingBotViewModel.MainWindow = (MainWindow)Window;
 
+      TradingBotViewModel.MainWindow = (MainWindow)Window;
       TradingBotViewModel.Start();
+
       Title = selectedBot.Asset.Symbol;
     }
 
@@ -180,7 +183,7 @@ namespace CTKS_Chart.ViewModels
       }, strategy);
 
 
-      
+
       return adaBot;
     }
     #endregion

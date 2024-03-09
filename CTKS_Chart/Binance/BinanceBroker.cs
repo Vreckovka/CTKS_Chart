@@ -59,17 +59,22 @@ namespace CTKS_Chart.Binance
 
     #region GetCandles
 
-    public async Task<IEnumerable<Candle>> GetCandles(string symbol, TimeSpan interval)
+    public async Task<IEnumerable<Candle>> GetCandles(
+      string symbol, 
+      TimeSpan interval, 
+      DateTime? startTime = null,
+      DateTime? endTime = null,
+      int? limit = null)
     {
       var list = new List<Candle>();
 
       using (var client = new BinanceRestClient())
       {
-        var klineData = await client.SpotApi.CommonSpotClient.GetKlinesAsync(symbol, interval);
+        var klineData = await client.SpotApi.CommonSpotClient.GetKlinesAsync(symbol, interval, startTime, endTime,limit);
 
         foreach (var kline in klineData.Data)
         {
-          list.Add(new Candle()
+          var newCandle = new Candle()
           {
             Close = kline.ClosePrice,
             High = kline.HighPrice,
@@ -77,7 +82,11 @@ namespace CTKS_Chart.Binance
             Open = kline.OpenPrice,
             OpenTime = kline.OpenTime,
             CloseTime = kline.OpenTime.AddMinutes(interval.TotalMinutes),
-          });
+          };
+
+          newCandle.UnixTime = ((DateTimeOffset)newCandle.CloseTime).ToUnixTimeSeconds();
+
+          list.Add(newCandle);
         }
       }
 

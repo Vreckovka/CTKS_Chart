@@ -64,6 +64,7 @@ namespace CTKS_Chart.ViewModels
         {
           maxValue = Math.Round(value, TradingBot.Asset.PriceRound);
 
+          LockChart = false;
           Layout.MaxValue = MaxValue;
           TradingBot.Asset.StartMaxPrice = MaxValue;
 
@@ -88,6 +89,7 @@ namespace CTKS_Chart.ViewModels
         {
           minValue = Math.Round(value, TradingBot.Asset.PriceRound);
 
+          LockChart = false;
           Layout.MinValue = MinValue;
           TradingBot.Asset.StartLowPrice = MinValue;
 
@@ -160,7 +162,7 @@ namespace CTKS_Chart.ViewModels
 
     #region LockChart
 
-    private bool lockChart = true;
+    private bool lockChart = false;
 
     public bool LockChart
     {
@@ -222,7 +224,7 @@ namespace CTKS_Chart.ViewModels
 
     #region ShowATH
 
-    private bool showATH;
+    private bool showATH = true;
 
     public bool ShowATH
     {
@@ -388,8 +390,7 @@ namespace CTKS_Chart.ViewModels
     private decimal? lastAthPrice = null;
 
     public new void RenderOverlay(
-      List<CtksIntersection> ctksIntersections = null, 
-      bool isSimulaton = false, 
+      List<CtksIntersection> ctksIntersections = null,
       decimal? athPrice = null,
       double canvasHeight = 1000)
     {
@@ -421,8 +422,16 @@ namespace CTKS_Chart.ViewModels
       using (DrawingContext dc = dGroup.Open())
       {
         dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(imageHeight, imageWidth));
+        var candlesToRender = ActualCandles.TakeLast(CandleCount).ToList();
 
-        var chart = DrawChart(dc, Layout, ActualCandles, imageHeight, imageWidth, CandleCount);
+        if(LockChart)
+        {
+          maxValue = (decimal)candlesToRender.Max(x => x.High * (decimal)1.40);
+          minValue = (decimal)candlesToRender.Min(x => x.Low * (decimal)0.60);
+        }
+      
+
+        var chart = DrawChart(dc, candlesToRender, imageHeight, imageWidth);
         double desiredCanvasHeight = imageHeight;
 
         if (chart.MinDrawnPoint > imageHeight)
@@ -435,12 +444,11 @@ namespace CTKS_Chart.ViewModels
         if (chartCandles.Any())
         {
           RenderIntersections(dc, Layout, ctksIntersections,
-        TradingBot.Strategy.AllOpenedPositions.ToList(),
-        chartCandles,
-        desiredCanvasHeight,
-        imageHeight,
-        imageWidth,
-        !isSimulaton ? TimeFrame.W1 : TimeFrame.M1);
+                              TradingBot.Strategy.AllOpenedPositions.ToList(),
+                              chartCandles,
+                              desiredCanvasHeight,
+                              imageHeight,
+                              imageWidth);
 
           if (ShowClosedPositions)
           {
@@ -457,8 +465,8 @@ namespace CTKS_Chart.ViewModels
 
           decimal price = TradingBot.Strategy.AvrageBuyPrice;
 
-          var maxCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredCanvasHeight, desiredCanvasHeight, Layout.MaxValue, Layout.MinValue);
-          var minCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredCanvasHeight, -2 * (desiredCanvasHeight - canvasHeight), Layout.MaxValue, Layout.MinValue);
+          var maxCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredCanvasHeight, desiredCanvasHeight, MaxValue, MinValue);
+          var minCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredCanvasHeight, -2 * (desiredCanvasHeight - canvasHeight), MaxValue, MinValue);
 
           maxCanvasValue = Math.Max(maxCanvasValue, chartCandles.Max(x => x.Candle.High.Value));
           minCanvasValue = Math.Min(minCanvasValue, chartCandles.Min(x => x.Candle.Low.Value));
@@ -496,19 +504,15 @@ namespace CTKS_Chart.ViewModels
 
     private DrawnChart DrawChart(
       DrawingContext drawingContext,
-      Layout layout,
       IList<Candle> candles,
       double canvasHeight,
-      double canvasWidth,
-      int maxCount = 150)
+      double canvasWidth)
     {
-      var skip = candles.Count - maxCount > 0 ? candles.Count - maxCount : 0;
-
       canvasWidth *= 0.85;
       var startGap = canvasWidth * 0.15;
       canvasWidth -= startGap;
 
-      var width = canvasWidth / maxCount;
+      var width = canvasWidth / candles.Count;
       var margin = width * 0.25 > 5 ? width * 0.25 : 5;
 
       if (margin > width)
@@ -526,7 +530,7 @@ namespace CTKS_Chart.ViewModels
       if (candles.Any())
       {
         int y = 0;
-        for (int i = skip; i < candles.Count; i++)
+        for (int i = 0; i < candles.Count; i++)
         {
           var point = candles[i];
 
@@ -665,8 +669,8 @@ namespace CTKS_Chart.ViewModels
       TimeFrame minTimeframe = TimeFrame.W1
       )
     {
-      var maxCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredHeight, desiredHeight, layout.MaxValue, layout.MinValue);
-      var minCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredHeight, -2 * (desiredHeight - canvasHeight), layout.MaxValue, layout.MinValue);
+      var maxCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredHeight, desiredHeight, MaxValue, MinValue);
+      var minCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredHeight, -2 * (desiredHeight - canvasHeight), MaxValue, MinValue);
 
       maxCanvasValue = Math.Max(maxCanvasValue, candles.Max(x => x.Candle.High.Value));
       minCanvasValue = Math.Min(minCanvasValue, candles.Min(x => x.Candle.Low.Value));
@@ -679,7 +683,7 @@ namespace CTKS_Chart.ViewModels
       {
         Brush selectedBrush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush);
 
-        var actual = TradingHelper.GetCanvasValue(canvasHeight, intersection.Value, layout.MaxValue, layout.MinValue);
+        var actual = TradingHelper.GetCanvasValue(canvasHeight, intersection.Value, MaxValue, MinValue);
 
         var frame = intersection.TimeFrame;
 
@@ -697,10 +701,10 @@ namespace CTKS_Chart.ViewModels
         {
           if (firstPositionsOnIntersesction != null)
           {
-            selectedBrush = 
+            selectedBrush =
               firstPositionsOnIntersesction.Side == PositionSide.Buy ?
                   isOnlyAuto ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_BUY].Brush) :
-                  isCombined ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.COMBINED_BUY].Brush) : 
+                  isCombined ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.COMBINED_BUY].Brush) :
                   DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.BUY].Brush) :
 
                   isOnlyAuto ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_SELL].Brush) :
@@ -739,7 +743,7 @@ namespace CTKS_Chart.ViewModels
       double canvasWidth
       )
     {
-      if(!ShowAutoPositions)
+      if (!ShowAutoPositions)
       {
         positions = positions.Where(x => !x.IsAutomatic);
       }
@@ -754,31 +758,31 @@ namespace CTKS_Chart.ViewModels
       {
         var isActive = position.Side == PositionSide.Buy && position.State == PositionState.Filled;
 
-        Brush selectedBrush = isActive ? 
+        Brush selectedBrush = isActive ?
           position.IsAutomatic ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_BUY].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.ACTIVE_BUY].Brush) :
             position.Side == PositionSide.Buy ?
               position.IsAutomatic ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_BUY].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_BUY].Brush) :
-              position.IsAutomatic ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_SELL].Brush): DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_SELL].Brush); ;
+              position.IsAutomatic ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_SELL].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_SELL].Brush); ;
 
 
         Pen pen = new Pen(selectedBrush, 1);
         pen.DashStyle = DashStyles.Dash;
 
-        var actual = TradingHelper.GetCanvasValue(canvasHeight, position.Price, layout.MaxValue, layout.MinValue);
+        var actual = TradingHelper.GetCanvasValue(canvasHeight, position.Price, MaxValue, MinValue);
 
         var frame = position.Intersection.TimeFrame;
 
         pen.Thickness = DrawingHelper.GetPositionThickness(frame);
 
         var lineY = canvasHeight - actual;
-        var candle = candles.FirstOrDefault(x => x.Candle.OpenTime < position.FilledDate && x.Candle.CloseTime > position.FilledDate);
+        var candle = candles.FirstOrDefault(x => x.Candle.OpenTime <= position.FilledDate && x.Candle.CloseTime >= position.FilledDate);
 
         if (candle != null)
         {
           var text = position.Side == PositionSide.Buy ? "B" : "S";
           var fontSize = isActive ? 25 : 9;
 
-          if(position.IsAutomatic)
+          if (position.IsAutomatic)
           {
             fontSize = (int)(fontSize / 1.5);
           }
@@ -799,7 +803,7 @@ namespace CTKS_Chart.ViewModels
       var lastCandle = candles.Last();
       var closePrice = lastCandle.Close;
 
-      var close = TradingHelper.GetCanvasValue(canvasHeight, closePrice.Value, layout.MaxValue, layout.MinValue);
+      var close = TradingHelper.GetCanvasValue(canvasHeight, closePrice.Value, MaxValue, MinValue);
 
       var lineY = canvasHeight - close;
 
@@ -820,7 +824,7 @@ namespace CTKS_Chart.ViewModels
     {
       if (price > 0)
       {
-        var close = TradingHelper.GetCanvasValue(canvasHeight, price, layout.MaxValue, layout.MinValue);
+        var close = TradingHelper.GetCanvasValue(canvasHeight, price, MaxValue, MinValue);
 
         var lineY = canvasHeight - close;
 
@@ -843,7 +847,7 @@ namespace CTKS_Chart.ViewModels
     {
       if (price > 0)
       {
-        var close = TradingHelper.GetCanvasValue(canvasHeight, price, layout.MaxValue, layout.MinValue);
+        var close = TradingHelper.GetCanvasValue(canvasHeight, price, MaxValue, MinValue);
 
         var lineY = canvasHeight - close;
 
@@ -866,7 +870,7 @@ namespace CTKS_Chart.ViewModels
     {
       if (price > 0)
       {
-        var close = TradingHelper.GetCanvasValue(canvasHeight, price, layout.MaxValue, layout.MinValue);
+        var close = TradingHelper.GetCanvasValue(canvasHeight, price, MaxValue, MinValue);
 
         var lineY = canvasHeight - close;
 
@@ -889,7 +893,7 @@ namespace CTKS_Chart.ViewModels
     {
       if (price > 0)
       {
-        var close = TradingHelper.GetCanvasValue(canvasHeight, price, layout.MaxValue, layout.MinValue);
+        var close = TradingHelper.GetCanvasValue(canvasHeight, price, MaxValue, MinValue);
 
         var lineY = canvasHeight - close;
 

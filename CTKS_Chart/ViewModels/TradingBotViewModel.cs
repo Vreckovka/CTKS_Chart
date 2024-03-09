@@ -97,7 +97,7 @@ namespace CTKS_Chart.ViewModels
 
 
 
-  
+
 
     public ObservableCollection<Layout> Layouts { get; set; } = new ObservableCollection<Layout>();
 
@@ -140,10 +140,6 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
     public Layout MainLayout { get; } = new Layout() { Title = "Main" };
-
-
-    public bool IsLive { get; set; } = false;
-    public bool Simulation { get; set; } = false;
 
     public TimeSpan TotalRunTime
     {
@@ -753,7 +749,7 @@ namespace CTKS_Chart.ViewModels
 
         lastElapsed = stopwatch.Elapsed;
 
-        if (Math.Round(activeTime.TotalSeconds, 0) % 10 == 0 && IsLive)
+        if (Math.Round(activeTime.TotalSeconds, 0) % 10 == 0)
         {
           TradingBot.Asset.RunTimeTicks = TotalRunTime.Ticks;
           var options = new JsonSerializerOptions()
@@ -775,74 +771,41 @@ namespace CTKS_Chart.ViewModels
 
     private async void ForexChart_Loaded()
     {
-      if (IsLive)
-      {
-        TradingBot.Strategy.Logger = logger;
-        await LoadLayouts(MainLayout);
-      }
-      else
-      {
-        var tradingView__ada_1D = $"{TradingBot.Asset.DataPath}\\{TradingBot.Asset.DataSymbol}, 1D.csv";
+      TradingBot.Strategy.Logger = logger;
 
-        var mainCandles = TradingHelper.ParseTradingView(tradingView__ada_1D);
-
-        MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
-        MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
-
-        var maxDate = mainCandles.First().CloseTime;
-        //246
-        await LoadLayouts(MainLayout, mainCandles, maxDate, fromTime: new DateTime(1021, 12, 1), simulate: true);
-
-        DrawingViewModel.MaxValue = MainLayout.MaxValue;
-        DrawingViewModel.MinValue = MainLayout.MinValue;
-      }
-
-
-      DrawingViewModel.ShowClosedPositions = IsLive;
+      await LoadLayouts(MainLayout);
     }
 
     #endregion
 
     #region LoadLAyouts
 
-    TimeFrame minTimeframe = TimeFrame.W1;
-    private List<Layout> InnerLayouts = new List<Layout>();
+    TimeFrame minTimeframe = TimeFrame.D1;
+    protected List<Layout> InnerLayouts = new List<Layout>();
 
-    private async Task LoadLayouts(
-      Layout mainLayout,
-      IList<Candle> mainCandles = null,
-      DateTime? maxTime = null,
-      int skip = 0,
-      int cut = 0,
-      DateTime? fromTime = null,
-      bool simulate = false)
+    protected virtual async Task LoadLayouts(Layout mainLayout)
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, CanvasHeight, CanvasWidth, TradingBot.Asset);
-      List<Candle> cutCandles = new List<Candle>();
 
-      if (simulate && mainCandles != null)
+      DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval))).ToList();
+
+      await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
+
+      LoadSecondaryLayouts(mainLayout, mainCtks);
+
+      if (DrawingViewModel.ActualCandles.Count > 0)
       {
-        DrawingViewModel.ActualCandles = mainCandles.Skip(skip).SkipLast(cut).ToList();
-
-        if (fromTime != null)
-        {
-          cutCandles = mainCandles.Where(x => x.CloseTime > fromTime.Value).ToList();
-          DrawingViewModel.ActualCandles = mainCandles.Where(x => x.CloseTime < fromTime.Value).ToList();
-
-          MainLayout.MaxValue = cutCandles.Max(x => x.High.Value);
-          MainLayout.MinValue = cutCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
-        }
+        RenderLayout(InnerLayouts, DrawingViewModel.ActualCandles.Last());
       }
-      else
-      {
-        DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval))).ToList();
+    }
 
-        await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
-      }
+    #endregion
 
+    protected void LoadSecondaryLayouts(Layout mainLayout, Ctks mainCtks)
+    {
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
-        var layout = CreateCtksChart(layoutData.Key, layoutData.Value, CanvasWidth, CanvasHeight, maxTime);
+        var layout = CreateCtksChart(layoutData.Key, layoutData.Value, CanvasWidth, CanvasHeight);
 
         Layouts.Add(layout);
         InnerLayouts.Add(layout);
@@ -852,58 +815,7 @@ namespace CTKS_Chart.ViewModels
       Layouts.Add(mainLayout);
       SelectedLayout = mainLayout;
 
-
-      if (DrawingViewModel.ActualCandles.Count > 0)
-      {
-        RenderLayout(InnerLayouts, DrawingViewModel.ActualCandles.Last());
-      }
-
-      if (simulate && mainCandles != null)
-      {
-        Simulate(cutCandles, InnerLayouts, 1);
-      }
     }
-
-    #endregion
-
-    #region OnActualCandleChange
-
-    private Candle actual = null;
-    private void SimulateCandle(List<Layout> secondaryLayouts, Candle candle)
-    {
-      DrawingViewModel.ActualCandles.Add(candle);
-   
-      RenderLayout(secondaryLayouts, candle);
-    }
-
-    #endregion
-
-    #region Simulate
-
-    private void Simulate(List<Candle> cutCandles, List<Layout> secondaryLayouts, int delay = 500)
-    {
-      if (DrawingViewModel.ActualCandles.Count > 0)
-      {
-        RenderLayout(secondaryLayouts, DrawingViewModel.ActualCandles.Last());
-      }
-
-      Task.Run(async () =>
-      {
-        for (int i = 0; i < cutCandles.Count; i++)
-        {
-          VSynchronizationContext.InvokeOnDispatcher(() =>
-          {
-            var actual = cutCandles[i];
-
-            SimulateCandle(secondaryLayouts, actual);
-          });
-
-          await Task.Delay(delay);
-        }
-      });
-    }
-
-    #endregion
 
     #region CheckLayout
 
@@ -931,6 +843,17 @@ namespace CTKS_Chart.ViewModels
     List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
     DateTime lastFileCheck = DateTime.Now;
     private decimal? lastAthPriceUpdated = null;
+    private Candle actual = null;
+
+    private Dictionary<TimeFrame, bool> stopParsingForNewData = new Dictionary<TimeFrame, bool>()
+    {
+      { TimeFrame.M12,false },
+      { TimeFrame.M6,false },
+      { TimeFrame.M3,false },
+      { TimeFrame.M1,false },
+      { TimeFrame.W2,false },
+      { TimeFrame.W1,false }
+    };
 
     public async void RenderLayout(List<Layout> secondaryLayouts, Candle actual)
     {
@@ -954,12 +877,10 @@ namespace CTKS_Chart.ViewModels
               if (innerCandles.Count > lastCount)
                 shouldUpdate = true;
 
-              if (IsLive)
-                CheckLayout(secondaryLayout, innerCandles);
+              CheckLayout(secondaryLayout, innerCandles);
             }
           }
         }
-
 
         if (shouldUpdate)
         {
@@ -998,8 +919,8 @@ namespace CTKS_Chart.ViewModels
         TradingBot.Strategy.Intersections = ctksIntersections;
         var athPrice = GetAthPrice();
 
-        if (IsLive)
-          DrawingViewModel.RenderOverlay(ctksIntersections, Simulation, athPrice, CanvasHeight);
+
+        DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, CanvasHeight);
 
         this.actual = actual;
 
@@ -1017,7 +938,7 @@ namespace CTKS_Chart.ViewModels
               TradingBot.Strategy.UpdateIntersections(ctksIntersections);
           }
 
-        
+
           if (lastAthPriceUpdated != athPrice && TradingBot.Strategy.AutoATHPriceAsMaxBuy)
           {
             lastAthPriceUpdated = athPrice;
@@ -1041,7 +962,7 @@ namespace CTKS_Chart.ViewModels
         }
 
 
-        DrawingViewModel.RenderOverlay(ctksIntersections, Simulation, athPrice, CanvasHeight);
+        //DrawingViewModel.RenderOverlay(ctksIntersections, Simulation, athPrice, CanvasHeight);
       }
       finally
       {
@@ -1182,7 +1103,7 @@ namespace CTKS_Chart.ViewModels
           DrawingViewModel.ActualCandles.Add(actual);
         }
 
-        if (IsLive && actual.Close != null)
+        if (actual.Close != null)
         {
           foreach (var position in TradingBot.Strategy.ActualPositions)
           {
@@ -1236,7 +1157,7 @@ namespace CTKS_Chart.ViewModels
             .Sum(x => x.ActualProfit);
 
           var actualValue =
-            totalManualProfit + 
+            totalManualProfit +
             TradingBot.Strategy
             .ActualPositions.Where(x => !x.IsAutomatic)
             .Sum(x => x.ActualProfit);
@@ -1310,7 +1231,7 @@ namespace CTKS_Chart.ViewModels
 
         if (DrawingViewModel.ActualCandles.Count > 0)
         {
-          DrawingViewModel.RenderOverlay(ctksIntersections, Simulation, GetAthPrice(), CanvasHeight);
+          DrawingViewModel.RenderOverlay(ctksIntersections, GetAthPrice(), CanvasHeight);
         }
       }
     }
@@ -1321,7 +1242,7 @@ namespace CTKS_Chart.ViewModels
 
     public void LoadLayoutSettings()
     {
-      if (File.Exists(layoutPath) && IsLive)
+      if (File.Exists(layoutPath))
       {
         var data = File.ReadAllText(layoutPath);
         var settings = JsonSerializer.Deserialize<LayoutSettings>(data);
@@ -1359,28 +1280,24 @@ namespace CTKS_Chart.ViewModels
 
     #region SaveLayoutSettings
 
-    public void SaveLayoutSettings(bool isLive)
+    public void SaveLayoutSettings()
     {
-      if (isLive)
+      var settings = new LayoutSettings()
       {
-        var settings = new LayoutSettings()
-        {
-          ShowClosedPositions = DrawingViewModel.ShowClosedPositions,
-          LayoutInterval = LayoutIntervals.SelectedItem.Model.Interval,
-          ColorSettings = DrawingViewModel.ColorScheme.ColorSettings.Select(x => x.Value.Model),
-          ShowAveragePrice = DrawingViewModel.ShowAveragePrice,
-          ShowATH = DrawingViewModel.ShowATH,
-          CandleCount = DrawingViewModel.CandleCount
-        };
+        ShowClosedPositions = DrawingViewModel.ShowClosedPositions,
+        LayoutInterval = LayoutIntervals.SelectedItem.Model.Interval,
+        ColorSettings = DrawingViewModel.ColorScheme.ColorSettings.Select(x => x.Value.Model),
+        ShowAveragePrice = DrawingViewModel.ShowAveragePrice,
+        ShowATH = DrawingViewModel.ShowATH,
+        CandleCount = DrawingViewModel.CandleCount
+      };
 
-        var options = new JsonSerializerOptions()
-        {
-          WriteIndented = true
-        };
+      var options = new JsonSerializerOptions()
+      {
+        WriteIndented = true
+      };
 
-        File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings, options));
-      }
-
+      File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings, options));
     }
 
     #endregion

@@ -53,10 +53,10 @@ namespace CTKS_Chart.Strategy
       StartingBudget = 10000;
       StartingBudget *= multi;
       Budget = StartingBudget;
-      MaxBuyPrice = (decimal)0.05;
-      MinSellPrice = (decimal)0.5;
+     // MaxBuyPrice = (decimal)0.0005;
+     // MinSellPrice = (decimal)0.5;
 
-      MaxAutomaticBudget = 3000;
+      //MaxAutomaticBudget = 3000;
 
       foreach (var data in StrategyData.PositionSizeMapping)
       {
@@ -102,15 +102,15 @@ namespace CTKS_Chart.Strategy
       MinBuyPrice = (decimal)1,
       PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
       {
-        { TimeFrame.M12, 70},
-        { TimeFrame.M6, 60},
-        { TimeFrame.M3, 50},
-        { TimeFrame.M1, 30},
-        { TimeFrame.W2, 20},
-        { TimeFrame.W1, 10},
+        { TimeFrame.M12, 700},
+        { TimeFrame.M6, 600},
+        { TimeFrame.M3, 500},
+        { TimeFrame.M1, 300},
+        { TimeFrame.W2, 200},
+        { TimeFrame.W1, 100},
       },
       StartingBudget = 10000,
-
+      AutomaticPositionSize = (decimal)0.35,
       ScaleSize = 0
     };
 
@@ -882,7 +882,8 @@ namespace CTKS_Chart.Strategy
     private async void RecreateAllManualSell()
     {
       var openedSell = OpenSellPositions
-        .OrderBy(x => x.Price)
+        .Where(x => x.OpositPositions.Count > 0)
+        .OrderByDescending(x => x.OpositPositions[0].Price)
         .Where(x => !x.IsAutomatic).ToList();
 
       await RecreateSellPositions(lastCandle, openedSell);

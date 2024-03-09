@@ -90,7 +90,7 @@ namespace CTKS_Chart.Views
 
       if (DataContext is MainWindowViewModel viewModel)
       {
-        viewModel.TradingBotViewModel.SaveLayoutSettings(viewModel.TradingBotViewModel.IsLive);
+        viewModel.TradingBotViewModel.SaveLayoutSettings();
       }
     }
 
