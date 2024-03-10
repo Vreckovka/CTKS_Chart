@@ -867,7 +867,7 @@ namespace CTKS_Chart.Strategy
 
         var openAuto = OpenBuyPositions.Where(x => x.IsAutomatic).Sum(x => x.PositionSize);
         var filledAuto = ActualPositions.Where(x => x.IsAutomatic).Sum(x => x.OpositPositions.Sum(y => y.PositionSize));
-        //14460
+
         var automaticSize = openAuto + filledAuto;
         var automaticBudget = MaxAutomaticBudget - automaticSize;
 
@@ -1092,12 +1092,6 @@ namespace CTKS_Chart.Strategy
           AutomaticBudget += finalSize;
           AutomaticBudget -= position.Fees ?? 0;
         }
-
-
-        //var inter = Intersections.SingleOrDefault(x => x.IsSame(buyPosition.Intersection));
-
-        //if (inter != null)
-        //  inter.IsEnabled = false;
 
         Scale(position.Profit);
         position.State = PositionState.Filled;

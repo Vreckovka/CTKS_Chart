@@ -7,6 +7,7 @@ using CTKS_Chart.Binance;
 using CTKS_Chart.Binance.Data;
 using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
+using CTKS_Chart.Views;
 using Logger;
 using VCore.Standard.Factories.ViewModels;
 using VCore.WPF;
@@ -30,10 +31,11 @@ namespace CTKS_Chart.ViewModels
       this.binanceDataProvider = binanceDataProvider ?? throw new ArgumentNullException(nameof(binanceDataProvider));
 
       drawChart = false;
-      IsSimulation  = true;
+      IsSimulation = true;
     }
 
    
+
     private List<Candle> cutCandles = new List<Candle>();
     protected override async Task LoadLayouts(Layout mainLayout)
     {
@@ -59,9 +61,6 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.MinValue = MainLayout.MinValue;
       DrawingViewModel.LockChart = true;
 
-    
-
-
 
       TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy("C:\\Users\\Roman Pecho\\Desktop\\BINANCE ADAUSD, 1D.csv", TradingBot.Strategy));
 
@@ -77,7 +76,7 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.ActualCandles.Add(candle);
       //CalculateActualProfits(candle);
 
-      if(drawChart)
+      if (drawChart)
       {
         VSynchronizationContext.InvokeOnDispatcher(() =>
         {
@@ -88,7 +87,7 @@ namespace CTKS_Chart.ViewModels
       {
         RenderLayout(secondaryLayouts, candle);
       }
-     
+
     }
 
     #endregion
@@ -121,7 +120,7 @@ namespace CTKS_Chart.ViewModels
 
           SimulateCandle(secondaryLayouts, actual);
 
-         await Task.Delay(delay);
+          await Task.Delay(delay);
         }
       });
     }

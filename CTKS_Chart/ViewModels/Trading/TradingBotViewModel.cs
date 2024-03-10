@@ -136,7 +136,11 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+   
+
     public Layout MainLayout { get; } = new Layout() { Title = "Main" };
+
+    #region TotalRunTime
 
     public TimeSpan TotalRunTime
     {
@@ -150,6 +154,8 @@ namespace CTKS_Chart.ViewModels
         RaisePropertyChanged();
       }
     }
+
+    #endregion
 
     #region KlineInterval
 
@@ -943,7 +949,7 @@ namespace CTKS_Chart.ViewModels
 
             TradingBot.Strategy.LoadState();
             await TradingBot.Strategy.RefreshState();
-            VSynchronizationContext.InvokeOnDispatcher(() => MainWindow.SortActualPositions());
+            VSynchronizationContext.InvokeOnDispatcher(() => MainWindow?.SortActualPositions());
 
             if (ctksIntersections.Count > 0)
               TradingBot.Strategy.UpdateIntersections(ctksIntersections);

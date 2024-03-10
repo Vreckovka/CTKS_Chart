@@ -8,6 +8,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:logger="clr-namespace:Logger;assembly=Logger"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:trading="clr-namespace:CTKS_Chart.Views.Trading"
   xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
   Title="MainWindow"
   Width="1370"
@@ -28,15 +29,9 @@
         <Setter Property="Foreground" Value="#ccc" />
       </Style>
 
-      <Style
-        x:Key="PositionText"
-        BasedOn="{StaticResource {x:Type TextBlock}}"
-        TargetType="TextBlock">
-        <Setter Property="Margin" Value="0,0,15,0" />
-        <Setter Property="FontSize" Value="15" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="HorizontalAlignment" Value="Right" />
-      </Style>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/Views/Dictionaries/BotDictionary.xaml" />
+      </ResourceDictionary.MergedDictionaries>
 
     </ResourceDictionary>
 
@@ -195,21 +190,33 @@
             Cursor="Hand"
             FontFamily="{StaticResource FontAwesome6Pro_Regular}"
             FontSize="19"
-            Header="{StaticResource chart-line}" />
+            Header="{StaticResource chart-line}"
+            ToolTip="Statistics" />
 
           <MenuItem
             Command="{Binding OpenAssetSetting}"
             Cursor="Hand"
             FontFamily="{StaticResource FontAwesome6Pro_Regular}"
             FontSize="19"
-            Header="{StaticResource circle-dollar}" />
+            Header="{StaticResource circle-dollar}"
+            ToolTip="Asset" />
 
           <MenuItem
             Command="{Binding OpenArchitectView}"
             Cursor="Hand"
             FontFamily="{StaticResource FontAwesome6Pro_Regular}"
             FontSize="19"
-            Header="" />
+            Header=""
+            ToolTip="Architect" />
+
+          <MenuItem
+            Command="{Binding OpenTesting}"
+            Cursor="Hand"
+            DataContext="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext}"
+            FontFamily="{StaticResource FontAwesome6Pro_Regular}"
+            FontSize="19"
+            Header=""
+            ToolTip="Testing" />
         </Menu>
 
         <Grid Grid.Row="1" Margin="5">
@@ -281,421 +288,7 @@
       </Grid.RowDefinitions>
 
 
-      <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-        <Border Background="#ff05080d" MouseWheel="Border_MouseWheel">
-          <ContentControl Content="{Binding MainGrid}" />
-        </Border>
-
-        <Border VerticalAlignment="Top">
-          <Grid DataContext="{Binding TradingBot.Strategy}">
-            <Grid.RowDefinitions>
-              <RowDefinition Height="auto" />
-              <RowDefinition Height="auto" />
-            </Grid.RowDefinitions>
-
-            <Border Padding="0,5,0,5" Background="#6005080d">
-              <StackPanel Orientation="Horizontal">
-                <StackPanel.Resources>
-                  <Style BasedOn="{StaticResource PositionText}" TargetType="TextBlock">
-                    <Setter Property="Foreground" Value="#55ffffff" />
-                    <Setter Property="Margin" Value="5.25,0" />
-                    <Setter Property="FontSize" Value="13" />
-                  </Style>
-                </StackPanel.Resources>
-
-                <TextBlock Text="{Binding DataContext.TradingBotViewModel.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" ToolTip="Active time" />
-                <TextBlock
-                  Foreground="{StaticResource YellowBrush}"
-                  Text="{Binding TotalValue, StringFormat={}{0:N2} $}"
-                  ToolTip="Total value" />
-
-                <TextBlock
-                  Foreground="{StaticResource GreenBrush3}"
-                  Text="{Binding TotalProfit, StringFormat={}{0:N2} $}"
-                  ToolTip="Profit" />
-
-                <TextBlock
-                  Foreground="{StaticResource BlueBrush}"
-                  Text="{Binding Budget, StringFormat={}{0:N2} $}"
-                  ToolTip="Budget" />
-
-
-
-                <TextBlock
-                  Foreground="{StaticResource YellowBrush3}"
-                  Text="{Binding TotalNativeAsset}"
-                  ToolTip="Native asset size" />
-
-                <TextBlock
-                  Foreground="{StaticResource MagentaBrush}"
-                  Text="{Binding TotalNativeAssetValue, StringFormat={}{0:N2} $}"
-                  ToolTip="Native asset value $" />
-
-                <StackPanel Orientation="Horizontal">
-                  <TextBlock Text="{Binding TotalActualProfit, StringFormat={}{0:N2} $}" ToolTip="Total Actual Profit">
-                    <TextBlock.Style>
-                      <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="TextBlock">
-
-                        <Style.Triggers>
-                          <DataTrigger Binding="{Binding TotalActualProfit, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
-                            <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
-                          </DataTrigger>
-                          <DataTrigger Binding="{Binding TotalActualProfit, Converter={converters:IsGreaterConverter}, ConverterParameter=0}" Value="true">
-                            <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
-                          </DataTrigger>
-                        </Style.Triggers>
-                      </Style>
-                    </TextBlock.Style>
-                  </TextBlock>
-                </StackPanel>
-
-                <TextBlock
-                  FontSize="10"
-                  Text="{Binding AvrageBuyPrice}"
-                  ToolTip="Average buy price" />
-
-                <TextBlock
-                  FontSize="10"
-                  Foreground="{StaticResource YellowBrush3}"
-                  Text="{Binding TotalExpectedProfit, StringFormat={}{0:N2} $}"
-                  ToolTip="Total expected profit" />
-
-                <TextBlock
-                  DataContext="{Binding DataContext.TradingBotViewModel, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}"
-                  FontSize="10"
-                  Text="{Binding DailyChange, StringFormat={}{0:N2} $}"
-                  ToolTip="Daily PnL">
-                  <TextBlock.Style>
-                    <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="TextBlock">
-
-                      <Style.Triggers>
-                        <DataTrigger Binding="{Binding DailyChange, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
-                          <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding DailyChange, Converter={converters:IsGreaterConverter}, ConverterParameter=0}" Value="true">
-                          <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
-                        </DataTrigger>
-                      </Style.Triggers>
-                    </Style>
-                  </TextBlock.Style>
-                </TextBlock>
-
-                <TextBlock
-                  DataContext="{Binding DataContext.TradingBotViewModel, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}"
-                  FontSize="10"
-                  Text="{Binding FromAllTimeHigh, StringFormat={}{0:N2} $}"
-                  ToolTip="From All Time High">
-                  <TextBlock.Style>
-                    <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="TextBlock">
-
-                      <Style.Triggers>
-                        <DataTrigger Binding="{Binding FromAllTimeHigh, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
-                          <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding FromAllTimeHigh, Converter={converters:IsGreaterConverter}, ConverterParameter=0}" Value="true">
-                          <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
-                        </DataTrigger>
-                      </Style.Triggers>
-                    </Style>
-                  </TextBlock.Style>
-                </TextBlock>
-
-                <controls:PathButton
-                  x:Name="show_positions_toggle"
-                  Margin="5,0,0,0"
-                  Glyph="{StaticResource square-poll-horizontal}"
-                  GlyphFontSize="18"
-                  IconCheckedColor="{StaticResource YellowColor}"
-                  IconDefaultColor="{StaticResource YellowColor}"
-                  IconHoverColor="{StaticResource YellowColor}" />
-
-
-                <Popup
-                  IsOpen="{Binding ElementName=show_positions_toggle, Path=IsChecked, Mode=TwoWay}"
-                  Placement="Bottom"
-                  PlacementTarget="{Binding ElementName=show_positions_toggle}"
-                  StaysOpen="False">
-                  <Border Padding="5" Background="#101010">
-                    <StackPanel Orientation="Vertical">
-                      <CheckBox
-                        Margin="0,5"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Top"
-                        DataContext="{Binding DataContext.TradingBotViewModel.DrawingViewModel, RelativeSource={RelativeSource AncestorType=Window}}"
-                        IsChecked="{Binding ShowAutoPositions}">
-                        Show auto positions
-                      </CheckBox>
-
-
-                      <CheckBox
-                        Margin="0,5"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Top"
-                        DataContext="{Binding DataContext.TradingBotViewModel.DrawingViewModel, RelativeSource={RelativeSource AncestorType=Window}}"
-                        IsChecked="{Binding ShowManualPositions}">
-                        Show manual positions
-                      </CheckBox>
-
-                    </StackPanel>
-                  </Border>
-
-                </Popup>
-
-              </StackPanel>
-            </Border>
-
-            <Grid Grid.Row="1">
-              <Grid.RowDefinitions>
-                <RowDefinition Height="auto" />
-                <RowDefinition Height="auto" />
-              </Grid.RowDefinitions>
-
-              <ListView Background="#6005080d" ItemsSource="{Binding DataContext.TradingBotViewModel.LayoutIntervals.View, RelativeSource={RelativeSource AncestorType=Window}}">
-                <ListView.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" />
-                  </ItemsPanelTemplate>
-                </ListView.ItemsPanel>
-
-                <ListView.ItemContainerStyle>
-                  <Style BasedOn="{StaticResource ListViewItemStyle}" TargetType="ListViewItem">
-                    <Setter Property="Template">
-                      <Setter.Value>
-                        <ControlTemplate TargetType="ListViewItem">
-                          <Border Padding="5,2">
-                            <ContentPresenter />
-                          </Border>
-                        </ControlTemplate>
-                      </Setter.Value>
-                    </Setter>
-                  </Style>
-                </ListView.ItemContainerStyle>
-
-                <ListView.ItemTemplate>
-                  <DataTemplate>
-                    <TextBlock Cursor="Hand" Text="{Binding Model.Title}">
-                      <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                          <Setter Property="Foreground" Value="#15ffffff" />
-
-
-                          <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                              <Setter Property="Foreground" Value="{StaticResource YellowBrush}" />
-                            </Trigger>
-
-                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                              <Setter Property="Foreground" Value="{StaticResource YellowBrush}" />
-                            </DataTrigger>
-                          </Style.Triggers>
-                        </Style>
-                      </TextBlock.Style>
-                    </TextBlock>
-                  </DataTemplate>
-                </ListView.ItemTemplate>
-              </ListView>
-
-              <Border
-                Grid.Row="1"
-                Margin="5,0"
-                HorizontalAlignment="Left"
-                Background="#cc050505">
-                <Grid>
-                  <Grid.RowDefinitions>
-                    <RowDefinition Height="auto" />
-                    <RowDefinition />
-                  </Grid.RowDefinitions>
-
-                  <controls:PathButton
-                    x:Name="show_positions_size_toggle"
-                    Margin="0,10"
-                    Content="Show position size"
-                    ForegroundCheckedColor="#ccc"
-                    Glyph="{StaticResource square-poll-horizontal}"
-                    GlyphFontSize="18"
-                    IconCheckedColor="{StaticResource YellowColor}"
-                    IconDefaultColor="{StaticResource YellowColor}"
-                    IconHoverColor="{StaticResource YellowColor}" />
-
-                  <Border
-                    Grid.Row="1"
-                    Margin="2,0,0,0"
-                    Padding="10,0,0,5"
-                    Background="#cc050505"
-                    BorderBrush="#50ffffff"
-                    BorderThickness="1">
-                    <Grid>
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="auto" />
-                        <ColumnDefinition Width="auto" />
-                      </Grid.ColumnDefinitions>
-
-                      <Grid.RowDefinitions>
-                        <RowDefinition Height="auto" />
-                        <RowDefinition Height="auto" />
-                        <RowDefinition Height="auto" />
-                        <RowDefinition Height="auto" />
-                        <RowDefinition Height="auto" />
-                        <RowDefinition Height="auto" />
-                      </Grid.RowDefinitions>
-
-                      <ItemsControl Margin="0,5" ItemsSource="{Binding PositionSizeMapping}">
-                        <ItemsControl.ItemTemplate>
-                          <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
-                              <TextBlock Style="{StaticResource {x:Type TextBlock}}" Text="{Binding Key}" />
-                              <TextBlock
-                                Margin="10,0,0,0"
-                                Style="{StaticResource {x:Type TextBlock}}"
-                                Text="{Binding Value, StringFormat={}{0:N2}}" />
-                            </StackPanel>
-
-                          </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                      </ItemsControl>
-
-                      <controls:PathButton
-                        Grid.Row="0"
-                        Grid.Column="1"
-                        Margin="10,10"
-                        Padding="0"
-                        VerticalAlignment="Top"
-                        Command="{Binding DataContext.TradingBotViewModel.OpenPositionSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                        Glyph="{StaticResource pencil-glyph}"
-                        IconHoverColor="{StaticResource YellowColor}"
-                        IconMargin="0"
-                        IsReadOnly="True" />
-
-
-                      <TextBlock
-                        Grid.Row="1"
-                        Grid.Column="0"
-                        Text="{Binding ScaleSize, StringFormat={}{0} x}" />
-
-                      <TextBox
-                        Grid.Row="2"
-                        Grid.Column="0"
-                        Width="70"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Center"
-                        Text="{Binding MaxBuyPrice, UpdateSourceTrigger=LostFocus}"
-                        ToolTip="Maximum BUY price" />
-
-
-                      <TextBox
-                        Grid.Row="3"
-                        Grid.Column="0"
-                        Width="70"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Center"
-                        Text="{Binding MinSellPrice, UpdateSourceTrigger=LostFocus}"
-                        ToolTip="Minimum SELL price" />
-
-                      <TextBox
-                        Grid.Row="4"
-                        Grid.Column="0"
-                        Width="70"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Center"
-                        Text="{Binding AutomaticPositionSize, UpdateSourceTrigger=LostFocus}"
-                        ToolTip="Automatic position size * W1 position size" />
-
-                      <TextBlock
-                        Grid.Row="4"
-                        Grid.Column="1"
-                        Width="70"
-                        Margin="-20,0,0,0"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        Text="{Binding AutomaticPositionSizeValue, StringFormat={}{0:N2}}"
-                        ToolTip="Max Automatic Budget" />
-
-
-                      <TextBox
-                        Grid.Row="5"
-                        Grid.Column="0"
-                        Width="70"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Center"
-                        Text="{Binding MaxAutomaticBudget, UpdateSourceTrigger=LostFocus}"
-                        ToolTip="Max Automatic Budget" />
-
-
-
-
-                      <StackPanel
-                        Grid.Row="2"
-                        Grid.Column="1"
-                        Margin="-30,0,0,0"
-                        Orientation="Horizontal">
-                        <controls:PathButton
-                          VerticalAlignment="Center"
-                          Focusable="True"
-                          Glyph="{StaticResource floppy-disk-glyph}"
-                          IconHoverColor="{StaticResource BlueColor}"
-                          IconMargin="5 0"
-                          IsReadOnly="True"
-                          ToolTip="Save MAX BUY PRICE" />
-
-                        <controls:PathButton
-                          VerticalAlignment="Center"
-                          Command="{Binding DataContext.TradingBotViewModel.ClearMaxBuyPrice, RelativeSource={RelativeSource AncestorType=Window}}"
-                          Glyph="{StaticResource xmark-glyph}"
-                          IconHoverColor="{StaticResource DefaultRedColor}"
-                          IconMargin="0"
-                          IsReadOnly="True"
-                          ToolTip="Clear MAX BUY PRICE" />
-                      </StackPanel>
-
-                      <StackPanel
-                        Grid.Row="3"
-                        Grid.Column="1"
-                        Margin="-30,0,0,0"
-                        Orientation="Horizontal">
-                        <controls:PathButton
-                          VerticalAlignment="Center"
-                          Focusable="True"
-                          Glyph="{StaticResource floppy-disk-glyph}"
-                          IconHoverColor="{StaticResource BlueColor}"
-                          IconMargin="5 0"
-                          IsReadOnly="True"
-                          ToolTip="Save MAX BUY PRICE" />
-
-                        <controls:PathButton
-                          VerticalAlignment="Center"
-                          Command="{Binding DataContext.TradingBotViewModel.ClearMinSellPrice, RelativeSource={RelativeSource AncestorType=Window}}"
-                          Glyph="{StaticResource xmark-glyph}"
-                          IconHoverColor="{StaticResource DefaultRedColor}"
-                          IconMargin="0"
-                          IsReadOnly="True"
-                          ToolTip="Clear MAX BUY PRICE" />
-                      </StackPanel>
-
-                    </Grid>
-
-                    <Border.Style>
-                      <Style TargetType="Border">
-                        <Setter Property="Visibility" Value="Collapsed" />
-
-                        <Style.Triggers>
-                          <DataTrigger Binding="{Binding ElementName=show_positions_size_toggle, Path=IsChecked}" Value="true">
-                            <Setter Property="Visibility" Value="Visible" />
-                          </DataTrigger>
-                        </Style.Triggers>
-                      </Style>
-                    </Border.Style>
-                  </Border>
-
-                </Grid>
-
-              </Border>
-
-            </Grid>
-          </Grid>
-        </Border>
-
-
-      </Grid>
+      <trading:BotView />
 
       <GridSplitter
         Grid.Row="1"

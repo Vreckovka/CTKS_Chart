@@ -90,7 +90,7 @@ namespace CTKS_Chart.Views
 
       if (DataContext is MainWindowViewModel viewModel)
       {
-        viewModel.TradingBotViewModel.SaveLayoutSettings();
+        viewModel.TradingBotViewModel?.SaveLayoutSettings();
       }
     }
 
@@ -156,47 +156,6 @@ namespace CTKS_Chart.Views
       dataGrid.Items.Refresh();
     }
 
-    private void Border_MouseWheel(object sender, System.Windows.Input.MouseWheelEventArgs e)
-    {
-      var delta = 0.005;
-      if (DataContext is MainWindowViewModel viewModel)
-      {
-        if (Keyboard.Modifiers == ModifierKeys.Control)
-        {
-          if (e.Delta > 0)
-          {
-            viewModel.TradingBotViewModel.DrawingViewModel.MinValue *= (decimal)(1 - delta);
-          }
-          else
-          {
-            viewModel.TradingBotViewModel.DrawingViewModel.MinValue *= (decimal)(1 + delta);
-          }
-        }
-        else if (Keyboard.Modifiers == ModifierKeys.Alt)
-        {
-          if (e.Delta > 0)
-          {
-            viewModel.TradingBotViewModel.DrawingViewModel.CandleCount -= 1;
-          }
-          else
-          {
-            viewModel.TradingBotViewModel.DrawingViewModel.CandleCount += 1;
-          }
-        }
-        else
-        {
-          if (e.Delta > 0)
-          {
-            viewModel.TradingBotViewModel.DrawingViewModel.MaxValue *= (decimal)(1 - delta);
-          }
-          else
-          {
-            viewModel.TradingBotViewModel.DrawingViewModel.MaxValue *= (decimal)(1 + delta);
-          }
-        }
-
-       
-      }
-    }
+   
   }
 }
