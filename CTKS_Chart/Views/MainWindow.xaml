@@ -716,7 +716,7 @@
           <Border.Style>
             <Style TargetType="Border">
               <Style.Triggers>
-                <DataTrigger Binding="{Binding DataContext.TradingBotViewModel.Simulation, RelativeSource={RelativeSource AncestorType=Window}}" Value="true">
+                <DataTrigger Binding="{Binding DataContext.TradingBotViewModel.IsSimulation, RelativeSource={RelativeSource AncestorType=Window}}" Value="true">
                   <Setter Property="Visibility" Value="Collapsed" />
                 </DataTrigger>
               </Style.Triggers>
@@ -779,6 +779,7 @@
                     <RowDefinition Height="auto" />
                     <RowDefinition />
                   </Grid.RowDefinitions>
+                  <TextBlock Text="{Binding ActualPositions}" />
 
                   <DataGrid
                     x:Name="ActualPositions"
@@ -1168,41 +1169,55 @@
           VerticalAlignment="Center"
           Background="{StaticResource 30_WhiteTransparentBrush}" />
 
-
-        <DataGrid
-          x:Name="Loggs"
+        <Border
           Grid.Row="2"
-          AutoGenerateColumns="False"
-          ItemsSource="{Binding ConsoleCollectionLogger.Logs}">
-          <DataGrid.CellStyle>
-            <Style BasedOn="{StaticResource {x:Type DataGridCell}}" TargetType="DataGridCell">
-              <Setter Property="HorizontalContentAlignment" Value="Left" />
-              <Style.Triggers>
-                <DataTrigger Binding="{Binding MessageType}" Value="{x:Static logger:MessageType.Error}">
-                  <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding MessageType}" Value="{x:Static logger:MessageType.Warning}">
-                  <Setter Property="Foreground" Value="{StaticResource YellowBrush}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding MessageType}" Value="{x:Static logger:MessageType.Success}">
-                  <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding MessageType}" Value="{x:Static logger:MessageType.Success2}">
-                  <Setter Property="Foreground" Value="{StaticResource MagentaBrush}" />
-                </DataTrigger>
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
 
-                <DataTrigger Binding="{Binding MessageType}" Value="{x:Static logger:MessageType.Inform2}">
-                  <Setter Property="Foreground" Value="{StaticResource BlueBrush}" />
+          <Border.Style>
+            <Style TargetType="Border">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.TradingBotViewModel.IsSimulation, RelativeSource={RelativeSource AncestorType=Window}}" Value="true">
+                  <Setter Property="Visibility" Value="Collapsed" />
                 </DataTrigger>
               </Style.Triggers>
             </Style>
-          </DataGrid.CellStyle>
-          <DataGrid.Columns>
-            <DataGridTextColumn Binding="{Binding Time, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Time" />
-            <DataGridTextColumn Binding="{Binding MessageType}" Header="Type" />
-            <DataGridTextColumn Binding="{Binding Message}" Header="Message" />
-          </DataGrid.Columns>
-        </DataGrid>
+          </Border.Style>
+
+          <DataGrid
+            x:Name="Loggs"
+            AutoGenerateColumns="False"
+            ItemsSource="{Binding ConsoleCollectionLogger.Logs}">
+            <DataGrid.CellStyle>
+              <Style BasedOn="{StaticResource {x:Type DataGridCell}}" TargetType="DataGridCell">
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding MessageType}" Value="{x:Static logger:MessageType.Error}">
+                    <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding MessageType}" Value="{x:Static logger:MessageType.Warning}">
+                    <Setter Property="Foreground" Value="{StaticResource YellowBrush}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding MessageType}" Value="{x:Static logger:MessageType.Success}">
+                    <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
+                  </DataTrigger>
+                  <DataTrigger Binding="{Binding MessageType}" Value="{x:Static logger:MessageType.Success2}">
+                    <Setter Property="Foreground" Value="{StaticResource MagentaBrush}" />
+                  </DataTrigger>
+
+                  <DataTrigger Binding="{Binding MessageType}" Value="{x:Static logger:MessageType.Inform2}">
+                    <Setter Property="Foreground" Value="{StaticResource BlueBrush}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </DataGrid.CellStyle>
+            <DataGrid.Columns>
+              <DataGridTextColumn Binding="{Binding Time, StringFormat={}{0:dd.MM.yy HH:mm:ss}}" Header="Time" />
+              <DataGridTextColumn Binding="{Binding MessageType}" Header="Type" />
+              <DataGridTextColumn Binding="{Binding Message}" Header="Message" />
+            </DataGrid.Columns>
+          </DataGrid>
+        </Border>
       </Grid>
     </Grid>
   </Grid>

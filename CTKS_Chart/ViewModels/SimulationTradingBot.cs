@@ -28,9 +28,12 @@ namespace CTKS_Chart.ViewModels
       base(tradingBot, logger, windowManager, binanceBroker, viewModelsFactory)
     {
       this.binanceDataProvider = binanceDataProvider ?? throw new ArgumentNullException(nameof(binanceDataProvider));
+
+      drawChart = true;
+      IsSimulation  = false;
     }
 
-
+   
     private List<Candle> cutCandles = new List<Candle>();
     protected override async Task LoadLayouts(Layout mainLayout)
     {
@@ -38,12 +41,13 @@ namespace CTKS_Chart.ViewModels
 
       var tradingView__ada_1D = $"ADAUSDT-240-generated.csv";
 
+
       var mainCandles = TradingHelper.ParseTradingView(tradingView__ada_1D);
 
       MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
       MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
-      var fromDate = new DateTime(1021, 12, 1);
+      var fromDate = new DateTime(2018, 9, 21);
 
       cutCandles = mainCandles.Where(x => x.CloseTime > fromDate).ToList();
       DrawingViewModel.ActualCandles = mainCandles.Where(x => x.CloseTime < fromDate).ToList();
@@ -55,9 +59,15 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.MinValue = MainLayout.MinValue;
       DrawingViewModel.LockChart = true;
 
+    
+
+
+
+      TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy("C:\\Users\\Roman Pecho\\Desktop\\BINANCE ADAUSD, 1D.csv", TradingBot.Strategy));
+
       LoadSecondaryLayouts(mainLayout, mainCtks);
 
-      Simulate(cutCandles, InnerLayouts, 500);
+      Simulate(cutCandles, InnerLayouts, IsSimulation || drawChart ? 2 : 0);
     }
 
     #region SimulateCandle
@@ -65,9 +75,20 @@ namespace CTKS_Chart.ViewModels
     private void SimulateCandle(List<Layout> secondaryLayouts, Candle candle)
     {
       DrawingViewModel.ActualCandles.Add(candle);
-      CalculateActualProfits(candle);
+      //CalculateActualProfits(candle);
 
-      RenderLayout(secondaryLayouts, candle);
+      if(drawChart)
+      {
+        VSynchronizationContext.InvokeOnDispatcher(() =>
+        {
+          RenderLayout(secondaryLayouts, candle);
+        });
+      }
+      else
+      {
+        RenderLayout(secondaryLayouts, candle);
+      }
+     
     }
 
     #endregion
@@ -96,14 +117,11 @@ namespace CTKS_Chart.ViewModels
       {
         for (int i = 0; i < cutCandles.Count; i++)
         {
-          VSynchronizationContext.InvokeOnDispatcher(() =>
-          {
-            var actual = cutCandles[i];
+          var actual = cutCandles[i];
 
-            SimulateCandle(secondaryLayouts, actual);
-          });
+          SimulateCandle(secondaryLayouts, actual);
 
-          await Task.Delay(delay);
+         await Task.Delay(delay);
         }
       });
     }

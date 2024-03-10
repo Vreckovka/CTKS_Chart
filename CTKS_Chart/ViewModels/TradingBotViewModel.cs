@@ -96,9 +96,6 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 
-
-
-
     public ObservableCollection<Layout> Layouts { get; set; } = new ObservableCollection<Layout>();
 
     #region DrawingViewModel
@@ -844,6 +841,8 @@ namespace CTKS_Chart.ViewModels
     DateTime lastFileCheck = DateTime.Now;
     private decimal? lastAthPriceUpdated = null;
     private Candle actual = null;
+    protected bool drawChart = true;
+    public bool IsSimulation { get; set; } = false;
 
     private Dictionary<TimeFrame, bool> stopParsingForNewData = new Dictionary<TimeFrame, bool>()
     {
@@ -855,6 +854,7 @@ namespace CTKS_Chart.ViewModels
       { TimeFrame.W1,false }
     };
 
+
     public async void RenderLayout(List<Layout> secondaryLayouts, Candle actual)
     {
       try
@@ -865,6 +865,11 @@ namespace CTKS_Chart.ViewModels
         {
           var lastCandle = secondaryLayout.Ctks.Candles.Last();
 
+          if(IsSimulation && stopParsingForNewData[secondaryLayout.TimeFrame])
+          {
+            continue;
+          }
+
           if (actual.CloseTime > TradingHelper.GetNextTime(lastCandle.CloseTime, secondaryLayout.TimeFrame))
           {
             if (!secondaryLayout.IsOutDated || (secondaryLayout.IsOutDated && lastFileCheck < DateTime.Now.AddMinutes(1)))
@@ -872,10 +877,15 @@ namespace CTKS_Chart.ViewModels
               var lastCount = secondaryLayout.Ctks.Candles.Count;
               var innerCandles = TradingHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
 
-              secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles));
+              VSynchronizationContext.InvokeOnDispatcher(() => secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles)));
 
               if (innerCandles.Count > lastCount)
                 shouldUpdate = true;
+              else if(innerCandles.Count == lastCount && IsSimulation)
+              {
+                stopParsingForNewData[secondaryLayout.TimeFrame] = true;
+              }
+              
 
               CheckLayout(secondaryLayout, innerCandles);
             }
@@ -919,8 +929,8 @@ namespace CTKS_Chart.ViewModels
         TradingBot.Strategy.Intersections = ctksIntersections;
         var athPrice = GetAthPrice();
 
-
-        DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, CanvasHeight);
+        if (drawChart)
+          DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, CanvasHeight);
 
         this.actual = actual;
 
@@ -932,7 +942,7 @@ namespace CTKS_Chart.ViewModels
 
             TradingBot.Strategy.LoadState();
             await TradingBot.Strategy.RefreshState();
-            MainWindow.SortActualPositions();
+            VSynchronizationContext.InvokeOnDispatcher(() => MainWindow.SortActualPositions());
 
             if (ctksIntersections.Count > 0)
               TradingBot.Strategy.UpdateIntersections(ctksIntersections);
@@ -961,8 +971,8 @@ namespace CTKS_Chart.ViewModels
           Console.WriteLine("NO INTERSECTIONS, DOING NOTHING !");
         }
 
-
-        //DrawingViewModel.RenderOverlay(ctksIntersections, Simulation, athPrice, CanvasHeight);
+        if (drawChart)
+          DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, CanvasHeight);
       }
       finally
       {
@@ -1030,7 +1040,7 @@ namespace CTKS_Chart.ViewModels
 
     #region CreateCtksChart
 
-    private Layout CreateCtksChart(string location, TimeFrame timeFrame,
+    protected Layout CreateCtksChart(string location, TimeFrame timeFrame,
       double canvasWidth,
       double canvasHeight,
       DateTime? maxTime = null,

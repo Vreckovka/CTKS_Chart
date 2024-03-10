@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -19,7 +20,7 @@ using VCore.WPF;
 namespace CTKS_Chart.Strategy
 {
 
-  public class BinanceStrategy : Strategy
+  public class BinanceStrategy : StrategyViewModel
   {
     private readonly BinanceBroker binanceBroker;
     private readonly ILogger logger;
@@ -368,7 +369,7 @@ namespace CTKS_Chart.Strategy
         }
 
 
-        ActualPositions = new System.Collections.ObjectModel.ObservableCollection<Position>(ClosedBuyPositions.Where(x => x.State == PositionState.Filled));
+        ActualPositions = new ObservableCollection<Position>(ClosedBuyPositions.Where(x => x.State == PositionState.Filled));
 
         RaisePropertyChanged(nameof(TotalBuy));
         RaisePropertyChanged(nameof(TotalSell));

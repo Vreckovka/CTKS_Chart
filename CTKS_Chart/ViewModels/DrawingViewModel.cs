@@ -714,7 +714,7 @@ namespace CTKS_Chart.ViewModels
 
           if (!intersection.IsEnabled)
           {
-            selectedBrush = DrawingHelper.GetBrushFromHex("#FFC0CB");
+            selectedBrush = DrawingHelper.GetBrushFromHex("#f5c19d");
           }
 
           FormattedText formattedText = DrawingHelper.GetFormattedText(intersection.Value.ToString(), selectedBrush);

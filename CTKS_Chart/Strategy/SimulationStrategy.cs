@@ -4,7 +4,7 @@ using CTKS_Chart.Trading;
 
 namespace CTKS_Chart.Strategy
 {
-  public class SimulationStrategy : Strategy
+  public class SimulationStrategy : StrategyViewModel
   {
     public override Task RefreshState()
     {

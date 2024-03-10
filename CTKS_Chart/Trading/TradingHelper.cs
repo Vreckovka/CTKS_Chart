@@ -121,7 +121,7 @@ namespace CTKS_Chart.Trading
         decimal.TryParse(data[2], out var highParsed);
         decimal.TryParse(data[3], out var lowParsed);
         decimal.TryParse(data[4], out var closeParsed);
-
+      
 
         var dateTime = DateTimeHelper.UnixTimeStampToUtcDateTime(unixTimestamp);
 
@@ -148,6 +148,23 @@ namespace CTKS_Chart.Trading
 
         if (!isOverDate)
         {
+          IndicatorData indicatorData = new IndicatorData();
+
+          if (data.Length > 8)
+          {
+            decimal.TryParse(data[5], out var rangeFilter);
+            decimal.TryParse(data[6], out var highTarget);
+            decimal.TryParse(data[7], out var lowTarget);
+            decimal.TryParse(data[8], out var upward);
+            decimal.TryParse(data[9], out var bbwp);
+
+            indicatorData.RangeFilter = rangeFilter;
+            indicatorData.HighTarget = highTarget;
+            indicatorData.LowTarget = lowTarget;
+            indicatorData.Upward = upward != 0;
+            indicatorData.BBWP = bbwp;
+          }
+
           var newCandle = new Candle()
           {
             Close = closeParsed,
@@ -156,6 +173,7 @@ namespace CTKS_Chart.Trading
             Low = lowParsed,
             CloseTime = dateTime,
             UnixTime = unixTimestamp,
+            IndicatorData = indicatorData
           };
 
           if(dateDiff != null)

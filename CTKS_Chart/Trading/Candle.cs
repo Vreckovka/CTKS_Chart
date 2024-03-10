@@ -3,6 +3,15 @@ using System.Windows;
 
 namespace CTKS_Chart.Trading
 {
+
+  public class IndicatorData
+  {
+    public decimal RangeFilter { get; set; }
+    public decimal HighTarget { get; set; }
+    public decimal LowTarget { get; set; }
+    public bool Upward { get; set; }
+    public decimal BBWP { get; set; }
+  }
   public class ChartCandle 
   {
     public Candle Candle { get; set; }
@@ -34,5 +43,7 @@ namespace CTKS_Chart.Trading
     public long UnixTime { get; set; }
     public DateTime OpenTime { get; set; }
     public DateTime CloseTime { get; set; }
+
+    public IndicatorData IndicatorData { get; set; }
   }
 }

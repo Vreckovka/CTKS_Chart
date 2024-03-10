@@ -19,23 +19,34 @@ using VCore.WPF.ViewModels.Prompt;
 
 namespace CTKS_Chart.Strategy
 {
-  public class StrategyData
+  public abstract class StrategyViewModel : Strategy
   {
-    public double ScaleSize { get; set; }
-    public decimal StartingBudget { get; set; }
-    public decimal Budget { get; set; }
-    public decimal TotalProfit { get; set; }
-    public decimal TotalNativeAsset { get; set; }
-    public IEnumerable<KeyValuePair<TimeFrame, decimal>> PositionSizeMapping { get; set; }
-    public decimal MinBuyPrice { get; set; }
-    public decimal? MaxBuyPrice { get; set; }
-    public decimal? MinSellPrice { get; set; }
-    public bool AutoATHPriceAsMaxBuy { get; set; }
-    public decimal AutomaticBudget { get; set; }
-    public decimal MaxAutomaticBudget { get; set; }
-    public decimal AutomaticPositionSize { get; set; } = (decimal)0.5;
-  }
+    public override IList<Position> ClosedBuyPositions { get; set; } = new ObservableCollection<Position>();
+    public override IList<Position> ClosedSellPositions { get; set; } = new ObservableCollection<Position>();
 
+    public override IList<Position> OpenSellPositions { get; set; } = new ObservableCollection<Position>();
+    public override IList<Position> OpenBuyPositions { get; set; } = new ObservableCollection<Position>();
+
+    #region ActualPositions
+
+    private IList<Position> actualPositions = new ObservableCollection<Position>();
+
+    public override IList<Position> ActualPositions
+    {
+      get { return actualPositions; }
+      set
+      {
+        if (value != actualPositions)
+        {
+          actualPositions = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+  }
 
   public abstract class Strategy : ViewModel
   {
@@ -53,10 +64,20 @@ namespace CTKS_Chart.Strategy
       StartingBudget = 10000;
       StartingBudget *= multi;
       Budget = StartingBudget;
-     // MaxBuyPrice = (decimal)0.0005;
-     // MinSellPrice = (decimal)0.5;
+      MaxBuyPrice = (decimal)0.0005;
+      MinSellPrice = (decimal)8.5;
 
-      //MaxAutomaticBudget = 3000;
+      MaxAutomaticBudget = 3000;
+
+      PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
+      {
+        { TimeFrame.M12, 600},
+        { TimeFrame.M6, 500},
+        { TimeFrame.M3, 400},
+        { TimeFrame.M1, 300},
+        { TimeFrame.W2, 200},
+        { TimeFrame.W1, 100},
+      };
 
       foreach (var data in StrategyData.PositionSizeMapping)
       {
@@ -94,6 +115,8 @@ namespace CTKS_Chart.Strategy
       {TimeFrame.W1, 1},
     };
 
+    public List<InnerStrategy> InnerStrategies { get; set; } = new List<InnerStrategy>();
+
 
     #region StrategyData
 
@@ -102,14 +125,14 @@ namespace CTKS_Chart.Strategy
       MinBuyPrice = (decimal)1,
       PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
       {
-        { TimeFrame.M12, 700},
-        { TimeFrame.M6, 600},
-        { TimeFrame.M3, 500},
-        { TimeFrame.M1, 300},
-        { TimeFrame.W2, 200},
-        { TimeFrame.W1, 100},
+        { TimeFrame.M12, 60},
+        { TimeFrame.M6, 50},
+        { TimeFrame.M3, 40},
+        { TimeFrame.M1, 30},
+        { TimeFrame.W2, 20},
+        { TimeFrame.W1, 10},
       },
-      StartingBudget = 10000,
+      StartingBudget = 1000,
       AutomaticPositionSize = (decimal)0.35,
       ScaleSize = 0
     };
@@ -475,7 +498,7 @@ namespace CTKS_Chart.Strategy
 
     #region MinSellProfitMapping
 
-    public Dictionary<TimeFrame, double> MinSellProfitMapping { get; } = new Dictionary<TimeFrame, double>()
+    public Dictionary<TimeFrame, double> MinSellProfitMapping { get; set; } = new Dictionary<TimeFrame, double>()
     {
       {TimeFrame.M12, 0.005},
       {TimeFrame.M6,  0.005},
@@ -489,7 +512,7 @@ namespace CTKS_Chart.Strategy
 
     #region MinBuyMapping
 
-    public Dictionary<TimeFrame, double> MinBuyMapping { get; } = new Dictionary<TimeFrame, double>()
+    public Dictionary<TimeFrame, double> MinBuyMapping { get; set; } = new Dictionary<TimeFrame, double>()
     {
       {TimeFrame.M12, 0.005},
       {TimeFrame.M6,  0.005},
@@ -545,17 +568,17 @@ namespace CTKS_Chart.Strategy
 
     #region Positions
 
-    public ObservableCollection<Position> ClosedBuyPositions { get; set; } = new ObservableCollection<Position>();
-    public ObservableCollection<Position> ClosedSellPositions { get; set; } = new ObservableCollection<Position>();
+    public virtual IList<Position> ClosedBuyPositions { get; set; } = new List<Position>();
+    public virtual IList<Position> ClosedSellPositions { get; set; } = new List<Position>();
 
-    public ObservableCollection<Position> OpenSellPositions { get; set; } = new ObservableCollection<Position>();
-    public ObservableCollection<Position> OpenBuyPositions { get; set; } = new ObservableCollection<Position>();
+    public virtual IList<Position> OpenSellPositions { get; set; } = new List<Position>();
+    public virtual IList<Position> OpenBuyPositions { get; set; } = new List<Position>();
 
     #region ActualPositions
 
-    private ObservableCollection<Position> actualPositions = new ObservableCollection<Position>();
+    private IList<Position> actualPositions = new List<Position>();
 
-    public ObservableCollection<Position> ActualPositions
+    public virtual IList<Position> ActualPositions
     {
       get { return actualPositions; }
       set
@@ -658,6 +681,8 @@ namespace CTKS_Chart.Strategy
 
     #endregion
 
+    public bool DisableOnBuy { get; set; }
+
     #region Methods
 
     #region GetMaxBuy
@@ -683,6 +708,11 @@ namespace CTKS_Chart.Strategy
         await buyLock.WaitAsync();
         lastCandle = actualCandle;
 
+        foreach (var innerStrategy in InnerStrategies)
+        {
+          innerStrategy.Calculate(actualCandle);
+        }
+
         if (lastSell == decimal.MaxValue && ClosedSellPositions.Any() && ActualPositions.Any())
         {
           lastSell = ClosedSellPositions.Last().Price;
@@ -707,27 +737,27 @@ namespace CTKS_Chart.Strategy
                       x.Price > maxBuy)
           .ToList();
 
-
-
         foreach (var buyPosition in openedBuy)
         {
           await OnCancelPosition(buyPosition);
         }
 
-
-
-        openedBuy = OpenBuyPositions
-         .Where(x => x.IsAutomatic)
-         .Where(x => x.Price != x.Intersection.Value ||
-                     x.Price < minBuy)
-         .ToList();
-
-
-
-        foreach (var buyPosition in openedBuy)
+        if (StrategyData.MaxAutomaticBudget > 0)
         {
-          await OnCancelPosition(buyPosition);
+          var automaticOpenedBuy = OpenBuyPositions
+            .Where(x => x.IsAutomatic)
+            .Where(x => x.Price != x.Intersection.Value ||
+                        x.Price < minBuy)
+            .ToList();
+
+
+          foreach (var buyPosition in automaticOpenedBuy)
+          {
+            await OnCancelPosition(buyPosition);
+          }
         }
+
+
 
         var openedSell = OpenSellPositions
           .Where(x => !x.IsAutomatic)
@@ -737,15 +767,17 @@ namespace CTKS_Chart.Strategy
         if (openedSell.Any())
           await RecreateSellPositions(actualCandle, openedSell);
 
-       
 
-        var openedAutoSell = OpenSellPositions
+        if (StrategyData.MaxAutomaticBudget > 0)
+        {
+          var openedAutoSell = OpenSellPositions
           .Where(x => x.IsAutomatic)
           .Where(x => x.Price != x.Intersection.Value)
           .ToList();
 
-        if (openedAutoSell.Any())
-          await RecreateSellPositions(actualCandle, openedAutoSell);
+          if (openedAutoSell.Any())
+            await RecreateSellPositions(actualCandle, openedAutoSell);
+        }
 
         var inter = Intersections
                     .Where(x => x.TimeFrame >= minTimeframe)
@@ -765,10 +797,14 @@ namespace CTKS_Chart.Strategy
           await CreateBuyPositionFromIntersection(intersection);
         }
 
-
-        foreach (var intersection in inter)
+        if (StrategyData.MaxAutomaticBudget > 0)
         {
-          await CreateBuyPositionFromIntersection(intersection, true);
+          var autoIntersections = inter.Where(x => x.Value < lastSell);
+
+          foreach (var intersection in autoIntersections)
+          {
+            await CreateBuyPositionFromIntersection(intersection, true);
+          }
         }
 
         RaisePropertyChanged(nameof(TotalExpectedProfit));
@@ -883,8 +919,6 @@ namespace CTKS_Chart.Strategy
     private async void RecreateAllManualSell()
     {
       var openedSell = OpenSellPositions
-        .Where(x => x.OpositPositions.Count > 0)
-        .OrderByDescending(x => x.OpositPositions[0].Price)
         .Where(x => !x.IsAutomatic).ToList();
 
       await RecreateSellPositions(lastCandle, openedSell);
@@ -892,18 +926,27 @@ namespace CTKS_Chart.Strategy
 
     #endregion
 
+    #region GetBudget
+
     private decimal GetBudget(bool automatic = false)
     {
       return automatic ? Math.Min(AutomaticBudget, Budget) : Budget;
     }
 
+    #endregion
+
     #region RecreateSellPositions
 
-    private async Task RecreateSellPositions(Candle actualCandle, IEnumerable<Position> positionsToCancel)
+    public async Task RecreateSellPositions(Candle actualCandle, IEnumerable<Position> positionsToCancel)
     {
       var removedBu = new HashSet<Position>();
 
-      foreach (var sellPosition in positionsToCancel)
+
+      var sellPositions = positionsToCancel
+        .Where(x => x.OpositPositions.Count > 0)
+        .OrderByDescending(x => x.OpositPositions[0].Price).ToList();
+
+      foreach (var sellPosition in sellPositions)
       {
         await OnCancelPosition(sellPosition, removedBu);
       }
@@ -1000,6 +1043,11 @@ namespace CTKS_Chart.Strategy
             AutomaticBudget -= position.Fees ?? 0;
 
           RaisePropertyChanged(nameof(TotalBuy));
+
+          if (DisableOnBuy)
+          {
+            position.Intersection.IsEnabled = false;
+          }
 
           ActualPositions.Add(position);
           RaisePropertyChanged(nameof(AllCompletedPositions));
@@ -1490,7 +1538,7 @@ namespace CTKS_Chart.Strategy
         if (LeftSize > 0)
         {
           await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close * (decimal)1.01));
-        }   
+        }
         else
           ClosedBuyPositions.Remove(opened);
       }
