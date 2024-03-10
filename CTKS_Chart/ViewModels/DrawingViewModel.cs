@@ -463,32 +463,35 @@ namespace CTKS_Chart.ViewModels
 
           DrawActualPrice(dc, Layout, ActualCandles, imageHeight, imageWidth);
 
-          decimal price = TradingBot.Strategy.AvrageBuyPrice;
-
-          var maxCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredCanvasHeight, desiredCanvasHeight, MaxValue, MinValue);
-          var minCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredCanvasHeight, -2 * (desiredCanvasHeight - canvasHeight), MaxValue, MinValue);
-
-          maxCanvasValue = Math.Max(maxCanvasValue, chartCandles.Max(x => x.Candle.High.Value));
-          minCanvasValue = Math.Min(minCanvasValue, chartCandles.Min(x => x.Candle.Low.Value));
-
-          if (ShowAveragePrice)
+          if (TradingBot.Strategy is StrategyViewModel strategyViewModel)
           {
-            if (price < maxCanvasValue && price > minCanvasValue)
-              DrawAveragePrice(dc, Layout, TradingBot.Strategy.AvrageBuyPrice, imageHeight, imageWidth);
+            decimal price = strategyViewModel.AvrageBuyPrice;
+
+            var maxCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredCanvasHeight, desiredCanvasHeight, MaxValue, MinValue);
+            var minCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredCanvasHeight, -2 * (desiredCanvasHeight - canvasHeight), MaxValue, MinValue);
+
+            maxCanvasValue = Math.Max(maxCanvasValue, chartCandles.Max(x => x.Candle.High.Value));
+            minCanvasValue = Math.Min(minCanvasValue, chartCandles.Min(x => x.Candle.Low.Value));
+
+            if (ShowAveragePrice)
+            {
+              if (price < maxCanvasValue && price > minCanvasValue)
+                DrawAveragePrice(dc, Layout, strategyViewModel.AvrageBuyPrice, imageHeight, imageWidth);
+            }
+
+            if (ShowATH)
+            {
+              if (lastAthPrice < maxCanvasValue && lastAthPrice > minCanvasValue)
+                DrawPriceToATH(dc, Layout, lastAthPrice.Value, imageHeight, imageWidth);
+            }
+
+
+            if (TradingBot.Strategy.MaxBuyPrice < maxCanvasValue && TradingBot.Strategy.MaxBuyPrice > minCanvasValue)
+              DrawMaxBuyPrice(dc, Layout, TradingBot.Strategy.MaxBuyPrice.Value, imageHeight, imageWidth);
+
+            if (TradingBot.Strategy.MinSellPrice < maxCanvasValue && TradingBot.Strategy.MinSellPrice > minCanvasValue)
+              DrawMinSellPrice(dc, Layout, TradingBot.Strategy.MinSellPrice.Value, imageHeight, imageWidth);
           }
-
-          if (ShowATH)
-          {
-            if (lastAthPrice < maxCanvasValue && lastAthPrice > minCanvasValue)
-              DrawPriceToATH(dc, Layout, lastAthPrice.Value, imageHeight, imageWidth);
-          }
-
-
-          if (TradingBot.Strategy.MaxBuyPrice < maxCanvasValue && TradingBot.Strategy.MaxBuyPrice > minCanvasValue)
-            DrawMaxBuyPrice(dc, Layout, TradingBot.Strategy.MaxBuyPrice.Value, imageHeight, imageWidth);
-
-          if (TradingBot.Strategy.MinSellPrice < maxCanvasValue && TradingBot.Strategy.MinSellPrice > minCanvasValue)
-            DrawMinSellPrice(dc, Layout, TradingBot.Strategy.MinSellPrice.Value, imageHeight, imageWidth);
         }
 
         DrawingImage dImageSource = new DrawingImage(dGroup);

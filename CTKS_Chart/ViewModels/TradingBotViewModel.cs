@@ -798,11 +798,11 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    protected void LoadSecondaryLayouts(Layout mainLayout, Ctks mainCtks)
+    protected void LoadSecondaryLayouts(Layout mainLayout, Ctks mainCtks, DateTime? maxTime = null)
     {
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
-        var layout = CreateCtksChart(layoutData.Key, layoutData.Value, CanvasWidth, CanvasHeight);
+        var layout = CreateCtksChart(layoutData.Key, layoutData.Value, CanvasWidth, CanvasHeight, maxTime);
 
         Layouts.Add(layout);
         InnerLayouts.Add(layout);
@@ -865,7 +865,7 @@ namespace CTKS_Chart.ViewModels
         {
           var lastCandle = secondaryLayout.Ctks.Candles.Last();
 
-          if(IsSimulation && stopParsingForNewData[secondaryLayout.TimeFrame])
+          if (IsSimulation && stopParsingForNewData[secondaryLayout.TimeFrame])
           {
             continue;
           }
@@ -881,13 +881,14 @@ namespace CTKS_Chart.ViewModels
 
               if (innerCandles.Count > lastCount)
                 shouldUpdate = true;
-              else if(innerCandles.Count == lastCount && IsSimulation)
+              else if (innerCandles.Count == lastCount && IsSimulation)
               {
                 stopParsingForNewData[secondaryLayout.TimeFrame] = true;
               }
-              
 
-              CheckLayout(secondaryLayout, innerCandles);
+
+              if (!IsSimulation)
+                CheckLayout(secondaryLayout, innerCandles);
             }
           }
         }

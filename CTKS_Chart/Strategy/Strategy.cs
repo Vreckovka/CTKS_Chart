@@ -46,6 +46,50 @@ namespace CTKS_Chart.Strategy
 
     #endregion
 
+    #region TotalExpectedProfit
+
+    public decimal TotalExpectedProfit
+    {
+      get { return ActualPositions.Sum(x => x.ExpectedProfit); }
+    }
+
+    #endregion
+
+    #region AvrageBuyPrice
+
+    public decimal AvrageBuyPrice
+    {
+      get
+      {
+        var positions = ActualPositions.ToList();
+
+        var filled = ActualPositions.Sum(x => x.OpositPositions.Sum(y => y.Profit));
+        var value = positions.Sum(x => x.OpositPositions.Sum(y => y.PositionSize)) - filled;
+        var native = positions.Sum(x => x.OpositPositions.Sum(y => y.PositionSizeNative));
+
+        return Math.Round(TotalNativeAsset > 0 && native > 0 ? value / native : 0, Asset.PriceRound);
+      }
+    }
+
+    #endregion
+
+    #region TotalBuy
+
+    public decimal TotalBuy
+    {
+      get { return AllClosedPositions.Where(x => x.Side == PositionSide.Buy).Sum(x => x.OriginalPositionSize); }
+    }
+
+    #endregion
+
+    #region TotalSell
+
+    public decimal TotalSell
+    {
+      get { return AllClosedPositions.Where(x => x.Side == PositionSide.Sell).Sum(x => x.OriginalPositionSize + x.Profit); }
+    }
+
+    #endregion
   }
 
   public abstract class Strategy : ViewModel
@@ -68,6 +112,7 @@ namespace CTKS_Chart.Strategy
       MinSellPrice = (decimal)8.5;
 
       MaxAutomaticBudget = 3000;
+      AutomaticBudget = 3000;
 
       PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
       {
@@ -154,8 +199,8 @@ namespace CTKS_Chart.Strategy
           RaisePropertyChanged(nameof(MinBuyPrice));
           RaisePropertyChanged(nameof(Budget));
           RaisePropertyChanged(nameof(TotalNativeAsset));
-          RaisePropertyChanged(nameof(TotalBuy));
-          RaisePropertyChanged(nameof(TotalSell));
+          RaisePropertyChanged(nameof(StrategyViewModel.TotalBuy));
+          RaisePropertyChanged(nameof(StrategyViewModel.TotalSell));
           RaisePropertyChanged(nameof(PositionSizeMapping));
           RaisePropertyChanged(nameof(ScaleSize));
           RaisePropertyChanged(nameof(MaxBuyPrice));
@@ -460,24 +505,6 @@ namespace CTKS_Chart.Strategy
 
     #endregion
 
-    #region TotalBuy
-
-    public decimal TotalBuy
-    {
-      get { return AllClosedPositions.Where(x => x.Side == PositionSide.Buy).Sum(x => x.OriginalPositionSize); }
-    }
-
-    #endregion
-
-    #region TotalSell
-
-    public decimal TotalSell
-    {
-      get { return AllClosedPositions.Where(x => x.Side == PositionSide.Sell).Sum(x => x.OriginalPositionSize + x.Profit); }
-    }
-
-    #endregion
-
     #region PositionSizeMapping
 
     public IEnumerable<KeyValuePair<TimeFrame, decimal>> PositionSizeMapping
@@ -633,23 +660,7 @@ namespace CTKS_Chart.Strategy
 
     public List<CtksIntersection> Intersections { get; set; } = new List<CtksIntersection>();
 
-    #region AvrageBuyPrice
-
-    public decimal AvrageBuyPrice
-    {
-      get
-      {
-        var positions = ActualPositions.ToList();
-
-        var filled = ActualPositions.Sum(x => x.OpositPositions.Sum(y => y.Profit));
-        var value = positions.Sum(x => x.OpositPositions.Sum(y => y.PositionSize)) - filled;
-        var native = positions.Sum(x => x.OpositPositions.Sum(y => y.PositionSizeNative));
-
-        return Math.Round(TotalNativeAsset > 0 && native > 0 ? value / native : 0, Asset.PriceRound);
-      }
-    }
-
-    #endregion
+  
 
     #region ActualPositionProfit
 
@@ -670,14 +681,7 @@ namespace CTKS_Chart.Strategy
 
     #endregion
 
-    #region TotalExpectedProfit
-
-    public decimal TotalExpectedProfit
-    {
-      get { return ActualPositions.Sum(x => x.ExpectedProfit); }
-    }
-
-    #endregion
+  
 
     #endregion
 
@@ -807,7 +811,7 @@ namespace CTKS_Chart.Strategy
           }
         }
 
-        RaisePropertyChanged(nameof(TotalExpectedProfit));
+        RaisePropertyChanged(nameof(StrategyViewModel.TotalExpectedProfit));
       }
       finally
       {
@@ -856,33 +860,21 @@ namespace CTKS_Chart.Strategy
             .OrderByDescending(x => x.Price)
             .ToList();
 
-        if (automatic)
-        {
-          validPositions.AddRange(
-            OpenBuyPositions
-              .Where(x => !x.IsAutomatic)
-              .Where(x => intersection.Value > x.Price)
-              .OrderByDescending(x => x.Price)
-              .ToList());
-        }
-
 
         var stack = new Stack<Position>(validPositions);
 
         var openBuy = stack.Sum(x => x.PositionSize);
 
         var openAuto = OpenBuyPositions.Where(x => x.IsAutomatic).Sum(x => x.PositionSize);
-        var filledAuto = ClosedBuyPositions.Where(x => x.IsAutomatic).Sum(x => x.OpositPositions.Sum(y => y.PositionSize));
-
+        var filledAuto = ActualPositions.Where(x => x.IsAutomatic).Sum(x => x.OpositPositions.Sum(y => y.PositionSize));
+        //14460
         var automaticSize = openAuto + filledAuto;
         var automaticBudget = MaxAutomaticBudget - automaticSize;
 
-        if (automatic && automaticBudget < 0)
-        {
-          return;
-        }
+        AutomaticBudget = automaticBudget;
+       
 
-        while (GetBudget(automatic) < leftSize && GetBudget(automatic) + openBuy > leftSize)
+        while ((GetBudget(automatic) < leftSize && GetBudget(automatic) + openBuy > leftSize))
         {
           var openLow = stack.Pop();
 
@@ -987,7 +979,7 @@ namespace CTKS_Chart.Strategy
         MaxTotalValue = TotalValue;
       }
 
-      RaisePropertyChanged(nameof(AvrageBuyPrice));
+      RaisePropertyChanged(nameof(StrategyViewModel.AvrageBuyPrice));
       RaisePropertyChanged(nameof(AllClosedPositions));
     }
 
@@ -1042,7 +1034,7 @@ namespace CTKS_Chart.Strategy
           if (position.IsAutomatic)
             AutomaticBudget -= position.Fees ?? 0;
 
-          RaisePropertyChanged(nameof(TotalBuy));
+          RaisePropertyChanged(nameof(StrategyViewModel.TotalBuy));
 
           if (DisableOnBuy)
           {
@@ -1051,7 +1043,7 @@ namespace CTKS_Chart.Strategy
 
           ActualPositions.Add(position);
           RaisePropertyChanged(nameof(AllCompletedPositions));
-          RaisePropertyChanged(nameof(TotalExpectedProfit));
+          RaisePropertyChanged(nameof(StrategyViewModel.TotalExpectedProfit));
           SaveState();
         }
       }
@@ -1109,7 +1101,7 @@ namespace CTKS_Chart.Strategy
 
         Scale(position.Profit);
         position.State = PositionState.Filled;
-
+        
         ClosedSellPositions.Add(position);
         OpenSellPositions.Remove(position);
 
@@ -1129,11 +1121,11 @@ namespace CTKS_Chart.Strategy
             ActualPositions.Remove(originalBuy);
 
             RaisePropertyChanged(nameof(AllCompletedPositions));
-            RaisePropertyChanged(nameof(TotalExpectedProfit));
+            RaisePropertyChanged(nameof(StrategyViewModel.TotalExpectedProfit));
           }
         }
 
-        RaisePropertyChanged(nameof(TotalSell));
+        RaisePropertyChanged(nameof(StrategyViewModel.TotalSell));
         SaveState();
 
         lastSell = position.Price;

@@ -29,8 +29,8 @@ namespace CTKS_Chart.ViewModels
     {
       this.binanceDataProvider = binanceDataProvider ?? throw new ArgumentNullException(nameof(binanceDataProvider));
 
-      drawChart = true;
-      IsSimulation  = false;
+      drawChart = false;
+      IsSimulation  = true;
     }
 
    
@@ -65,9 +65,9 @@ namespace CTKS_Chart.ViewModels
 
       TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy("C:\\Users\\Roman Pecho\\Desktop\\BINANCE ADAUSD, 1D.csv", TradingBot.Strategy));
 
-      LoadSecondaryLayouts(mainLayout, mainCtks);
+      LoadSecondaryLayouts(mainLayout, mainCtks, fromDate);
 
-      Simulate(cutCandles, InnerLayouts, IsSimulation || drawChart ? 2 : 0);
+      Simulate(cutCandles, InnerLayouts, !IsSimulation || drawChart ? 2 : 0);
     }
 
     #region SimulateCandle
