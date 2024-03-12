@@ -6,7 +6,6 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
-using ChromeDriverScrapper;
 using CTKS_Chart.Binance;
 using CTKS_Chart.ViewModels;
 using CTKS_Chart.Views;
@@ -35,9 +34,9 @@ namespace CTKS_Chart
         .To<BinanceBroker>()
         .InSingletonScope();
 
-      Kernel.Bind<IChromeDriverProvider>()
-        .To<ChromeDriverProvider>()
-        .InSingletonScope();
+      //Kernel.Bind<IChromeDriverProvider>()
+      //  .To<ChromeDriverProvider>()
+      //  .InSingletonScope();
     }
   }
 

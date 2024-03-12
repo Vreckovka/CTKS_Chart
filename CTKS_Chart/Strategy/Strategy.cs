@@ -108,8 +108,8 @@ namespace CTKS_Chart.Strategy
       StartingBudget = 10000;
       StartingBudget *= multi;
       Budget = StartingBudget;
-      MaxBuyPrice = (decimal)0.0005;
-      MinSellPrice = (decimal)8.5;
+      //MaxBuyPrice = (decimal)0.0005;
+      //MinSellPrice = (decimal)8.5;
 
       MaxAutomaticBudget = 3000;
       AutomaticBudget = 3000;
@@ -660,8 +660,6 @@ namespace CTKS_Chart.Strategy
 
     public List<CtksIntersection> Intersections { get; set; } = new List<CtksIntersection>();
 
-  
-
     #region ActualPositionProfit
 
     private decimal totalActualProfit;
@@ -680,9 +678,7 @@ namespace CTKS_Chart.Strategy
     }
 
     #endregion
-
   
-
     #endregion
 
     public bool DisableOnBuy { get; set; }
@@ -702,7 +698,6 @@ namespace CTKS_Chart.Strategy
 
     #region CreatePositions
 
-    decimal lastSell = decimal.MaxValue;
     Candle lastCandle = null;
 
     public async void CreatePositions(Candle actualCandle)
@@ -711,20 +706,14 @@ namespace CTKS_Chart.Strategy
       {
         await buyLock.WaitAsync();
         lastCandle = actualCandle;
+        decimal lastSell = decimal.MaxValue;
 
         foreach (var innerStrategy in InnerStrategies)
         {
-          innerStrategy.Calculate(actualCandle);
+          lastSell = innerStrategy.Calculate(actualCandle);
         }
 
-        if (lastSell == decimal.MaxValue && ClosedSellPositions.Any() && ActualPositions.Any())
-        {
-          lastSell = ClosedSellPositions.Last().Price;
-        }
-        else if (!ActualPositions.Any())
-        {
-          lastSell = decimal.MaxValue;
-        }
+     
 
         var minBuy = actualCandle.Close * (1 - MinBuyPrice);
         decimal maxBuy = MaxBuyPrice ?? decimal.MaxValue;
@@ -793,7 +782,8 @@ namespace CTKS_Chart.Strategy
                       .OrderByDescending(x => x.Value)
                     .ToList();
 
-
+        //62770
+        //REMOVE x.Value < lastSell
         var nonAutomaticIntersections = inter.Where(x => x.Value < maxBuy);
 
         foreach (var intersection in nonAutomaticIntersections)
@@ -803,7 +793,7 @@ namespace CTKS_Chart.Strategy
 
         if (StrategyData.MaxAutomaticBudget > 0)
         {
-          var autoIntersections = inter.Where(x => x.Value < lastSell);
+          var autoIntersections = inter;
 
           foreach (var intersection in autoIntersections)
           {
@@ -861,9 +851,9 @@ namespace CTKS_Chart.Strategy
             .ToList();
 
 
-        var stack = new Stack<Position>(validPositions);
+       
 
-        var openBuy = stack.Sum(x => x.PositionSize);
+      
 
         var openAuto = OpenBuyPositions.Where(x => x.IsAutomatic).Sum(x => x.PositionSize);
         var filledAuto = ActualPositions.Where(x => x.IsAutomatic).Sum(x => x.OpositPositions.Sum(y => y.PositionSize));
@@ -873,6 +863,19 @@ namespace CTKS_Chart.Strategy
 
         AutomaticBudget = automaticBudget;
        
+        if(AutomaticBudget > Budget && automatic)
+        {
+          validPositions.AddRange(
+            OpenBuyPositions
+              .Where(x => !x.IsAutomatic)
+              .Where(x => intersection.Value > x.Price)
+              .OrderByDescending(x => x.Price)
+              .ToList());
+        }
+
+        var stack = new Stack<Position>(validPositions);
+        var openBuy = stack.Sum(x => x.PositionSize);
+      
 
         while ((GetBudget(automatic) < leftSize && GetBudget(automatic) + openBuy > leftSize))
         {
@@ -1121,8 +1124,6 @@ namespace CTKS_Chart.Strategy
 
         RaisePropertyChanged(nameof(StrategyViewModel.TotalSell));
         SaveState();
-
-        lastSell = position.Price;
       }
       finally
       {

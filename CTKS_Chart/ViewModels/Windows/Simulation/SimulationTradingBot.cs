@@ -30,7 +30,7 @@ namespace CTKS_Chart.ViewModels
     {
       this.binanceDataProvider = binanceDataProvider ?? throw new ArgumentNullException(nameof(binanceDataProvider));
 
-      drawChart = false;
+      drawChart = true;
       IsSimulation = true;
     }
 
@@ -50,6 +50,7 @@ namespace CTKS_Chart.ViewModels
       MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
       var fromDate = new DateTime(2018, 9, 21);
+      fromDate = new DateTime(2021,8, 30);
 
       cutCandles = mainCandles.Where(x => x.CloseTime > fromDate).ToList();
       DrawingViewModel.ActualCandles = mainCandles.Where(x => x.CloseTime < fromDate).ToList();
@@ -61,8 +62,8 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.MinValue = MainLayout.MinValue;
       DrawingViewModel.LockChart = true;
 
-
-      TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy("C:\\Users\\Roman Pecho\\Desktop\\BINANCE ADAUSD, 1D.csv", TradingBot.Strategy));
+      var rangeFilterData = "C:\\Users\\Roman Pecho\\Desktop\\BINANCE ADAUSD, 1D.csv";
+      TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy(rangeFilterData, TradingBot.Strategy));
 
       LoadSecondaryLayouts(mainLayout, mainCtks, fromDate);
 

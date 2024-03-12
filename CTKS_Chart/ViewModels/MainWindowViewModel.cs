@@ -19,7 +19,6 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using Binance.Net.Enums;
 using Binance.Net.Interfaces;
-using ChromeDriverScrapper;
 using CTKS_Chart.Binance;
 using CTKS_Chart.Binance.Data;
 using CTKS_Chart.Strategy;
@@ -53,7 +52,6 @@ namespace CTKS_Chart.ViewModels
   //TODO: Put all settings in same folder (Now it is scattered in main folder + State + Data) 
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
-    private readonly ChromeDriverProvider chromeDriverProvider;
     private readonly IWindowManager windowManager;
     private readonly BinanceDataProvider binanceDataProvider;
 
@@ -61,10 +59,8 @@ namespace CTKS_Chart.ViewModels
 
     public MainWindowViewModel(
       IViewModelsFactory viewModelsFactory, 
-      ChromeDriverProvider chromeDriverProvider,
       IWindowManager windowManager) : base(viewModelsFactory)
     {
-      this.chromeDriverProvider = chromeDriverProvider ?? throw new ArgumentNullException(nameof(chromeDriverProvider));
       this.windowManager = windowManager ?? throw new ArgumentNullException(nameof(windowManager));
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
     }
@@ -203,91 +199,91 @@ namespace CTKS_Chart.ViewModels
     {
       base.OnClose(window);
 
-      chromeDriverProvider.Dispose();
+      //chromeDriverProvider.Dispose();
     }
     #endregion
   }
 
   public class TradingViewDataProvider
   {
-    private readonly ChromeDriverProvider chromeDriverProvider;
+    //private readonly ChromeDriverProvider chromeDriverProvider;
 
-    public TradingViewDataProvider(ChromeDriverProvider chromeDriverProvider)
-    {
-      this.chromeDriverProvider = chromeDriverProvider ?? throw new ArgumentNullException(nameof(chromeDriverProvider));
-    }
+    //public TradingViewDataProvider(ChromeDriverProvider chromeDriverProvider)
+    //{
+    //  this.chromeDriverProvider = chromeDriverProvider ?? throw new ArgumentNullException(nameof(chromeDriverProvider));
+    //}
 
 
-    public void DownloadTimeframe(string symbol, string timeFrame)
-    {
-      Task.Run(async () =>
-      {
-        bool sucess = false;
+    //public void DownloadTimeframe(string symbol, string timeFrame)
+    //{
+    //  Task.Run(async () =>
+    //  {
+    //    bool sucess = false;
 
-        var fileName = symbol.Replace(":", "_");
+    //    var fileName = symbol.Replace(":", "_");
 
-        var chromePath = Path.GetDirectoryName(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
-        chromePath += @"\Local\Google\Chrome\User Data";
+    //    var chromePath = Path.GetDirectoryName(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+    //    chromePath += @"\Local\Google\Chrome\User Data";
 
-        var downloadDir = Path.Combine(Directory.GetCurrentDirectory(), "Data", "Chart data");
-        var actualFileName = Path.Combine(downloadDir, $"{fileName}, {timeFrame}.csv");
-        var newFileName = Path.Combine(downloadDir, $"{fileName}, {timeFrame} (1).csv");
+    //    var downloadDir = Path.Combine(Directory.GetCurrentDirectory(), "Data", "Chart data");
+    //    var actualFileName = Path.Combine(downloadDir, $"{fileName}, {timeFrame}.csv");
+    //    var newFileName = Path.Combine(downloadDir, $"{fileName}, {timeFrame} (1).csv");
 
-        this.chromeDriverProvider.Initialize(options: new List<string>()
-        {
-          $"--user-data-dir={chromePath}"
-        }, downloadDirectory: downloadDir);
+    //    this.chromeDriverProvider.Initialize(options: new List<string>()
+    //    {
+    //      $"--user-data-dir={chromePath}"
+    //    }, downloadDirectory: downloadDir);
 
-        this.chromeDriverProvider.SafeNavigate("https://www.tradingview.com/chart/p9TLSOTV/", out var red);
+    //    this.chromeDriverProvider.SafeNavigate("https://www.tradingview.com/chart/p9TLSOTV/", out var red);
 
-        while (!sucess)
-        {
-          try
-          {
-            //var watchlistName = (string)this.chromeDriverProvider.ExecuteScript("return document.querySelectorAll('[data-name=\"watchlists-button\"]')[0].innerText;", 1);
+    //    while (!sucess)
+    //    {
+    //      try
+    //      {
+    //        //var watchlistName = (string)this.chromeDriverProvider.ExecuteScript("return document.querySelectorAll('[data-name=\"watchlists-button\"]')[0].innerText;", 1);
 
-            //if(watchlistName != "Export")
-            //{
-            //  this.chromeDriverProvider.ExecuteScript("return document.querySelectorAll('[data-name=\"watchlists-button\"]')[0].click();", 1);
-            //}
+    //        //if(watchlistName != "Export")
+    //        //{
+    //        //  this.chromeDriverProvider.ExecuteScript("return document.querySelectorAll('[data-name=\"watchlists-button\"]')[0].click();", 1);
+    //        //}
 
-            var enterEvent = "new KeyboardEvent('keydown', {code: 'Enter',key: 'Enter',charCode: 13,keyCode: 13,view: window,bubbles: true})";
+    //        var enterEvent = "new KeyboardEvent('keydown', {code: 'Enter',key: 'Enter',charCode: 13,keyCode: 13,view: window,bubbles: true})";
 
-            this.chromeDriverProvider.ExecuteScript("document.getElementById(\"header-toolbar-symbol-search\").click()", 1);
-            this.chromeDriverProvider.ExecuteScript($"document.querySelectorAll('[data-role=\"search\"]')[0].value = \"{symbol}\" ", 1);
-            this.chromeDriverProvider.ExecuteScript($"document.querySelectorAll('[data-role=\"search\"]')[0].dispatchEvent({enterEvent})", 1);
-            //this.chromeDriverProvider.ExecuteScriptVoid("document.querySelectorAll('[data-name=\"save-load-menu\"]')[0].click();", 1);
-            //this.chromeDriverProvider.ExecuteScriptVoid("document.querySelectorAll('[data-role=\"menuitem\"]')[5].click();", 1);
-            //this.chromeDriverProvider.ExecuteScriptVoid("document.querySelectorAll('[data-name=\"submit-button\"]')[0].click();", 1);
+    //        this.chromeDriverProvider.ExecuteScript("document.getElementById(\"header-toolbar-symbol-search\").click()", 1);
+    //        this.chromeDriverProvider.ExecuteScript($"document.querySelectorAll('[data-role=\"search\"]')[0].value = \"{symbol}\" ", 1);
+    //        this.chromeDriverProvider.ExecuteScript($"document.querySelectorAll('[data-role=\"search\"]')[0].dispatchEvent({enterEvent})", 1);
+    //        //this.chromeDriverProvider.ExecuteScriptVoid("document.querySelectorAll('[data-name=\"save-load-menu\"]')[0].click();", 1);
+    //        //this.chromeDriverProvider.ExecuteScriptVoid("document.querySelectorAll('[data-role=\"menuitem\"]')[5].click();", 1);
+    //        //this.chromeDriverProvider.ExecuteScriptVoid("document.querySelectorAll('[data-name=\"submit-button\"]')[0].click();", 1);
 
-            await Task.Delay(1000);
+    //        await Task.Delay(1000);
 
-            if (File.Exists(newFileName) || File.Exists(actualFileName))
-            {
-              sucess = true;
-            }
+    //        if (File.Exists(newFileName) || File.Exists(actualFileName))
+    //        {
+    //          sucess = true;
+    //        }
 
-            if (File.Exists(newFileName))
-            {
-              File.Delete(actualFileName);
-              File.Move(newFileName, actualFileName);
+    //        if (File.Exists(newFileName))
+    //        {
+    //          File.Delete(actualFileName);
+    //          File.Move(newFileName, actualFileName);
 
-            }
+    //        }
 
-            if (sucess)
-              this.chromeDriverProvider.ChromeDriver.Close();
-            else
-              await Task.Delay(5000);
-          }
-          catch (Exception ex)
-          {
-            if (!sucess)
-              await Task.Delay(5000);
-          }
-        }
+    //        if (sucess)
+    //          this.chromeDriverProvider.ChromeDriver.Close();
+    //        else
+    //          await Task.Delay(5000);
+    //      }
+    //      catch (Exception ex)
+    //      {
+    //        if (!sucess)
+    //          await Task.Delay(5000);
+    //      }
+    //    }
 
-      });
-    }
+    //  });
+    //}
   }
 }
 

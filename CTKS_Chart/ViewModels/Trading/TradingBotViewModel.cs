@@ -871,7 +871,7 @@ namespace CTKS_Chart.ViewModels
         {
           var lastCandle = secondaryLayout.Ctks.Candles.Last();
 
-          if (IsSimulation && stopParsingForNewData[secondaryLayout.TimeFrame])
+          if (IsSimulation && stopParsingForNewData[secondaryLayout.TimeFrame] || secondaryLayout == null)
           {
             continue;
           }
