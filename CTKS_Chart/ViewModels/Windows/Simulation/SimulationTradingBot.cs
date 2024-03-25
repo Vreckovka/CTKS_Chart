@@ -32,6 +32,8 @@ namespace CTKS_Chart.ViewModels
 
       drawChart = true;
       IsSimulation = true;
+      
+      
     }
 
    
@@ -61,13 +63,15 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.MaxValue = MainLayout.MaxValue;
       DrawingViewModel.MinValue = MainLayout.MinValue;
       DrawingViewModel.LockChart = true;
+      DrawingViewModel.ShowATH = true;
+      TradingBot.Strategy.EnableManualPositions = false;
 
       var rangeFilterData = "C:\\Users\\Roman Pecho\\Desktop\\BINANCE ADAUSD, 1D.csv";
       TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy(rangeFilterData, TradingBot.Strategy));
 
       LoadSecondaryLayouts(mainLayout, mainCtks, fromDate);
 
-      Simulate(cutCandles, InnerLayouts, !IsSimulation || drawChart ? 2 : 0);
+      Simulate(cutCandles, InnerLayouts, !IsSimulation || drawChart ? 1 : 0);
     }
 
     #region SimulateCandle

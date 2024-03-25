@@ -63,7 +63,7 @@ namespace CTKS_Chart.Strategy
 
         var change = bullish ? bbwp : 1 + bbwp;
         var minValue = 0.0075;
-        var maxValue = 0.20;
+        var maxValue = 0.05;
 
         var list = this.strategy.MinBuyMapping.ToList();
         foreach (var buy in list)

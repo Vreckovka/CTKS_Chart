@@ -136,7 +136,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-   
+
 
     public Layout MainLayout { get; } = new Layout() { Title = "Main" };
 
@@ -849,6 +849,7 @@ namespace CTKS_Chart.ViewModels
     private Candle actual = null;
     protected bool drawChart = true;
     public bool IsSimulation { get; set; } = false;
+    public bool IsPaused { get; set; } = false;
 
     private Dictionary<TimeFrame, bool> stopParsingForNewData = new Dictionary<TimeFrame, bool>()
     {
@@ -863,6 +864,11 @@ namespace CTKS_Chart.ViewModels
 
     public async void RenderLayout(List<Layout> secondaryLayouts, Candle actual)
     {
+      if (IsPaused)
+      {
+        return;
+      }
+
       try
       {
         await semaphoreSlim.WaitAsync();
@@ -1241,7 +1247,7 @@ namespace CTKS_Chart.ViewModels
     {
       if (TradingBot != null)
       {
-        if (fetchNewCandles)
+        if (fetchNewCandles && !IsSimulation)
         {
           DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval))).ToList();
           await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);

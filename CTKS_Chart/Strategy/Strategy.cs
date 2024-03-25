@@ -111,8 +111,8 @@ namespace CTKS_Chart.Strategy
       //MaxBuyPrice = (decimal)0.0005;
       //MinSellPrice = (decimal)8.5;
 
-      MaxAutomaticBudget = 3000;
-      AutomaticBudget = 3000;
+      MaxAutomaticBudget = 10000;
+      AutomaticBudget = 10000;
 
       PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
       {
@@ -288,7 +288,7 @@ namespace CTKS_Chart.Strategy
 
     public decimal AutomaticPositionSizeValue
     {
-      get { return GetPositionSize(TimeFrame.W1, false) * (decimal)AutomaticPositionSize; }
+      get { return GetPositionSize(TimeFrame.W1 ) * (decimal)AutomaticPositionSize; }
     }
 
     #endregion
@@ -683,6 +683,8 @@ namespace CTKS_Chart.Strategy
 
     public bool DisableOnBuy { get; set; }
 
+    public bool EnableManualPositions { get; set; } = true;
+
     #region Methods
 
     #region GetMaxBuy
@@ -786,15 +788,18 @@ namespace CTKS_Chart.Strategy
                       .OrderByDescending(x => x.Value)
                     .ToList();
 
-        //62770
-        //REMOVE x.Value < lastSell
+
         var nonAutomaticIntersections = inter.Where(x => x.Value < maxBuy);
 
-        foreach (var intersection in nonAutomaticIntersections)
+        if(EnableManualPositions)
         {
-          await CreateBuyPositionFromIntersection(intersection);
+          foreach (var intersection in nonAutomaticIntersections)
+          {
+            await CreateBuyPositionFromIntersection(intersection);
+          }
         }
 
+       
         if (StrategyData.MaxAutomaticBudget > 0)
         {
           var autoIntersections = inter;
@@ -826,7 +831,6 @@ namespace CTKS_Chart.Strategy
                     x.Intersection.TimeFrame == intersection.TimeFrame)
         .ToList();
 
-      var autoSize = AutomaticPositionSizeValue;
       var maxPOsitionOnIntersection = GetPositionSize(intersection.TimeFrame, automatic);
 
       var sum = positionsOnIntersesction.Sum(x => x.PositionSize);
@@ -962,16 +966,14 @@ namespace CTKS_Chart.Strategy
 
     #region GetPositionSize
 
-    private decimal GetPositionSize(TimeFrame timeFrame, bool automatic)
+    private decimal GetPositionSize(TimeFrame timeFrame, bool automatic = false)
     {
-      var value = PositionSizeMapping.Single(x => x.Key == timeFrame).Value;
-
       if(automatic)
       {
-        value *= (decimal)AutomaticPositionSize; 
+        return AutomaticPositionSizeValue; 
       }
 
-      return value;
+      return PositionSizeMapping.Single(x => x.Key == timeFrame).Value;
     }
 
     #endregion

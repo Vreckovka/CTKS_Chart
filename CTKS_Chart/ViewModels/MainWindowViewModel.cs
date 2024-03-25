@@ -108,8 +108,11 @@ namespace CTKS_Chart.ViewModels
 
       var bot = ViewModelsFactory.Create<SimulationTradingBot>(simulationBot);
       var prompt = ViewModelsFactory.Create<SimulationPromptViewModel>(bot);
+      TradingBotViewModel.IsPaused = true;
 
       windowManager.ShowPrompt<SimulationView>(prompt);
+
+      TradingBotViewModel.IsPaused = false;
     }
 
     #endregion
