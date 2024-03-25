@@ -288,7 +288,7 @@ namespace CTKS_Chart.Strategy
 
     public decimal AutomaticPositionSizeValue
     {
-      get { return GetPositionSize(TimeFrame.W1) * (decimal)AutomaticPositionSize; }
+      get { return GetPositionSize(TimeFrame.W1, false) * (decimal)AutomaticPositionSize; }
     }
 
     #endregion
@@ -708,13 +708,17 @@ namespace CTKS_Chart.Strategy
         lastCandle = actualCandle;
         decimal lastSell = decimal.MaxValue;
 
+        if (ClosedSellPositions.Any() && ActualPositions.Any())
+        {
+          lastSell = ClosedSellPositions.Last().Price;
+        }
+
         foreach (var innerStrategy in InnerStrategies)
         {
           lastSell = innerStrategy.Calculate(actualCandle);
         }
 
      
-
         var minBuy = actualCandle.Close * (1 - MinBuyPrice);
         decimal maxBuy = MaxBuyPrice ?? decimal.MaxValue;
 
@@ -823,7 +827,7 @@ namespace CTKS_Chart.Strategy
         .ToList();
 
       var autoSize = AutomaticPositionSizeValue;
-      var maxPOsitionOnIntersection = automatic ? autoSize : GetPositionSize(intersection.TimeFrame);
+      var maxPOsitionOnIntersection = GetPositionSize(intersection.TimeFrame, automatic);
 
       var sum = positionsOnIntersesction.Sum(x => x.PositionSize);
 
@@ -958,9 +962,16 @@ namespace CTKS_Chart.Strategy
 
     #region GetPositionSize
 
-    private decimal GetPositionSize(TimeFrame timeFrame)
+    private decimal GetPositionSize(TimeFrame timeFrame, bool automatic)
     {
-      return PositionSizeMapping.Single(x => x.Key == timeFrame).Value;
+      var value = PositionSizeMapping.Single(x => x.Key == timeFrame).Value;
+
+      if(automatic)
+      {
+        value *= (decimal)AutomaticPositionSize; 
+      }
+
+      return value;
     }
 
     #endregion
@@ -1178,7 +1189,7 @@ namespace CTKS_Chart.Strategy
 
             var positionSize = buyPosition.PositionSize;
 
-            var maxPOsitionOnIntersection = (decimal)GetPositionSize(ctksIntersection.TimeFrame);
+            var maxPOsitionOnIntersection = (decimal)GetPositionSize(ctksIntersection.TimeFrame, buyPosition.IsAutomatic);
 
             var positionsOnIntersesction = OpenSellPositions
               .Where(x => x.Intersection.IsSame(ctksIntersection))

@@ -993,6 +993,7 @@ namespace CTKS_Chart.ViewModels
 
     private void CreateChart(Layout layout, double canvasHeight, double canvasWidth, IList<Candle> candles, int? pmaxCount = null)
     {
+      layout.Canvas.Children.Clear();
       var maxCount = pmaxCount ?? candles.Count;
 
       var skip = candles.Count - maxCount > 0 ? candles.Count - maxCount : 0;
