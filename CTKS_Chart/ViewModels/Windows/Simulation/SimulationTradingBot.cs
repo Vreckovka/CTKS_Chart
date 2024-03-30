@@ -30,7 +30,7 @@ namespace CTKS_Chart.ViewModels
     {
       this.binanceDataProvider = binanceDataProvider ?? throw new ArgumentNullException(nameof(binanceDataProvider));
 
-      drawChart = true;
+      drawChart = false;
       IsSimulation = true;
       
       
@@ -44,7 +44,7 @@ namespace CTKS_Chart.ViewModels
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, CanvasHeight, CanvasWidth, TradingBot.Asset);
 
       var tradingView__ada_1D = $"ADAUSDT-240-generated.csv";
-
+      //var tradingView__ada_1D = $"D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data\\BINANCE ADAUSD, 1D.csv";
 
       var mainCandles = TradingHelper.ParseTradingView(tradingView__ada_1D);
 
@@ -52,7 +52,7 @@ namespace CTKS_Chart.ViewModels
       MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
       var fromDate = new DateTime(2018, 9, 21);
-      fromDate = new DateTime(2021,8, 30);
+      //fromDate = new DateTime(2021,8, 30);
 
       cutCandles = mainCandles.Where(x => x.CloseTime > fromDate).ToList();
       DrawingViewModel.ActualCandles = mainCandles.Where(x => x.CloseTime < fromDate).ToList();
@@ -64,7 +64,7 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.MinValue = MainLayout.MinValue;
       DrawingViewModel.LockChart = true;
       DrawingViewModel.ShowATH = true;
-      TradingBot.Strategy.EnableManualPositions = false;
+      //TradingBot.Strategy.EnableManualPositions = false;
 
       var rangeFilterData = "C:\\Users\\Roman Pecho\\Desktop\\BINANCE ADAUSD, 1D.csv";
       TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy(rangeFilterData, TradingBot.Strategy));
@@ -79,7 +79,6 @@ namespace CTKS_Chart.ViewModels
     private void SimulateCandle(List<Layout> secondaryLayouts, Candle candle)
     {
       DrawingViewModel.ActualCandles.Add(candle);
-      //CalculateActualProfits(candle);
 
       if (drawChart)
       {
@@ -97,20 +96,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    private void CalculateActualProfits(Candle actual)
-    {
-      foreach (var position in TradingBot.Strategy.ActualPositions)
-      {
-        var filledSells = position.OpositPositions.Where(x => x.State == PositionState.Filled).ToList();
-
-        var realizedProfit = filledSells.Sum(x => x.OriginalPositionSize + x.Profit);
-        var leftSize = position.OpositPositions.Where(x => x.State == PositionState.Open).Sum(x => x.PositionSizeNative);
-        var fees = position.Fees ?? 0 + filledSells.Sum(x => x.Fees ?? 0);
-
-        var profit = (realizedProfit + (leftSize * actual.Close.Value)) - position.OriginalPositionSize - fees;
-        position.ActualProfit = profit;
-      }
-    }
+   
 
     #region Simulate
 

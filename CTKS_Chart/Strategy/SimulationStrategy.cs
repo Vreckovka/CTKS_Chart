@@ -23,8 +23,10 @@ namespace CTKS_Chart.Strategy
       return false;
     }
 
+    Candle lastCandle = null;
     public override async void ValidatePositions(Candle candle)
     {
+      lastCandle = candle;
       var allPositions = AllOpenedPositions
         .Where(x => x.State == PositionState.Open)
         .OrderByDescending(x => x.Price)
@@ -67,6 +69,7 @@ namespace CTKS_Chart.Strategy
     private long actual = 1;
     protected override Task<long> CreatePosition(Position position)
     {
+      position.CreatedDate = lastCandle.CloseTime;
       return Task.FromResult((long)actual++);
     }
 

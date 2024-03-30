@@ -1337,7 +1337,7 @@ namespace CTKS_Chart.ViewModels
       var openBuys = strategy.OpenBuyPositions;
       var openSells = strategy.OpenSellPositions;
 
-      var sells = openSells.OrderBy(x => x.Price).ToList();
+      var sells = openSells.OrderByDescending(x => x.CreatedDate).ToList();
 
       if (!openSells.Any())
       {

@@ -119,7 +119,7 @@ namespace CTKS_Chart.Strategy
           var value = bullish ? bbwp + 1 : bbwp;
           var newValue = positionSize.Value * (decimal)value;
 
-          var maxPositionValue = originalMapping.SingleOrDefault(x => x.Key == positionSize.Key).Value ;
+          var maxPositionValue = originalMapping.SingleOrDefault(x => x.Key == positionSize.Key).Value;
           var minPositionValue = originalMapping.SingleOrDefault(x => x.Key == positionSize.Key).Value / 5;
 
           if (newValue > maxPositionValue)
@@ -143,7 +143,7 @@ namespace CTKS_Chart.Strategy
           lastSell *= (1 - (decimal)0.01);
         }
 
-
+        strategy.EnableStopLoss = !bullish;
       }
 
       return lastSell;

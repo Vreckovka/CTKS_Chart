@@ -52,6 +52,8 @@ namespace CTKS_Chart.Strategy
     public PositionSide Side { get; set; }
     public long Id { get; set; }
 
+    public bool StopLoss { get; set; }
+
     public string ShortId
     {
       get
