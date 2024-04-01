@@ -138,6 +138,7 @@ namespace CTKS_Chart.Strategy
 
       PositionSizeMapping = newss;
       ScaleSize = 0;
+      StrategyPosition = StrategyPosition.Neutral;
       //499
 #endif
     }
@@ -173,7 +174,7 @@ namespace CTKS_Chart.Strategy
 
     #region StrategyPosition
 
-    private StrategyPosition strategyPosition;
+    private StrategyPosition strategyPosition = StrategyPosition.Bullish;
 
     public StrategyPosition StrategyPosition
     {
@@ -318,7 +319,7 @@ namespace CTKS_Chart.Strategy
 
     public decimal AutomaticPositionSizeValue
     {
-      get { return GetPositionSize(TimeFrame.W1) * (decimal)AutomaticPositionSize; }
+      get { return GetPositionSize(TimeFrame.W1, positionSide: PositionSide.Neutral) * (decimal)AutomaticPositionSize; }
     }
 
     #endregion
@@ -745,7 +746,7 @@ namespace CTKS_Chart.Strategy
 
         if (ClosedSellPositions.Any() && ActualPositions.Any())
         {
-          lastSell = ClosedSellPositions.Last().Price * (decimal)(1 - MinSellProfitMapping[TimeFrame.W1]);
+          lastSell = ClosedSellPositions.Last().Price * (decimal)(1 - MinBuyMapping[TimeFrame.W1]);
         }
 
 #if DEBUG
@@ -1022,19 +1023,19 @@ namespace CTKS_Chart.Strategy
       }
       else
       {
-
         positionSize = PositionSizeMapping.Single(x => x.Key == timeFrame).Value;
+
+        if (positionSide == PositionSide.Buy && StrategyPosition == StrategyPosition.Bearish)
+        {
+          positionSize = PositionSizeMapping.Single(x => x.Key == TimeFrame.W1).Value;
+        }
+        else if (positionSide == PositionSide.Sell && StrategyPosition == StrategyPosition.Bullish)
+        {
+          positionSize = PositionSizeMapping.Single(x => x.Key == TimeFrame.W1).Value;
+        }
       }
 
-      if (positionSide == PositionSide.Buy && StrategyPosition == StrategyPosition.Bearish)
-      {
-        positionSize /= 2;
-      }
-      else if (positionSide == PositionSide.Sell && StrategyPosition == StrategyPosition.Bullish)
-      {
-        positionSize /= 2;
-      }
-
+   
       return positionSize;
     }
 
@@ -1147,10 +1148,17 @@ namespace CTKS_Chart.Strategy
           .Where(x => x.Id != position.Id)
           .Sum(x => x.OriginalPositionSizeNative);
 
-        if (Math.Round(sum, Asset.NativeRound) != Math.Round(newTotalNativeAsset, Asset.NativeRound))
+        try
         {
-          throw new Exception($"Native asset value does not mach sell order !! " +
-                              $"{Math.Round(sum, Asset.NativeRound)} != {Math.Round(newTotalNativeAsset, Asset.NativeRound)}");
+          if (Math.Round(sum, Asset.NativeRound) != Math.Round(newTotalNativeAsset, Asset.NativeRound))
+          {
+            throw new Exception($"Native asset value does not mach sell order !! " +
+                                $"{Math.Round(sum, Asset.NativeRound)} != {Math.Round(newTotalNativeAsset, Asset.NativeRound)}");
+          }
+        }
+        catch (Exception ex)
+        {
+          Logger.Log(ex);
         }
 
         var finalSize = position.Price * position.OriginalPositionSizeNative;

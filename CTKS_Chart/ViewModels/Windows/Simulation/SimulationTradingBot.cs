@@ -52,7 +52,7 @@ namespace CTKS_Chart.ViewModels
       MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
       var fromDate = new DateTime(2018, 9, 21);
-      //fromDate = new DateTime(2021,8, 30);
+      fromDate = new DateTime(2021,8, 30);
 
       cutCandles = mainCandles.Where(x => x.CloseTime > fromDate).ToList();
       DrawingViewModel.ActualCandles = mainCandles.Where(x => x.CloseTime < fromDate).ToList();

@@ -142,8 +142,8 @@ namespace CTKS_Chart.Strategy
         {
           lastSell *= (1 - (decimal)0.01);
         }
-
-        strategy.EnableStopLoss = !bullish;
+        //36078
+        strategy.StrategyPosition = bullish ? StrategyPosition.Bullish : StrategyPosition.Bearish;
       }
 
       return lastSell;
