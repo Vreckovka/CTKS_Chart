@@ -179,7 +179,7 @@
             </wpf:Axis.Separator>
           </wpf:LogarithmicAxis>
 
-          <wpf:Axis
+          <wpf:LogarithmicAxis
             Title="Value to BTC"
             LabelFormatter="{Binding BTCFormatter}"
             Position="RightTop">
@@ -189,7 +189,7 @@
                 StrokeDashArray="0"
                 StrokeThickness="0" />
             </wpf:Axis.Separator>
-          </wpf:Axis>
+          </wpf:LogarithmicAxis>
 
 
         </wpf:CartesianChart.AxisY>

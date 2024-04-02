@@ -118,8 +118,8 @@ namespace CTKS_Chart.Strategy
       //MaxBuyPrice = (decimal)0.0005;
       //MinSellPrice = (decimal)8.5;
 
-      MaxAutomaticBudget = 10000;
-      AutomaticBudget = 10000;
+      MaxAutomaticBudget = 5000;
+      AutomaticBudget = 5000;
 
       PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
       {
@@ -744,6 +744,7 @@ namespace CTKS_Chart.Strategy
         decimal lastSell = decimal.MaxValue;
 
 
+
         if (ClosedSellPositions.Any() && ActualPositions.Any())
         {
           lastSell = ClosedSellPositions.Last().Price * (decimal)(1 - MinBuyMapping[TimeFrame.W1]);
@@ -856,6 +857,29 @@ namespace CTKS_Chart.Strategy
           }
         }
 
+
+#if RELEASE
+        var newTotalNativeAsset = TotalNativeAsset;
+
+        var sum = OpenSellPositions
+          .Sum(x => x.OriginalPositionSizeNative);
+
+
+        if (Math.Round(sum, Asset.NativeRound) != Math.Round(newTotalNativeAsset, Asset.NativeRound))
+        {
+          var missingSell = ClosedBuyPositions.Where(x => x.OpositPositions.Count == 0 && x.State == PositionState.Filled);
+
+          foreach (var missing in missingSell)
+          {
+            LeftSize = missing.OriginalPositionSize;
+            Logger.Log(MessageType.Warning, $"Recreating failed sell position for buy {missing.ShortId}", true);
+            await CreateSellPositionForBuy(missing, Intersections.OrderBy(x => x.Value)
+              .Where(x => x.Value > actualCandle.Close.Value));
+          }
+
+        }
+
+#endif
 
         RaisePropertyChanged(nameof(StrategyViewModel.TotalExpectedProfit));
       }
@@ -1035,7 +1059,7 @@ namespace CTKS_Chart.Strategy
         }
       }
 
-   
+
       return positionSize;
     }
 
@@ -1148,18 +1172,16 @@ namespace CTKS_Chart.Strategy
           .Where(x => x.Id != position.Id)
           .Sum(x => x.OriginalPositionSizeNative);
 
-        try
+
+        if (Math.Round(sum, Asset.NativeRound) != Math.Round(newTotalNativeAsset, Asset.NativeRound))
         {
-          if (Math.Round(sum, Asset.NativeRound) != Math.Round(newTotalNativeAsset, Asset.NativeRound))
-          {
-            throw new Exception($"Native asset value does not mach sell order !! " +
-                                $"{Math.Round(sum, Asset.NativeRound)} != {Math.Round(newTotalNativeAsset, Asset.NativeRound)}");
-          }
+          HandleError($"Native asset value does not mach sell order !! " +
+                      $"{Math.Round(sum, Asset.NativeRound)} != {Math.Round(newTotalNativeAsset, Asset.NativeRound)},\n" +
+                      $"position: {position.ShortId}, {position.Price},{position.OriginalPositionSizeNative}\n" +
+                      $"Left size: {LeftSize}");
+
         }
-        catch (Exception ex)
-        {
-          Logger.Log(ex);
-        }
+
 
         var finalSize = position.Price * position.OriginalPositionSizeNative;
         var profit = finalSize - position.OriginalPositionSize; ;
@@ -1174,6 +1196,7 @@ namespace CTKS_Chart.Strategy
 
         TotalProfit += position.Profit;
         Budget += finalSize;
+        //Dont put sum, this should be real value if there is an error, find it
         TotalNativeAsset = newTotalNativeAsset;
 
         Budget -= position.Fees ?? 0;
@@ -1399,11 +1422,14 @@ namespace CTKS_Chart.Strategy
               LeftSize -= sell.PositionSizeNative;
 
               if (LeftSize < 0)
-                throw new Exception("Left native size is less than 0 !!");
+              {
+                HandleError("Left native size is less than 0 !!");
+              }
             }
             else
             {
-              Logger?.Log(MessageType.Error, "Sell order was not created!, trying again");
+              HandleError("Sell order was not created!, trying again");
+
               await Task.Delay(1000);
             }
           }
@@ -1596,6 +1622,15 @@ namespace CTKS_Chart.Strategy
       }
 
 
+    }
+
+    private void HandleError(string message)
+    {
+#if RELEASE
+      Logger.Log(MessageType.Error, message);
+#else
+      throw new Exception(message);
+#endif
     }
 
     protected abstract Task<bool> CancelPosition(Position position);
