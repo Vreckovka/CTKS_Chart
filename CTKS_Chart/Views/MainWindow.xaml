@@ -51,7 +51,10 @@
           <RowDefinition />
         </Grid.RowDefinitions>
 
-        <Menu VerticalAlignment="Center" Background="Transparent">
+        <Menu
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Center"
+          Background="Transparent">
           <MenuItem Header="Settings">
 
             <MenuItem Header="Default">
@@ -217,6 +220,7 @@
             FontSize="19"
             Header=""
             ToolTip="Testing" />
+
         </Menu>
 
         <Grid Grid.Row="1" Margin="5">
@@ -273,7 +277,6 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-
         </Grid>
 
       </Grid>

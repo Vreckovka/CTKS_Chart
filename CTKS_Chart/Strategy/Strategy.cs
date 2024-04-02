@@ -859,25 +859,25 @@ namespace CTKS_Chart.Strategy
 
 
 //#if RELEASE
-        var newTotalNativeAsset = TotalNativeAsset;
+        //var newTotalNativeAsset = TotalNativeAsset;
 
-        var sum = OpenSellPositions
-          .Sum(x => x.OriginalPositionSizeNative);
+        //var sum = OpenSellPositions
+        //  .Sum(x => x.OriginalPositionSizeNative);
 
 
-        if (Math.Round(sum, Asset.NativeRound) != Math.Round(newTotalNativeAsset, Asset.NativeRound))
-        {
-          var missingSell = ActualPositions.Where(x => x.OriginalPositionSizeNative != x.OpositPositions.Sum(y => y.OriginalPositionSizeNative));
+        //if (Math.Round(sum, Asset.NativeRound) != Math.Round(newTotalNativeAsset, Asset.NativeRound))
+        //{
+        //  var missingSell = ActualPositions.Where(x => x.OriginalPositionSizeNative != x.OpositPositions.Sum(y => y.OriginalPositionSizeNative));
 
-          foreach (var missing in missingSell)
-          {
-            LeftSize = missing.OriginalPositionSize;
-            Logger.Log(MessageType.Warning, $"Recreating failed sell position for buy {missing.ShortId}", true);
-            await CreateSellPositionForBuy(missing, Intersections.OrderBy(x => x.Value)
-              .Where(x => x.Value > actualCandle.Close.Value));
-          }
+        //  foreach (var missing in missingSell)
+        //  {
+        //    LeftSize = missing.OriginalPositionSize;
+        //    Logger.Log(MessageType.Warning, $"Recreating failed sell position for buy {missing.ShortId}", true);
+        //    await CreateSellPositionForBuy(missing, Intersections.OrderBy(x => x.Value)
+        //      .Where(x => x.Value > actualCandle.Close.Value));
+        //  }
 
-        }
+        //}
 
 //#endif
 
@@ -1644,66 +1644,77 @@ namespace CTKS_Chart.Strategy
 
     public async Task Reset(Candle actualCandle)
     {
-
-      var asd = AllOpenedPositions.ToList();
-
-      foreach (var open in asd)
+      try
       {
-        await OnCancelPosition(open, force: true);
-      }
+        await buyLock.WaitAsync();
+        var asd = AllOpenedPositions.ToList();
 
-      LeftSize = TotalNativeAsset;
-      var fakeSize = LeftSize;
-
-      var removedBu = new List<Position>();
-
-      var buys = ClosedBuyPositions
-        .Where(x => x.State == PositionState.Filled &&
-                    !x.OpositPositions.Any())
-        .DistinctBy(x => x.Id)
-        .ToList();
-
-
-
-      if (buys.Count > 0)
-      {
-        removedBu = new List<Position>(buys);
-      }
-
-      for (int i = 0; i < removedBu.Count; i++)
-      {
-        var opened = removedBu[i];
-
-        fakeSize -= opened.PositionSizeNative;
-        opened.OriginalPositionSize = opened.PositionSize;
-        opened.OriginalPositionSizeNative = opened.PositionSizeNative;
-
-        if (fakeSize < 0)
+        foreach (var open in asd)
         {
-          opened.OriginalPositionSizeNative = LeftSize;
-          opened.PositionSizeNative = LeftSize;
-          opened.OriginalPositionSize = opened.Price * LeftSize;
-          opened.PositionSize = opened.Price * LeftSize;
+          await OnCancelPosition(open, force: true);
         }
 
-        if (i == removedBu.Count - 1 && LeftSize > 0)
+        LeftSize = TotalNativeAsset;
+        var fakeSize = LeftSize;
+
+        var removedBu = new List<Position>();
+
+        var buys = ClosedBuyPositions
+          .Where(x => x.State == PositionState.Filled &&
+                      !x.OpositPositions.Any())
+          .DistinctBy(x => x.Id)
+          .ToList();
+
+
+
+        if (buys.Count > 0)
         {
-          opened.OriginalPositionSizeNative += LeftSize - opened.OriginalPositionSizeNative;
-          opened.PositionSizeNative += LeftSize - opened.PositionSizeNative;
-          opened.OriginalPositionSize = opened.Price * opened.OriginalPositionSizeNative;
-          opened.PositionSize = opened.Price * opened.PositionSizeNative;
+          removedBu = new List<Position>(buys);
         }
 
-        if (LeftSize > 0)
+        for (int i = 0; i < removedBu.Count; i++)
         {
-          await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close * (decimal)1.01));
+          var opened = removedBu[i];
+
+          fakeSize -= opened.PositionSizeNative;
+          opened.OriginalPositionSize = opened.PositionSize;
+          opened.OriginalPositionSizeNative = opened.PositionSizeNative;
+
+          if (fakeSize < 0)
+          {
+            opened.OriginalPositionSizeNative = LeftSize;
+            opened.PositionSizeNative = LeftSize;
+            opened.OriginalPositionSize = opened.Price * LeftSize;
+            opened.PositionSize = opened.Price * LeftSize;
+          }
+
+          if (i == removedBu.Count - 1 && LeftSize > 0)
+          {
+            opened.OriginalPositionSizeNative += LeftSize - opened.OriginalPositionSizeNative;
+            opened.PositionSizeNative += LeftSize - opened.PositionSizeNative;
+            opened.OriginalPositionSize = opened.Price * opened.OriginalPositionSizeNative;
+            opened.PositionSize = opened.Price * opened.PositionSizeNative;
+          }
+
+          if (LeftSize > 0)
+          {
+            await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close * (decimal)1.01));
+          }
+          else
+            ClosedBuyPositions.Remove(opened);
         }
-        else
-          ClosedBuyPositions.Remove(opened);
+
+
+        SaveState();
       }
-
-
-      SaveState();
+      catch (Exception ex)
+      {
+        Logger.Log(ex);
+      }
+      finally
+      {
+        buyLock.Release();
+      }
 
     }
 
