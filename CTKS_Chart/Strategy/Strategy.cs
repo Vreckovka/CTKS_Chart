@@ -319,7 +319,7 @@ namespace CTKS_Chart.Strategy
 
     public decimal AutomaticPositionSizeValue
     {
-      get { return GetPositionSize(TimeFrame.W1, positionSide: PositionSide.Neutral) * (decimal)AutomaticPositionSize; }
+      get { return PositionSizeMapping.Single(x => x.Key == TimeFrame.W1).Value * (decimal)AutomaticPositionSize; }
     }
 
     #endregion
@@ -858,7 +858,7 @@ namespace CTKS_Chart.Strategy
         }
 
 
-#if RELEASE
+//#if RELEASE
         var newTotalNativeAsset = TotalNativeAsset;
 
         var sum = OpenSellPositions
@@ -867,7 +867,7 @@ namespace CTKS_Chart.Strategy
 
         if (Math.Round(sum, Asset.NativeRound) != Math.Round(newTotalNativeAsset, Asset.NativeRound))
         {
-          var missingSell = ClosedBuyPositions.Where(x => x.OpositPositions.Count == 0 && x.State == PositionState.Filled);
+          var missingSell = ActualPositions.Where(x => x.OriginalPositionSizeNative != x.OpositPositions.Sum(y => y.OriginalPositionSizeNative));
 
           foreach (var missing in missingSell)
           {
@@ -879,7 +879,7 @@ namespace CTKS_Chart.Strategy
 
         }
 
-#endif
+//#endif
 
         RaisePropertyChanged(nameof(StrategyViewModel.TotalExpectedProfit));
       }
@@ -1421,6 +1421,7 @@ namespace CTKS_Chart.Strategy
 
               LeftSize -= sell.PositionSizeNative;
 
+              SaveState();
               if (LeftSize < 0)
               {
                 HandleError("Left native size is less than 0 !!");
@@ -1434,8 +1435,6 @@ namespace CTKS_Chart.Strategy
             }
           }
         }
-
-        SaveState();
       }
       finally
       {

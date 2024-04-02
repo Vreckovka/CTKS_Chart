@@ -302,6 +302,27 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+
+    #region DrawChart
+
+    private bool drawChart = true;
+
+    public bool DrawChart
+    {
+      get { return drawChart; }
+      set
+      {
+        if (value != drawChart)
+        {
+          drawChart = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
     #region Commands
 
     #region ShowCanvas
@@ -744,26 +765,29 @@ namespace CTKS_Chart.ViewModels
 
       stopwatch.Start();
 
-      Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
+      if (!IsSimulation)
       {
-        var diff = stopwatch.Elapsed - lastElapsed;
-        ActiveTime += diff;
-        TotalRunTime += diff;
-
-        lastElapsed = stopwatch.Elapsed;
-
-        if (Math.Round(activeTime.TotalSeconds, 0) % 10 == 0)
+        Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
         {
-          TradingBot.Asset.RunTimeTicks = TotalRunTime.Ticks;
-          var options = new JsonSerializerOptions()
-          {
-            WriteIndented = true
-          };
+          var diff = stopwatch.Elapsed - lastElapsed;
+          ActiveTime += diff;
+          TotalRunTime += diff;
 
-          var json = JsonSerializer.Serialize<Asset>(TradingBot.Asset, options);
-          File.WriteAllText(Path.Combine(Settings.DataPath, "asset.json"), json);
-        }
-      });
+          lastElapsed = stopwatch.Elapsed;
+
+          if (Math.Round(activeTime.TotalSeconds, 0) % 10 == 0)
+          {
+            TradingBot.Asset.RunTimeTicks = TotalRunTime.Ticks;
+            var options = new JsonSerializerOptions()
+            {
+              WriteIndented = true
+            };
+
+            var json = JsonSerializer.Serialize<Asset>(TradingBot.Asset, options);
+            File.WriteAllText(Path.Combine(Settings.DataPath, "asset.json"), json);
+          }
+        });
+      };
 
       ForexChart_Loaded();
     }
@@ -847,7 +871,7 @@ namespace CTKS_Chart.ViewModels
     DateTime lastFileCheck = DateTime.Now;
     private decimal? lastAthPriceUpdated = null;
     private Candle actual = null;
-    protected bool drawChart = true;
+
     public bool IsSimulation { get; set; } = false;
     public bool IsPaused { get; set; } = false;
 
@@ -894,7 +918,7 @@ namespace CTKS_Chart.ViewModels
               var lastCount = secondaryLayout.Ctks.Candles.Count;
               var innerCandles = TradingHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
 
-              secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles));
+              VSynchronizationContext.InvokeOnDispatcher(() => secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles)));
 
               if (innerCandles.Count > lastCount)
                 shouldUpdate = true;
@@ -947,8 +971,8 @@ namespace CTKS_Chart.ViewModels
         TradingBot.Strategy.Intersections = ctksIntersections;
         var athPrice = GetAthPrice();
 
-        if (drawChart)
-          DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, CanvasHeight);
+        if (DrawChart)
+          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, CanvasHeight));
 
         this.actual = actual;
 
@@ -989,8 +1013,8 @@ namespace CTKS_Chart.ViewModels
           Console.WriteLine("NO INTERSECTIONS, DOING NOTHING !");
         }
 
-        if (drawChart)
-          DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, CanvasHeight);
+        if (DrawChart)
+          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, CanvasHeight));
       }
       finally
       {
@@ -1311,22 +1335,25 @@ namespace CTKS_Chart.ViewModels
 
     public void SaveLayoutSettings()
     {
-      var settings = new LayoutSettings()
+      if(!IsSimulation)
       {
-        ShowClosedPositions = DrawingViewModel.ShowClosedPositions,
-        LayoutInterval = LayoutIntervals.SelectedItem.Model.Interval,
-        ColorSettings = DrawingViewModel.ColorScheme.ColorSettings.Select(x => x.Value.Model),
-        ShowAveragePrice = DrawingViewModel.ShowAveragePrice,
-        ShowATH = DrawingViewModel.ShowATH,
-        CandleCount = DrawingViewModel.CandleCount
-      };
+        var settings = new LayoutSettings()
+        {
+          ShowClosedPositions = DrawingViewModel.ShowClosedPositions,
+          LayoutInterval = LayoutIntervals.SelectedItem.Model.Interval,
+          ColorSettings = DrawingViewModel.ColorScheme.ColorSettings.Select(x => x.Value.Model),
+          ShowAveragePrice = DrawingViewModel.ShowAveragePrice,
+          ShowATH = DrawingViewModel.ShowATH,
+          CandleCount = DrawingViewModel.CandleCount
+        };
 
-      var options = new JsonSerializerOptions()
-      {
-        WriteIndented = true
-      };
+        var options = new JsonSerializerOptions()
+        {
+          WriteIndented = true
+        };
 
-      File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings, options));
+        File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings, options));
+      } 
     }
 
     #endregion

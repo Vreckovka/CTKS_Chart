@@ -153,7 +153,8 @@ namespace CTKS_Chart.Strategy
 
 
         var valids = ActualPositions
-          .Where(x => x.OpositPositions.All(y => y.State == PositionState.Filled)).ToList();
+          .Where(x => x.OpositPositions.All(y => y.State == PositionState.Filled) && 
+          x.OpositPositions.Sum(y => y.OriginalPositionSizeNative) == x.OriginalPositionSizeNative).ToList();
 
         foreach (var valid in valids)
         {

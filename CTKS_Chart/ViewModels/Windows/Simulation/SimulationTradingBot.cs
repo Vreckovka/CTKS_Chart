@@ -30,13 +30,12 @@ namespace CTKS_Chart.ViewModels
     {
       this.binanceDataProvider = binanceDataProvider ?? throw new ArgumentNullException(nameof(binanceDataProvider));
 
-      drawChart = false;
       IsSimulation = true;
-      
-      
+
+      DrawChart = false;
     }
 
-   
+
 
     private List<Candle> cutCandles = new List<Candle>();
     protected override async Task LoadLayouts(Layout mainLayout)
@@ -71,7 +70,7 @@ namespace CTKS_Chart.ViewModels
 
       LoadSecondaryLayouts(mainLayout, mainCtks, fromDate);
 
-      Simulate(cutCandles, InnerLayouts, !IsSimulation || drawChart ? 1 : 0);
+      Simulate(cutCandles, InnerLayouts);
     }
 
     #region SimulateCandle
@@ -80,7 +79,7 @@ namespace CTKS_Chart.ViewModels
     {
       DrawingViewModel.ActualCandles.Add(candle);
 
-      if (drawChart)
+      if (DrawChart)
       {
         VSynchronizationContext.InvokeOnDispatcher(() =>
         {
@@ -100,7 +99,7 @@ namespace CTKS_Chart.ViewModels
 
     #region Simulate
 
-    private void Simulate(List<Candle> cutCandles, List<Layout> secondaryLayouts, int delay = 500)
+    private void Simulate(List<Candle> cutCandles, List<Layout> secondaryLayouts)
     {
 
       Task.Run(async () =>
@@ -111,7 +110,7 @@ namespace CTKS_Chart.ViewModels
 
           SimulateCandle(secondaryLayouts, actual);
 
-          await Task.Delay(delay);
+          await Task.Delay(!IsSimulation || DrawChart ? 1 : 0);
         }
       });
     }

@@ -26,9 +26,15 @@
         Command="{Binding StartCommand}"
         Content="Start" />
       <Button Margin="5,0" Content="Stop" />
+
+
+
+      <CheckBox IsChecked="{Binding Model.DrawChart}">Draw chart</CheckBox>
+
+
     </StackPanel>
 
 
-    <trading:BotView Grid.Row="1" DataContext="{Binding Model}"/>
+    <trading:BotView Grid.Row="1" DataContext="{Binding Model}" />
   </Grid>
 </UserControl>
