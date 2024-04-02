@@ -884,12 +884,17 @@ namespace CTKS_Chart.ViewModels
 
           if (actual.CloseTime > TradingHelper.GetNextTime(lastCandle.CloseTime, secondaryLayout.TimeFrame))
           {
-            if (!secondaryLayout.IsOutDated || (secondaryLayout.IsOutDated && lastFileCheck < DateTime.Now.AddMinutes(1)))
+            var fileCheck = true;
+
+#if RELEASE
+            fileCheck = lastFileCheck < DateTime.Now.AddMinutes(1);
+#endif
+            if (!secondaryLayout.IsOutDated || (secondaryLayout.IsOutDated && fileCheck))
             {
               var lastCount = secondaryLayout.Ctks.Candles.Count;
               var innerCandles = TradingHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
 
-              VSynchronizationContext.InvokeOnDispatcher(() => secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles)));
+              secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles));
 
               if (innerCandles.Count > lastCount)
                 shouldUpdate = true;

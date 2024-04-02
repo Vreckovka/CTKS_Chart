@@ -382,7 +382,10 @@ namespace CTKS_Chart.Trading
       Candles = null;
       canvas.Children.Clear();
       ctksIntersections.Clear();
+      renderedIntersections.Clear();
       ctksLines.Clear();
+
+      canvas.UpdateLayout();
 
       createChart();
 
@@ -390,7 +393,13 @@ namespace CTKS_Chart.Trading
       AddIntersections();
       RenderIntersections();
 
+      canvas.UpdateLayout();
+
       Candles = candles;
+
+      GC.Collect();
+      GC.WaitForPendingFinalizers();
+      GC.Collect();
     }
   }
 }
