@@ -108,14 +108,6 @@ namespace CTKS_Chart.Strategy
           });
         }
 
-        var valids = ActualPositions
-          .Where(x => x.OpositPositions.All(y => y.State == PositionState.Filled)).ToList();
-
-        foreach (var valid in valids)
-        {
-          valid.State = PositionState.Filled;
-          ActualPositions.Remove(valid);
-        }
       }
       finally
       {
@@ -158,6 +150,16 @@ namespace CTKS_Chart.Strategy
               }
             }
           }
+        }
+
+
+        var valids = ActualPositions
+          .Where(x => x.OpositPositions.All(y => y.State == PositionState.Filled)).ToList();
+
+        foreach (var valid in valids)
+        {
+          valid.State = PositionState.Filled;
+          ActualPositions.Remove(valid);
         }
       }
       finally

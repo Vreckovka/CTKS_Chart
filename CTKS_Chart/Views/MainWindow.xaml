@@ -773,7 +773,7 @@
           <Border.Style>
             <Style TargetType="Border">
               <Style.Triggers>
-                <DataTrigger Binding="{Binding DataContext.TradingBotViewModel.IsSimulation, RelativeSource={RelativeSource AncestorType=Window}}" Value="true">
+                <DataTrigger Binding="{Binding IsPaused}" Value="true">
                   <Setter Property="Visibility" Value="Collapsed" />
                 </DataTrigger>
               </Style.Triggers>

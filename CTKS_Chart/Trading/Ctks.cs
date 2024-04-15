@@ -397,9 +397,9 @@ namespace CTKS_Chart.Trading
 
       Candles = candles;
 
-      GC.Collect();
-      GC.WaitForPendingFinalizers();
-      GC.Collect();
+      //GC.Collect();
+      //GC.WaitForPendingFinalizers();
+      //GC.Collect();
     }
   }
 }

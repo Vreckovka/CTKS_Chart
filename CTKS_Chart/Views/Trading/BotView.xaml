@@ -320,7 +320,7 @@
                     <TextBlock
                       Grid.Row="1"
                       Grid.Column="0"
-                      Text="{Binding ScaleSize, StringFormat={}{0} x}" />
+                      Text="{Binding ScaleSize, StringFormat={}{0:N2} x}" />
 
                     <TextBox
                       Grid.Row="2"

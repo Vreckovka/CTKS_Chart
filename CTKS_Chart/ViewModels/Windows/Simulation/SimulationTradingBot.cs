@@ -33,6 +33,8 @@ namespace CTKS_Chart.ViewModels
       IsSimulation = true;
 
       DrawChart = false;
+
+      //DownloadCandles("BTCUSDT");
     }
 
 
@@ -51,7 +53,7 @@ namespace CTKS_Chart.ViewModels
       MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
       var fromDate = new DateTime(2018, 9, 21);
-      fromDate = new DateTime(2021,8, 30);
+      //fromDate = new DateTime(2021,8, 30);
 
       cutCandles = mainCandles.Where(x => x.CloseTime > fromDate).ToList();
       DrawingViewModel.ActualCandles = mainCandles.Where(x => x.CloseTime < fromDate).ToList();
@@ -95,7 +97,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-   
+
 
     #region Simulate
 
@@ -117,13 +119,9 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    private void DownloadCandles()
+    private void DownloadCandles(string symbol)
     {
-      bool download = false;
-
-      if (download)
-        this.binanceDataProvider.GetKlines("ADAUSDT", TimeSpan.FromMinutes(240));
-
+      this.binanceDataProvider.GetKlines(symbol, TimeSpan.FromMinutes(240));
     }
 
   }

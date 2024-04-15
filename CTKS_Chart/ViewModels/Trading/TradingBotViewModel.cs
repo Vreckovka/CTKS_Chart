@@ -873,7 +873,28 @@ namespace CTKS_Chart.ViewModels
     private Candle actual = null;
 
     public bool IsSimulation { get; set; } = false;
-    public bool IsPaused { get; set; } = false;
+
+
+
+    #region IsPaused
+
+    private bool isPaused;
+
+    public bool IsPaused
+    {
+      get { return isPaused; }
+      set
+      {
+        if (value != isPaused)
+        {
+          isPaused = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
 
     private Dictionary<TimeFrame, bool> stopParsingForNewData = new Dictionary<TimeFrame, bool>()
     {

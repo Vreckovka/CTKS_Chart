@@ -118,17 +118,18 @@ namespace CTKS_Chart.Strategy
       //MaxBuyPrice = (decimal)0.0005;
       //MinSellPrice = (decimal)8.5;
 
-      MaxAutomaticBudget = 5000;
-      AutomaticBudget = 5000;
+      MaxAutomaticBudget = StartingBudget * (decimal)0.35;
+      AutomaticBudget = StartingBudget * (decimal)0.35;
+
 
       PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
       {
-        { TimeFrame.M12, 600},
-        { TimeFrame.M6, 500},
-        { TimeFrame.M3, 400},
-        { TimeFrame.M1, 300},
-        { TimeFrame.W2, 200},
-        { TimeFrame.W1, 100},
+        { TimeFrame.M12, 700},
+        { TimeFrame.M6, 600},
+        { TimeFrame.M3, 500},
+        { TimeFrame.M1, 400},
+        { TimeFrame.W2, 300},
+        { TimeFrame.W1, 200},
       };
 
       foreach (var data in StrategyData.PositionSizeMapping)
@@ -190,9 +191,6 @@ namespace CTKS_Chart.Strategy
     }
 
     #endregion
-
-
-
 
     #region StrategyData
 
@@ -536,6 +534,24 @@ namespace CTKS_Chart.Strategy
 
     #endregion
 
+    #region BasePositionSizeMapping
+    IEnumerable<KeyValuePair<TimeFrame, decimal>> basePositionSizeMapping;
+    public IEnumerable<KeyValuePair<TimeFrame, decimal>> BasePositionSizeMapping
+    {
+      get { return basePositionSizeMapping; }
+      set
+      {
+        if (value != basePositionSizeMapping)
+        {
+          basePositionSizeMapping = value;
+          RaisePropertyChanged();
+          RaisePropertyChanged(nameof(AutomaticPositionSizeValue));
+        }
+      }
+    }
+
+    #endregion
+
     #region PositionSizeMapping
 
     public IEnumerable<KeyValuePair<TimeFrame, decimal>> PositionSizeMapping
@@ -753,7 +769,7 @@ namespace CTKS_Chart.Strategy
 #if DEBUG
         foreach (var innerStrategy in InnerStrategies)
         {
-          lastSell = innerStrategy.Calculate(actualCandle);
+          innerStrategy.Calculate(actualCandle);
         }
 #endif
 
@@ -830,13 +846,13 @@ namespace CTKS_Chart.Strategy
                     .Where(x => x.IsEnabled)
                     .Where(x => x.Value < actualCandle.Close.Value &&
                                 x.Value > minBuy &&
-                                x.Value < lastSell &&
-                                x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame))
+                                x.Value < lastSell)
                       .OrderByDescending(x => x.Value)
                     .ToList();
 
 
-        var nonAutomaticIntersections = inter.Where(x => x.Value < maxBuy);
+        var nonAutomaticIntersections = inter.Where(x => x.Value < maxBuy &&
+                                                         x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame));
 
         if (EnableManualPositions)
         {
@@ -849,7 +865,7 @@ namespace CTKS_Chart.Strategy
 
         if (StrategyData.MaxAutomaticBudget > 0)
         {
-          var autoIntersections = inter;
+          var autoIntersections = inter.Where(x => x.Value < actualCandle.Close.Value * (decimal)0.995);
 
           foreach (var intersection in autoIntersections)
           {
@@ -858,7 +874,7 @@ namespace CTKS_Chart.Strategy
         }
 
 
-//#if RELEASE
+        //#if RELEASE
         //var newTotalNativeAsset = TotalNativeAsset;
 
         //var sum = OpenSellPositions
@@ -879,7 +895,7 @@ namespace CTKS_Chart.Strategy
 
         //}
 
-//#endif
+        //#endif
 
         RaisePropertyChanged(nameof(StrategyViewModel.TotalExpectedProfit));
       }
@@ -1253,7 +1269,12 @@ namespace CTKS_Chart.Strategy
       {
         await sellLock.WaitAsync();
 
-        var minPrice = Math.Max(buyPosition.Price * (decimal)(1.0 + MinSellProfitMapping[buyPosition.TimeFrame]), buyPosition.IsAutomatic ? 0 : MinSellPrice ?? 0);
+        var minPrice = Math.Max(buyPosition.Price * (decimal)(1.0 + MinSellProfitMapping[buyPosition.TimeFrame]), MinSellPrice ?? 0);
+
+        if (buyPosition.IsAutomatic)
+        {
+          minPrice = buyPosition.Price * (decimal)1.005;
+        }
 
         IList<CtksIntersection> nextLines = null;
 
@@ -1541,22 +1562,37 @@ namespace CTKS_Chart.Strategy
       var map = PositionSizeMapping.ToList();
 
       var size = (1 + (perc * (decimal)1 * (decimal)ScaleSize));
-      var maxValue = (TotalProfit + StartingBudget);
+      var maxValue = lastCandle.Close * TotalNativeAssetValue * (decimal)0.25;
       var nextMaxValue = PositionSizeMapping.Single(x => x.Key == TimeFrame.M12).Value * size;
+
+      //var newList = new Dictionary<TimeFrame, decimal>();
+
+      //if (nextMaxValue < maxValue)
+      //{
+      //  foreach (var mapping in map)
+      //  {
+      //    newList.Add(mapping.Key, mapping.Value * size);
+      //  }
+
+      //  PositionSizeMapping = newList;
+
+      //  SaveState();
+      //}
 
       var newList = new Dictionary<TimeFrame, decimal>();
 
-      if (nextMaxValue < maxValue)
+      if (nextMaxValue > maxValue && BasePositionSizeMapping != null && size > 1)
       {
-        foreach (var mapping in map)
-        {
-          newList.Add(mapping.Key, mapping.Value * size);
-        }
-
-        PositionSizeMapping = newList;
-
-        SaveState();
+        return;
       }
+
+      foreach (var mapping in BasePositionSizeMapping.ToList())
+      {
+        newList.Add(mapping.Key, mapping.Value * size);
+      }
+
+      BasePositionSizeMapping = newList;
+
     }
 
     #endregion

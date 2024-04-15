@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using CTKS_Chart.Trading;
 
 namespace CTKS_Chart.Strategy
 {
   public abstract class InnerStrategy
   {
-    public abstract decimal Calculate(Candle actual);
+    public abstract void Calculate(Candle actual);
   }
 
   public class RangeFilterStrategy : InnerStrategy
@@ -25,7 +26,7 @@ namespace CTKS_Chart.Strategy
 
     Candle lastCandle;
 
-    public override decimal Calculate(Candle newCandle)
+    public override void Calculate(Candle newCandle)
     {
       if (candles == null)
       {
@@ -34,14 +35,7 @@ namespace CTKS_Chart.Strategy
 
       var actualCandle = candles.FirstOrDefault(x => x.CloseTime > newCandle.CloseTime && x.OpenTime < newCandle.OpenTime);
 
-      decimal lastSell = decimal.MaxValue;
-
-      if (strategy.ClosedSellPositions.Any() && strategy.ActualPositions.Any())
-      {
-        lastSell = strategy.ClosedSellPositions.Last().Price;
-      }
-
-
+ 
       if (actualCandle != null && actualCandle.IndicatorData.RangeFilter > 0 && lastCandle != actualCandle)
       {
         var bullish = actualCandle.IndicatorData.Upward;
@@ -56,19 +50,16 @@ namespace CTKS_Chart.Strategy
         //  strategy.Intersections.ForEach(x => x.IsEnabled = true);
         //}
 
-        if (bbwp == 0)
-        {
-          return decimal.MaxValue;
-        }
+ 
+        var size = 0.1;
 
-        var change = bullish ? bbwp : 1 + bbwp;
         var minValue = 0.0075;
-        var maxValue = 0.05;
+        var maxValue = 0.25;
 
         var list = this.strategy.MinBuyMapping.ToList();
         foreach (var buy in list)
         {
-          var newValue = buy.Value * change;
+          var newValue = buy.Value * (bullish ? 1 - size : 1 + size);
 
           if (newValue < minValue)
           {
@@ -79,16 +70,15 @@ namespace CTKS_Chart.Strategy
             newValue = maxValue;
           }
 
-          wasChange = strategy.MinBuyMapping[buy.Key] != newValue;
           strategy.MinBuyMapping[buy.Key] = newValue;
         }
 
         list = this.strategy.MinSellProfitMapping.ToList();
-        change = bullish ? 1 + bbwp : bbwp;
+       
 
         foreach (var sell in list)
-        {
-          var newValue = sell.Value * change;
+        {      
+          var newValue = sell.Value * (bullish ? 1 + size : 1 - size);
 
           if (newValue < minValue)
           {
@@ -99,7 +89,6 @@ namespace CTKS_Chart.Strategy
             newValue = maxValue;
           }
 
-          wasChange = strategy.MinBuyMapping[sell.Key] != newValue;
           strategy.MinSellProfitMapping[sell.Key] = newValue;
         }
 
@@ -107,19 +96,20 @@ namespace CTKS_Chart.Strategy
 
         if (originalMapping == null)
         {
-          originalMapping = positionSizes;
+          strategy.BasePositionSizeMapping = strategy.PositionSizeMapping;
+         
         }
 
+        originalMapping = strategy.BasePositionSizeMapping;
         var newList = new Dictionary<TimeFrame, decimal>();
 
         foreach (var positionSize in positionSizes)
         {
           newList.Add(positionSize.Key, positionSize.Value);
 
-          var value = bullish ? bbwp + 1 : bbwp;
-          var newValue = positionSize.Value * (decimal)value;
+          var newValue = positionSize.Value * (decimal)(bullish ? 1 + size : 1 - size);
 
-          var maxPositionValue = originalMapping.SingleOrDefault(x => x.Key == positionSize.Key).Value;
+          var maxPositionValue = originalMapping.SingleOrDefault(x => x.Key == positionSize.Key).Value * (decimal)1.25;
           var minPositionValue = originalMapping.SingleOrDefault(x => x.Key == positionSize.Key).Value / 5;
 
           if (newValue > maxPositionValue)
@@ -132,21 +122,71 @@ namespace CTKS_Chart.Strategy
           }
 
           newList[positionSize.Key] = newValue;
+
+
+
+          //31557
+
+          //if (strategy.StrategyPosition == StrategyPosition.Bearish)
+          //{
+          //  var positionsToStop = strategy.ActualPositions
+          //    .Where(x => x.TimeFrame == positionSize.Key)
+          //    .Where(x => !x.IsAutomatic)
+          //    .Where(x => x.OriginalPositionSize > originalMapping.SingleOrDefault(y => y.Key == positionSize.Key).Value);
+
+          //  if (positionsToStop.Any())
+          //    StopPositions(newCandle, positionsToStop);
+          //}
+        }
+
+        if (bullish)
+        {
+          strategy.ScaleSize += 0.05;
+
+          if (strategy.ScaleSize > 2)
+          {
+            strategy.ScaleSize = 2;
+          }
+        }
+        else
+        {
+          strategy.ScaleSize -= 0.05;
+
+          if (strategy.ScaleSize < -1)
+          {
+            strategy.ScaleSize = -1;
+          }
         }
 
         strategy.PositionSizeMapping = newList;
 
         lastCandle = actualCandle;
 
-        if (!bullish)
-        {
-          lastSell *= (1 - (decimal)0.01);
-        }
-        //36078
+
         strategy.StrategyPosition = bullish ? StrategyPosition.Bullish : StrategyPosition.Bearish;
       }
+    }
 
-      return lastSell;
+    private async Task StopPositions(Candle actual, IEnumerable<Position> positions)
+    {
+      foreach (var position in positions)
+      {
+        var filledSells = position.OpositPositions.Where(x => x.State == PositionState.Filled).ToList();
+
+        var realizedProfit = filledSells.Sum(x => x.OriginalPositionSize + x.Profit);
+        var leftSize = position.OpositPositions.Where(x => x.State == PositionState.Open).Sum(x => x.PositionSizeNative);
+        var fees = position.Fees ?? 0 + filledSells.Sum(x => x.Fees ?? 0);
+
+        var profit = (realizedProfit + (leftSize * actual.Close.Value)) - position.OriginalPositionSize - fees;
+        position.ActualProfit = profit;
+        var perc = profit * 100 / position.OriginalPositionSize;
+
+        if (perc < (decimal)-10 && !position.StopLoss)
+        {
+          position.StopLoss = true;
+          await strategy.RecreateSellPositions(actual, position.OpositPositions.Where(x => x.State == PositionState.Open));
+        }
+      }
     }
   }
 }
