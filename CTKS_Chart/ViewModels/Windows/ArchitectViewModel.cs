@@ -4,6 +4,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using VCore.Standard;
@@ -23,8 +24,8 @@ namespace CTKS_Chart.ViewModels
       this.Asset = asset ?? throw new ArgumentNullException(nameof(asset));
       Layouts = layouts ?? throw new ArgumentNullException(nameof(layouts));
       ColorScheme = colorSchemeViewModel ?? throw new ArgumentNullException(nameof(colorSchemeViewModel));
-   
-      SelectedLayout = layouts[4];
+
+      SelectedLayout = layouts[5];
     }
 
 
@@ -46,7 +47,7 @@ namespace CTKS_Chart.ViewModels
         if (value != selectedLayout)
         {
           selectedLayout = value;
-          
+
           maxValue = selectedLayout.MaxValue;
           minValue = selectedLayout.MinValue;
           candleCount = selectedLayout.Ctks.Candles.Count;
@@ -110,8 +111,8 @@ namespace CTKS_Chart.ViewModels
       {
         if (value != minValue && value < maxValue)
         {
-                
-          if(value > 0)
+
+          if (value > 0)
           {
             minValue = value;
 
@@ -210,9 +211,6 @@ namespace CTKS_Chart.ViewModels
       double maxDrawnPoint = 0;
       var drawnCandles = new List<ChartCandle>();
 
-      var maxPoint = TradingHelper.GetCanvasValue(canvasHeight, MaxValue, MaxValue, MinValue);
-      var minPoint = TradingHelper.GetCanvasValue(canvasHeight, MinValue, MaxValue, MinValue);
-
       if (candles.Any())
       {
         int y = 0;
@@ -222,6 +220,9 @@ namespace CTKS_Chart.ViewModels
 
           var close = TradingHelper.GetCanvasValue(canvasHeight, point.Close.Value, MaxValue, MinValue);
           var open = TradingHelper.GetCanvasValue(canvasHeight, point.Open.Value, MaxValue, MinValue);
+
+          var high = TradingHelper.GetCanvasValue(canvasHeight, point.High.Value, MaxValue, MinValue);
+          var low = TradingHelper.GetCanvasValue(canvasHeight, point.Low.Value, MaxValue, MinValue);
 
           var green = i > 0 ? candles[i - 1].Close < point.Close : point.Open < point.Close;
 
@@ -238,6 +239,16 @@ namespace CTKS_Chart.ViewModels
           var lastClose = i > 0 ?
             TradingHelper.GetCanvasValue(canvasHeight, candles[i - 1].Close.Value, MaxValue, MinValue) :
             TradingHelper.GetCanvasValue(canvasHeight, candles[i].Open.Value, MaxValue, MinValue);
+
+          if (lastClose < 0)
+          {
+            lastClose = 0;
+          }
+
+          if (close < 0)
+          {
+            close = 0;
+          }
 
           if (green)
           {
@@ -256,52 +267,50 @@ namespace CTKS_Chart.ViewModels
           else
             newCandle.Y = canvasHeight - close - newCandle.Height;
 
-          var high = candles[i].High.Value;
-          var low = candles[i].Low.Value;
-
-
-          if (point.Low < MinValue)
-            low = MinValue;
-
-          if (point.High > MaxValue)
-            high = MaxValue;
-
-
-          var topWickCanvas = TradingHelper.GetCanvasValue(canvasHeight, high, MaxValue, MinValue);
-          var bottomWickCanvas = TradingHelper.GetCanvasValue(canvasHeight, low, MaxValue, MinValue);
 
 
           var wickTop = green ? close : open;
           var wickBottom = green ? open : close;
 
-          var topY = canvasHeight - wickTop - (topWickCanvas - wickTop);
+          var topY = canvasHeight - wickTop - (high - wickTop);
           var bottomY = canvasHeight - wickBottom;
 
           Rect? topWick = null;
           Rect? bottomWick = null;
 
-          if (topWickCanvas - wickTop > 0)
+          if (high - wickTop > 0 && high > 0)
           {
+            if (wickTop < 0)
+            {
+              wickTop = 0;
+            }
+
             topWick = new Rect()
             {
-              Height = topWickCanvas - wickTop,
+              Height = high - wickTop,
               X = newCandle.X + (newCandle.Width / 2),
               Y = topY,
             };
           }
 
-          if (wickBottom - bottomWickCanvas > 0)
+          if (wickBottom - low > 0 && wickBottom > 0)
           {
+            if (low < 0)
+            {
+              low = 0;
+            }
+
             bottomWick = new Rect()
             {
-              Height = wickBottom - bottomWickCanvas,
+              Height = wickBottom - low,
               X = newCandle.X + (newCandle.Width / 2),
               Y = bottomY,
             };
           }
 
-          drawingContext.DrawRectangle(selectedBrush, pen, newCandle);
 
+          if (newCandle.Height > 0)
+            drawingContext.DrawRectangle(selectedBrush, pen, newCandle);
 
           if (topWick != null)
             drawingContext.DrawRectangle(selectedBrush, wickPen, topWick.Value);
@@ -359,15 +368,37 @@ namespace CTKS_Chart.ViewModels
       {
         dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(imageHeight, imageWidth));
 
-        var chart = DrawChart(dc, candles, imageHeight, imageWidth, CandleCount);
+        var drawnChart = DrawChart(dc, candles, imageHeight, imageWidth, CandleCount);
+        var lines = RenderLines(dc, drawnChart.Candles.ToList(), imageHeight, imageWidth);
 
-        RenderIntersections(dc, SelectedLayout.Ctks.ctksIntersections,
-          chart.Candles.ToList(),
+        List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
+        var lastCandle = drawnChart.Candles.Last();
+
+        foreach (var line in lines)
+        {
+          var actualLeft = lastCandle.Body.Left + lastCandle.Body.Width / 2;
+          var actual = TradingHelper.GetPointOnLine(line.StartPoint.X, line.StartPoint.Y, line.EndPoint.X, line.EndPoint.Y, actualLeft);
+          var value = Math.Round(TradingHelper.GetValueFromCanvas(imageHeight, imageHeight - actual, MaxValue, MinValue), Asset.PriceRound);
+
+          if(value > 0)
+          {
+            var intersection = new CtksIntersection()
+            {
+              Value = value,
+              TimeFrame = line.TimeFrame,
+              Line = line
+            };
+
+            ctksIntersections.Add(intersection);
+          }
+       
+        }
+
+        RenderIntersections(dc, ctksIntersections,
+          drawnChart.Candles.ToList(),
           imageHeight,
           imageHeight,
           imageWidth);
-
-        RenderLines(dc, chart.Candles.ToList(),imageHeight, imageWidth);
 
         DrawingImage dImageSource = new DrawingImage(dGroup);
 
@@ -388,14 +419,14 @@ namespace CTKS_Chart.ViewModels
       double canvasHeight,
       double canvasWidth)
     {
-      var maxCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredHeight, desiredHeight, MaxValue, MinValue);
-      var minCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredHeight, -2 * (desiredHeight - canvasHeight), MaxValue, MinValue);
+      //var maxCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredHeight, desiredHeight, MaxValue, MinValue);
+      //var minCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredHeight, -2 * (desiredHeight - canvasHeight), MaxValue, MinValue);
 
-      maxCanvasValue = Math.Max(maxCanvasValue, candles.Max(x => x.Candle.High.Value));
-      minCanvasValue = Math.Min(minCanvasValue, candles.Min(x => x.Candle.Low.Value));
+      //maxCanvasValue = Math.Max(maxCanvasValue, candles.Max(x => x.Candle.High.Value));
+      //minCanvasValue = Math.Min(minCanvasValue, candles.Min(x => x.Candle.Low.Value));
 
       var validIntersection = intersections
-        .Where(x => x.Value > minCanvasValue && x.Value < maxCanvasValue)
+        .Where(x => x.Value > MinValue && x.Value < MaxValue)
         .ToList();
 
       foreach (var intersection in validIntersection)
@@ -424,36 +455,58 @@ namespace CTKS_Chart.ViewModels
 
     #region RenderLines
 
-    public void RenderLines(
+    public IEnumerable<CtksLine> RenderLines(
       DrawingContext drawingContext,
       IList<ChartCandle> chartCandles,
       double canvasHeight,
       double canvasWidth)
     {
-      foreach (var line in SelectedLayout.Ctks.ctksLines.TakeLast(5))
+      var lines = SelectedLayout.Ctks.ctksLines.TakeLast(15).ToList();
+      var list = new List<CtksLine>();
+
+      foreach (var line in lines)
       {
         Brush selectedBrush = Brushes.Yellow;
 
         var x3 = canvasWidth;
 
-        var firstCandle = chartCandles.SingleOrDefault(x => x.Candle.UnixTime == line.FirstCandleUnixTime);
-        var secondCandle = chartCandles.SingleOrDefault(x => x.Candle.UnixTime == line.SecondCandleUnixTime);
+        var firstCandle = chartCandles.SingleOrDefault(x => x.Candle.UnixTime == line.FirstPoint.UnixTime);
+        var secondCandle = chartCandles.SingleOrDefault(x => x.Candle.UnixTime == line.SecondPoint.UnixTime);
 
-        if(firstCandle == null || secondCandle == null)
+        if (firstCandle == null || secondCandle == null)
         {
           continue;
         }
 
-        var ctksLine = CreateLine(line.FirstIndex,line.SecondIndex,canvasHeight,canvasWidth, firstCandle, secondCandle, line.LineType,line.TimeFrame);
-        var y3 = TradingHelper.GetPointOnLine(ctksLine.X1, ctksLine.Y1, ctksLine.X2, ctksLine.Y2, x3);
+        var ctksLine = CreateLine(line.FirstIndex, line.SecondIndex, canvasHeight, canvasWidth, line, firstCandle, secondCandle, line.LineType, line.TimeFrame);
+        var y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
+                
+        while (y3 < 0 && x3 > 0)
+        {
+          x3 -= 1;
+          y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
+        }
 
+        while (y3 > canvasHeight)
+        {
+          x3 -= 1;
+          y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
+        }
+
+        if (x3 < 0)
+          continue;
 
         Pen pen = new Pen(selectedBrush, 1);
 
-        var finalPoint = new Point(x3, canvasHeight - y3);
+        var finalPoint = new Point(x3, y3);
 
-        drawingContext.DrawLine(pen, ctksLine.StartPoint, finalPoint);
+        drawingContext.DrawLine(pen, ctksLine.StartPoint, ctksLine.EndPoint);
+        drawingContext.DrawLine(pen, ctksLine.EndPoint, finalPoint);
+
+        list.Add(ctksLine);
       }
+
+      return list;
     }
 
     #endregion
@@ -461,17 +514,19 @@ namespace CTKS_Chart.ViewModels
     #region CreateLine
 
     public CtksLine CreateLine(
-      int? firstCandleIndex, 
-      int? secondCandleIndex, 
+      int? firstCandleIndex,
+      int? secondCandleIndex,
       double canvasHeight,
       double canvasWidth,
+      CtksLine ctksLine,
       ChartCandle first,
       ChartCandle second,
-      LineType lineType, 
+      LineType lineType,
       TimeFrame timeFrame)
     {
-      var bottom1 = canvasHeight- first.Body.Bottom;
-      var bottom2 = canvasHeight-second.Body.Bottom;
+
+      var bottom1 = TradingHelper.GetCanvasValue(canvasHeight, ctksLine.FirstPoint.Price, MaxValue, MinValue);
+      var bottom2 = TradingHelper.GetCanvasValue(canvasHeight, ctksLine.SecondPoint.Price, MaxValue, MinValue);
 
       var left1 = first.Body.Left;
       var left2 = second.Body.Left;
@@ -479,73 +534,32 @@ namespace CTKS_Chart.ViewModels
       var width1 = first.Body.Width;
       var width2 = second.Body.Width;
 
-      var height1 = first.Body.Height;
-      var height2 = second.Body.Height;
-
-      double y1 = 0.0;
-      double y2 = 0.0;
-
-      double x1 = 0.0;
-      double x2 = 0.0;
-
       var startPoint = new Point();
       var endPoint = new Point();
 
-      if (lineType == LineType.RightBttom)
+      if (lineType == LineType.RightBottom)
       {
         startPoint = new Point(left1 + width1, canvasHeight - bottom1);
         endPoint = new Point(left2 + width2, canvasHeight - bottom2);
-
-        y1 = bottom1;
-        y2 = bottom2;
-
-        x1 = left1 + width1;
-        x2 = left2 + width2;
       }
       else if (lineType == LineType.LeftTop)
       {
-        startPoint = new Point(left1, canvasHeight - bottom1 - height1);
-        endPoint = new Point(left2, canvasHeight - bottom2 - height2);
-
-        y1 = bottom1 + height1;
-        y2 = bottom2 + height2;
-
-        x1 = left1;
-        x2 = left2;
+        startPoint = new Point(left1, canvasHeight - bottom1);
+        endPoint = new Point(left2, canvasHeight - bottom2);
       }
-      //else if (lineType == LineType.RightTop)
-      //{
-      //  startPoint = new Point(Canvas.GetLeft(firstRect) + firstRect.Width, canvasHeight - bottom1 - firstRect.Height);
-      //  endPoint = new Point(Canvas.GetLeft(secondrect) + secondrect.Width, canvasHeight - bottom2 - secondrect.Height);
-
-      //  y1 = bottom1 + firstRect.Height;
-      //  y2 = bottom2 + secondrect.Height;
-
-      //  x1 = Canvas.GetLeft(firstRect) + firstRect.Width;
-      //  x2 = Canvas.GetLeft(secondrect) + secondrect.Width;
-      //}
-      //else if (lineType == LineType.LeftBottom)
-      //{
-      //  startPoint = new Point(Canvas.GetLeft(firstRect), canvasHeight - bottom1);
-      //  endPoint = new Point(Canvas.GetLeft(secondrect), canvasHeight - bottom2);
-
-      //  y1 = bottom1;
-      //  y2 = bottom2;
-
-      //  x1 = Canvas.GetLeft(firstRect) + firstRect.Width;
-      //  x2 = Canvas.GetLeft(secondrect) + secondrect.Width;
-      //}
-
-
-      // if (lineType == LineType.RightTop)
-      //   Canvas.SetBottom(myPath, canvas.ActualHeight - lastSegment.Point.Y);
+      else if (lineType == LineType.RightTop)
+      {
+        startPoint = new Point(left1 + width1, canvasHeight - bottom1);
+        endPoint = new Point(left2 + width2, canvasHeight - bottom2);
+      }
+      else if (lineType == LineType.LeftBottom)
+      {
+        startPoint = new Point(left1, canvasHeight - bottom1);
+        endPoint = new Point(left2, canvasHeight - bottom2);
+      }
 
       var line = new CtksLine()
       {
-        X1 = x1,
-        X2 = x2,
-        Y1 = y1,
-        Y2 = y2,
         StartPoint = startPoint,
         EndPoint = endPoint,
         TimeFrame = timeFrame,

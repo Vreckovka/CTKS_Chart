@@ -104,11 +104,55 @@ namespace CTKS_Chart.ViewModels
 
     public void OnOpenTesting()
     {
-      var simulationBot = GetSimulationBot("D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data");
+      var path = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data";
+      var timeFrames = new TimeFrame[] {
+        TimeFrame.W1,
+        TimeFrame.W2,
+        TimeFrame.M1,
+        TimeFrame.M3,
+        TimeFrame.M6,
+        TimeFrame.M12 };
 
-      var bot = ViewModelsFactory.Create<SimulationTradingBot>(simulationBot);
+      var strategy = new SimulationStrategy();
+
+      var adaBot = new TradingBot(new Asset()
+      {
+        Symbol = "ADAUSDT",
+        NativeRound = 1,
+        PriceRound = 4,
+        DataPath = path,
+        DataSymbol = "BINANCE ADAUSD",
+        TimeFrames = timeFrames,
+      }, strategy);
+
+      var ltcBot = new TradingBot(new Asset()
+      {
+        Symbol = "LTCUSDT",
+        NativeRound = 3,
+        PriceRound = 2,
+        DataPath = path,
+        DataSymbol = "BINANCE LTCUSD",
+        TimeFrames = timeFrames,
+      }, strategy);
+
+      var btcBot = new TradingBot(new Asset()
+      {
+        Symbol = "BTCUSDT",
+        NativeRound = 5,
+        PriceRound = 2,
+        DataPath = path,
+        DataSymbol = "INDEX BTCUSD",
+        TimeFrames = timeFrames,
+      }, strategy);
+
+
+      var tradingView__ada_1D = $"ADAUSDT-240-generated.csv";
+      //tradingView__ada_1D = $"BTCUSDT-240-generated.csv";
+
+      var bot = ViewModelsFactory.Create<SimulationTradingBot>(adaBot);
       var prompt = ViewModelsFactory.Create<SimulationPromptViewModel>(bot);
       TradingBotViewModel.IsPaused = true;
+      bot.DataPath = tradingView__ada_1D;
 
       windowManager.ShowPrompt<SimulationView>(prompt);
 
@@ -146,57 +190,7 @@ namespace CTKS_Chart.ViewModels
     }
       #endregion
 
-      #region GetSimulationBot
-
-      private TradingBot GetSimulationBot(string path)
-      {
-        var timeFrames = new TimeFrame[] {
-        TimeFrame.W1,
-        TimeFrame.W2,
-        TimeFrame.M1,
-        TimeFrame.M3,
-        TimeFrame.M6,
-        TimeFrame.M12 };
-
-        var strategy = new SimulationStrategy();
-
-        var adaBot = new TradingBot(new Asset()
-        {
-          Symbol = "ADAUSDT",
-          NativeRound = 1,
-          PriceRound = 4,
-          DataPath = path,
-          DataSymbol = "BINANCE ADAUSD",
-          TimeFrames = timeFrames,
-        }, strategy);
-
-        var ltcBot = new TradingBot(new Asset()
-        {
-          Symbol = "LTCUSDT",
-          NativeRound = 3,
-          PriceRound = 2,
-          DataPath = path,
-          DataSymbol = "BINANCE LTCUSD",
-          TimeFrames = timeFrames,
-        }, strategy);
-
-        var btcBot = new TradingBot(new Asset()
-        {
-          Symbol = "BTCUSDT",
-          NativeRound = 5,
-          PriceRound = 2,
-          DataPath = path,
-          DataSymbol = "INDEX BTCUSD",
-          TimeFrames = timeFrames,
-        }, strategy);
-
-
-
-        return adaBot;
-      }
-
-    #endregion
-
+  
 
     protected override void OnClose(Window window)
     {

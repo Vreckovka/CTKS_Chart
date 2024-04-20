@@ -3,7 +3,7 @@
     public enum LineType
     {
         LeftBottom,
-        RightBttom,
+        RightBottom,
         LeftTop,
         RightTop
     }

@@ -57,85 +57,69 @@ namespace CTKS_Chart.Trading
       var firstRect = candles[firstCandleIndex];
       var secondrect = candles[secondCandleIndex];
 
-      var bottom1 = Canvas.GetBottom(firstRect);
-      var bottom2 = Canvas.GetBottom(secondrect);
-
-      double y1 = 0.0;
-      double y2 = 0.0;
-
       double x1 = 0.0;
       double x2 = 0.0;
 
-      var startPoint = new Point();
-      var endPoint = new Point();
+      decimal price1 = 0;
+      decimal price2 = 0;
 
-      if (lineType == LineType.RightBttom)
+      switch(lineType)
       {
-        startPoint = new Point(Canvas.GetLeft(firstRect) + firstRect.Width, canvasHeight - bottom1);
-        endPoint = new Point(Canvas.GetLeft(secondrect) + secondrect.Width, canvasHeight - bottom2);
-
-        y1 = bottom1;
-        y2 = bottom2;
-
-        x1 = Canvas.GetLeft(firstRect) + firstRect.Width;
-        x2 = Canvas.GetLeft(secondrect) + secondrect.Width;
-
-        //Canvas.SetBottom(myPath, y1);
+        case LineType.LeftBottom:
+        case LineType.RightBottom:
+          price1 = firstCandle.IsGreen ? firstCandle.Open.Value : firstCandle.Close.Value;
+          price2 = secondCandle.IsGreen ? secondCandle.Open.Value : secondCandle.Close.Value;
+          break;
+        case LineType.LeftTop:
+        case LineType.RightTop:
+          price1 = firstCandle.IsGreen ? firstCandle.Close.Value : firstCandle.Open.Value;
+          price2 = secondCandle.IsGreen ? secondCandle.Close.Value : secondCandle.Open.Value;
+          break;
+        default:
+          throw new ArgumentOutOfRangeException(nameof(lineType), lineType, null);
       }
-      else if (lineType == LineType.LeftTop)
+
+      switch (lineType)
       {
-        startPoint = new Point(Canvas.GetLeft(firstRect), canvasHeight - bottom1 - firstRect.Height);
-        endPoint = new Point(Canvas.GetLeft(secondrect), canvasHeight - bottom2 - secondrect.Height);
-
-        y1 = bottom1 + firstRect.Height;
-        y2 = bottom2 + secondrect.Height;
-
-        x1 = Canvas.GetLeft(firstRect);
-        x2 = Canvas.GetLeft(secondrect);
-
-        //Canvas.SetBottom(myPath, y1);
-      }
-      else if (lineType == LineType.RightTop)
-      {
-        startPoint = new Point(Canvas.GetLeft(firstRect) + firstRect.Width, canvasHeight - bottom1 - firstRect.Height);
-        endPoint = new Point(Canvas.GetLeft(secondrect) + secondrect.Width, canvasHeight - bottom2 - secondrect.Height);
-
-        y1 = bottom1 + firstRect.Height;
-        y2 = bottom2 + secondrect.Height;
-
-        x1 = Canvas.GetLeft(firstRect) + firstRect.Width;
-        x2 = Canvas.GetLeft(secondrect) + secondrect.Width;
-      }
-      else if (lineType == LineType.LeftBottom)
-      {
-        startPoint = new Point(Canvas.GetLeft(firstRect), canvasHeight - bottom1);
-        endPoint = new Point(Canvas.GetLeft(secondrect), canvasHeight - bottom2);
-
-        y1 = bottom1;
-        y2 = bottom2;
-
-        x1 = Canvas.GetLeft(firstRect) + firstRect.Width;
-        x2 = Canvas.GetLeft(secondrect) + secondrect.Width;
+        case LineType.LeftBottom:
+        case LineType.LeftTop:
+          x1 = Canvas.GetLeft(firstRect);
+          x2 = Canvas.GetLeft(secondrect);
+          break;
+        case LineType.RightBottom:
+        case LineType.RightTop:
+          x1 = Canvas.GetLeft(firstRect) + firstRect.Width;
+          x2 = Canvas.GetLeft(secondrect) + secondrect.Width;
+          break;
+        default:
+          throw new ArgumentOutOfRangeException(nameof(lineType), lineType, null);
       }
 
 
-      // if (lineType == LineType.RightTop)
-      //   Canvas.SetBottom(myPath, canvas.ActualHeight - lastSegment.Point.Y);
+      var y1 = canvasHeight - TradingHelper.GetCanvasValue(canvasHeight, price1, layout.MaxValue, layout.MinValue);
+      var y2 = canvasHeight - TradingHelper.GetCanvasValue(canvasHeight, price2, layout.MaxValue, layout.MinValue);
+
+      var startPoint = new Point(x1 + 1, y1);
+      var endPoint = new Point(x2 + 1, y2);
 
       var line = new CtksLine()
       {
-        X1 = x1,
-        X2 = x2,
-        Y1 = y1,
-        Y2 = y2,
         StartPoint = startPoint,
         EndPoint = endPoint,
         TimeFrame = timeFrame,
         FirstIndex = firstCandleIndex,
         SecondIndex = secondCandleIndex,
         LineType = lineType,
-        FirstCandleUnixTime = firstCandle.UnixTime,
-        SecondCandleUnixTime = secondCandle.UnixTime
+        FirstPoint = new CtksLinePoint()
+        {
+          Price = price1,
+          UnixTime = firstCandle.UnixTime
+        },
+        SecondPoint = new CtksLinePoint()
+        {
+          Price = price2,
+          UnixTime = secondCandle.UnixTime
+        }
       };
 
       ctksLines.Add(line);
@@ -160,7 +144,7 @@ namespace CTKS_Chart.Trading
             CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftTop, timeFrame);
 
           if (currentCandle.Close < nextCandle.Close || (currentCandle.Open < nextCandle.Close))
-           CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightBttom, timeFrame);
+           CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightBottom, timeFrame);
         }
         else
         {
@@ -185,7 +169,7 @@ namespace CTKS_Chart.Trading
       foreach (var line in ctksLines)
       {
         var actualLeft = Canvas.GetLeft(lastCandle) + lastCandle.Width / 2;
-        var actual = TradingHelper.GetPointOnLine(line.X1, line.Y1, line.X2, line.Y2, actualLeft);
+        var actual = canvasHeight - TradingHelper.GetPointOnLine(line.StartPoint.X, line.StartPoint.Y, line.EndPoint.X, line.EndPoint.Y, actualLeft);
         var value = Math.Round(TradingHelper.GetValueFromCanvas(canvasHeight, actual, layout.MaxValue, layout.MinValue), asset.PriceRound);
 
         var intersection = new CtksIntersection()
@@ -340,7 +324,7 @@ namespace CTKS_Chart.Trading
       foreach (var ctksLine in ctksLines)
       {
         var x3 = canvasWidth;
-        var y3 = TradingHelper.GetPointOnLine(ctksLine.X1, ctksLine.Y1, ctksLine.X2, ctksLine.Y2, x3);
+        var y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
 
         PathFigure pathFigure = new PathFigure();
         LineSegment segment = new LineSegment();
@@ -354,7 +338,7 @@ namespace CTKS_Chart.Trading
         segment.Point = ctksLine.EndPoint;
 
         LineSegment lastSegment = new LineSegment();
-        lastSegment.Point = new Point(x3, canvasHeight - y3);
+        lastSegment.Point = new Point(x3, y3);
 
         PathSegmentCollection myPathSegmentCollection = new PathSegmentCollection();
         myPathSegmentCollection.Add(segment);
@@ -373,6 +357,8 @@ namespace CTKS_Chart.Trading
         canvas.Children.Add(myPath);
         renderedLines.Add(myPath);
       }
+
+      RenderIntersections();
     }
 
     #endregion
@@ -391,7 +377,7 @@ namespace CTKS_Chart.Trading
 
       CreateLines(candles, timeFrame);
       AddIntersections();
-      RenderIntersections();
+     
 
       canvas.UpdateLayout();
 

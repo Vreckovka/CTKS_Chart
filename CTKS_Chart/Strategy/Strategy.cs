@@ -112,7 +112,7 @@ namespace CTKS_Chart.Strategy
       var multi = 1;
       var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
-      StartingBudget = 10000;
+      StartingBudget = 100000;
       StartingBudget *= multi;
       Budget = StartingBudget;
       //MaxBuyPrice = (decimal)0.0005;
@@ -769,7 +769,7 @@ namespace CTKS_Chart.Strategy
 #if DEBUG
         foreach (var innerStrategy in InnerStrategies)
         {
-          innerStrategy.Calculate(actualCandle);
+         // innerStrategy.Calculate(actualCandle);
         }
 #endif
 
@@ -1586,10 +1586,14 @@ namespace CTKS_Chart.Strategy
         return;
       }
 
-      foreach (var mapping in BasePositionSizeMapping.ToList())
+      if(BasePositionSizeMapping != null)
       {
-        newList.Add(mapping.Key, mapping.Value * size);
+        foreach (var mapping in BasePositionSizeMapping.ToList())
+        {
+          newList.Add(mapping.Key, mapping.Value * size);
+        }
       }
+   
 
       BasePositionSizeMapping = newList;
 

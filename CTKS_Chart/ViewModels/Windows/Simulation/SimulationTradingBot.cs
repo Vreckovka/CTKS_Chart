@@ -39,15 +39,37 @@ namespace CTKS_Chart.ViewModels
 
 
 
+    #region DataPath
+
+    private string dataPath;
+
+    public string DataPath
+    {
+      get { return dataPath; }
+      set
+      {
+        if (value != dataPath)
+        {
+          dataPath = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
+
+
     private List<Candle> cutCandles = new List<Candle>();
     protected override async Task LoadLayouts(Layout mainLayout)
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, CanvasHeight, CanvasWidth, TradingBot.Asset);
 
-      var tradingView__ada_1D = $"ADAUSDT-240-generated.csv";
+   
       //var tradingView__ada_1D = $"D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data\\BINANCE ADAUSD, 1D.csv";
 
-      var mainCandles = TradingHelper.ParseTradingView(tradingView__ada_1D);
+      var mainCandles = TradingHelper.ParseTradingView(DataPath);
 
       MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
       MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
@@ -71,6 +93,7 @@ namespace CTKS_Chart.ViewModels
       TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy(rangeFilterData, TradingBot.Strategy));
 
       LoadSecondaryLayouts(mainLayout, mainCtks, fromDate);
+      PreLoadCTks(fromDate);
 
       Simulate(cutCandles, InnerLayouts);
     }

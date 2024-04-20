@@ -117,7 +117,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region Selected
+    #region SelectedLayout
 
     private Layout selectedLayout;
 
@@ -848,7 +848,7 @@ namespace CTKS_Chart.ViewModels
 
     private void CheckLayout(Layout layout, List<Candle> innerCandles)
     {
-      if (DateTime.Now > TradingHelper.GetNextTime(innerCandles.Last().CloseTime, layout.TimeFrame))
+      if (DateTime.Now > innerCandles.Last().CloseTime)
       {
         layout.IsOutDated = true;
         lastFileCheck = DateTime.Now;
@@ -906,6 +906,23 @@ namespace CTKS_Chart.ViewModels
       { TimeFrame.W1,false }
     };
 
+    List<Layout> preloadedLayots = new List<Layout>();
+    protected void PreLoadCTks(DateTime startTime)
+    {
+      preloadedLayots = new List<Layout>();
+
+      foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
+      {
+        var candles = TradingHelper.ParseTradingView(layoutData.Key).Where(x => x.CloseTime > startTime);
+
+        foreach (var candle in candles)
+        {
+          var layout = CreateCtksChart(layoutData.Key, layoutData.Value, CanvasWidth, CanvasHeight, candle.OpenTime);
+
+          preloadedLayots.Add(layout);
+        }
+      }
+    }
 
     public async void RenderLayout(List<Layout> secondaryLayouts, Candle actual)
     {
@@ -918,8 +935,11 @@ namespace CTKS_Chart.ViewModels
       {
         await semaphoreSlim.WaitAsync();
 
-        foreach (var secondaryLayout in secondaryLayouts)
+
+        for (int i = 0; i < secondaryLayouts.Count; i++)
         {
+          var secondaryLayout = secondaryLayouts[i];
+
           var lastCandle = secondaryLayout.Ctks.Candles.Last();
 
           if (IsSimulation && stopParsingForNewData[secondaryLayout.TimeFrame] || secondaryLayout == null)
@@ -931,26 +951,37 @@ namespace CTKS_Chart.ViewModels
           {
             var fileCheck = true;
 
-#if RELEASE
-            fileCheck = lastFileCheck < DateTime.Now.AddMinutes(1);
-#endif
+            if (!IsSimulation)
+              fileCheck = lastFileCheck < DateTime.Now.AddMinutes(1);
+
             if (!secondaryLayout.IsOutDated || (secondaryLayout.IsOutDated && fileCheck))
             {
               var lastCount = secondaryLayout.Ctks.Candles.Count;
-              var innerCandles = TradingHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
 
-              VSynchronizationContext.InvokeOnDispatcher(() => secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles)));
-
-              if (innerCandles.Count > lastCount)
-                shouldUpdate = true;
-              else if (innerCandles.Count == lastCount && IsSimulation)
+              if (IsSimulation)
               {
-                stopParsingForNewData[secondaryLayout.TimeFrame] = true;
+                var newLayout = preloadedLayots.SingleOrDefault(x => x.Ctks.Candles.Count == lastCount + 1 && x.TimeFrame == secondaryLayout.TimeFrame);
+
+                if(newLayout != null)
+                {
+                  var secIndex = secondaryLayouts.IndexOf(secondaryLayout);
+
+                  secondaryLayouts[secIndex] = newLayout;
+                  secondaryLayout = newLayout;
+                }
+              }
+              else
+              {
+                var innerCandles = TradingHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
+
+                VSynchronizationContext.InvokeOnDispatcher(() => secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles)));
+
+                CheckLayout(secondaryLayout, innerCandles);
               }
 
 
-              if (!IsSimulation)
-                CheckLayout(secondaryLayout, innerCandles);
+              if (secondaryLayout.Ctks.Candles.Count > lastCount)
+                shouldUpdate = true;
             }
           }
         }
@@ -1050,7 +1081,7 @@ namespace CTKS_Chart.ViewModels
     private void CreateChart(Layout layout, double canvasHeight, double canvasWidth, IList<Candle> candles, int? pmaxCount = null)
     {
       layout.Canvas.Children.Clear();
-      var maxCount = pmaxCount ?? candles.Count;
+      var maxCount = (pmaxCount ?? candles.Count) + 1;
 
       var skip = candles.Count - maxCount > 0 ? candles.Count - maxCount : 0;
 
@@ -1356,7 +1387,7 @@ namespace CTKS_Chart.ViewModels
 
     public void SaveLayoutSettings()
     {
-      if(!IsSimulation)
+      if (!IsSimulation)
       {
         var settings = new LayoutSettings()
         {
@@ -1374,7 +1405,7 @@ namespace CTKS_Chart.ViewModels
         };
 
         File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings, options));
-      } 
+      }
     }
 
     #endregion

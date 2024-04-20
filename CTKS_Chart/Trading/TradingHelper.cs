@@ -86,9 +86,11 @@ namespace CTKS_Chart.Trading
       var logMinValue = Math.Log10((double)minValue);
 
       var logRange = logMaxValue - logMinValue;
-      double diffrence = logValue - logMinValue;
+      double difference = logValue - logMinValue;
 
-      return diffrence * canvasHeight / logRange;
+      var result = difference * canvasHeight / logRange;
+
+      return result;
     }
 
     #endregion
@@ -140,10 +142,10 @@ namespace CTKS_Chart.Trading
 
         if (dateDiff == null && list.Count > 1)
         {
-          dateDiff = list[0].CloseTime - list[1].CloseTime;
+          dateDiff = list[1].OpenTime - list[0].OpenTime;
 
-          list[0].OpenTime = list[0].CloseTime.AddMinutes(dateDiff.Value.TotalMinutes);
-          list[1].OpenTime = list[1].CloseTime.AddMinutes(dateDiff.Value.TotalMinutes);
+          list[0].CloseTime = list[0].OpenTime.AddMinutes(dateDiff.Value.TotalMinutes);
+          list[1].CloseTime = list[1].OpenTime.AddMinutes(dateDiff.Value.TotalMinutes);
         }
 
         if (!isOverDate)
@@ -171,14 +173,14 @@ namespace CTKS_Chart.Trading
             Open = openParsed,
             High = highParsed,
             Low = lowParsed,
-            CloseTime = dateTime,
+            OpenTime = dateTime,
             UnixTime = unixTimestamp,
             IndicatorData = indicatorData
           };
 
           if(dateDiff != null)
           {
-            newCandle.OpenTime = newCandle.CloseTime.AddMinutes(dateDiff.Value.TotalMinutes);
+            newCandle.CloseTime = newCandle.OpenTime.AddMinutes(dateDiff.Value.TotalMinutes);
           }
 
           list.Add(newCandle);

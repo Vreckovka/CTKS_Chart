@@ -2,13 +2,13 @@
 
 namespace CTKS_Chart.Trading
 {
+  public class CtksLinePoint
+  {
+    public decimal Price { get; set; }
+    public long UnixTime { get; set; }
+  }
   public class CtksLine
   {
-    public double X1 { get; set; }
-    public double Y1 { get; set; }
-    public double X2 { get; set; }
-    public double Y2 { get; set; }
-
     public Point StartPoint { get; set; }
     public Point EndPoint { get; set; }
 
@@ -19,8 +19,8 @@ namespace CTKS_Chart.Trading
 
     public LineType LineType { get; set; }
 
-    public float FirstCandleUnixTime { get; set; }
-    public float SecondCandleUnixTime { get; set; }
+    public CtksLinePoint FirstPoint { get; set; }
+    public CtksLinePoint SecondPoint { get; set; }
 
     public bool IsSame(CtksLine other)
     {
