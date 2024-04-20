@@ -11,6 +11,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using CTKS_Chart.Trading;
 using CTKS_Chart.ViewModels;
 using VCore.Standard.Modularity.Interfaces;
 
@@ -32,30 +33,25 @@ namespace CTKS_Chart.Views.Prompts
     Point centerPoint = new Point(500, 500);
     private void Grid_MouseMove(object sender, MouseEventArgs e)
     {
-      if (DataContext is ArchitectViewModel viewModel)
+      if (DataContext is IDrawingViewModel viewModel)
       {
         base.OnMouseMove(e);
         var delta = 0.01;
+        var position = e.GetPosition(this);
 
-        if (e.LeftButton == MouseButtonState.Pressed)
+        if (e.LeftButton == MouseButtonState.Pressed && startY != null)
         {
-          var position = e.GetPosition(this);
+          var startPrice = TradingHelper.GetValueFromCanvas(viewModel.CanvasHeight, startY.Value, viewModel.MaxValue, viewModel.MinValue);
+          var nextPrice = TradingHelper.GetValueFromCanvas(viewModel.CanvasHeight, position.Y, viewModel.MaxValue, viewModel.MinValue);
 
-          var deltaY = startY - position.Y;
+          var deltaY = (nextPrice * 100 / startPrice) / 100;
 
-          if (deltaY > 0)
-          {
-            viewModel.MaxValue *= (decimal)(1 - delta);
-            viewModel.MinValue *= (decimal)(1 - delta);
-          }
-          else
-          {
-            viewModel.MaxValue *= (decimal)(1 + delta);
-            viewModel.MinValue *= (decimal)(1 + delta);
-          }
 
-          startY = position.Y;
+          viewModel.MaxValue *= deltaY;
+          viewModel.MinValue *= deltaY;
         }
+
+        startY = position.Y;
 
         if (e.LeftButton != MouseButtonState.Pressed && startY != null)
         {
@@ -66,7 +62,7 @@ namespace CTKS_Chart.Views.Prompts
 
     private void Border_MouseWheel(object sender, MouseWheelEventArgs e)
     {
-      if (DataContext is ArchitectViewModel viewModel)
+      if (DataContext is IDrawingViewModel viewModel)
       {
 
         if (e.Delta > 0)

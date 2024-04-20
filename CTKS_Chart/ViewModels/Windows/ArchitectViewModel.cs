@@ -3,16 +3,28 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using VCore.Standard;
+using VCore.WPF.Misc;
 using VCore.WPF.Prompts;
 
 namespace CTKS_Chart.ViewModels
 {
-  public class ArchitectViewModel : BasePromptViewModel
+  public interface IDrawingViewModel
+  {
+    public decimal MaxValue { get; set; }
+    public decimal MinValue { get; set; }
+
+    public double CanvasHeight { get; set; }
+    public double CanvasWidth { get; set; }
+    public int CandleCount { get; set; }
+  }
+
+  public class ArchitectViewModel : BasePromptViewModel, IDrawingViewModel
   {
     private readonly Asset Asset;
 
@@ -26,6 +38,7 @@ namespace CTKS_Chart.ViewModels
       ColorScheme = colorSchemeViewModel ?? throw new ArgumentNullException(nameof(colorSchemeViewModel));
 
       SelectedLayout = layouts[5];
+      MainGrid.Children.Add(ChartImage);
     }
 
 
@@ -90,7 +103,7 @@ namespace CTKS_Chart.ViewModels
       {
         if (value != maxValue && value > minValue)
         {
-          maxValue = value;
+          maxValue = Math.Round(value, Asset.PriceRound);
 
           RenderOverlay();
           RaisePropertyChanged();
@@ -123,7 +136,12 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
+
+
     #endregion
+
+    public double CanvasHeight { get; set; } = 1000;
+    public double CanvasWidth { get; set; } = 1000;
 
     #region ActualCandles
 
@@ -184,6 +202,31 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region ShowCanvas
+
+    protected ActionCommand<Layout> showCanvas;
+
+    public ICommand ShowCanvas
+    {
+      get
+      {
+        return showCanvas ??= new ActionCommand<Layout>(OnShowCanvas);
+      }
+    }
+
+    public void OnShowCanvas(Layout layout)
+    {
+      MainGrid.Children.Clear();
+
+      MainGrid.Children.Add(ChartImage);
+
+      SelectedLayout = layout;
+    }
+
+    #endregion
+
+    #region Methods
+
     #region DrawChart
 
     private DrawnChart DrawChart(
@@ -213,9 +256,10 @@ namespace CTKS_Chart.ViewModels
 
       if (candles.Any())
       {
-        int y = 0;
+        int y = -1;
         for (int i = skip; i < candles.Count; i++)
         {
+          y++;
           var point = candles[i];
 
           var close = TradingHelper.GetCanvasValue(canvasHeight, point.Close.Value, MaxValue, MinValue);
@@ -245,9 +289,16 @@ namespace CTKS_Chart.ViewModels
             lastClose = 0;
           }
 
+
           if (close < 0)
           {
             close = 0;
+          }
+          else
+
+          if (high > CanvasHeight)
+          {
+            high = CanvasHeight;
           }
 
           if (green)
@@ -259,7 +310,7 @@ namespace CTKS_Chart.ViewModels
             newCandle.Height = lastClose - close;
           }
 
-          var position = (y + 1) * width;
+          var position = y * width;
           newCandle.X = startGap + position + margin / 2;
 
           if (green)
@@ -267,10 +318,23 @@ namespace CTKS_Chart.ViewModels
           else
             newCandle.Y = canvasHeight - close - newCandle.Height;
 
+          if (newCandle.Y < 0)
+          {
+            var newHeight = newCandle.Y + newCandle.Height;
 
+            if (newHeight <= 0)
+            {
+              newHeight = 0;
+            }
+
+            newCandle.Height = newHeight;
+            newCandle.Y = 0;
+          }
 
           var wickTop = green ? close : open;
           var wickBottom = green ? open : close;
+
+
 
           var topY = canvasHeight - wickTop - (high - wickTop);
           var bottomY = canvasHeight - wickBottom;
@@ -299,13 +363,21 @@ namespace CTKS_Chart.ViewModels
             {
               low = 0;
             }
+            var bottomWickHeight = wickBottom - low;
 
-            bottomWick = new Rect()
+            if (bottomY < 0)
             {
-              Height = wickBottom - low,
-              X = newCandle.X + (newCandle.Width / 2),
-              Y = bottomY,
-            };
+              bottomWickHeight += bottomY;
+              bottomY = 0;
+            }
+
+            if (bottomWickHeight > 0)
+              bottomWick = new Rect()
+              {
+                Height = bottomWickHeight,
+                X = newCandle.X + (newCandle.Width / 2),
+                Y = bottomY,
+              };
           }
 
 
@@ -326,7 +398,7 @@ namespace CTKS_Chart.ViewModels
             BottomWick = bottomWick
           });
 
-          y++;
+
 
           if (bottomWick != null && bottomWick.Value.Y > maxDrawnPoint)
           {
@@ -359,52 +431,59 @@ namespace CTKS_Chart.ViewModels
 
       DrawingGroup dGroup = new DrawingGroup();
 
-      double imageHeight = 1000;
-      double imageWidth = 1000;
-
       var candles = SelectedLayout.Ctks.Candles;
 
       using (DrawingContext dc = dGroup.Open())
       {
-        dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(imageHeight, imageWidth));
+        dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(CanvasHeight, CanvasWidth));
 
-        var drawnChart = DrawChart(dc, candles, imageHeight, imageWidth, CandleCount);
-        var lines = RenderLines(dc, drawnChart.Candles.ToList(), imageHeight, imageWidth);
+        var drawnChart = DrawChart(dc, candles, CanvasHeight, CanvasWidth, CandleCount);
+        var lines = RenderLines(dc, drawnChart.Candles.ToList(), CanvasHeight, CanvasWidth);
 
-        List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
-        var lastCandle = drawnChart.Candles.Last();
+        List<CtksIntersection> ctksIntersections = SelectedLayout.Ctks.ctksIntersections;
 
-        foreach (var line in lines)
-        {
-          var actualLeft = lastCandle.Body.Left + lastCandle.Body.Width / 2;
-          var actual = TradingHelper.GetPointOnLine(line.StartPoint.X, line.StartPoint.Y, line.EndPoint.X, line.EndPoint.Y, actualLeft);
-          var value = Math.Round(TradingHelper.GetValueFromCanvas(imageHeight, imageHeight - actual, MaxValue, MinValue), Asset.PriceRound);
-
-          if(value > 0)
-          {
-            var intersection = new CtksIntersection()
-            {
-              Value = value,
-              TimeFrame = line.TimeFrame,
-              Line = line
-            };
-
-            ctksIntersections.Add(intersection);
-          }
-       
-        }
 
         RenderIntersections(dc, ctksIntersections,
           drawnChart.Candles.ToList(),
-          imageHeight,
-          imageHeight,
-          imageWidth);
+          CanvasHeight,
+          CanvasHeight,
+          CanvasWidth);
 
         DrawingImage dImageSource = new DrawingImage(dGroup);
 
         Chart = dImageSource;
         this.ChartImage.Source = Chart;
       }
+    }
+
+    #endregion
+
+    #region CreateIntersections
+
+    private List<CtksIntersection> CreateIntersections(IEnumerable<CtksLine> lines, ChartCandle lastCandle)
+    {
+      List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
+
+      foreach (var line in lines)
+      {
+        var actualLeft = lastCandle.Body.Left + lastCandle.Body.Width / 2;
+        var actual = TradingHelper.GetPointOnLine(line.StartPoint.X, line.StartPoint.Y, line.EndPoint.X, line.EndPoint.Y, actualLeft);
+        var value = Math.Round(TradingHelper.GetValueFromCanvas(CanvasHeight, CanvasHeight - actual, MaxValue, MinValue), Asset.PriceRound);
+
+        if (value > 0)
+        {
+          var intersection = new CtksIntersection()
+          {
+            Value = value,
+            TimeFrame = line.TimeFrame,
+            Line = line
+          };
+
+          ctksIntersections.Add(intersection);
+        }
+      }
+
+      return ctksIntersections;
     }
 
     #endregion
@@ -461,7 +540,7 @@ namespace CTKS_Chart.ViewModels
       double canvasHeight,
       double canvasWidth)
     {
-      var lines = SelectedLayout.Ctks.ctksLines.TakeLast(15).ToList();
+      var lines = SelectedLayout.Ctks.ctksLines.ToList();
       var list = new List<CtksLine>();
 
       foreach (var line in lines)
@@ -478,19 +557,32 @@ namespace CTKS_Chart.ViewModels
           continue;
         }
 
+
+
         var ctksLine = CreateLine(line.FirstIndex, line.SecondIndex, canvasHeight, canvasWidth, line, firstCandle, secondCandle, line.LineType, line.TimeFrame);
         var y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
-                
+
         while (y3 < 0 && x3 > 0)
         {
           x3 -= 1;
           y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
         }
 
-        while (y3 > canvasHeight)
+        while (y3 > canvasHeight && x3 > 0)
         {
           x3 -= 1;
           y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
+        }
+
+        list.Add(ctksLine);
+        if (line.FirstPoint.Price > MaxValue || line.SecondPoint.Price > MaxValue)
+        {
+          continue;
+        }
+
+        if (line.FirstPoint.Price < MinValue || line.SecondPoint.Price < MinValue)
+        {
+          continue;
         }
 
         if (x3 < 0)
@@ -503,7 +595,7 @@ namespace CTKS_Chart.ViewModels
         drawingContext.DrawLine(pen, ctksLine.StartPoint, ctksLine.EndPoint);
         drawingContext.DrawLine(pen, ctksLine.EndPoint, finalPoint);
 
-        list.Add(ctksLine);
+
       }
 
       return list;
@@ -570,6 +662,8 @@ namespace CTKS_Chart.ViewModels
 
       return line;
     }
+
+    #endregion 
 
     #endregion
   }

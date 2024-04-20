@@ -183,44 +183,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region CanvasHeight
-
-    private double canvasHeight = 1000;
-
-    public double CanvasHeight
-    {
-      get { return canvasHeight; }
-      set
-      {
-        if (value != canvasHeight)
-        {
-          canvasHeight = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region CanvasWidth
-
-    private double canvasWidth = 1000;
-
-    public double CanvasWidth
-    {
-      get { return canvasWidth; }
-      set
-      {
-        if (value != canvasWidth)
-        {
-          canvasWidth = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
     #region DailyChange
 
     private decimal dailyChange;
@@ -812,7 +774,7 @@ namespace CTKS_Chart.ViewModels
 
     protected virtual async Task LoadLayouts(Layout mainLayout)
     {
-      var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, CanvasHeight, CanvasWidth, TradingBot.Asset);
+      var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, DrawingViewModel.CanvasHeight, DrawingViewModel.CanvasWidth, TradingBot.Asset);
 
       DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval))).ToList();
 
@@ -832,7 +794,7 @@ namespace CTKS_Chart.ViewModels
     {
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
-        var layout = CreateCtksChart(layoutData.Key, layoutData.Value, CanvasWidth, CanvasHeight, maxTime);
+        var layout = CreateCtksChart(layoutData.Key, layoutData.Value, DrawingViewModel.CanvasWidth, DrawingViewModel.CanvasHeight, maxTime);
 
         Layouts.Add(layout);
         InnerLayouts.Add(layout);
@@ -917,7 +879,7 @@ namespace CTKS_Chart.ViewModels
 
         foreach (var candle in candles)
         {
-          var layout = CreateCtksChart(layoutData.Key, layoutData.Value, CanvasWidth, CanvasHeight, candle.OpenTime);
+          var layout = CreateCtksChart(layoutData.Key, layoutData.Value, DrawingViewModel.CanvasWidth, DrawingViewModel.CanvasHeight, candle.OpenTime);
 
           preloadedLayots.Add(layout);
         }
@@ -974,7 +936,7 @@ namespace CTKS_Chart.ViewModels
               {
                 var innerCandles = TradingHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
 
-                VSynchronizationContext.InvokeOnDispatcher(() => secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, CanvasHeight, CanvasWidth, innerCandles)));
+                VSynchronizationContext.InvokeOnDispatcher(() => secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, DrawingViewModel.CanvasHeight, DrawingViewModel.CanvasWidth, innerCandles)));
 
                 CheckLayout(secondaryLayout, innerCandles);
               }
@@ -1024,7 +986,7 @@ namespace CTKS_Chart.ViewModels
         var athPrice = GetAthPrice();
 
         if (DrawChart)
-          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, CanvasHeight));
+          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, DrawingViewModel.CanvasHeight));
 
         this.actual = actual;
 
@@ -1066,7 +1028,7 @@ namespace CTKS_Chart.ViewModels
         }
 
         if (DrawChart)
-          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, CanvasHeight));
+          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, DrawingViewModel.CanvasHeight));
       }
       finally
       {
@@ -1336,7 +1298,7 @@ namespace CTKS_Chart.ViewModels
 
         if (DrawingViewModel.ActualCandles.Count > 0)
         {
-          DrawingViewModel.RenderOverlay(ctksIntersections, GetAthPrice(), CanvasHeight);
+          DrawingViewModel.RenderOverlay(ctksIntersections, GetAthPrice(), DrawingViewModel.CanvasHeight);
         }
       }
     }

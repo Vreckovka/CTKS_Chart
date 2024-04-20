@@ -8,19 +8,9 @@
   d:DesignHeight="450"
   d:DesignWidth="800"
   mc:Ignorable="d">
-  <Border>
-    <Grid
-      Background="#250000"
-      MouseMove="Grid_MouseMove"
-      MouseWheel="Border_MouseWheel">
-      <Grid.RowDefinitions>
-        <RowDefinition Height="auto" />
-        <RowDefinition />
-        <RowDefinition Height="auto" />
-      </Grid.RowDefinitions>
-
-      <TextBlock Grid.Row="0" Text="{Binding MaxValue}" />
-      <TextBlock Grid.Row="2" Text="{Binding MinValue}" />
-    </Grid>
-  </Border>
+  <Border
+    Padding="5"
+    Background="#08ffffff"
+    MouseMove="Grid_MouseMove"
+    MouseWheel="Border_MouseWheel" />
 </UserControl>

@@ -153,6 +153,10 @@ namespace CTKS_Chart.Trading
             CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightTop, timeFrame);
             CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftBottom, timeFrame);
           }
+          else
+          {
+            CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightTop, timeFrame);
+          }
         }
       }
     }
