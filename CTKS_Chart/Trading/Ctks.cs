@@ -141,10 +141,17 @@ namespace CTKS_Chart.Trading
         if (currentCandle.IsGreen)
         {
           if (nextCandle.IsGreen)
+          {
             CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftTop, timeFrame);
-
-          if (currentCandle.Close < nextCandle.Close || (currentCandle.Open < nextCandle.Close))
-           CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightBottom, timeFrame);
+            CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightBottom, timeFrame);
+          }
+          else 
+          {
+            if (currentCandle.Open < nextCandle.Close)
+              CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightBottom, timeFrame);
+            else if (currentCandle.Open > nextCandle.Close)
+              CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftBottom, timeFrame);
+          }
         }
         else
         {
@@ -153,9 +160,12 @@ namespace CTKS_Chart.Trading
             CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightTop, timeFrame);
             CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftBottom, timeFrame);
           }
-          else
+          else 
           {
-            CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightTop, timeFrame);
+            if (currentCandle.Open > nextCandle.Close)
+              CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightTop, timeFrame);
+            else if (currentCandle.Open < nextCandle.Close)
+              CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftBottom, timeFrame);
           }
         }
       }
