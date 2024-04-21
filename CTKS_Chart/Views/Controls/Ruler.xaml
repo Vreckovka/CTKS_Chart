@@ -12,5 +12,17 @@
     Padding="5"
     Background="#08ffffff"
     MouseMove="Grid_MouseMove"
-    MouseWheel="Border_MouseWheel" />
+    MouseWheel="Border_MouseWheel">
+    <Border.Style>
+      <Style TargetType="Border">
+        <Setter Property="Cursor" Value="SizeWE" />
+
+        <Style.Triggers>
+          <DataTrigger Binding="{Binding Mode, RelativeSource={RelativeSource AncestorType=local:Ruler}}" Value="{x:Static local:RulerMode.Vertical}">
+            <Setter Property="Cursor" Value="SizeNS" />
+          </DataTrigger>
+        </Style.Triggers>
+      </Style>
+    </Border.Style>
+  </Border>
 </UserControl>

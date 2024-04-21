@@ -22,6 +22,8 @@ namespace CTKS_Chart.Trading
     public CtksLinePoint FirstPoint { get; set; }
     public CtksLinePoint SecondPoint { get; set; }
 
+    public bool IsEnabled { get; set; } = true;
+
     public bool IsSame(CtksLine other)
     {
       return

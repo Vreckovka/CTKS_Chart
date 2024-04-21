@@ -111,7 +111,8 @@ namespace CTKS_Chart.ViewModels
         TimeFrame.M1,
         TimeFrame.M3,
         TimeFrame.M6,
-        TimeFrame.M12 };
+        TimeFrame.M12
+        };
 
       var strategy = new SimulationStrategy();
 

@@ -43,14 +43,9 @@ namespace CTKS_Chart.Strategy
 
         bool wasChange = false;
 
-        //strategy.DisableOnBuy = !bullish;
 
-        //if (bullish)
-        //{
-        //  strategy.Intersections.ForEach(x => x.IsEnabled = true);
-        //}
 
- 
+
         var size = 0.1;
 
         var minValue = 0.0075;
@@ -164,6 +159,13 @@ namespace CTKS_Chart.Strategy
 
 
         strategy.StrategyPosition = bullish ? StrategyPosition.Bullish : StrategyPosition.Bearish;
+
+        //strategy.DisableOnBuy = !bullish;
+
+        //if (bullish)
+        //{
+        //  strategy.Intersections.ForEach(x => x.IsEnabled = true);
+        //}
       }
     }
 

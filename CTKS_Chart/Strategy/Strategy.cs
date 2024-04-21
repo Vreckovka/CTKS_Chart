@@ -769,7 +769,7 @@ namespace CTKS_Chart.Strategy
 #if DEBUG
         foreach (var innerStrategy in InnerStrategies)
         {
-         // innerStrategy.Calculate(actualCandle);
+          innerStrategy.Calculate(actualCandle);
         }
 #endif
 
@@ -845,7 +845,7 @@ namespace CTKS_Chart.Strategy
                     .Where(x => x.TimeFrame >= minTimeframe)
                     .Where(x => x.IsEnabled)
                     .Where(x => x.Value < actualCandle.Close.Value &&
-                                x.Value > minBuy )
+                                x.Value > minBuy)
                       .OrderByDescending(x => x.Value)
                     .ToList();
 
@@ -873,29 +873,6 @@ namespace CTKS_Chart.Strategy
           }
         }
 
-
-        //#if RELEASE
-        //var newTotalNativeAsset = TotalNativeAsset;
-
-        //var sum = OpenSellPositions
-        //  .Sum(x => x.OriginalPositionSizeNative);
-
-
-        //if (Math.Round(sum, Asset.NativeRound) != Math.Round(newTotalNativeAsset, Asset.NativeRound))
-        //{
-        //  var missingSell = ActualPositions.Where(x => x.OriginalPositionSizeNative != x.OpositPositions.Sum(y => y.OriginalPositionSizeNative));
-
-        //  foreach (var missing in missingSell)
-        //  {
-        //    LeftSize = missing.OriginalPositionSize;
-        //    Logger.Log(MessageType.Warning, $"Recreating failed sell position for buy {missing.ShortId}", true);
-        //    await CreateSellPositionForBuy(missing, Intersections.OrderBy(x => x.Value)
-        //      .Where(x => x.Value > actualCandle.Close.Value));
-        //  }
-
-        //}
-
-        //#endif
 
         RaisePropertyChanged(nameof(StrategyViewModel.TotalExpectedProfit));
       }
@@ -1250,6 +1227,7 @@ namespace CTKS_Chart.Strategy
         }
 
         RaisePropertyChanged(nameof(StrategyViewModel.TotalSell));
+
         SaveState();
       }
       finally
@@ -1586,14 +1564,14 @@ namespace CTKS_Chart.Strategy
         return;
       }
 
-      if(BasePositionSizeMapping != null)
+      if (BasePositionSizeMapping != null)
       {
         foreach (var mapping in BasePositionSizeMapping.ToList())
         {
           newList.Add(mapping.Key, mapping.Value * size);
         }
       }
-   
+
 
       BasePositionSizeMapping = newList;
 

@@ -84,7 +84,7 @@ namespace CTKS_Chart.Binance
             CloseTime = kline.OpenTime.AddMinutes(interval.TotalMinutes),
           };
 
-          newCandle.UnixTime = ((DateTimeOffset)newCandle.CloseTime).ToUnixTimeSeconds();
+          newCandle.UnixTime = ((DateTimeOffset)newCandle.OpenTime).ToUnixTimeSeconds();
 
           list.Add(newCandle);
         }

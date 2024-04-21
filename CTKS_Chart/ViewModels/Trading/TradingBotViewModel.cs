@@ -258,12 +258,9 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 
-    public Grid MainGrid { get; } = new Grid();
-
     public ItemsViewModel<LayoutIntervalViewModel> LayoutIntervals { get; } = new ItemsViewModel<LayoutIntervalViewModel>();
 
     #endregion
-
 
     #region DrawChart
 
@@ -284,7 +281,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
     #region Commands
 
     #region ShowCanvas
@@ -303,10 +299,6 @@ namespace CTKS_Chart.ViewModels
     {
       if (layout.Canvas == null)
       {
-        MainGrid.Children.Clear();
-
-        MainGrid.Children.Add(DrawingViewModel.ChartImage);
-
         SelectedLayout = layout;
       }
       else
@@ -321,8 +313,6 @@ namespace CTKS_Chart.ViewModels
 
     private void ScaleCanvas(Layout layout, decimal? maxValue = null, decimal? minValue = null)
     {
-      MainGrid.Children.Clear();
-
       var index = InnerLayouts.IndexOf(layout);
       var globalIndex = Layouts.IndexOf(layout);
 
@@ -346,9 +336,6 @@ namespace CTKS_Chart.ViewModels
         layout.Canvas.Height = DrawingViewModel.ChartImage.ActualHeight;
         layout.Canvas.Width = DrawingViewModel.ChartImage.ActualWidth;
       }
-
-      if (layout != null)
-        MainGrid.Children.Add(layout.Canvas);
 
       SelectedLayout = layout;
     }
@@ -427,9 +414,9 @@ namespace CTKS_Chart.ViewModels
 
     protected virtual void OnOpenArchitectView()
     {
-      var arch = new ArchitectViewModel(Layouts, DrawingViewModel.ColorScheme, TradingBot.Asset);
+      var arch = new ArchitectViewModel(Layouts, DrawingViewModel.ColorScheme, viewModelsFactory, TradingBot.Asset);
 
-      windowManager.ShowPrompt<ArchitectView>(arch);
+      windowManager.ShowPrompt<ArchitectView>(arch, 1000, 1000);
     }
 
     #endregion
@@ -659,8 +646,6 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.MaxValue = MainLayout.MaxValue;
       DrawingViewModel.MinValue = MainLayout.MinValue;
 
-      MainGrid.Children.Add(DrawingViewModel.ChartImage);
-
       foreach (KlineInterval interval in EnumHelper.GetAllValues(KlineInterval.GetType()))
       {
         var length = TradingHelper.GetTimeSpanFromInterval(interval);
@@ -712,9 +697,11 @@ namespace CTKS_Chart.ViewModels
       LayoutIntervals.OnActualItemChanged.Subscribe(x =>
       {
         if (x != null)
+        {
+         
           KlineInterval = x.Model.Interval;
+        }
       });
-
     }
 
     #endregion
@@ -790,6 +777,8 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region LoadSecondaryLayouts
+
     protected void LoadSecondaryLayouts(Layout mainLayout, Ctks mainCtks, DateTime? maxTime = null)
     {
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
@@ -805,6 +794,8 @@ namespace CTKS_Chart.ViewModels
       SelectedLayout = mainLayout;
 
     }
+
+    #endregion
 
     #region CheckLayout
 
@@ -924,7 +915,7 @@ namespace CTKS_Chart.ViewModels
               {
                 var newLayout = preloadedLayots.SingleOrDefault(x => x.Ctks.Candles.Count == lastCount + 1 && x.TimeFrame == secondaryLayout.TimeFrame);
 
-                if(newLayout != null)
+                if (newLayout != null)
                 {
                   var secIndex = secondaryLayouts.IndexOf(secondaryLayout);
 
@@ -1158,6 +1149,8 @@ namespace CTKS_Chart.ViewModels
           OpenTime = binanceStreamKline.OpenTime,
         };
 
+        actual.UnixTime = ((DateTimeOffset)actual.OpenTime).ToUnixTimeSeconds();
+
         var lastCandle = DrawingViewModel.ActualCandles.Last();
 
         if (lastCandle.OpenTime != actual.OpenTime && lastCandle.OpenTime < actual.OpenTime && lastCandle.CloseTime < actual.CloseTime)
@@ -1292,8 +1285,21 @@ namespace CTKS_Chart.ViewModels
       {
         if (fetchNewCandles && !IsSimulation)
         {
-          DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval))).ToList();
+          DrawingViewModel.ActualCandles = 
+            (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval)))
+            .ToList();
           await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
+
+          if (DrawingViewModel.ActualCandles.Count > 0)
+          {
+            DrawingViewModel.unixDiff = DrawingViewModel.ActualCandles[1].UnixTime - DrawingViewModel.ActualCandles[0].UnixTime;
+
+            DrawingViewModel.minUnix = DrawingViewModel.ActualCandles.First().UnixTime ;
+            DrawingViewModel.maxUnix = DrawingViewModel.ActualCandles.Last().UnixTime ;
+
+            DrawingViewModel.Raise(nameof(DrawingViewModel.MinUnix));
+            DrawingViewModel.Raise(nameof(DrawingViewModel.MaxUnix));
+          }
         }
 
         if (DrawingViewModel.ActualCandles.Count > 0)

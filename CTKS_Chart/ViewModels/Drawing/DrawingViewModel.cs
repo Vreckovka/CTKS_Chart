@@ -101,6 +101,55 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region MaxUnix
+
+    public long maxUnix;
+
+    public long MaxUnix
+    {
+      get { return maxUnix; }
+      set
+      {
+        if (value != maxUnix)
+        {
+          maxUnix = value;
+          RenderOverlay();
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region MinUnix
+
+    public long minUnix;
+
+    public long MinUnix
+    {
+      get { return minUnix; }
+      set
+      {
+        if (value != minUnix)
+        {
+
+          minUnix = value;
+
+          RenderOverlay();
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+
+
+    #endregion
+
+    public void Raise(string value)
+    {
+      RaisePropertyChanged(value);
+    }
+
     #region ActualCandles
 
     private List<Candle> actualCandles = new List<Candle>();
@@ -427,7 +476,7 @@ namespace CTKS_Chart.ViewModels
 
     private List<CtksIntersection> last = null;
     private decimal? lastAthPrice = null;
-
+    public long unixDiff;
     public new void RenderOverlay(
       List<CtksIntersection> ctksIntersections = null,
       decimal? athPrice = null,
@@ -447,7 +496,7 @@ namespace CTKS_Chart.ViewModels
       if (ctksIntersections == null)
         return;
 
-
+  
       last = ctksIntersections;
 
       Pen shapeOutlinePen = new Pen(Brushes.Transparent, 1);
@@ -468,7 +517,6 @@ namespace CTKS_Chart.ViewModels
           maxValue = (decimal)candlesToRender.Max(x => x.High * (decimal)1.40);
           minValue = (decimal)candlesToRender.Min(x => x.Low * (decimal)0.60);
         }
-
 
         var chart = DrawChart(dc, candlesToRender, imageHeight, imageWidth);
         double desiredCanvasHeight = imageHeight;
@@ -551,7 +599,7 @@ namespace CTKS_Chart.ViewModels
       double canvasWidth)
     {
       canvasWidth *= 0.85;
-      var startGap = canvasWidth * 0.15;
+      var startGap = canvasWidth * 0.05;
       canvasWidth -= startGap;
 
       var width = canvasWidth / candles.Count;
@@ -567,7 +615,7 @@ namespace CTKS_Chart.ViewModels
       var drawnCandles = new List<ChartCandle>();
 
 
-     if (candles.Any())
+      if (candles.Any())
       {
         int y = -1;
         for (int i = 0; i < candles.Count; i++)
@@ -796,13 +844,13 @@ namespace CTKS_Chart.ViewModels
 
           FormattedText formattedText = DrawingHelper.GetFormattedText(intersection.Value.ToString(), selectedBrush);
 
-          drawingContext.DrawText(formattedText, new Point(0, lineY - formattedText.Height / 2));
+          drawingContext.DrawText(formattedText, new Point(canvasWidth * 0.95, lineY - formattedText.Height / 2));
 
           Pen pen = new Pen(selectedBrush, 1);
           pen.DashStyle = DashStyles.Dash;
           pen.Thickness = DrawingHelper.GetPositionThickness(frame);
 
-          drawingContext.DrawLine(pen, new Point(canvasWidth * 0.10, lineY), new Point(canvasWidth, lineY));
+          drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth * 0.90, lineY));
         }
       }
     }
@@ -866,7 +914,10 @@ namespace CTKS_Chart.ViewModels
 
           FormattedText formattedText = DrawingHelper.GetFormattedText(text, selectedBrush, fontSize);
 
-          drawingContext.DrawText(formattedText, new Point(candle.Body.X - 25, lineY - formattedText.Height / 2));
+          var point = new Point(candle.Body.X - 25, lineY - formattedText.Height / 2);
+
+          if (point.X > 0 && point.X < CanvasWidth && point.Y > 0 && point.Y < CanvasHeight)
+            drawingContext.DrawText(formattedText, point);
         }
       }
     }
@@ -899,7 +950,7 @@ namespace CTKS_Chart.ViewModels
 
     public void DrawAveragePrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
     {
-      if (price > 0)
+      if (price > 0 && price > MinValue && price < MaxValue)
       {
         var close = TradingHelper.GetCanvasValue(canvasHeight, price, MaxValue, MinValue);
 
@@ -922,7 +973,7 @@ namespace CTKS_Chart.ViewModels
 
     public void DrawPriceToATH(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
     {
-      if (price > 0)
+      if (price > 0 && price > MinValue && price < MaxValue)
       {
         var close = TradingHelper.GetCanvasValue(canvasHeight, price, MaxValue, MinValue);
 
@@ -933,6 +984,8 @@ namespace CTKS_Chart.ViewModels
         pen.DashStyle = DashStyles.Dash;
 
         var text = DrawingHelper.GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
+
+
         drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));
         drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
       }
@@ -945,7 +998,7 @@ namespace CTKS_Chart.ViewModels
 
     public void DrawMaxBuyPrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
     {
-      if (price > 0)
+      if (price > 0 && price > MinValue && price < MaxValue)
       {
         var close = TradingHelper.GetCanvasValue(canvasHeight, price, MaxValue, MinValue);
 
@@ -968,7 +1021,7 @@ namespace CTKS_Chart.ViewModels
 
     public void DrawMinSellPrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
     {
-      if (price > 0)
+      if (price > 0 && price > MinValue && price < MaxValue)
       {
         var close = TradingHelper.GetCanvasValue(canvasHeight, price, MaxValue, MinValue);
 

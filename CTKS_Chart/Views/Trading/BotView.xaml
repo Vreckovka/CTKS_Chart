@@ -34,20 +34,22 @@
 
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 
-      <Grid Background="#ff05080d">
+      <Grid Background="#ff05080d" DataContext="{Binding DrawingViewModel}">
         <Grid.ColumnDefinitions>
           <ColumnDefinition />
           <ColumnDefinition Width="auto" />
         </Grid.ColumnDefinitions>
         <Border MouseMove="Grid_MouseMove" MouseWheel="Border_MouseWheel">
-          <ContentControl Content="{Binding MainGrid}" />
+          <ContentControl Content="{Binding ChartImage}" />
         </Border>
 
         <controls1:Ruler
           Grid.Column="0"
           Width="50"
-          HorizontalAlignment="Left"
-          DataContext="{Binding DrawingViewModel}" />
+          HorizontalAlignment="Right"
+          MaxValue="{Binding MaxValue, Mode=TwoWay}"
+          MinValue="{Binding MinValue, Mode=TwoWay}"
+          Size="{Binding CanvasHeight}" />
       </Grid>
 
 

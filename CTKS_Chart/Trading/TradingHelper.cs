@@ -77,6 +77,27 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
+    #region GetValueFromCanvas
+
+    public static long GetValueFromCanvasLinear(double canvasHeight, double value, long maxValue, long minValue)
+    {
+      var logMaxValue = (double)maxValue;
+      var logMinValue = (double)minValue;
+
+      var logRange = logMaxValue - logMinValue;
+
+      var valued = (value * logRange / canvasHeight) + logMinValue;
+
+      if ((long)long.MaxValue < valued)
+      {
+        return long.MaxValue;
+      }
+
+      return (long)valued;
+    }
+
+    #endregion
+
     #region GetCanvasValue
 
     public static double GetCanvasValue(double canvasHeight, decimal value, decimal maxValue, decimal minValue)
@@ -84,6 +105,24 @@ namespace CTKS_Chart.Trading
       var logValue = Math.Log10((double)value);
       var logMaxValue = Math.Log10((double)maxValue);
       var logMinValue = Math.Log10((double)minValue);
+
+      var logRange = logMaxValue - logMinValue;
+      double difference = logValue - logMinValue;
+
+      var result = difference * canvasHeight / logRange;
+
+      return result;
+    }
+
+    #endregion
+
+    #region GetCanvasValueLinear
+
+    public static double GetCanvasValueLinear(double canvasHeight, long value, long maxValue, long minValue)
+    {
+      var logValue = value;
+      var logMaxValue = maxValue;
+      var logMinValue = minValue;
 
       var logRange = logMaxValue - logMinValue;
       double difference = logValue - logMinValue;

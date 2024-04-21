@@ -179,6 +179,8 @@ namespace CTKS_Chart.Trading
     public void AddIntersections()
     {
       var lastCandle = canvas.Children.OfType<Rectangle>().Last();
+      var highestClose = Candles.Max(x => x.High);
+      var lowestClose = Candles.Min(x => x.Low);
 
       foreach (var line in ctksLines)
       {
@@ -186,15 +188,18 @@ namespace CTKS_Chart.Trading
         var actual = canvasHeight - TradingHelper.GetPointOnLine(line.StartPoint.X, line.StartPoint.Y, line.EndPoint.X, line.EndPoint.Y, actualLeft);
         var value = Math.Round(TradingHelper.GetValueFromCanvas(canvasHeight, actual, layout.MaxValue, layout.MinValue), asset.PriceRound);
 
-        var intersection = new CtksIntersection()
+        if(value > lowestClose * (decimal)0.995 && value < highestClose * 100)
         {
-          Value = value,
-          TimeFrame = line.TimeFrame,
-          Line = line
-        };
+          var intersection = new CtksIntersection()
+          {
+            Value = value,
+            TimeFrame = line.TimeFrame,
+            Line = line
+          };
 
-        ctksIntersections.Add(intersection);
-        intersectionId++;
+          ctksIntersections.Add(intersection);
+          intersectionId++;
+        }
       }
     }
 
@@ -385,21 +390,11 @@ namespace CTKS_Chart.Trading
       renderedIntersections.Clear();
       ctksLines.Clear();
 
-      canvas.UpdateLayout();
-
       createChart();
+      Candles = candles;
 
       CreateLines(candles, timeFrame);
       AddIntersections();
-     
-
-      canvas.UpdateLayout();
-
-      Candles = candles;
-
-      //GC.Collect();
-      //GC.WaitForPendingFinalizers();
-      //GC.Collect();
     }
   }
 }
