@@ -165,7 +165,7 @@ namespace CTKS_Chart.Trading
             if (currentCandle.Open > nextCandle.Close)
               CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightTop, timeFrame);
             else if (currentCandle.Open < nextCandle.Close)
-              CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftBottom, timeFrame);
+              CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftTop, timeFrame);
           }
         }
       }
