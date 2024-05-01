@@ -10,6 +10,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using TradingManager.Providers;
 using VCore.Standard.Factories.ViewModels;
@@ -35,9 +36,11 @@ namespace TradingManager.ViewModels
       this.chromeDriverProvider = chromeDriverProvider ?? throw new ArgumentNullException(nameof(chromeDriverProvider));
       this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
       tradingViewDataProvider = new TradingViewDataProvider(chromeDriverProvider);
+
+      Title = "Trading Manager";
     }
 
-    public ObservableCollection<TradingViewDataViewModel> Files { get; set; } = new ObservableCollection<TradingViewDataViewModel>();
+    public ObservableCollection<TradingViewFolderDataViewModel> Folders { get; set; } = new ObservableCollection<TradingViewFolderDataViewModel>();
 
     #region LastChecked
 
@@ -115,9 +118,14 @@ namespace TradingManager.ViewModels
       base.Initialize();
       CheckData();
 
-      Observable.Interval(TimeSpan.FromMinutes(1)).Subscribe((x) =>
+      Observable.Interval(TimeSpan.FromMinutes(0.1)).Subscribe((x) =>
       {
-        CheckData();
+        DateTime lastUtc = TimeZoneInfo.ConvertTimeToUtc(LastChecked, TimeZoneInfo.Local);
+
+        if (DateTime.UtcNow.Date > lastUtc.Date && DateTime.UtcNow.TimeOfDay > TimeSpan.FromMinutes(1))
+        {
+          CheckData();
+        }     
       });
     }
 
@@ -129,7 +137,7 @@ namespace TradingManager.ViewModels
     {
       VSynchronizationContext.InvokeOnDispatcher(CheckFiles);
 
-      if (Files.Any(x => x.IsOutDated))
+      if (Folders.SelectMany(x => x.Files).Any(x => x.IsOutDated))
       {
         UpdateTimeframes();
       }
@@ -144,7 +152,7 @@ namespace TradingManager.ViewModels
       try
       {
         LastChecked = DateTime.Now;
-        Files.Clear();
+        Folders.Clear();
         var folders = File.ReadAllLines("folders_to_check.txt");
 
         var allTimeFrames = EnumHelper.GetAllValuesAndDescriptions(typeof(TimeFrame));
@@ -152,7 +160,12 @@ namespace TradingManager.ViewModels
         foreach (var path in folders)
         {
           var files = Directory.GetFiles(path);
-
+          var folderVm = new TradingViewFolderDataViewModel()
+          {
+            Path = path,
+            Name = Directory.GetParent(Directory.GetParent(path).FullName).Name.ToUpper()
+          };
+                   
 
           foreach (var file in files)
           {
@@ -180,8 +193,10 @@ namespace TradingManager.ViewModels
             var candles = TradingViewHelper.ParseTradingView(file);
 
             vm.IsOutDated = TradingViewHelper.IsOutDated(vm.TimeFrame, candles);
-            Files.Add(vm);
+            folderVm.Files.Add(vm);
           }
+
+          Folders.Add(folderVm);
         }
       }
       catch (Exception ex)
@@ -195,7 +210,7 @@ namespace TradingManager.ViewModels
 
     public async void UpdateTimeframes()
     {
-      var outdatedFiles = Files.Where(x => x.IsOutDated);
+      var outdatedFiles = Folders.SelectMany(x => x.Files).Where(x => x.IsOutDated);
 
       foreach (var outdated in outdatedFiles)
       {
