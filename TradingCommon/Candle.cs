@@ -1,25 +1,7 @@
 ﻿using System;
-using System.Windows;
 
 namespace CTKS_Chart.Trading
 {
-
-  public class IndicatorData
-  {
-    public decimal RangeFilter { get; set; }
-    public decimal HighTarget { get; set; }
-    public decimal LowTarget { get; set; }
-    public bool Upward { get; set; }
-    public decimal BBWP { get; set; }
-  }
-  public class ChartCandle 
-  {
-    public Candle Candle { get; set; }
-    public Rect Body { get; set; }
-    public Rect? TopWick { get; set; }
-    public Rect? BottomWick { get; set; }
-
-  }
 
   public class Candle
   {

@@ -69,7 +69,7 @@ namespace CTKS_Chart.ViewModels
    
       //var tradingView__ada_1D = $"D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data\\BINANCE ADAUSD, 1D.csv";
 
-      var mainCandles = TradingHelper.ParseTradingView(DataPath);
+      var mainCandles = TradingViewHelper.ParseTradingView(DataPath);
 
       MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
       MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);

@@ -185,9 +185,7 @@ namespace CTKS_Chart.ViewModels
 
       Title = selectedBot.Asset.Symbol;
 
-      //var tradingView = new TradingViewDataProvider(chromeDriverProvider);
-
-      //tradingView.DownloadTimeframe("BINANCE:ETHUSD", "1D");
+     
     }
       #endregion
 
@@ -200,88 +198,6 @@ namespace CTKS_Chart.ViewModels
       //chromeDriverProvider.Dispose();
     }
     #endregion
-  }
-
-  public class TradingViewDataProvider
-  {
-    //private readonly ChromeDriverProvider chromeDriverProvider;
-
-    //public TradingViewDataProvider(ChromeDriverProvider chromeDriverProvider)
-    //{
-    //  this.chromeDriverProvider = chromeDriverProvider ?? throw new ArgumentNullException(nameof(chromeDriverProvider));
-    //}
-
-
-    //public void DownloadTimeframe(string symbol, string timeFrame)
-    //{
-    //  Task.Run(async () =>
-    //  {
-    //    bool sucess = false;
-
-    //    var fileName = symbol.Replace(":", "_");
-
-    //    var chromePath = Path.GetDirectoryName(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
-    //    chromePath += @"\Local\Google\Chrome\User Data";
-
-    //    var downloadDir = Path.Combine(Directory.GetCurrentDirectory(), "Data", "Chart data");
-    //    var actualFileName = Path.Combine(downloadDir, $"{fileName}, {timeFrame}.csv");
-    //    var newFileName = Path.Combine(downloadDir, $"{fileName}, {timeFrame} (1).csv");
-
-    //    this.chromeDriverProvider.Initialize(options: new List<string>()
-    //    {
-    //      $"--user-data-dir={chromePath}"
-    //    }, downloadDirectory: downloadDir);
-
-    //    this.chromeDriverProvider.SafeNavigate("https://www.tradingview.com/chart/p9TLSOTV/", out var red);
-
-    //    while (!sucess)
-    //    {
-    //      try
-    //      {
-    //        //var watchlistName = (string)this.chromeDriverProvider.ExecuteScript("return document.querySelectorAll('[data-name=\"watchlists-button\"]')[0].innerText;", 1);
-
-    //        //if(watchlistName != "Export")
-    //        //{
-    //        //  this.chromeDriverProvider.ExecuteScript("return document.querySelectorAll('[data-name=\"watchlists-button\"]')[0].click();", 1);
-    //        //}
-
-    //        var enterEvent = "new KeyboardEvent('keydown', {code: 'Enter',key: 'Enter',charCode: 13,keyCode: 13,view: window,bubbles: true})";
-
-    //        this.chromeDriverProvider.ExecuteScript("document.getElementById(\"header-toolbar-symbol-search\").click()", 1);
-    //        this.chromeDriverProvider.ExecuteScript($"document.querySelectorAll('[data-role=\"search\"]')[0].value = \"{symbol}\" ", 1);
-    //        this.chromeDriverProvider.ExecuteScript($"document.querySelectorAll('[data-role=\"search\"]')[0].dispatchEvent({enterEvent})", 1);
-    //        //this.chromeDriverProvider.ExecuteScriptVoid("document.querySelectorAll('[data-name=\"save-load-menu\"]')[0].click();", 1);
-    //        //this.chromeDriverProvider.ExecuteScriptVoid("document.querySelectorAll('[data-role=\"menuitem\"]')[5].click();", 1);
-    //        //this.chromeDriverProvider.ExecuteScriptVoid("document.querySelectorAll('[data-name=\"submit-button\"]')[0].click();", 1);
-
-    //        await Task.Delay(1000);
-
-    //        if (File.Exists(newFileName) || File.Exists(actualFileName))
-    //        {
-    //          sucess = true;
-    //        }
-
-    //        if (File.Exists(newFileName))
-    //        {
-    //          File.Delete(actualFileName);
-    //          File.Move(newFileName, actualFileName);
-
-    //        }
-
-    //        if (sucess)
-    //          this.chromeDriverProvider.ChromeDriver.Close();
-    //        else
-    //          await Task.Delay(5000);
-    //      }
-    //      catch (Exception ex)
-    //      {
-    //        if (!sucess)
-    //          await Task.Delay(5000);
-    //      }
-    //    }
-
-    //  });
-    //}
   }
 }
 

@@ -845,14 +845,14 @@ namespace CTKS_Chart.Strategy
                     .Where(x => x.TimeFrame >= minTimeframe)
                     .Where(x => x.IsEnabled)
                     .Where(x => x.Value < actualCandle.Close.Value &&
-                                x.Value > minBuy)
+                                x.Value > minBuy &&
+                                x.Value < lastSell)
                       .OrderByDescending(x => x.Value)
                     .ToList();
 
 
         var nonAutomaticIntersections = inter.Where(x => x.Value < maxBuy &&
-                                                         x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame) &&
-                                                         x.Value < lastSell);
+                                                         x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame));
 
         if (EnableManualPositions)
         {

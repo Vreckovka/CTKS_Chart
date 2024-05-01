@@ -929,19 +929,22 @@ namespace CTKS_Chart.ViewModels
     public void DrawActualPrice(DrawingContext drawingContext, Layout layout, IList<Candle> candles, double canvasHeight, double canvasWidth)
     {
       var lastCandle = candles.Last();
-      var closePrice = lastCandle.Close;
+      var price = lastCandle.Close;
 
-      var close = TradingHelper.GetCanvasValue(canvasHeight, closePrice.Value, MaxValue, MinValue);
+      if (price > 0 && price > MinValue && price < MaxValue)
+      {
+        var close = TradingHelper.GetCanvasValue(canvasHeight, price.Value, MaxValue, MinValue);
 
-      var lineY = canvasHeight - close;
+        var lineY = canvasHeight - close;
 
-      var brush = lastCandle.IsGreen ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
-      var pen = new Pen(brush, 1);
-      pen.DashStyle = DashStyles.Dash;
+        var brush = lastCandle.IsGreen ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
+        var pen = new Pen(brush, 1);
+        pen.DashStyle = DashStyles.Dash;
 
-      var text = DrawingHelper.GetFormattedText(closePrice.Value.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 20);
-      drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 25, lineY - text.Height - 5));
-      drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
+        var text = DrawingHelper.GetFormattedText(price.Value.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 20);
+        drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 25, lineY - text.Height - 5));
+        drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
+      }
     }
 
     #endregion

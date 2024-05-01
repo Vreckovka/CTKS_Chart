@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\CustomLibraries\Custom\ChromeDriverScrapper\ChromeDriverScrapper.csproj" />
+    <ProjectReference Include="..\..\..\CustomLibraries\DomainCore\DomainCore.csproj" />
+    <ProjectReference Include="..\..\..\CustomLibraries\Logger\Logger.csproj" />
+    <ProjectReference Include="..\..\..\CustomLibraries\VCore.Standard\VCore.Standard.csproj" />
+    <ProjectReference Include="..\..\..\CustomLibraries\VCore\VCore.WPF.csproj" />
+    <ProjectReference Include="..\..\..\VPlayer\VPlayer.DarkTheme\VPlayer.DarkTheme.csproj" />
+    <ProjectReference Include="..\TradingCommon\TradingCommon.csproj" />
+  </ItemGroup>
+
+</Project>

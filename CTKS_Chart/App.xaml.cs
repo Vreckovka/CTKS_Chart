@@ -34,9 +34,6 @@ namespace CTKS_Chart
         .To<BinanceBroker>()
         .InSingletonScope();
 
-      //Kernel.Bind<IChromeDriverProvider>()
-      //  .To<ChromeDriverProvider>()
-      //  .InSingletonScope();
     }
   }
 

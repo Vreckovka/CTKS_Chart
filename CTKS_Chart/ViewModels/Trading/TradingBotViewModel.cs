@@ -801,7 +801,8 @@ namespace CTKS_Chart.ViewModels
 
     private void CheckLayout(Layout layout, List<Candle> innerCandles)
     {
-      if (DateTime.Now > innerCandles.Last().CloseTime)
+      var last = innerCandles.Last();
+      if (DateTime.Now > TradingViewHelper.GetNextTime(last.OpenTime, layout.TimeFrame))
       {
         layout.IsOutDated = true;
         lastFileCheck = DateTime.Now;
@@ -866,7 +867,7 @@ namespace CTKS_Chart.ViewModels
 
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
-        var candles = TradingHelper.ParseTradingView(layoutData.Key).Where(x => x.CloseTime > startTime);
+        var candles = TradingViewHelper.ParseTradingView(layoutData.Key).Where(x => x.CloseTime > startTime);
 
         foreach (var candle in candles)
         {
@@ -900,7 +901,7 @@ namespace CTKS_Chart.ViewModels
             continue;
           }
 
-          if (actual.CloseTime > TradingHelper.GetNextTime(lastCandle.CloseTime, secondaryLayout.TimeFrame))
+          if (actual.OpenTime > TradingViewHelper.GetNextTime(lastCandle.OpenTime, secondaryLayout.TimeFrame))
           {
             var fileCheck = true;
 
@@ -925,11 +926,11 @@ namespace CTKS_Chart.ViewModels
               }
               else
               {
-                var innerCandles = TradingHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
+                var innerCandles = TradingViewHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
 
                 VSynchronizationContext.InvokeOnDispatcher(() => secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, DrawingViewModel.CanvasHeight, DrawingViewModel.CanvasWidth, innerCandles)));
 
-                CheckLayout(secondaryLayout, innerCandles);
+                secondaryLayout.IsOutDated = TradingViewHelper.IsOutDated(secondaryLayout.TimeFrame, innerCandles);
               }
 
 
@@ -1095,7 +1096,7 @@ namespace CTKS_Chart.ViewModels
       decimal? pmax = null,
       decimal? pmin = null)
     {
-      var candles = TradingHelper.ParseTradingView(location, maxTime);
+      var candles = TradingViewHelper.ParseTradingView(location, maxTime);
 
       var canvas = new Canvas();
 

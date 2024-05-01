@@ -30,7 +30,7 @@ namespace CTKS_Chart.Strategy
     {
       if (candles == null)
       {
-        candles = TradingHelper.ParseTradingView(path);
+        candles = TradingViewHelper.ParseTradingView(path);
       }
 
       var actualCandle = candles.FirstOrDefault(x => x.CloseTime > newCandle.CloseTime && x.OpenTime < newCandle.OpenTime);
