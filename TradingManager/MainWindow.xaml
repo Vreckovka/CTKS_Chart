@@ -9,7 +9,36 @@
   Width="800"
   Height="450"
   mc:Ignorable="d">
-  <Grid>
-    <TextBlock Text="agih" />
+  <Grid Background="#dd000000">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="150" />
+      <ColumnDefinition />
+    </Grid.ColumnDefinitions>
+
+    <StackPanel>
+      <Button Command="{Binding UpdateTimeFramesCommand}">Update timeframes</Button>
+      <Button Command="{Binding CheckFilesCommand}">Check files</Button>
+      <TextBlock Foreground="White" Text="{Binding LastChecked, StringFormat={}{0:dd.MM.yyyy HH:mm}}" />
+    </StackPanel>
+
+    <ListView Grid.Column="1" ItemsSource="{Binding Files}">
+      <ListView.ItemTemplate>
+        <DataTemplate>
+          <StackPanel>
+            <TextBlock Text="{Binding Name}" />
+
+            <StackPanel.Style>
+              <Style TargetType="StackPanel">
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding IsOutDated}" Value="true">
+                    <Setter Property="Background" Value="#55ff0000" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </StackPanel.Style>
+          </StackPanel>
+        </DataTemplate>
+      </ListView.ItemTemplate>
+    </ListView>
   </Grid>
 </Window>

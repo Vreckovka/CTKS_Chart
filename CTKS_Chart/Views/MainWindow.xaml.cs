@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Forms;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
 using CTKS_Chart.ViewModels;
 using VCore.Standard.Modularity.Interfaces;
 using Control = System.Windows.Controls.Control;
@@ -131,7 +132,7 @@ namespace CTKS_Chart.Views
 
     public void SortActualPositions()
     {
-      SortDataGrid(ActualPositions,1);
+      SortDataGrid(ActualPositions, 1);
       SortDataGrid(Loggs);
     }
 
@@ -156,6 +157,26 @@ namespace CTKS_Chart.Views
       dataGrid.Items.Refresh();
     }
 
-   
+    public void ChangeIcon(string symbol)
+    {
+      BitmapSource icon = null;
+      symbol = symbol.ToUpper();
+
+      if(symbol.Contains("BTC"))
+      {
+        icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.bitcoin.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+      }
+      else if(symbol.Contains("LTC"))
+      {
+        icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.litecoin.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+      }
+      else if (symbol.Contains("ADA"))
+      {
+        icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.cardano.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+      }
+     
+
+      this.Icon = icon;
+    }
   }
 }

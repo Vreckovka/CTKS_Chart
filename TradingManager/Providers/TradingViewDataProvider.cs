@@ -29,9 +29,9 @@ namespace TradingManager.Providers
     }
 
 
-    public void DownloadTimeframe(TradingViewSymbol symbol, string timeFrame)
+    public Task<string> DownloadTimeframe(TradingViewSymbol symbol, string timeFrame)
     {
-      Task.Run(async () =>
+      return Task.Run(async () =>
       {
         bool sucess = false;
 
@@ -46,25 +46,28 @@ namespace TradingManager.Providers
 
         this.chromeDriverProvider.Initialize(options: new List<string>()
         {
-          $"--user-data-dir={chromePath}"
+          $"--user-data-dir={chromePath}",
+           "--disable-gpu",
+              "--no-sandbox",
+              "--start-maximized",
+              "--disable-infobars",
+              "--disable-extensions",
+              "--log-level=3",
+              "--disable-cookie-encryption=false",
+              "--block-new-web-contents",
+              "--enable-precise-memory-info",
+              "--ignore-certificate-errors",
+              "--window-size=1920,1080"
+
         }, downloadDirectory: downloadDir);
 
-        this.chromeDriverProvider.SafeNavigate("https://www.tradingview.com/chart/p9TLSOTV/", out var red);
+        this.chromeDriverProvider.SafeNavigate($"https://www.tradingview.com/chart/p9TLSOTV/?symbol={symbol.Provider}%3A{symbol.Symbol}&interval={timeFrame}", out var red);
 
-
-        bool symbolSelected = false;
 
         while (!sucess)
         {
           try
           {
-            if (!symbolSelected)
-              symbolSelected = await SelectSymbol(symbol);
-
-            await Task.Delay(1000);
-            SelectTimeframe(timeFrame);
-            await Task.Delay(5000);
-
             DownloadFile();
 
             await Task.Delay(1000);
@@ -82,7 +85,9 @@ namespace TradingManager.Providers
             }
 
             if (sucess)
-              this.chromeDriverProvider.ChromeDriver.Close();
+            {
+              return actualFileName;
+            }
             else
               await Task.Delay(5000);
           }
@@ -92,6 +97,8 @@ namespace TradingManager.Providers
               await Task.Delay(5000);
           }
         }
+
+        return null;
       });
     }
 
@@ -123,7 +130,7 @@ namespace TradingManager.Providers
 
       this.chromeDriverProvider.ExecuteScriptVoid("document.querySelectorAll('[data-tooltip=\"Time Interval\"]')[0].click()", 1);
 
-    
+
     }
 
     private void DownloadFile()

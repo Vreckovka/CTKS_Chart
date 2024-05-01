@@ -1,61 +1,201 @@
 ﻿using ChromeDriverScrapper;
 using CTKS_Chart.Trading;
+using Logger;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using TradingManager.Providers;
 using VCore.Standard.Factories.ViewModels;
+using VCore.Standard.Helpers;
+using VCore.WPF;
+using VCore.WPF.Misc;
 using VCore.WPF.ViewModels;
 
 namespace TradingManager.ViewModels
 {
+
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
     private readonly IChromeDriverProvider chromeDriverProvider;
+    private readonly ILogger logger;
+    private readonly TradingViewDataProvider tradingViewDataProvider;
 
-    public MainWindowViewModel(IViewModelsFactory viewModelsFactory, IChromeDriverProvider chromeDriverProvider) : base(viewModelsFactory)
+    public MainWindowViewModel(
+      IViewModelsFactory viewModelsFactory,
+      IChromeDriverProvider chromeDriverProvider,
+      ILogger logger) : base(viewModelsFactory)
     {
       this.chromeDriverProvider = chromeDriverProvider ?? throw new ArgumentNullException(nameof(chromeDriverProvider));
+      this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
+      tradingViewDataProvider = new TradingViewDataProvider(chromeDriverProvider);
     }
+
+    public ObservableCollection<TradingViewDataViewModel> Files { get; set; } = new ObservableCollection<TradingViewDataViewModel>();
+
+    #region LastChecked
+
+    private DateTime lastChecked;
+
+    public DateTime LastChecked
+    {
+      get { return lastChecked; }
+      set
+      {
+        if (value != lastChecked)
+        {
+          lastChecked = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region UpdateTimeFramesCommand
+
+    protected ActionCommand updateTimeFramesCommand;
+
+    public ICommand UpdateTimeFramesCommand
+    {
+      get
+      {
+        return updateTimeFramesCommand ??= new ActionCommand(UpdateTimeframes).DisposeWith(this);
+      }
+    }
+
+
+    #endregion
+
+    #region CheckFilesCommand
+
+    protected ActionCommand checkFilesCommand;
+
+    public ICommand CheckFilesCommand
+    {
+      get
+      {
+        return checkFilesCommand ??= new ActionCommand(CheckFiles).DisposeWith(this);
+      }
+    }
+
+    #endregion
+
+    #region Methods
+
+    #region Initialize
 
     public override void Initialize()
     {
       base.Initialize();
-
       CheckData();
+
+      Observable.Interval(TimeSpan.FromMinutes(1)).Subscribe((x) =>
+      {
+        CheckData();
+      });
     }
 
-    public void CheckData()
+    #endregion
+
+    #region CheckData
+
+    private void CheckData()
     {
-      var list = new List<string>()
-      {
-        "\\\\desktop-6s0dghi\\bots\\ada\\Data\\Chart data"
-      };
+      VSynchronizationContext.InvokeOnDispatcher(CheckFiles);
 
-      foreach (var path in list)
+      if (Files.Any(x => x.IsOutDated))
       {
-        var files = Directory.GetFiles(path);
+        UpdateTimeframes();
+      }
+    }
 
-        foreach (var file in files)
+    #endregion
+
+    #region CheckFiles
+
+    public void CheckFiles()
+    {
+      try
+      {
+        LastChecked = DateTime.Now;
+        Files.Clear();
+        var folders = File.ReadAllLines("folders_to_check.txt");
+
+        var allTimeFrames = EnumHelper.GetAllValuesAndDescriptions(typeof(TimeFrame));
+
+        foreach (var path in folders)
         {
-          var candles = TradingViewHelper.ParseTradingView(file);
+          var files = Directory.GetFiles(path);
 
-          if(IsOutDated(candles))
+
+          foreach (var file in files)
           {
-            Debug.WriteLine(file);
+            var fileName = Path.GetFileName(file);
+            var nameSplit = fileName.Replace(".csv", null).Split(",");
+
+            var symbolSplit = nameSplit[0].Split(" ");
+            var timeframeText = nameSplit[1].Trim();
+
+            var value = allTimeFrames.FirstOrDefault(x => x.Description == timeframeText);
+            Enum.TryParse(value.Value.ToString(), out TimeFrame timeFrame);
+
+            var vm = new TradingViewDataViewModel()
+            {
+              Path = file,
+              Name = fileName,
+              TimeFrame = timeFrame,
+              TradingViewSymbol = new TradingViewSymbol()
+              {
+                Provider = symbolSplit[0],
+                Symbol = symbolSplit[1]
+              }
+            };
+
+            var candles = TradingViewHelper.ParseTradingView(file);
+
+            vm.IsOutDated = TradingViewHelper.IsOutDated(vm.TimeFrame, candles);
+            Files.Add(vm);
           }
         }
       }
+      catch (Exception ex)
+      {
+        logger.Log(ex);
+      }
+    }
+    #endregion
 
-      var tradingView = new TradingViewDataProvider(chromeDriverProvider);
+    #region UpdateTimeframes
 
-      tradingView.DownloadTimeframe(new TradingViewSymbol() { Provider = "BINANCE", Symbol = "BTCUSDT" }, "1W");
+    public async void UpdateTimeframes()
+    {
+      var outdatedFiles = Files.Where(x => x.IsOutDated);
+
+      foreach (var outdated in outdatedFiles)
+      {
+        var timeFrame = EnumHelper.Description(outdated.TimeFrame);
+        var newFile = await tradingViewDataProvider.DownloadTimeframe(outdated.TradingViewSymbol, timeFrame);
+
+        var newCandles = TradingViewHelper.ParseTradingView(newFile);
+        var oldCandles = TradingViewHelper.ParseTradingView(outdated.Path);
+
+        if (newCandles.Count > oldCandles.Count)
+          File.Copy(newFile, outdated.Path, true);
+      }
+
+      CheckFiles();
+      chromeDriverProvider.Dispose();
     }
 
-  
+    #endregion
+
+    #endregion
   }
 }

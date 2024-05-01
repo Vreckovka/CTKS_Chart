@@ -16,6 +16,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Binance.Net.Enums;
 using Binance.Net.Interfaces;
@@ -58,7 +59,7 @@ namespace CTKS_Chart.ViewModels
     #region Constructors
 
     public MainWindowViewModel(
-      IViewModelsFactory viewModelsFactory, 
+      IViewModelsFactory viewModelsFactory,
       IWindowManager windowManager) : base(viewModelsFactory)
     {
       this.windowManager = windowManager ?? throw new ArgumentNullException(nameof(windowManager));
@@ -185,18 +186,14 @@ namespace CTKS_Chart.ViewModels
 
       Title = selectedBot.Asset.Symbol;
 
-     
+
+
+      ((MainWindow)Window).ChangeIcon(selectedBot.Asset.Symbol);
+
     }
-      #endregion
 
-  
+    #endregion
 
-    protected override void OnClose(Window window)
-    {
-      base.OnClose(window);
-
-      //chromeDriverProvider.Dispose();
-    }
     #endregion
   }
 }
