@@ -58,6 +58,25 @@ namespace TradingManager.ViewModels
 
     #endregion
 
+    #region LastUpdated
+
+    private DateTime lastUpdated;
+
+    public DateTime LastUpdated
+    {
+      get { return lastUpdated; }
+      set
+      {
+        if (value != lastUpdated)
+        {
+          lastUpdated = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     #region UpdateTimeFramesCommand
 
     protected ActionCommand updateTimeFramesCommand;
@@ -187,7 +206,10 @@ namespace TradingManager.ViewModels
         var oldCandles = TradingViewHelper.ParseTradingView(outdated.Path);
 
         if (newCandles.Count > oldCandles.Count)
+        {
+          VSynchronizationContext.PostOnUIThread(() => LastUpdated = DateTime.Now);
           File.Copy(newFile, outdated.Path, true);
+        }
       }
 
       CheckFiles();

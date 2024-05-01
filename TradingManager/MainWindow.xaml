@@ -19,6 +19,7 @@
       <Button Command="{Binding UpdateTimeFramesCommand}">Update timeframes</Button>
       <Button Command="{Binding CheckFilesCommand}">Check files</Button>
       <TextBlock Foreground="White" Text="{Binding LastChecked, StringFormat={}{0:dd.MM.yyyy HH:mm}}" />
+      <TextBlock Foreground="White" Text="{Binding LastUpdated, StringFormat={}{0:dd.MM.yyyy HH:mm}}" />
     </StackPanel>
 
     <ListView Grid.Column="1" ItemsSource="{Binding Files}">
