@@ -342,7 +342,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-   
+
     #region OpenArchitectView
 
     protected ActionCommand openArchitectView;
@@ -358,7 +358,7 @@ namespace CTKS_Chart.ViewModels
     protected virtual void OnOpenArchitectView()
     {
       var arch = new ArchitectViewModel(Layouts, DrawingViewModel.ColorScheme, viewModelsFactory, TradingBot.Asset);
-   
+
       windowManager.ShowPrompt<ArchitectView>(arch, 1000, 1000);
     }
 
@@ -641,7 +641,7 @@ namespace CTKS_Chart.ViewModels
       {
         if (x != null)
         {
-         
+
           KlineInterval = x.Model.Interval;
         }
       });
@@ -1124,13 +1124,13 @@ namespace CTKS_Chart.ViewModels
           TradingBot.Strategy.TotalActualProfit = TradingBot.Strategy.ActualPositions.Sum(x => x.ActualProfit);
         }
 
-#if RELEASE
+
         VSynchronizationContext.InvokeOnDispatcher(() =>
         {
           if (SelectedLayout != null && SelectedLayout.Canvas == null)
             RenderLayout(InnerLayouts, actual);
         });
-#endif
+
 
         if (lastState == null)
         {
@@ -1221,9 +1221,9 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
-#endregion
+    #endregion
 
-#region RecreateChart
+    #region RecreateChart
 
     private async void RecreateChart(bool fetchNewCandles = false)
     {
@@ -1231,7 +1231,7 @@ namespace CTKS_Chart.ViewModels
       {
         if (fetchNewCandles && !IsSimulation)
         {
-          DrawingViewModel.ActualCandles = 
+          DrawingViewModel.ActualCandles =
             (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval)))
             .ToList();
           await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
@@ -1240,8 +1240,8 @@ namespace CTKS_Chart.ViewModels
           {
             DrawingViewModel.unixDiff = DrawingViewModel.ActualCandles[1].UnixTime - DrawingViewModel.ActualCandles[0].UnixTime;
 
-            DrawingViewModel.minUnix = DrawingViewModel.ActualCandles.First().UnixTime ;
-            DrawingViewModel.maxUnix = DrawingViewModel.ActualCandles.Last().UnixTime ;
+            DrawingViewModel.minUnix = DrawingViewModel.ActualCandles.First().UnixTime;
+            DrawingViewModel.maxUnix = DrawingViewModel.ActualCandles.Last().UnixTime;
 
             DrawingViewModel.Raise(nameof(DrawingViewModel.MinUnix));
             DrawingViewModel.Raise(nameof(DrawingViewModel.MaxUnix));
@@ -1255,9 +1255,9 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
-#endregion
+    #endregion
 
-#region LoadLayoutSettings
+    #region LoadLayoutSettings
 
     public void LoadLayoutSettings()
     {
@@ -1295,9 +1295,9 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
-#endregion
+    #endregion
 
-#region SaveLayoutSettings
+    #region SaveLayoutSettings
 
     public void SaveLayoutSettings()
     {
@@ -1322,9 +1322,9 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
-#endregion
+    #endregion
 
-#region GetToAthPrice
+    #region GetToAthPrice
 
     private long sellId = 0;
     private decimal lastAthPrice = 0;
@@ -1402,9 +1402,9 @@ namespace CTKS_Chart.ViewModels
       return lastAthPrice;
     }
 
-#endregion
+    #endregion
 
-#region GetAthPrice
+    #region GetAthPrice
 
     private bool wasLoadedAvg = false;
     public decimal GetAthPrice()
@@ -1429,8 +1429,8 @@ namespace CTKS_Chart.ViewModels
       return price;
     }
 
-#endregion
+    #endregion
 
-#endregion
+    #endregion
   }
 }

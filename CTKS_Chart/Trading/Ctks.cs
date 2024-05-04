@@ -42,42 +42,51 @@ namespace CTKS_Chart.Trading
 
     #region CreateLines
 
-    public void CreateLines(IList<Candle> candles, TimeFrame timeFrame)
+    public void CreateLines(IList<Candle> candles)
     {
       for (int i = 0; i < candles.Count - 2; i++)
       {
         var currentCandle = candles[i];
         var nextCandle = candles[i + 1];
 
-        if (currentCandle.IsGreen)
+        SetupLine(currentCandle, nextCandle);
+      }
+    }
+
+    #endregion
+
+    #region SetupLine
+
+    private void SetupLine(Candle firstCandle, Candle secondCandle)
+    {
+      if (firstCandle.IsGreen)
+      {
+        if (secondCandle.IsGreen)
         {
-          if (nextCandle.IsGreen)
-          {
-            CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftTop, timeFrame);
-            CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightBottom, timeFrame);
-          }
-          else
-          {
-            if (currentCandle.Open < nextCandle.Close)
-              CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightBottom, timeFrame);
-            else if (currentCandle.Open > nextCandle.Close)
-              CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftBottom, timeFrame);
-          }
+          CreateLine(firstCandle, secondCandle, LineType.LeftTop, timeFrame);
+          CreateLine(firstCandle, secondCandle, LineType.RightBottom, timeFrame);
         }
         else
         {
-          if (!nextCandle.IsGreen)
-          {
-            CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightTop, timeFrame);
-            CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftBottom, timeFrame);
-          }
-          else
-          {
-            if (currentCandle.Open > nextCandle.Close)
-              CreateLine(i, i + 1, currentCandle, nextCandle, LineType.RightTop, timeFrame);
-            else if (currentCandle.Open < nextCandle.Close)
-              CreateLine(i, i + 1, currentCandle, nextCandle, LineType.LeftTop, timeFrame);
-          }
+          if (firstCandle.Open < secondCandle.Close)
+            CreateLine(firstCandle, secondCandle, LineType.RightBottom, timeFrame);
+          else if (firstCandle.Open > secondCandle.Close)
+            CreateLine(firstCandle, secondCandle, LineType.LeftBottom, timeFrame);
+        }
+      }
+      else
+      {
+        if (!secondCandle.IsGreen)
+        {
+          CreateLine(firstCandle, secondCandle, LineType.RightTop, timeFrame);
+          CreateLine(firstCandle, secondCandle, LineType.LeftBottom, timeFrame);
+        }
+        else
+        {
+          if (firstCandle.Open > secondCandle.Close)
+            CreateLine(firstCandle, secondCandle, LineType.RightTop, timeFrame);
+          else if (firstCandle.Open < secondCandle.Close)
+            CreateLine(firstCandle, secondCandle, LineType.LeftTop, timeFrame);
         }
       }
     }
@@ -87,11 +96,9 @@ namespace CTKS_Chart.Trading
     #region CreateLine
 
     public CtksLine CreateLine(
-      int firstCandleIndex, 
-      int secondCandleIndex,
       Candle firstCandle,
       Candle secondCandle,
-      LineType lineType, 
+      LineType lineType,
       TimeFrame timeFrame)
     {
       decimal price1 = 0;
@@ -136,7 +143,7 @@ namespace CTKS_Chart.Trading
 
       var y1 = canvasHeight - TradingHelper.GetCanvasValue(canvasHeight, price1, layout.MaxValue, layout.MinValue);
       var y2 = canvasHeight - TradingHelper.GetCanvasValue(canvasHeight, price2, layout.MaxValue, layout.MinValue);
-      
+
       var x1 = TradingHelper.GetCanvasValueLinear(canvasWidth, unix1, maxUnix, minUnix);
       var x2 = TradingHelper.GetCanvasValueLinear(canvasWidth, unix2, maxUnix, minUnix);
 
@@ -148,8 +155,6 @@ namespace CTKS_Chart.Trading
         StartPoint = startPoint,
         EndPoint = endPoint,
         TimeFrame = timeFrame,
-        FirstIndex = firstCandleIndex,
-        SecondIndex = secondCandleIndex,
         LineType = lineType,
         FirstPoint = new CtksLinePoint()
         {
@@ -185,7 +190,7 @@ namespace CTKS_Chart.Trading
         var value = Math.Round(TradingHelper.GetValueFromCanvas(canvasHeight, canvasHeight - actual, layout.MaxValue, layout.MinValue), asset.PriceRound);
 
 
-        if(value > lowestClose * (decimal)0.995 && value < highestClose * 100)
+        if (value > lowestClose * (decimal)0.995 && value < highestClose * 100)
         {
           var intersection = new CtksIntersection()
           {
@@ -217,13 +222,13 @@ namespace CTKS_Chart.Trading
       }
       else
         return;
-  
+
       createChart();
       Candles = candles;
 
-      CreateLines(candles, timeFrame);
+      CreateLines(candles);
       AddIntersections();
-    } 
+    }
 
     #endregion
   }

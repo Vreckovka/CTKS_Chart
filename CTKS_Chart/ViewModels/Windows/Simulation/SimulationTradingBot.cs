@@ -87,7 +87,10 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.MinValue = MainLayout.MinValue;
       DrawingViewModel.LockChart = true;
       DrawingViewModel.ShowATH = true;
-      //TradingBot.Strategy.EnableManualPositions = false;
+      
+      //Intersection precision testing
+      TradingBot.Strategy.EnableManualPositions = false;
+
 
       var rangeFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
       TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy(rangeFilterData, TradingBot.Strategy));

@@ -14,8 +14,8 @@
       {
         //Simulation is giving significant less value without Value == other.Value;
         var result =
-          Line.IsSame(other.Line) && 
-          Value == other.Value;
+          Line.IsSame(other.Line)
+          && Value == other.Value;
 
         return result;
       }

@@ -27,5 +27,13 @@ namespace CTKS_Chart.Trading
     public DateTime CloseTime { get; set; }
 
     public IndicatorData IndicatorData { get; set; }
+
+    public decimal Gain
+    {
+      get
+      {
+        return (Close.Value - Open.Value) / Close.Value * 100;
+      }
+    }
   }
 }

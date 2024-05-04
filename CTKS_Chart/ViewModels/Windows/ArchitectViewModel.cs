@@ -497,7 +497,7 @@ namespace CTKS_Chart.ViewModels
 
         var x3 = canvasWidth;
 
-        var ctksLine = CreateLine(line.FirstIndex, line.SecondIndex, canvasHeight, canvasWidth, line);
+        var ctksLine = CreateLine(canvasHeight, canvasWidth, line);
 
         if (ctksLine == null)
           continue;
@@ -548,8 +548,6 @@ namespace CTKS_Chart.ViewModels
     #region CreateLine
 
     public CtksLine CreateLine(
-      int? firstCandleIndex,
-      int? secondCandleIndex,
       double canvasHeight,
       double canvasWidth,
       CtksLine ctksLine)
@@ -573,8 +571,6 @@ namespace CTKS_Chart.ViewModels
           StartPoint = startPoint,
           EndPoint = endPoint,
           TimeFrame = ctksLine.TimeFrame,
-          FirstIndex = firstCandleIndex,
-          SecondIndex = secondCandleIndex,
           LineType = ctksLine.LineType
         };
       }
