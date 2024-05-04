@@ -759,11 +759,9 @@ namespace CTKS_Chart.Strategy
         lastCandle = actualCandle;
         decimal lastSell = decimal.MaxValue;
 
-
-
         if (ClosedSellPositions.Any() && ActualPositions.Any())
         {
-          lastSell = ClosedSellPositions.Last().Price * (decimal)(1 - MinBuyMapping[TimeFrame.W1]);
+          lastSell = ClosedSellPositions.Last().Price;
         }
 
 #if DEBUG
@@ -849,7 +847,11 @@ namespace CTKS_Chart.Strategy
                                 x.Value < lastSell)
                       .OrderByDescending(x => x.Value)
                     .ToList();
+#if DEBUG
+        var lowest = actualCandle.Close.Value * (decimal)0.3;
 
+        inter = inter.Where(x => x.Value > lowest).ToList();
+#endif
 
         var nonAutomaticIntersections = inter.Where(x => x.Value < maxBuy &&
                                                          x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame));
@@ -888,6 +890,7 @@ namespace CTKS_Chart.Strategy
 
     private async Task CreateBuyPositionFromIntersection(CtksIntersection intersection, bool automatic = false)
     {
+
       var positionsOnIntersesction =
         AllOpenedPositions
         .Where(x => x.IsAutomatic == automatic)
@@ -1586,6 +1589,8 @@ namespace CTKS_Chart.Strategy
       foreach (var postion in AllOpenedPositions)
       {
         var inter = postion.Intersection;
+
+
         var found = ctksIntersections.SingleOrDefault(y => y.IsSame(inter));
 
         if (found != null)

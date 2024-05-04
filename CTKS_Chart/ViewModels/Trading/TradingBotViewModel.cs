@@ -342,64 +342,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region ShowLines
-
-    protected ActionCommand showLines;
-
-    public ICommand ShowLines
-    {
-      get
-      {
-        return showLines ??= new ActionCommand(OnShowLines);
-      }
-    }
-
-    protected virtual void OnShowLines()
-    {
-      var ctks = SelectedLayout.Ctks;
-
-      if (ctks.LinesVisible)
-      {
-        ctks.ClearRenderedLines();
-      }
-      else
-      {
-        ctks.RenderLines();
-      }
-
-      ctks.LinesVisible = !ctks.LinesVisible;
-    }
-
-    #endregion
-
-    #region ShowIntersections
-
-    protected ActionCommand showIntersections;
-
-    public ICommand ShowIntersections
-    {
-      get
-      {
-        return showIntersections ??= new ActionCommand(OnShowIntersections);
-      }
-    }
-
-    protected virtual void OnShowIntersections()
-    {
-      var ctks = SelectedLayout.Ctks;
-
-      if (ctks.IntersectionsVisible)
-      {
-        ctks.ClearRenderedIntersections();
-      }
-      else
-      {
-        ctks.RenderIntersections();
-      }
-    }
-
-    #endregion
-
+   
     #region OpenArchitectView
 
     protected ActionCommand openArchitectView;
@@ -415,7 +358,7 @@ namespace CTKS_Chart.ViewModels
     protected virtual void OnOpenArchitectView()
     {
       var arch = new ArchitectViewModel(Layouts, DrawingViewModel.ColorScheme, viewModelsFactory, TradingBot.Asset);
-
+   
       windowManager.ShowPrompt<ArchitectView>(arch, 1000, 1000);
     }
 
@@ -1181,11 +1124,13 @@ namespace CTKS_Chart.ViewModels
           TradingBot.Strategy.TotalActualProfit = TradingBot.Strategy.ActualPositions.Sum(x => x.ActualProfit);
         }
 
+#if RELEASE
         VSynchronizationContext.InvokeOnDispatcher(() =>
         {
           if (SelectedLayout != null && SelectedLayout.Canvas == null)
             RenderLayout(InnerLayouts, actual);
         });
+#endif
 
         if (lastState == null)
         {
@@ -1276,9 +1221,9 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
-    #endregion
+#endregion
 
-    #region RecreateChart
+#region RecreateChart
 
     private async void RecreateChart(bool fetchNewCandles = false)
     {
@@ -1310,9 +1255,9 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
-    #endregion
+#endregion
 
-    #region LoadLayoutSettings
+#region LoadLayoutSettings
 
     public void LoadLayoutSettings()
     {
@@ -1350,9 +1295,9 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
-    #endregion
+#endregion
 
-    #region SaveLayoutSettings
+#region SaveLayoutSettings
 
     public void SaveLayoutSettings()
     {
@@ -1377,9 +1322,9 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
-    #endregion
+#endregion
 
-    #region GetToAthPrice
+#region GetToAthPrice
 
     private long sellId = 0;
     private decimal lastAthPrice = 0;
@@ -1457,9 +1402,9 @@ namespace CTKS_Chart.ViewModels
       return lastAthPrice;
     }
 
-    #endregion
+#endregion
 
-    #region GetAthPrice
+#region GetAthPrice
 
     private bool wasLoadedAvg = false;
     public decimal GetAthPrice()
@@ -1484,8 +1429,8 @@ namespace CTKS_Chart.ViewModels
       return price;
     }
 
-    #endregion
+#endregion
 
-    #endregion
+#endregion
   }
 }

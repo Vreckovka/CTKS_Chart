@@ -12,6 +12,8 @@ namespace CTKS_Chart.ViewModels
     {
     }
 
+    public override string Title { get; set; } = "Simulation";
+
     #region StartCommand
 
     protected ActionCommand startCommand;

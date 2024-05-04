@@ -89,7 +89,7 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.ShowATH = true;
       //TradingBot.Strategy.EnableManualPositions = false;
 
-      var rangeFilterData = "C:\\Users\\Roman Pecho\\Desktop\\BINANCE ADAUSD, 1D.csv";
+      var rangeFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
       TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy(rangeFilterData, TradingBot.Strategy));
 
       LoadSecondaryLayouts(mainLayout, mainCtks, fromDate);

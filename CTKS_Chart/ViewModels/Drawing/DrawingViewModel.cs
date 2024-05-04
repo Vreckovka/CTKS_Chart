@@ -309,7 +309,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
     #region ShowATH
 
     private bool showATH = true;
@@ -496,7 +495,7 @@ namespace CTKS_Chart.ViewModels
       if (ctksIntersections == null)
         return;
 
-  
+
       last = ctksIntersections;
 
       Pen shapeOutlinePen = new Pen(Brushes.Transparent, 1);
@@ -592,7 +591,7 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawChart
 
-    private DrawnChart DrawChart(
+    public DrawnChart DrawChart(
       DrawingContext drawingContext,
       IList<Candle> candles,
       double canvasHeight,
@@ -743,6 +742,233 @@ namespace CTKS_Chart.ViewModels
 
 
           if (newCandle.Height > 0)
+            drawingContext.DrawRectangle(selectedBrush, pen, newCandle);
+
+          if (topWick != null)
+            drawingContext.DrawRectangle(selectedBrush, wickPen, topWick.Value);
+
+          if (bottomWick != null)
+            drawingContext.DrawRectangle(selectedBrush, wickPen, bottomWick.Value);
+
+          drawnCandles.Add(new ChartCandle()
+          {
+            Candle = point,
+            Body = newCandle,
+            TopWick = topWick,
+            BottomWick = bottomWick
+          });
+
+
+
+          if (bottomWick != null && bottomWick.Value.Y > maxDrawnPoint)
+          {
+            maxDrawnPoint = bottomWick.Value.Y;
+          }
+
+          if (topWick != null && topWick.Value.Y < minDrawnPoint)
+          {
+            minDrawnPoint = topWick.Value.Y;
+          }
+        }
+      }
+
+      return new DrawnChart()
+      {
+        MaxDrawnPoint = maxDrawnPoint,
+        MinDrawnPoint = minDrawnPoint,
+        Candles = drawnCandles
+      };
+    }
+
+    #endregion
+
+    #region DrawChart_New
+
+    public DrawnChart DrawChart_New(
+      DrawingContext drawingContext,
+      IList<Candle> candles,
+      double canvasHeight,
+      double canvasWidth)
+    {
+      double minDrawnPoint = 0;
+      double maxDrawnPoint = 0;
+      var drawnCandles = new List<ChartCandle>();
+
+
+      var width = TradingHelper.GetCanvasValueLinear(canvasWidth, MinUnix + unixDiff, MaxUnix, MinUnix);
+      var margin = width * 0.10;
+      width = width - margin;
+
+      if (candles.Any() && width > 0)
+      {
+        int y = -1;
+        for (int i = 0; i < candles.Count; i++)
+        {
+          y++;
+          var point = candles[i];
+
+          var close = TradingHelper.GetCanvasValue(canvasHeight, point.Close.Value, MaxValue, MinValue);
+          var open = TradingHelper.GetCanvasValue(canvasHeight, point.Open.Value, MaxValue, MinValue);
+
+          var high = TradingHelper.GetCanvasValue(canvasHeight, point.High.Value, MaxValue, MinValue);
+          var low = TradingHelper.GetCanvasValue(canvasHeight, point.Low.Value, MaxValue, MinValue);
+
+          var green = i > 0 ? candles[i - 1].Close < point.Close : point.Open < point.Close;
+
+          var selectedBrush = green ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
+
+          Pen pen = new Pen(selectedBrush, 3);
+          Pen wickPen = new Pen(selectedBrush, 1);
+
+          var newCandle = new Rect()
+          {
+            Width = width,
+          };
+
+          if (close < 0)
+          {
+            close = 0;
+          }
+
+          double candleHeight = 0;
+
+          if (green)
+          {
+            candleHeight = close - open;
+          }
+          else
+          {
+            candleHeight = open - close;
+          }
+
+          if(candleHeight == 0)
+          {
+            candleHeight = 0.001;
+          }
+
+          if (candleHeight > 0)
+          {
+            newCandle.Height = candleHeight;
+          }
+            
+
+          var x = TradingHelper.GetCanvasValueLinear(canvasWidth, point.UnixTime, MaxUnix, MinUnix);
+
+          newCandle.X = x - (newCandle.Width / 2);
+
+          if (newCandle.X < 0)
+          {
+            var newWidth = newCandle.Width + newCandle.X;
+
+            if (newWidth > 0)
+            {
+              newCandle.Width = newWidth;
+            }
+            else
+            {
+              newCandle.Width = 0;
+            }
+
+            newCandle.X = 0;
+          }
+          else if (newCandle.X + width > canvasWidth)
+          {
+            var newWidth = canvasWidth - newCandle.X;
+
+            if (newWidth > 0)
+            {
+              newCandle.Width = newWidth;
+            }
+            else
+            {
+              newCandle.Width = 0;
+            }
+          }
+
+          if (green)
+            newCandle.Y = canvasHeight - close;
+          else
+            newCandle.Y = canvasHeight - close - newCandle.Height;
+
+          if (newCandle.Y < 0)
+          {
+            var newHeight = newCandle.Y + newCandle.Height;
+
+            if (newHeight <= 0)
+            {
+              newHeight = 0;
+            }
+
+            newCandle.Height = newHeight;
+            newCandle.Y = 0;
+          }
+
+          var wickTop = green ? close : open;
+          var wickBottom = green ? open : close;
+
+
+          var topY = canvasHeight - high;
+          var bottomY = canvasHeight - wickBottom;
+
+          Rect? topWick = null;
+          Rect? bottomWick = null;
+
+          if (x > 0 && x < canvasWidth)
+          {
+            if (high - wickTop > 0 && high > 0)
+            {
+              if (wickTop < 0)
+              {
+                wickTop = 0;
+              }
+
+              var topWickHeight = high - wickTop;
+
+              if (topY < 0)
+              {
+                topWickHeight += topY;
+                topY = 0;
+              }
+              if (topWickHeight > 0)
+              {
+                topWick = new Rect()
+                {
+                  Height = topWickHeight,
+                  X = x,
+                  Y = topY,
+                };
+              }
+            }
+
+            if (wickBottom - low > 0 && wickBottom > 0)
+            {
+              if (low < 0)
+              {
+                low = 0;
+              }
+              var bottomWickHeight = wickBottom - low;
+
+              if (bottomY < 0)
+              {
+                bottomWickHeight += bottomY;
+                bottomY = 0;
+              }
+
+              if (bottomWickHeight > 0)
+              {
+                bottomWick = new Rect()
+                {
+                  Height = bottomWickHeight,
+                  X = x,
+                  Y = bottomY,
+                };
+              }
+            }
+          }
+
+
+
+          if (newCandle.Height > 0 && newCandle.Width > 0)
             drawingContext.DrawRectangle(selectedBrush, pen, newCandle);
 
           if (topWick != null)

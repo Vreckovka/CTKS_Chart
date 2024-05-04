@@ -11,10 +11,11 @@ namespace CTKS_Chart.Trading
   {
     public TradingBot(Asset asset, Strategy.Strategy strategy)
     {
-      Strategy = strategy ?? throw new ArgumentNullException(nameof(strategy));
+      Strategy = strategy;
       Asset = asset;
 
-      strategy.Asset = asset;
+      if (strategy != null)
+        strategy.Asset = asset;
 
       StartingMinPrice = asset.StartLowPrice;
       StartingMaxPrice = asset.StartMaxPrice;
@@ -57,7 +58,7 @@ namespace CTKS_Chart.Trading
     }
 
 
-    public Asset Asset { get;  }
+    public Asset Asset { get; }
     public Dictionary<string, TimeFrame> TimeFrames { get; private set; }
 
     public decimal StartingMinPrice { get; }

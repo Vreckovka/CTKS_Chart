@@ -222,12 +222,12 @@ namespace TradingManager.ViewModels
 
         if (newCandles.Count > oldCandles.Count)
         {
-          VSynchronizationContext.PostOnUIThread(() => LastUpdated = DateTime.Now);
+          VSynchronizationContext.InvokeOnDispatcher(() => LastUpdated = DateTime.Now);
           File.Copy(newFile, outdated.Path, true);
         }
       }
 
-      CheckFiles();
+      VSynchronizationContext.InvokeOnDispatcher(CheckFiles);
       chromeDriverProvider.Dispose();
     }
 

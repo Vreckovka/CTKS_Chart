@@ -148,13 +148,13 @@ namespace CTKS_Chart.ViewModels
       }, strategy);
 
 
-      var tradingView__ada_1D = $"ADAUSDT-240-generated.csv";
-      //tradingView__ada_1D = $"BTCUSDT-240-generated.csv";
+      var tradingView__data = $"ADAUSDT-240-generated.csv";
+      //tradingView__data = $"BTCUSDT-240-generated.csv";
 
       var bot = ViewModelsFactory.Create<SimulationTradingBot>(adaBot);
       var prompt = ViewModelsFactory.Create<SimulationPromptViewModel>(bot);
       TradingBotViewModel.IsPaused = true;
-      bot.DataPath = tradingView__ada_1D;
+      bot.DataPath = tradingView__data;
 
       windowManager.ShowPrompt<SimulationView>(prompt);
 
