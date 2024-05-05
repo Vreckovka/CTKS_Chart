@@ -371,7 +371,7 @@ namespace CTKS_Chart.ViewModels
 
       foreach (var opend in open)
       {
-        await binanceBroker.Close(TradingBot.Asset.Symbol, long.Parse(opend.Id));
+        await binanceBroker.Cancel(TradingBot.Asset.Symbol, long.Parse(opend.Id));
       }
     }
 

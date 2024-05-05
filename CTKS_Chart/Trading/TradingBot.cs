@@ -42,8 +42,8 @@ namespace CTKS_Chart.Trading
 
 
     public Asset Asset { get; }
-    public Dictionary<string, TimeFrame> TimeFrames { get; private set; }
-    public Dictionary<string, TimeFrame> IndicatorTimeFrames { get; private set; }
+    public Dictionary<string, TimeFrame> TimeFrames { get; private set; } = new Dictionary<string, TimeFrame>();
+    public Dictionary<string, TimeFrame> IndicatorTimeFrames { get; private set; } = new Dictionary<string, TimeFrame>();
 
     public decimal StartingMinPrice { get; }
     public decimal StartingMaxPrice { get; }
@@ -76,25 +76,32 @@ namespace CTKS_Chart.Trading
     {
       var indicator_dictionary = new Dictionary<string, TimeFrame>();
       var pattern = $"*{Asset.IndicatorDataPath}*.csv";
-      var files = Directory.GetFiles(Path.Combine(Settings.DataPath, "Indicator"), pattern);
 
-      foreach (var file in files)
+      var dir = Path.Combine(Settings.DataPath, "Indicator");
+
+      if(Directory.Exists(dir))
       {
-        TimeFrame timeFrame = TimeFrame.D1;
+        var files = Directory.GetFiles(dir, pattern);
 
-        if (Path.GetFileName(file).Contains("240"))
+        foreach (var file in files)
         {
-          timeFrame = TimeFrame.H4;
-        }
-        else if (Path.GetFileName(file).Contains("1D"))
-        {
-          timeFrame = TimeFrame.D1;
+          TimeFrame timeFrame = TimeFrame.D1;
+
+          if (Path.GetFileName(file).Contains("240"))
+          {
+            timeFrame = TimeFrame.H4;
+          }
+          else if (Path.GetFileName(file).Contains("1D"))
+          {
+            timeFrame = TimeFrame.D1;
+          }
+
+          indicator_dictionary.Add(file, timeFrame);
         }
 
-        indicator_dictionary.Add(file, timeFrame);
+        IndicatorTimeFrames = indicator_dictionary;
       }
-
-      IndicatorTimeFrames = indicator_dictionary;
+     
     }
 
     #endregion

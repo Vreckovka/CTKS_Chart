@@ -232,7 +232,7 @@ namespace CTKS_Chart.Strategy
     {
 
 #if RELEASE
-      return await binanceBroker.Close(Asset.Symbol, position.Id);
+      return await binanceBroker.Cancel(Asset.Symbol, position.Id);
 #else
       return await Task.FromResult(true);
 #endif

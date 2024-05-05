@@ -60,8 +60,8 @@ namespace CTKS_Chart.Binance
     #region GetCandles
 
     public async Task<IEnumerable<Candle>> GetCandles(
-      string symbol, 
-      TimeSpan interval, 
+      string symbol,
+      TimeSpan interval,
       DateTime? startTime = null,
       DateTime? endTime = null,
       int? limit = null)
@@ -70,7 +70,7 @@ namespace CTKS_Chart.Binance
 
       using (var client = new BinanceRestClient())
       {
-        var klineData = await client.SpotApi.CommonSpotClient.GetKlinesAsync(symbol, interval, startTime, endTime,limit);
+        var klineData = await client.SpotApi.CommonSpotClient.GetKlinesAsync(symbol, interval, startTime, endTime, limit);
 
         foreach (var kline in klineData.Data)
         {
@@ -175,7 +175,7 @@ namespace CTKS_Chart.Binance
             return result.Data.Id;
           }
           else
-            logger.Log(MessageType.Error, result.Error?.Message);
+            LogError(result.Error?.Message);
         }
       }
       finally
@@ -213,9 +213,9 @@ namespace CTKS_Chart.Binance
 
             return result.Data.Id;
           }
-           
+
           else
-            logger.Log(MessageType.Error, result.Error?.Message);
+            LogError(result.Error?.Message);
         }
       }
       finally
@@ -228,9 +228,9 @@ namespace CTKS_Chart.Binance
 
     #endregion
 
-    #region Close
+    #region Cancel
 
-    public async Task<bool> Close(string symbol, long positionId)
+    public async Task<bool> Cancel(string symbol, long positionId)
     {
 
       try
@@ -239,6 +239,9 @@ namespace CTKS_Chart.Binance
         using (var client = new BinanceRestClient())
         {
           var result = await client.SpotApi.Trading.CancelOrderAsync(symbol, positionId);
+
+          if (!result.Success)
+            LogError(result.Error?.Message);
 
           return result.Success;
         }
@@ -251,7 +254,7 @@ namespace CTKS_Chart.Binance
     }
 
     #endregion
-    
+
     #region SubscribeToKlineInterval
 
     private SemaphoreSlim subscribeToKlineIntervaLock = new SemaphoreSlim(1, 1);
@@ -403,6 +406,17 @@ namespace CTKS_Chart.Binance
           throw new ArgumentOutOfRangeException(nameof(klineInterval), klineInterval, null);
       }
     }
+
+    #endregion
+
+    #region LogError
+
+    private void LogError(string message)
+    {
+      var logToFile = message.Contains("1000ms ahead of the server's time.") ? false : true;
+
+      logger.Log(MessageType.Error, message, logToFile);
+    } 
 
     #endregion
   }
