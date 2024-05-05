@@ -15,5 +15,7 @@ namespace CTKS_Chart.Trading
     public string DataPath { get; set; }
     public string DataSymbol { get; set; }
     public TimeFrame[] TimeFrames { get; set; }
+
+    public string IndicatorDataPath { get; set; }
   }
 }

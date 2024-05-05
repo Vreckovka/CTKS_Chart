@@ -20,7 +20,7 @@ namespace CTKS_Chart.ViewModels
 {
   public class DrawingViewModel : ViewModel, IDrawingViewModel
   {
-    public DrawingViewModel(TradingBot tradingBot, Layout layout)
+    public DrawingViewModel(TradingBot tradingBot, CtksLayout layout)
     {
       TradingBot = tradingBot;
       Layout = layout;
@@ -29,7 +29,7 @@ namespace CTKS_Chart.ViewModels
 
     #region Properties
 
-    public Layout Layout { get; }
+    public CtksLayout Layout { get; }
     public TradingBot TradingBot { get; }
 
     #region Chart
@@ -578,6 +578,7 @@ namespace CTKS_Chart.ViewModels
           if (TradingBot.Strategy.MinSellPrice < maxCanvasValue && TradingBot.Strategy.MinSellPrice > minCanvasValue)
             DrawMinSellPrice(dc, Layout, TradingBot.Strategy.MinSellPrice.Value, imageHeight, imageWidth);
 
+          DrawIndicators(dc);
         }
 
         DrawingImage dImageSource = new DrawingImage(dGroup);
@@ -834,14 +835,17 @@ namespace CTKS_Chart.ViewModels
 
           if (green)
           {
-            candleHeight = close - open;
+            if (open > 0)
+              candleHeight = close - open;
+            else
+              candleHeight = close;
           }
           else
           {
             candleHeight = open - close;
           }
 
-          if(candleHeight == 0)
+          if (candleHeight == 0 && close > 0)
           {
             candleHeight = 0.001;
           }
@@ -850,7 +854,7 @@ namespace CTKS_Chart.ViewModels
           {
             newCandle.Height = candleHeight;
           }
-            
+
 
           var x = TradingHelper.GetCanvasValueLinear(canvasWidth, point.UnixTime, MaxUnix, MinUnix);
 
@@ -886,7 +890,9 @@ namespace CTKS_Chart.ViewModels
           }
 
           if (green)
+          {
             newCandle.Y = canvasHeight - close;
+          }
           else
             newCandle.Y = canvasHeight - close - newCandle.Height;
 
@@ -902,6 +908,7 @@ namespace CTKS_Chart.ViewModels
             newCandle.Height = newHeight;
             newCandle.Y = 0;
           }
+          
 
           var wickTop = green ? close : open;
           var wickBottom = green ? open : close;
@@ -1013,7 +1020,7 @@ namespace CTKS_Chart.ViewModels
 
     public void RenderIntersections(
       DrawingContext drawingContext,
-      Layout layout,
+      CtksLayout layout,
       IEnumerable<CtksIntersection> intersections,
       IList<Position> allPositions,
       IList<ChartCandle> candles,
@@ -1087,7 +1094,7 @@ namespace CTKS_Chart.ViewModels
 
     public void RenderClosedPosiotions(
       DrawingContext drawingContext,
-      Layout layout,
+      CtksLayout layout,
       IEnumerable<Position> positions,
       IList<ChartCandle> candles,
       double canvasHeight,
@@ -1152,7 +1159,7 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawActualPrice
 
-    public void DrawActualPrice(DrawingContext drawingContext, Layout layout, IList<Candle> candles, double canvasHeight, double canvasWidth)
+    public void DrawActualPrice(DrawingContext drawingContext, CtksLayout layout, IList<Candle> candles, double canvasHeight, double canvasWidth)
     {
       var lastCandle = candles.Last();
       var price = lastCandle.Close;
@@ -1177,7 +1184,7 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawAveragePrice
 
-    public void DrawAveragePrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
+    public void DrawAveragePrice(DrawingContext drawingContext, CtksLayout layout, decimal price, double canvasHeight, double canvasWidth)
     {
       if (price > 0 && price > MinValue && price < MaxValue)
       {
@@ -1200,7 +1207,7 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawPriceToATH
 
-    public void DrawPriceToATH(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
+    public void DrawPriceToATH(DrawingContext drawingContext, CtksLayout layout, decimal price, double canvasHeight, double canvasWidth)
     {
       if (price > 0 && price > MinValue && price < MaxValue)
       {
@@ -1225,7 +1232,7 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawMaxBuyPrice
 
-    public void DrawMaxBuyPrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
+    public void DrawMaxBuyPrice(DrawingContext drawingContext, CtksLayout layout, decimal price, double canvasHeight, double canvasWidth)
     {
       if (price > 0 && price > MinValue && price < MaxValue)
       {
@@ -1248,7 +1255,7 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawMaxBuyPrice
 
-    public void DrawMinSellPrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
+    public void DrawMinSellPrice(DrawingContext drawingContext, CtksLayout layout, decimal price, double canvasHeight, double canvasWidth)
     {
       if (price > 0 && price > MinValue && price < MaxValue)
       {
@@ -1268,6 +1275,27 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
+    public void DrawIndicators(DrawingContext drawingContext)
+    {
+      //var lastCandle = candles.Last();
+      //var price = lastCandle.Close;
+
+      //if (price > 0 && price > MinValue && price < MaxValue)
+      //{
+      //  var close = TradingHelper.GetCanvasValue(canvasHeight, price.Value, MaxValue, MinValue);
+
+      //  var lineY = canvasHeight - close;
+
+      //  var brush = lastCandle.IsGreen ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
+      //  var pen = new Pen(brush, 1);
+      //  pen.DashStyle = DashStyles.Dash;
+
+      //  var text = DrawingHelper.GetFormattedText(price.Value.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 20);
+      //  drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 25, lineY - text.Height - 5));
+      //  drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
+      //}
+    }
 
     #endregion
   }

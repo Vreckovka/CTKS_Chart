@@ -66,7 +66,7 @@ namespace CTKS_Chart.ViewModels
     public DrawingViewModel drawingViewModel;
 
     public ArchitectViewModel(
-      IList<Layout> layouts,
+      IList<CtksLayout> layouts,
       ColorSchemeViewModel colorSchemeViewModel,
       IViewModelsFactory viewModelsFactory,
       Asset asset)
@@ -82,7 +82,7 @@ namespace CTKS_Chart.ViewModels
         { 
           NativeRound = asset.NativeRound,
           PriceRound = asset.PriceRound
-         }, null), new Layout());
+         }, null), new CtksLayout());
 
       drawingViewModel.Initialize();
       drawingViewModel.ColorScheme = colorSchemeViewModel;
@@ -98,16 +98,16 @@ namespace CTKS_Chart.ViewModels
     }
 
 
-    public IEnumerable<Layout> Layouts { get; }
+    public IEnumerable<CtksLayout> Layouts { get; }
     public override string Title { get; set; } = "Architect";
     public Image ChartImage { get; } = new Image();
 
 
     #region SelectedLayout
 
-    private Layout selectedLayout;
+    private CtksLayout selectedLayout;
 
-    public Layout SelectedLayout
+    public CtksLayout SelectedLayout
     {
       get { return selectedLayout; }
       set
@@ -325,17 +325,17 @@ namespace CTKS_Chart.ViewModels
 
     #region ShowCanvas
 
-    protected ActionCommand<Layout> showCanvas;
+    protected ActionCommand<CtksLayout> showCanvas;
 
     public ICommand ShowCanvas
     {
       get
       {
-        return showCanvas ??= new ActionCommand<Layout>(OnShowCanvas);
+        return showCanvas ??= new ActionCommand<CtksLayout>(OnShowCanvas);
       }
     }
 
-    public void OnShowCanvas(Layout layout)
+    public void OnShowCanvas(CtksLayout layout)
     {
       SelectedLayout = layout;
     }
@@ -359,6 +359,9 @@ namespace CTKS_Chart.ViewModels
 
       minUnix = candles.First().UnixTime - (unixDiff * 2);
       maxUnix = candles.Last().UnixTime + (unixDiff * 2);
+
+      RaisePropertyChanged(nameof(MaxUnix));
+      RaisePropertyChanged(nameof(MinUnix));
 
       RenderOverlay();
     }

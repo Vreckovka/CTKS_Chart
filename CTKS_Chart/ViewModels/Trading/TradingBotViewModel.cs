@@ -95,8 +95,8 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
-    public ObservableCollection<Layout> Layouts { get; set; } = new ObservableCollection<Layout>();
+    public ObservableCollection<CtksLayout> Layouts { get; set; } = new ObservableCollection<CtksLayout>();
+    public ObservableCollection<Layout> IndicatorLayouts { get; set; } = new ObservableCollection<Layout>();
 
     #region DrawingViewModel
 
@@ -119,9 +119,9 @@ namespace CTKS_Chart.ViewModels
 
     #region SelectedLayout
 
-    private Layout selectedLayout;
+    private CtksLayout selectedLayout;
 
-    public Layout SelectedLayout
+    public CtksLayout SelectedLayout
     {
       get { return selectedLayout; }
       set
@@ -136,9 +136,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
-
-    public Layout MainLayout { get; } = new Layout() { Title = "Main" };
+    public CtksLayout MainLayout { get; } = new CtksLayout() { Title = "Main" };
 
     #region TotalRunTime
 
@@ -283,65 +281,7 @@ namespace CTKS_Chart.ViewModels
 
     #region Commands
 
-    #region ShowCanvas
-
-    protected ActionCommand<Layout> showCanvas;
-
-    public ICommand ShowCanvas
-    {
-      get
-      {
-        return showCanvas ??= new ActionCommand<Layout>(OnShowCanvas);
-      }
-    }
-
-    protected virtual void OnShowCanvas(Layout layout)
-    {
-      if (layout.Canvas == null)
-      {
-        SelectedLayout = layout;
-      }
-      else
-      {
-        ScaleCanvas(layout);
-      }
-    }
-
-    #endregion
-
-    #region ScaleCanvas
-
-    private void ScaleCanvas(Layout layout, decimal? maxValue = null, decimal? minValue = null)
-    {
-      var index = InnerLayouts.IndexOf(layout);
-      var globalIndex = Layouts.IndexOf(layout);
-
-      if (index >= 0)
-      {
-        layout = CreateCtksChart(
-          layout.DataLocation,
-          layout.TimeFrame,
-          DrawingViewModel.ChartImage.ActualWidth,
-          DrawingViewModel.ChartImage.ActualHeight,
-          null,
-          maxValue,
-          minValue);
-
-        InnerLayouts.RemoveAt(index);
-        InnerLayouts.Insert(index, layout);
-
-        Layouts.RemoveAt(globalIndex);
-        Layouts.Insert(globalIndex, layout);
-
-        layout.Canvas.Height = DrawingViewModel.ChartImage.ActualHeight;
-        layout.Canvas.Width = DrawingViewModel.ChartImage.ActualWidth;
-      }
-
-      SelectedLayout = layout;
-    }
-
-    #endregion
-
+   
 
     #region OpenArchitectView
 
@@ -581,6 +521,7 @@ namespace CTKS_Chart.ViewModels
       base.Initialize();
 
       TradingBot.LoadTimeFrames();
+      TradingBot.LoadIndicators();
       DrawingViewModel = viewModelsFactory.Create<DrawingViewModel>(TradingBot, MainLayout);
 
       MainLayout.MaxValue = TradingBot.StartingMaxPrice;
@@ -641,7 +582,6 @@ namespace CTKS_Chart.ViewModels
       {
         if (x != null)
         {
-
           KlineInterval = x.Model.Interval;
         }
       });
@@ -686,8 +626,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
- 
-
     #region ForexChart_Loaded
 
     private async void ForexChart_Loaded()
@@ -702,17 +640,23 @@ namespace CTKS_Chart.ViewModels
     #region LoadLAyouts
 
     TimeFrame minTimeframe = TimeFrame.D1;
-    protected List<Layout> InnerLayouts = new List<Layout>();
+    protected List<CtksLayout> InnerLayouts = new List<CtksLayout>();
 
-    protected virtual async Task LoadLayouts(Layout mainLayout)
+    protected virtual async Task LoadLayouts(CtksLayout mainLayout)
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, DrawingViewModel.CanvasHeight, DrawingViewModel.CanvasWidth, TradingBot.Asset);
 
       DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval))).ToList();
 
       await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
+     
 
-      LoadSecondaryLayouts(mainLayout, mainCtks);
+      LoadSecondaryLayouts();
+      LoadIndicators();
+
+      mainLayout.Ctks = mainCtks;
+      Layouts.Add(mainLayout);
+      SelectedLayout = mainLayout;
 
       if (DrawingViewModel.ActualCandles.Count > 0)
       {
@@ -724,7 +668,7 @@ namespace CTKS_Chart.ViewModels
 
     #region LoadSecondaryLayouts
 
-    protected void LoadSecondaryLayouts(Layout mainLayout, Ctks mainCtks, DateTime? maxTime = null)
+    protected void LoadSecondaryLayouts(DateTime? maxTime = null)
     {
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
@@ -733,18 +677,29 @@ namespace CTKS_Chart.ViewModels
         Layouts.Add(layout);
         InnerLayouts.Add(layout);
       }
+    }
 
-      mainLayout.Ctks = mainCtks;
-      Layouts.Add(mainLayout);
-      SelectedLayout = mainLayout;
+    #endregion
 
+    #region LoadIndicators
+
+    protected void LoadIndicators(DateTime? maxTime = null)
+    {
+      foreach (var layoutData in TradingBot.IndicatorTimeFrames)
+      {
+        var candles = TradingViewHelper.ParseTradingView(layoutData.Key, maxTime);
+
+
+        //var max = pmax ?? candles.Max(x => x.High.Value);
+        //var min = pmin ?? candles.Min(x => x.Low.Value);
+      }
     }
 
     #endregion
 
     #region CheckLayout
 
-    private void CheckLayout(Layout layout, List<Candle> innerCandles)
+    private void CheckLayout(CtksLayout layout, List<Candle> innerCandles)
     {
       var last = innerCandles.Last();
       if (DateTime.Now > TradingViewHelper.GetNextTime(last.OpenTime, layout.TimeFrame))
@@ -805,10 +760,10 @@ namespace CTKS_Chart.ViewModels
       { TimeFrame.W1,false }
     };
 
-    List<Layout> preloadedLayots = new List<Layout>();
+    List<CtksLayout> preloadedLayots = new List<CtksLayout>();
     protected void PreLoadCTks(DateTime startTime)
     {
-      preloadedLayots = new List<Layout>();
+      preloadedLayots = new List<CtksLayout>();
 
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
@@ -823,7 +778,7 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
-    public async void RenderLayout(List<Layout> secondaryLayouts, Candle actual)
+    public async void RenderLayout(List<CtksLayout> secondaryLayouts, Candle actual)
     {
       if (IsPaused)
       {
@@ -873,7 +828,7 @@ namespace CTKS_Chart.ViewModels
               {
                 var innerCandles = TradingViewHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
 
-                VSynchronizationContext.InvokeOnDispatcher(() => secondaryLayout.Ctks.CrateCtks(innerCandles, () => CreateChart(secondaryLayout, DrawingViewModel.CanvasHeight, DrawingViewModel.CanvasWidth, innerCandles)));
+                VSynchronizationContext.InvokeOnDispatcher(() => secondaryLayout.Ctks.CrateCtks(innerCandles));
 
                 secondaryLayout.IsOutDated = TradingViewHelper.IsOutDated(secondaryLayout.TimeFrame, innerCandles);
               }
@@ -976,66 +931,9 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region CreateChart
-
-    private void CreateChart(Layout layout, double canvasHeight, double canvasWidth, IList<Candle> candles, int? pmaxCount = null)
-    {
-      layout.Canvas.Children.Clear();
-      var maxCount = (pmaxCount ?? candles.Count) + 1;
-
-      var skip = candles.Count - maxCount > 0 ? candles.Count - maxCount : 0;
-
-      if (candles.Any())
-      {
-        int y = 0;
-        for (int i = skip; i < candles.Count; i++)
-        {
-          var point = candles[i];
-          var valueForCanvas = TradingHelper.GetCanvasValue(canvasHeight, point.Close.Value, layout.MaxValue, layout.MinValue);
-          var width = canvasWidth / maxCount;
-
-          var green = i > 0 ? candles[i - 1].Close < point.Close : point.Open < point.Close;
-
-          var lastCandle = new Rectangle()
-          {
-            Width = width,
-            Height = 25,
-            Fill = green ? DrawingHelper.GetBrushFromHex(DrawingViewModel.ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(DrawingViewModel.ColorScheme.ColorSettings[ColorPurpose.RED].Brush),
-          };
-
-          Panel.SetZIndex(lastCandle, 99);
-
-          var open = i > 0 ?
-            TradingHelper.GetCanvasValue(canvasHeight, candles[i - 1].Close.Value, layout.MaxValue, layout.MinValue) :
-            TradingHelper.GetCanvasValue(canvasHeight, candles[i].Open.Value, layout.MaxValue, layout.MinValue);
-
-          if (green)
-          {
-            lastCandle.Height = valueForCanvas - open;
-          }
-          else
-          {
-            lastCandle.Height = open - valueForCanvas;
-          }
-
-          layout.Canvas.Children.Add(lastCandle);
-
-          if (green)
-            Canvas.SetBottom(lastCandle, open);
-          else
-            Canvas.SetBottom(lastCandle, open - lastCandle.Height);
-
-          Canvas.SetLeft(lastCandle, ((y + 1) * width) + 2);
-          y++;
-        }
-      }
-    }
-
-    #endregion
-
     #region CreateCtksChart
 
-    protected Layout CreateCtksChart(string location, TimeFrame timeFrame,
+    protected CtksLayout CreateCtksChart(string location, TimeFrame timeFrame,
       double canvasWidth,
       double canvasHeight,
       DateTime? maxTime = null,
@@ -1044,27 +942,21 @@ namespace CTKS_Chart.ViewModels
     {
       var candles = TradingViewHelper.ParseTradingView(location, maxTime);
 
-      var canvas = new Canvas();
-
       var max = pmax ?? candles.Max(x => x.High.Value);
       var min = pmin ?? candles.Min(x => x.Low.Value);
 
-      var layout = new Layout()
+      var layout = new CtksLayout()
       {
         Title = timeFrame.ToString(),
-        Canvas = canvas,
         MaxValue = max,
         MinValue = min,
         TimeFrame = timeFrame,
         DataLocation = location,
       };
 
-      canvas.Width = canvasWidth;
-      canvas.Height = canvasHeight;
-
       var ctks = new Ctks(layout, timeFrame, canvasHeight, canvasWidth, TradingBot.Asset);
 
-      ctks.CrateCtks(candles, () => CreateChart(layout, canvasHeight, canvasWidth, candles));
+      ctks.CrateCtks(candles);
 
       layout.Ctks = ctks;
 
@@ -1130,7 +1022,7 @@ namespace CTKS_Chart.ViewModels
 
         VSynchronizationContext.InvokeOnDispatcher(() =>
         {
-          if (SelectedLayout != null && SelectedLayout.Canvas == null)
+          if (SelectedLayout != null)
             RenderLayout(InnerLayouts, actual);
         });
 

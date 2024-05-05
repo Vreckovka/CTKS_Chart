@@ -78,7 +78,7 @@ namespace CTKS_Chart.ViewModels
     #region LoadLayouts
 
     private List<Candle> cutCandles = new List<Candle>();
-    protected override async Task LoadLayouts(Layout mainLayout)
+    protected override async Task LoadLayouts(CtksLayout mainLayout)
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, DrawingViewModel.CanvasHeight, DrawingViewModel.CanvasWidth, TradingBot.Asset);
 
@@ -108,8 +108,12 @@ namespace CTKS_Chart.ViewModels
       var rangeFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
       TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy(rangeFilterData, TradingBot.Strategy));
 
-      LoadSecondaryLayouts(mainLayout, mainCtks, fromDate);
+      LoadSecondaryLayouts(fromDate);
       PreLoadCTks(fromDate);
+
+      mainLayout.Ctks = mainCtks;
+      Layouts.Add(mainLayout);
+      SelectedLayout = mainLayout;
 
       Simulate(cutCandles, InnerLayouts);
     }
@@ -118,7 +122,7 @@ namespace CTKS_Chart.ViewModels
 
     #region SimulateCandle
 
-    private void SimulateCandle(List<Layout> secondaryLayouts, Candle candle)
+    private void SimulateCandle(List<CtksLayout> secondaryLayouts, Candle candle)
     {
       DrawingViewModel.ActualCandles.Add(candle);
 
@@ -144,7 +148,7 @@ namespace CTKS_Chart.ViewModels
     IDisposable disposable;
     DateTime lastElapsed;
 
-    private void Simulate(List<Candle> cutCandles, List<Layout> secondaryLayouts)
+    private void Simulate(List<Candle> cutCandles, List<CtksLayout> secondaryLayouts)
     {
       RunningTime = new TimeSpan();
       cts?.Cancel();

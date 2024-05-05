@@ -19,6 +19,11 @@ namespace CTKS_Chart.Trading
     [Description("1W")]
     W1 = 2,
     [Description("1D")]
-    D1 = 1
+    D1 = 1,
+
+    [Description("4H")]
+    H4 = 240,
+    [Description("12H")]
+    H12 = 720,
   }
 }

@@ -10,7 +10,7 @@ namespace CTKS_Chart.Trading
 {
   public class Ctks
   {
-    private readonly Layout layout;
+    private readonly CtksLayout layout;
     private readonly TimeFrame timeFrame;
 
     private double canvasHeight;
@@ -21,7 +21,7 @@ namespace CTKS_Chart.Trading
     long maxUnix;
     long unixDiff;
 
-    public Ctks(Layout layout, TimeFrame timeFrame, double canvasHeight, double canvasWidth, Asset asset)
+    public Ctks(CtksLayout layout, TimeFrame timeFrame, double canvasHeight, double canvasWidth, Asset asset)
     {
       this.layout = layout ?? throw new ArgumentNullException(nameof(layout));
       this.timeFrame = timeFrame;
@@ -208,7 +208,7 @@ namespace CTKS_Chart.Trading
 
     #region CrateCtks
 
-    public void CrateCtks(IList<Candle> candles, Action createChart)
+    public void CrateCtks(IList<Candle> candles)
     {
       Candles = null;
       ctksIntersections.Clear();
@@ -223,7 +223,6 @@ namespace CTKS_Chart.Trading
       else
         return;
 
-      createChart();
       Candles = candles;
 
       CreateLines(candles);

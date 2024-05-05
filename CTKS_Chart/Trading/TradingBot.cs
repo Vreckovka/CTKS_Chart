@@ -40,6 +40,17 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
+
+    public Asset Asset { get; }
+    public Dictionary<string, TimeFrame> TimeFrames { get; private set; }
+    public Dictionary<string, TimeFrame> IndicatorTimeFrames { get; private set; }
+
+    public decimal StartingMinPrice { get; }
+    public decimal StartingMaxPrice { get; }
+
+
+    #region LoadTimeFrames
+
     public void LoadTimeFrames()
     {
       if (Asset?.TimeFrames != null)
@@ -57,12 +68,36 @@ namespace CTKS_Chart.Trading
       }
     }
 
+    #endregion
 
-    public Asset Asset { get; }
-    public Dictionary<string, TimeFrame> TimeFrames { get; private set; }
+    #region LoadIndicators
 
-    public decimal StartingMinPrice { get; }
-    public decimal StartingMaxPrice { get; }
+    public void LoadIndicators()
+    {
+      var indicator_dictionary = new Dictionary<string, TimeFrame>();
+      var pattern = $"*{Asset.IndicatorDataPath}*.csv";
+      var files = Directory.GetFiles(Path.Combine(Settings.DataPath, "Indicator"), pattern);
+
+      foreach (var file in files)
+      {
+        TimeFrame timeFrame = TimeFrame.D1;
+
+        if (Path.GetFileName(file).Contains("240"))
+        {
+          timeFrame = TimeFrame.H4;
+        }
+        else if (Path.GetFileName(file).Contains("1D"))
+        {
+          timeFrame = TimeFrame.D1;
+        }
+
+        indicator_dictionary.Add(file, timeFrame);
+      }
+
+      IndicatorTimeFrames = indicator_dictionary;
+    }
+
+    #endregion
 
   }
 }
