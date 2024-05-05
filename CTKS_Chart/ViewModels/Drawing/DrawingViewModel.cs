@@ -550,6 +550,15 @@ namespace CTKS_Chart.ViewModels
 
         var last = ActualCandles.Last();
 
+        if(actualPriceChartViewDiff == 0)
+        {
+          if (candlesToRender.Count > 1)
+          {
+            var close = candlesToRender.SkipLast(1).Last().Close.Value;
+            actualPriceChartViewDiff = (maxValue - close) / maxValue;
+          }
+        }
+
         if (LockChart && candlesToRender.Count > 1)
         {
           var close = candlesToRender.SkipLast(1).Last().Close.Value;
@@ -557,7 +566,7 @@ namespace CTKS_Chart.ViewModels
           maxValue = (decimal)close * (1 + actualPriceChartViewDiff);
           minValue = (decimal)close * (1 - actualPriceChartViewDiff);
           
-          if(lastLockedCandle != last)
+          if(lastLockedCandle?.CloseTime != last?.CloseTime)
           {
             maxUnix += unixDiff;
             minUnix += unixDiff;
