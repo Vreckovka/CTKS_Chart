@@ -637,7 +637,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region LoadLAyouts
+    #region LoadLayouts
 
     TimeFrame minTimeframe = TimeFrame.D1;
     protected List<CtksLayout> InnerLayouts = new List<CtksLayout>();
@@ -672,7 +672,7 @@ namespace CTKS_Chart.ViewModels
     {
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
-        var layout = CreateCtksChart(layoutData.Key, layoutData.Value, DrawingViewModel.CanvasWidth, DrawingViewModel.CanvasHeight, maxTime);
+        var layout = CreateCtks(layoutData.Key, layoutData.Value, DrawingViewModel.CanvasWidth, DrawingViewModel.CanvasHeight, maxTime);
 
         Layouts.Add(layout);
         InnerLayouts.Add(layout);
@@ -687,11 +687,9 @@ namespace CTKS_Chart.ViewModels
     {
       foreach (var layoutData in TradingBot.IndicatorTimeFrames)
       {
-        var candles = TradingViewHelper.ParseTradingView(layoutData.Key, maxTime);
+        var layout = CreateLayout<Layout>(layoutData.Key, layoutData.Value, maxTime);
 
-
-        //var max = pmax ?? candles.Max(x => x.High.Value);
-        //var min = pmin ?? candles.Min(x => x.Low.Value);
+        IndicatorLayouts.Add(layout);
       }
     }
 
@@ -771,7 +769,7 @@ namespace CTKS_Chart.ViewModels
 
         foreach (var candle in candles)
         {
-          var layout = CreateCtksChart(layoutData.Key, layoutData.Value, DrawingViewModel.CanvasWidth, DrawingViewModel.CanvasHeight, candle.OpenTime);
+          var layout = CreateCtks(layoutData.Key, layoutData.Value, DrawingViewModel.CanvasWidth, DrawingViewModel.CanvasHeight, candle.OpenTime);
 
           preloadedLayots.Add(layout);
         }
@@ -931,38 +929,58 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region CreateCtksChart
+    #region CreateCtks
 
-    protected CtksLayout CreateCtksChart(string location, TimeFrame timeFrame,
+    protected CtksLayout CreateCtks(
+      string location, 
+      TimeFrame timeFrame,
       double canvasWidth,
       double canvasHeight,
       DateTime? maxTime = null,
       decimal? pmax = null,
       decimal? pmin = null)
     {
-      var candles = TradingViewHelper.ParseTradingView(location, maxTime);
-
-      var max = pmax ?? candles.Max(x => x.High.Value);
-      var min = pmin ?? candles.Min(x => x.Low.Value);
-
-      var layout = new CtksLayout()
-      {
-        Title = timeFrame.ToString(),
-        MaxValue = max,
-        MinValue = min,
-        TimeFrame = timeFrame,
-        DataLocation = location,
-      };
+      var layout = CreateLayout<CtksLayout>(location, timeFrame, maxTime, pmax, pmin);
 
       var ctks = new Ctks(layout, timeFrame, canvasHeight, canvasWidth, TradingBot.Asset);
 
-      ctks.CrateCtks(candles);
+      ctks.CrateCtks(layout.AllCandles);
 
       layout.Ctks = ctks;
 
       return layout;
     }
 
+
+    #endregion
+
+    #region CreateLayout
+
+    private T CreateLayout<T>(
+      string location,
+      TimeFrame timeFrame,
+      DateTime? maxTime = null,
+      decimal? pmax = null,
+      decimal? pmin = null)
+      where T : Layout, new()
+    {
+      var candles = TradingViewHelper.ParseTradingView(location, maxTime);
+
+      var max = pmax ?? candles.Max(x => x.High.Value);
+      var min = pmin ?? candles.Min(x => x.Low.Value);
+
+      var layout = new T()
+      {
+        Title = timeFrame.ToString(),
+        MaxValue = max,
+        MinValue = min,
+        TimeFrame = timeFrame,
+        DataLocation = location,
+        AllCandles = candles,
+      };
+
+      return layout;
+    }
 
     #endregion
 

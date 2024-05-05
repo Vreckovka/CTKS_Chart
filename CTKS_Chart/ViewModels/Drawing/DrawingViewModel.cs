@@ -20,16 +20,15 @@ namespace CTKS_Chart.ViewModels
 {
   public class DrawingViewModel : ViewModel, IDrawingViewModel
   {
-    public DrawingViewModel(TradingBot tradingBot, CtksLayout layout)
+    public DrawingViewModel(TradingBot tradingBot, Layout layout)
     {
       TradingBot = tradingBot;
       Layout = layout;
-
     }
 
     #region Properties
 
-    public CtksLayout Layout { get; }
+    public Layout Layout { get; }
     public TradingBot TradingBot { get; }
 
     #region Chart
@@ -1020,7 +1019,7 @@ namespace CTKS_Chart.ViewModels
 
     public void RenderIntersections(
       DrawingContext drawingContext,
-      CtksLayout layout,
+      Layout layout,
       IEnumerable<CtksIntersection> intersections,
       IList<Position> allPositions,
       IList<ChartCandle> candles,
@@ -1094,7 +1093,7 @@ namespace CTKS_Chart.ViewModels
 
     public void RenderClosedPosiotions(
       DrawingContext drawingContext,
-      CtksLayout layout,
+      Layout layout,
       IEnumerable<Position> positions,
       IList<ChartCandle> candles,
       double canvasHeight,
@@ -1159,7 +1158,7 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawActualPrice
 
-    public void DrawActualPrice(DrawingContext drawingContext, CtksLayout layout, IList<Candle> candles, double canvasHeight, double canvasWidth)
+    public void DrawActualPrice(DrawingContext drawingContext, Layout layout, IList<Candle> candles, double canvasHeight, double canvasWidth)
     {
       var lastCandle = candles.Last();
       var price = lastCandle.Close;
@@ -1184,7 +1183,7 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawAveragePrice
 
-    public void DrawAveragePrice(DrawingContext drawingContext, CtksLayout layout, decimal price, double canvasHeight, double canvasWidth)
+    public void DrawAveragePrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
     {
       if (price > 0 && price > MinValue && price < MaxValue)
       {
@@ -1207,7 +1206,7 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawPriceToATH
 
-    public void DrawPriceToATH(DrawingContext drawingContext, CtksLayout layout, decimal price, double canvasHeight, double canvasWidth)
+    public void DrawPriceToATH(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
     {
       if (price > 0 && price > MinValue && price < MaxValue)
       {
@@ -1232,7 +1231,7 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawMaxBuyPrice
 
-    public void DrawMaxBuyPrice(DrawingContext drawingContext, CtksLayout layout, decimal price, double canvasHeight, double canvasWidth)
+    public void DrawMaxBuyPrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
     {
       if (price > 0 && price > MinValue && price < MaxValue)
       {
@@ -1255,7 +1254,7 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawMaxBuyPrice
 
-    public void DrawMinSellPrice(DrawingContext drawingContext, CtksLayout layout, decimal price, double canvasHeight, double canvasWidth)
+    public void DrawMinSellPrice(DrawingContext drawingContext, Layout layout, decimal price, double canvasHeight, double canvasWidth)
     {
       if (price > 0 && price > MinValue && price < MaxValue)
       {
@@ -1278,7 +1277,7 @@ namespace CTKS_Chart.ViewModels
 
     public void DrawIndicators(DrawingContext drawingContext)
     {
-      //var lastCandle = candles.Last();
+      //var lastCandle = Layout.;
       //var price = lastCandle.Close;
 
       //if (price > 0 && price > MinValue && price < MaxValue)
