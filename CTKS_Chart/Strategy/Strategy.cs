@@ -773,12 +773,12 @@ namespace CTKS_Chart.Strategy
 
         await CheckPositions(actualCandle, minBuy, maxBuy);
 
+        //Intersections are already ordered by value
         var inter = Intersections
                     .Where(x => x.IsEnabled)
                     .Where(x => x.Value < actualCandle.Close.Value &&
                                 x.Value > minBuy &&
                                 x.Value < lastSell)
-                      .OrderByDescending(x => x.Value)
                     .ToList();
 #if DEBUG
         var lowest = actualCandle.Close.Value * (decimal)0.3;
@@ -807,9 +807,8 @@ namespace CTKS_Chart.Strategy
           }
         }
 
-#if RELEASE
+
         RaisePropertyChanged(nameof(StrategyViewModel.TotalExpectedProfit));
-#endif
       }
       finally
       {
