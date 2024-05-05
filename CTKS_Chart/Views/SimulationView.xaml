@@ -25,13 +25,20 @@
         Margin="5,0"
         Command="{Binding StartCommand}"
         Content="Start" />
-      <Button Margin="5,0" Content="Stop" />
+      <Button
+        Margin="5,0"
+        Command="{Binding StopCommand}"
+        Content="Stop" />
 
 
 
       <CheckBox IsChecked="{Binding Model.DrawChart}">Draw chart</CheckBox>
 
-
+      <TextBlock
+        Margin="5,0"
+        VerticalAlignment="Center"
+        Foreground="#45ffffff"
+        Text="{Binding Model.RunningTime, StringFormat={}{0:mm\\:ss}}" />
     </StackPanel>
 
 

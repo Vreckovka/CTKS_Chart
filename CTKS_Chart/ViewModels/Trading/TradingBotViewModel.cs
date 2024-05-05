@@ -686,6 +686,8 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+ 
+
     #region ForexChart_Loaded
 
     private async void ForexChart_Loaded()
@@ -905,6 +907,7 @@ namespace CTKS_Chart.ViewModels
 
           if (ctksIntersections.Count > 0)
             TradingBot.Strategy.UpdateIntersections(ctksIntersections);
+
         }
 
         if (ctksIntersections.Count == 0)

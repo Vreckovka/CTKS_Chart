@@ -755,12 +755,7 @@ namespace CTKS_Chart.Strategy
       {
         await buyLock.WaitAsync();
         lastCandle = actualCandle;
-        decimal lastSell = decimal.MaxValue;
-
-        if (ClosedSellPositions.Any() && ActualPositions.Any())
-        {
-          lastSell = ClosedSellPositions.Last().Price;
-        }
+       
 
 #if DEBUG
         foreach (var innerStrategy in InnerStrategies)
@@ -769,15 +764,14 @@ namespace CTKS_Chart.Strategy
         }
 #endif
 
-        var minBuy = actualCandle.Close.Value * (1 - MinBuyPrice);
-        decimal maxBuy = MaxBuyPrice ?? decimal.MaxValue;
 
-        if (MaxBuyPrice == null && lastSell < decimal.MaxValue)
-        {
-          maxBuy = lastSell;
-        }
+        var limits = GetMaxAndMinBuy(actualCandle);
 
-        CheckPositions(actualCandle, minBuy, maxBuy);
+        var lastSell = limits.Item1;
+        var minBuy = limits.Item2;
+        var maxBuy = limits.Item3;
+
+        await CheckPositions(actualCandle, minBuy, maxBuy);
 
         var inter = Intersections
                     .Where(x => x.IsEnabled)
@@ -827,7 +821,7 @@ namespace CTKS_Chart.Strategy
 
     #region CheckPositions
 
-    private async void CheckPositions(Candle actualCandle, decimal minBuy, decimal maxBuy)
+    public async Task CheckPositions(Candle actualCandle, decimal minBuy, decimal maxBuy)
     {
       var openedBuy = OpenBuyPositions
         .Where(x => !x.IsAutomatic)
@@ -858,7 +852,6 @@ namespace CTKS_Chart.Strategy
 
       var openedSell = OpenSellPositions
         .Where(x => !x.IsAutomatic)
-        .Where(x => !x.OpositPositions[0].StopLoss)
         .Where(x => x.Price != x.Intersection.Value || x.Price < MinSellPrice)
         .ToList();
 
@@ -871,12 +864,35 @@ namespace CTKS_Chart.Strategy
         var openedAutoSell = OpenSellPositions
         .Where(x => x.IsAutomatic)
         .Where(x => x.Price != x.Intersection.Value)
-        .Where(x => !x.OpositPositions[0].StopLoss)
         .ToList();
 
         if (openedAutoSell.Any())
           await RecreateSellPositions(actualCandle, openedAutoSell);
       }
+    }
+
+    #endregion
+
+    #region GetMaxAndMinBuy
+
+    private Tuple<decimal, decimal, decimal> GetMaxAndMinBuy(Candle actualCandle)
+    {
+      decimal lastSell = decimal.MaxValue;
+
+      if (ClosedSellPositions.Any() && ActualPositions.Any())
+      {
+        lastSell = ClosedSellPositions.Last().Price;
+      }
+
+      var minBuy = actualCandle.Close.Value * (1 - MinBuyPrice);
+      decimal maxBuy = MaxBuyPrice ?? decimal.MaxValue;
+
+      if (MaxBuyPrice == null && lastSell < decimal.MaxValue)
+      {
+        maxBuy = lastSell;
+      }
+
+      return new Tuple<decimal, decimal, decimal>(lastSell, minBuy, maxBuy);
     }
 
     #endregion
@@ -1176,10 +1192,6 @@ namespace CTKS_Chart.Strategy
 
         var finalSize = position.Price * position.OriginalPositionSizeNative;
         var profit = finalSize - position.OriginalPositionSize; ;
-        if (position.OpositPositions[0].StopLoss)
-        {
-          profit = finalSize - position.OpositPositions[0].OriginalPositionSize;
-        }
 
         position.Profit = profit;
         position.PositionSize = 0;
@@ -1254,26 +1266,17 @@ namespace CTKS_Chart.Strategy
 
         IList<CtksIntersection> nextLines = null;
 
-        if (buyPosition.StopLoss)
-        {
-          nextLines = ctksIntersections
-            .OrderBy(x => x.Value)
-            .ToList();
-        }
-        else
+        nextLines = ctksIntersections
+          .Where(x => x.Value > minPrice && x.Value > minForcePrice)
+          .OrderBy(x => x.Value)
+          .ToList();
+
+        if (nextLines.Count == 0)
         {
           nextLines = ctksIntersections
             .Where(x => x.Value > minPrice && x.Value > minForcePrice)
             .OrderBy(x => x.Value)
             .ToList();
-
-          if (nextLines.Count == 0)
-          {
-            nextLines = ctksIntersections
-              .Where(x => x.Value > minPrice && x.Value > minForcePrice)
-              .OrderBy(x => x.Value)
-              .ToList();
-          }
         }
 
         int i = 0;
@@ -1328,45 +1331,36 @@ namespace CTKS_Chart.Strategy
 
             decimal roundedNativeSize = 0;
 
-            if (buyPosition.StopLoss)
+            roundedNativeSize = Math.Round(positionSize / buyPosition.Price, Asset.NativeRound);
+
+            if (buyPosition.PositionSizeNative < roundedNativeSize)
             {
-              var leftNative = buyPosition.OriginalPositionSizeNative - buyPosition.OpositPositions.Where(x => x.State == PositionState.Filled).Sum(x => x.OriginalPositionSizeNative);
-              positionSize = leftNative * nextLine.Value;
-              roundedNativeSize = leftNative;
+              roundedNativeSize = buyPosition.PositionSizeNative;
             }
-            else
+
+            if (buyPosition.PositionSize - positionSize == 0 && buyPosition.PositionSizeNative - roundedNativeSize > 0)
             {
-              roundedNativeSize = Math.Round(positionSize / buyPosition.Price, Asset.NativeRound);
+              roundedNativeSize = buyPosition.PositionSizeNative;
+            }
 
-              if (buyPosition.PositionSizeNative < roundedNativeSize)
-              {
-                roundedNativeSize = buyPosition.PositionSizeNative;
-              }
+            positionSize = buyPosition.Price * roundedNativeSize;
+            if (positionSize <= 0)
+            {
+              continue;
+            }
 
-              if (buyPosition.PositionSize - positionSize == 0 && buyPosition.PositionSizeNative - roundedNativeSize > 0)
-              {
-                roundedNativeSize = buyPosition.PositionSizeNative;
-              }
+            var leftSize = buyPosition.PositionSize - positionSize;
 
-              positionSize = buyPosition.Price * roundedNativeSize;
-              if (positionSize <= 0)
-              {
-                continue;
-              }
+            if (MinPositionValue > leftSize && leftSize > 0)
+            {
+              roundedNativeSize = roundedNativeSize + (buyPosition.PositionSizeNative - roundedNativeSize);
 
-              var leftSize = buyPosition.PositionSize - positionSize;
+            }
 
-              if (MinPositionValue > leftSize && leftSize > 0)
-              {
-                roundedNativeSize = roundedNativeSize + (buyPosition.PositionSizeNative - roundedNativeSize);
-
-              }
-
-              positionSize = buyPosition.Price * roundedNativeSize;
-              if (positionSize <= 0)
-              {
-                continue;
-              }
+            positionSize = buyPosition.Price * roundedNativeSize;
+            if (positionSize <= 0)
+            {
+              continue;
             }
 
             var newPosition = new Position(positionSize, ctksIntersection.Value, roundedNativeSize)
@@ -1387,11 +1381,7 @@ namespace CTKS_Chart.Strategy
 
             createdPositions.Add(newPosition);
 
-            if (buyPosition.StopLoss)
-            {
-              buyPosition.PositionSize = 0;
-            }
-
+  
             if (buyPosition.PositionSize <= 0)
               break;
           }
@@ -1582,7 +1572,6 @@ namespace CTKS_Chart.Strategy
       {
         var inter = postion.Intersection;
 
-
         var found = ctksIntersections.SingleOrDefault(y => y.IsSame(inter));
 
         if (found != null)
@@ -1609,7 +1598,6 @@ namespace CTKS_Chart.Strategy
         else
           postion.Intersection = new CtksIntersection();
       }
-
     }
 
     #endregion

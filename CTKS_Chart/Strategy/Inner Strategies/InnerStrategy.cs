@@ -168,27 +168,5 @@ namespace CTKS_Chart.Strategy
         //}
       }
     }
-
-    private async Task StopPositions(Candle actual, IEnumerable<Position> positions)
-    {
-      foreach (var position in positions)
-      {
-        var filledSells = position.OpositPositions.Where(x => x.State == PositionState.Filled).ToList();
-
-        var realizedProfit = filledSells.Sum(x => x.OriginalPositionSize + x.Profit);
-        var leftSize = position.OpositPositions.Where(x => x.State == PositionState.Open).Sum(x => x.PositionSizeNative);
-        var fees = position.Fees ?? 0 + filledSells.Sum(x => x.Fees ?? 0);
-
-        var profit = (realizedProfit + (leftSize * actual.Close.Value)) - position.OriginalPositionSize - fees;
-        position.ActualProfit = profit;
-        var perc = profit * 100 / position.OriginalPositionSize;
-
-        if (perc < (decimal)-10 && !position.StopLoss)
-        {
-          position.StopLoss = true;
-          await strategy.RecreateSellPositions(actual, position.OpositPositions.Where(x => x.State == PositionState.Open));
-        }
-      }
-    }
   }
 }

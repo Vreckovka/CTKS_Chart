@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using CTKS_Chart.Binance;
 using CTKS_Chart.Binance.Data;
@@ -33,11 +35,26 @@ namespace CTKS_Chart.ViewModels
       IsSimulation = true;
 
       DrawChart = false;
-
-      //DownloadCandles("BTCUSDT");
     }
 
+    #region RunningTime
 
+    private TimeSpan runningTime;
+
+    public TimeSpan RunningTime
+    {
+      get { return runningTime; }
+      set
+      {
+        if (value != runningTime)
+        {
+          runningTime = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
 
     #region DataPath
 
@@ -58,16 +75,12 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
-
+    #region LoadLayouts
 
     private List<Candle> cutCandles = new List<Candle>();
     protected override async Task LoadLayouts(Layout mainLayout)
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, DrawingViewModel.CanvasHeight, DrawingViewModel.CanvasWidth, TradingBot.Asset);
-
-   
-      //var tradingView__ada_1D = $"D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data\\BINANCE ADAUSD, 1D.csv";
 
       var mainCandles = TradingViewHelper.ParseTradingView(DataPath);
 
@@ -87,9 +100,9 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.MinValue = MainLayout.MinValue;
       DrawingViewModel.LockChart = true;
       DrawingViewModel.ShowATH = true;
-      
+
       //Intersection precision testing
-      TradingBot.Strategy.EnableManualPositions = false;
+      //TradingBot.Strategy.EnableManualPositions = false;
 
 
       var rangeFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
@@ -100,6 +113,8 @@ namespace CTKS_Chart.ViewModels
 
       Simulate(cutCandles, InnerLayouts);
     }
+
+    #endregion
 
     #region SimulateCandle
 
@@ -123,12 +138,31 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
-
     #region Simulate
+
+    CancellationTokenSource cts;
+    IDisposable disposable;
+    DateTime lastElapsed;
 
     private void Simulate(List<Candle> cutCandles, List<Layout> secondaryLayouts)
     {
+      RunningTime = new TimeSpan();
+      cts?.Cancel();
+      cts = new CancellationTokenSource();
+
+      disposable?.Dispose();
+
+      lastElapsed = DateTime.Now;
+      disposable = Observable.Interval(TimeSpan.FromSeconds(0.25))
+     .ObserveOnDispatcher()
+     .Subscribe((x) => {
+
+       TimeSpan diff = DateTime.Now - lastElapsed;
+
+       RunningTime = RunningTime.Add(diff);
+
+       lastElapsed = DateTime.Now;
+     });
 
       Task.Run(async () =>
       {
@@ -136,14 +170,34 @@ namespace CTKS_Chart.ViewModels
         {
           var actual = cutCandles[i];
 
+          if (cts.IsCancellationRequested)
+            return;
+
           SimulateCandle(secondaryLayouts, actual);
 
           await Task.Delay(!IsSimulation || DrawChart ? 1 : 0);
         }
-      });
+
+        disposable?.Dispose();
+      }, cts.Token);
+
+
     }
 
     #endregion
+
+    public void Stop()
+    {
+      cts?.Cancel();
+      disposable?.Dispose();
+      var simulationStrategy = new SimulationStrategy();
+
+      simulationStrategy.Asset = TradingBot.Asset;
+      Layouts.Clear();
+      InnerLayouts.Clear();
+
+      TradingBot.Strategy = simulationStrategy;
+    }
 
     private void DownloadCandles(string symbol)
     {
