@@ -32,7 +32,13 @@
 
 
 
-      <CheckBox IsChecked="{Binding Model.DrawChart}">Draw chart</CheckBox>
+      <CheckBox IsChecked="{Binding SelectedBot.DrawChart}">Draw chart</CheckBox>
+
+      <ComboBox
+        Margin="5,0"
+        DisplayMemberPath="DisplayName"
+        ItemsSource="{Binding Bots}"
+        SelectedItem="{Binding SelectedBot}" />
 
       <TextBlock
         Margin="5,0"
@@ -42,6 +48,6 @@
     </StackPanel>
 
 
-    <trading:BotView Grid.Row="1" DataContext="{Binding Model}" />
+    <trading:BotView Grid.Row="1" DataContext="{Binding SelectedBot}" />
   </Grid>
 </UserControl>

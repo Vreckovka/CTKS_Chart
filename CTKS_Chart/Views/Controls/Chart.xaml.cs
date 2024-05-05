@@ -35,7 +35,13 @@ namespace CTKS_Chart.Views.Controls
       DependencyProperty.Register(
         nameof(ChartContent),
         typeof(FrameworkElement),
-        typeof(Chart));
+        typeof(Chart), new PropertyMetadata(null, new PropertyChangedCallback((obj,y) => { 
+        
+        if(obj is Chart chart)
+          {
+            chart.MouseMove += chart.Grid_MouseMove;
+          }
+        })));
 
     #endregion
 
@@ -151,6 +157,11 @@ namespace CTKS_Chart.Views.Controls
 
           ActualMousePositionX = DateTimeHelper.UnixTimeStampToLocalDateTime((long)TradingHelper.GetValueFromCanvasLinear(ChartContent.ActualWidth, actualMousePosition.X, (long)MaxXValue, (long)MinXValue));
           ActualMousePositionY = TradingHelper.GetValueFromCanvas(ChartContent.ActualHeight, ChartContent.ActualHeight - actualMousePosition.Y, MaxYValue, MinYValue);
+
+          if(AssetPriceRound > 0)
+          {
+            ActualMousePositionY = Math.Round(actualMousePositionY, AssetPriceRound);
+          }
         }
       }
     }
@@ -169,6 +180,25 @@ namespace CTKS_Chart.Views.Controls
         if (value != actualMousePositionY)
         {
           actualMousePositionY = value;
+          OnPropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region AssetPriceRound
+
+    private int assetPriceRound;
+
+    public int AssetPriceRound
+    {
+      get { return assetPriceRound; }
+      set
+      {
+        if (value != assetPriceRound)
+        {
+          assetPriceRound = value;
           OnPropertyChanged();
         }
       }
@@ -199,14 +229,8 @@ namespace CTKS_Chart.Views.Controls
     public Chart()
     {
       InitializeComponent();
-      Loaded += Chart_Loaded;
     }
 
-    private void Chart_Loaded(object sender, RoutedEventArgs e)
-    {
-
-      ChartContent.MouseMove += Grid_MouseMove;
-    }
 
     double? startY;
     double? startX;

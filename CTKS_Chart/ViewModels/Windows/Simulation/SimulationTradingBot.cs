@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
@@ -35,6 +36,14 @@ namespace CTKS_Chart.ViewModels
       IsSimulation = true;
 
       DrawChart = false;
+    }
+
+    public string DisplayName
+    {
+      get
+      {
+        return TradingBot.Asset.Symbol;
+      }
     }
 
     #region RunningTime
@@ -102,7 +111,7 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.ShowATH = true;
 
       //Intersection precision testing
-      //TradingBot.Strategy.EnableManualPositions = false;
+      TradingBot.Strategy.EnableManualPositions = false;
 
 
       var rangeFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
@@ -142,6 +151,13 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+
+
+    public override void Start()
+    {
+      base.Start();
+    }
+
     #region Simulate
 
     CancellationTokenSource cts;
@@ -157,16 +173,19 @@ namespace CTKS_Chart.ViewModels
       disposable?.Dispose();
 
       lastElapsed = DateTime.Now;
-      disposable = Observable.Interval(TimeSpan.FromSeconds(0.25))
-     .ObserveOnDispatcher()
-     .Subscribe((x) => {
 
-       TimeSpan diff = DateTime.Now - lastElapsed;
+      if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
+        disposable = Observable.Interval(TimeSpan.FromSeconds(0.25))
+       .ObserveOnDispatcher()
+       .Subscribe((x) =>
+       {
 
-       RunningTime = RunningTime.Add(diff);
+         TimeSpan diff = DateTime.Now - lastElapsed;
 
-       lastElapsed = DateTime.Now;
-     });
+         RunningTime = RunningTime.Add(diff);
+
+         lastElapsed = DateTime.Now;
+       });
 
       Task.Run(async () =>
       {
@@ -183,6 +202,7 @@ namespace CTKS_Chart.ViewModels
         }
 
         disposable?.Dispose();
+
       }, cts.Token);
 
 

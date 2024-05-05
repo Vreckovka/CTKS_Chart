@@ -123,7 +123,7 @@ namespace CTKS_Chart.Trading
       }
 
       //more than 2 to accomodate margin
-      var unix_diff = (long)(unixDiff / 2.18);
+      var unix_diff = (long)(unixDiff / 2.195);
 
       switch (lineType)
       {

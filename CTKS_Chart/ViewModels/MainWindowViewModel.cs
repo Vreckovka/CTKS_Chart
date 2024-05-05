@@ -105,57 +105,9 @@ namespace CTKS_Chart.ViewModels
 
     public void OnOpenTesting()
     {
-      var path = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data";
-      var timeFrames = new TimeFrame[] {
-        TimeFrame.W1,
-        TimeFrame.W2,
-        TimeFrame.M1,
-        TimeFrame.M3,
-        TimeFrame.M6,
-        TimeFrame.M12
-        };
-
-      var strategy = new SimulationStrategy();
-
-      var adaBot = new TradingBot(new Asset()
-      {
-        Symbol = "ADAUSDT",
-        NativeRound = 1,
-        PriceRound = 4,
-        DataPath = path,
-        DataSymbol = "BINANCE ADAUSD",
-        TimeFrames = timeFrames,
-      }, strategy);
-
-      var ltcBot = new TradingBot(new Asset()
-      {
-        Symbol = "LTCUSDT",
-        NativeRound = 3,
-        PriceRound = 2,
-        DataPath = path,
-        DataSymbol = "BINANCE LTCUSD",
-        TimeFrames = timeFrames,
-      }, strategy);
-
-      var btcBot = new TradingBot(new Asset()
-      {
-        Symbol = "BTCUSDT",
-        NativeRound = 5,
-        PriceRound = 2,
-        DataPath = path,
-        DataSymbol = "INDEX BTCUSD",
-        TimeFrames = timeFrames,
-      }, strategy);
-
-
-      var tradingView__data = $"ADAUSDT-240-generated.csv";
-      //tradingView__data = $"BTCUSDT-240-generated.csv";
-
-      var bot = ViewModelsFactory.Create<SimulationTradingBot>(adaBot);
-      var prompt = ViewModelsFactory.Create<SimulationPromptViewModel>(bot);
+      var prompt = ViewModelsFactory.Create<SimulationPromptViewModel>();
       TradingBotViewModel.IsPaused = true;
-      bot.DataPath = tradingView__data;
-
+        
       windowManager.ShowPrompt<SimulationView>(prompt);
 
       TradingBotViewModel.IsPaused = false;

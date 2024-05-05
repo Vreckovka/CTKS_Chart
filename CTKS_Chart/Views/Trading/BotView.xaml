@@ -39,9 +39,16 @@
           <ColumnDefinition />
           <ColumnDefinition Width="auto" />
         </Grid.ColumnDefinitions>
-        <Border MouseMove="Grid_MouseMove" MouseWheel="Border_MouseWheel">
-          <ContentControl Content="{Binding ChartImage}" />
-        </Border>
+
+        <controls1:Chart
+          Grid.Column="0"
+          ChartContent="{Binding ChartImage}"
+          ChartHeight="{Binding CanvasHeight}"
+          ChartWidth="{Binding CanvasWidth}"
+          MaxXValue="{Binding MaxUnix, Mode=TwoWay}"
+          MaxYValue="{Binding MaxValue, Mode=TwoWay}"
+          MinXValue="{Binding MinUnix, Mode=TwoWay}"
+          MinYValue="{Binding MinValue, Mode=TwoWay}" />
 
         <controls1:Ruler
           Grid.Column="0"
@@ -50,6 +57,25 @@
           MaxValue="{Binding MaxValue, Mode=TwoWay}"
           MinValue="{Binding MinValue, Mode=TwoWay}"
           Size="{Binding CanvasHeight}" />
+
+        <controls1:Ruler
+          Grid.Row="1"
+          Grid.Column="0"
+          Grid.ColumnSpan="2"
+          Height="50"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Bottom"
+          MaxValue="{Binding MaxUnix, Mode=TwoWay}"
+          MinValue="{Binding MinUnix, Mode=TwoWay}"
+          Mode="Horizontal"
+          Size="{Binding CanvasWidth}" />
+
+        <CheckBox
+          Margin="5,0"
+          VerticalAlignment="Bottom"
+          IsChecked="{Binding LockChart}">
+          Lock chart
+        </CheckBox>
       </Grid>
 
 

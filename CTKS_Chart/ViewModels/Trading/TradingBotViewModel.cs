@@ -524,11 +524,17 @@ namespace CTKS_Chart.ViewModels
       TradingBot.LoadIndicators();
       DrawingViewModel = viewModelsFactory.Create<DrawingViewModel>(TradingBot, MainLayout);
 
-      MainLayout.MaxValue = TradingBot.StartingMaxPrice;
-      MainLayout.MinValue = TradingBot.StartingMinPrice;
+      MainLayout.MaxValue = TradingBot.Asset.StartMaxPrice;
+      MainLayout.MinValue = TradingBot.Asset.StartLowPrice;
+      MainLayout.MaxUnix = TradingBot.Asset.StartMaxUnix;
+      MainLayout.MinUnix = TradingBot.Asset.StartMinUnix;
 
       DrawingViewModel.MaxValue = MainLayout.MaxValue;
       DrawingViewModel.MinValue = MainLayout.MinValue;
+      DrawingViewModel.MaxUnix = MainLayout.MaxUnix;
+      DrawingViewModel.MinUnix = MainLayout.MinUnix;
+
+      DrawingViewModel.LockChart = true;
 
       foreach (KlineInterval interval in EnumHelper.GetAllValues(KlineInterval.GetType()))
       {
@@ -591,7 +597,7 @@ namespace CTKS_Chart.ViewModels
 
     #region Start
 
-    public void Start()
+    public virtual void Start()
     {
       LoadLayoutSettings();
 
@@ -1152,12 +1158,6 @@ namespace CTKS_Chart.ViewModels
           if (DrawingViewModel.ActualCandles.Count > 0)
           {
             DrawingViewModel.unixDiff = DrawingViewModel.ActualCandles[1].UnixTime - DrawingViewModel.ActualCandles[0].UnixTime;
-
-            DrawingViewModel.minUnix = DrawingViewModel.ActualCandles.First().UnixTime;
-            DrawingViewModel.maxUnix = DrawingViewModel.ActualCandles.Last().UnixTime;
-
-            DrawingViewModel.Raise(nameof(DrawingViewModel.MinUnix));
-            DrawingViewModel.Raise(nameof(DrawingViewModel.MaxUnix));
           }
         }
 

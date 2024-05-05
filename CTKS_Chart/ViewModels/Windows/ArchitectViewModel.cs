@@ -39,7 +39,7 @@ namespace CTKS_Chart.ViewModels
 
     #region IsVisible
 
-    private bool isVisible = true;
+    private bool isVisible;
     public bool IsVisible
     {
       get { return isVisible; }
@@ -388,13 +388,12 @@ namespace CTKS_Chart.ViewModels
       using (DrawingContext dc = dGroup.Open())
       {
         dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(CanvasHeight, CanvasWidth));
+        candles = candles.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
 
         var drawnChart = drawingViewModel.DrawChart_New(dc, candles, CanvasHeight, CanvasWidth);
-        var renderedLines = RenderLines(dc, drawnChart.Candles.ToList(), CanvasHeight, CanvasWidth);
+        var renderedLines = RenderLines(dc, CanvasHeight, CanvasWidth);
 
-        List<CtksIntersection> ctksIntersections = SelectedLayout.Ctks.ctksIntersections;
-
-        RenderIntersections(dc, ctksIntersections,
+        RenderIntersections(dc, SelectedLayout.Ctks.ctksIntersections,
           drawnChart.Candles.ToList(),
           CanvasHeight,
           CanvasHeight,
@@ -481,7 +480,6 @@ namespace CTKS_Chart.ViewModels
 
     public IEnumerable<CtksLine> RenderLines(
       DrawingContext drawingContext,
-      IList<ChartCandle> chartCandles,
       double canvasHeight,
       double canvasWidth)
     {

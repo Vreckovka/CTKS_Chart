@@ -11,6 +11,8 @@ namespace CTKS_Chart.Trading
 
     public decimal MaxValue { get; set; }
     public decimal MinValue { get; set; }
+    public long MaxUnix { get; set; }
+    public long MinUnix { get; set; }
     public TimeFrame TimeFrame { get; set; }
 
     public string DataLocation { get; set; }

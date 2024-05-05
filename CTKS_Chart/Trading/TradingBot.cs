@@ -16,9 +16,6 @@ namespace CTKS_Chart.Trading
 
       if (strategy != null)
         strategy.Asset = asset;
-
-      StartingMinPrice = asset.StartLowPrice;
-      StartingMaxPrice = asset.StartMaxPrice;
     }
 
     #region Strategy
@@ -44,10 +41,6 @@ namespace CTKS_Chart.Trading
     public Asset Asset { get; }
     public Dictionary<string, TimeFrame> TimeFrames { get; private set; } = new Dictionary<string, TimeFrame>();
     public Dictionary<string, TimeFrame> IndicatorTimeFrames { get; private set; } = new Dictionary<string, TimeFrame>();
-
-    public decimal StartingMinPrice { get; }
-    public decimal StartingMaxPrice { get; }
-
 
     #region LoadTimeFrames
 
