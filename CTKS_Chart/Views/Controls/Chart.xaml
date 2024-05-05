@@ -19,7 +19,7 @@
           VerticalAlignment="Bottom"
           Foreground="#45ffffff">
           <Run DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:Chart}}" Text="{Binding ActualMousePositionY}" />
-          <Run DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:Chart}}" Text="{Binding ActualMousePositionX, StringFormat={}{0:dd.mm.yyy hh:mm:ss}}" />
+          <Run DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:Chart}}" Text="{Binding ActualMousePositionX, StringFormat={}{0:dd.MM.yyy HH:mm:ss}}" />
         </TextBlock>
       </Grid>
     </Grid>

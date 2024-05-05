@@ -241,7 +241,7 @@ namespace CTKS_Chart.Views.Controls
 
       if (sender is FrameworkElement fr)
       {
-        ActualMousePosition = e.GetPosition(fr);
+        ActualMousePosition = e.GetPosition(ChartContent);
 
         if (e.LeftButton == MouseButtonState.Pressed)
         {
