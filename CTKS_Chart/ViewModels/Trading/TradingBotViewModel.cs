@@ -596,7 +596,7 @@ namespace CTKS_Chart.ViewModels
 
       stopwatch.Start();
 
-  
+
       ForexChart_Loaded();
 
       if (!IsSimulation)
@@ -811,7 +811,7 @@ namespace CTKS_Chart.ViewModels
 
           var isOutDated = false;
 
-          if(IsSimulation)
+          if (IsSimulation)
           {
             isOutDated = actual.OpenTime > TradingViewHelper.GetNextTime(lastCandle.OpenTime, secondaryLayout.TimeFrame);
           }
@@ -1143,6 +1143,11 @@ namespace CTKS_Chart.ViewModels
           }
         }
 
+        if(DrawingViewModel.ActualCandles.Min(x => x.UnixTime) > DrawingViewModel.MinUnix)
+        {
+          await FetchAdditionalCandles();
+        }
+
         if (lastState != null)
         {
           DailyChange = TradingBot.Strategy.TotalValue - lastState.TotalValue ?? 0;
@@ -1181,16 +1186,59 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region ChangeKlineInterval
+
     private async Task ChangeKlineInterval()
     {
       DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval))).ToList();
-      await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
 
       if (DrawingViewModel.ActualCandles.Count > 0)
       {
         DrawingViewModel.unixDiff = DrawingViewModel.ActualCandles[1].UnixTime - DrawingViewModel.ActualCandles[0].UnixTime;
       }
+
+      await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
     }
+
+    #endregion
+
+    #region FetchAdditionalCandles
+
+    int maxCandlesToFetch = 5000;
+    private async Task FetchAdditionalCandles()
+    {
+      var startDate = DateTimeHelper.UnixTimeStampToUtcDateTime(DrawingViewModel.MinUnix);
+      var candles = DrawingViewModel.ActualCandles;
+
+      DateTime? firstDate = candles.First().OpenTime;
+      DateTime? lastCloseTime = null;
+
+      while (DrawingViewModel.MinUnix < candles.Min(x => x.UnixTime) && candles.Count < maxCandlesToFetch)
+      {
+        //was added to the end
+        var lastValues =
+          (await binanceBroker.GetCandles(TradingBot.Asset.Symbol,
+          TradingHelper.GetTimeSpanFromInterval(KlineInterval), endTime: firstDate))
+          .OrderByDescending(x => x.CloseTime);
+
+        firstDate = lastValues.Min(x => x.OpenTime);
+
+        if (lastCloseTime == firstDate)
+        {
+          break;
+        }
+
+        lastCloseTime = firstDate;
+
+        candles.AddRange(lastValues);
+      }
+
+      candles = candles.OrderBy(x => x.CloseTime).ToList();
+
+      DrawingViewModel.ActualCandles = candles;
+    }
+
+    #endregion
 
     #region LoadLayoutSettings
 

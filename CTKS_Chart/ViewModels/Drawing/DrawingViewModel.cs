@@ -155,6 +155,25 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region ShowLabels
+
+    private bool showLabels = true;
+
+    public bool ShowLabels
+    {
+      get { return showLabels; }
+      set
+      {
+        if (value != showLabels)
+        {
+          showLabels = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     public void Raise(string value)
     {
       RaisePropertyChanged(value);
@@ -645,26 +664,35 @@ namespace CTKS_Chart.ViewModels
           RaisePropertyChanged(nameof(MinValue));
         }
 
-        if (lastLockedCandle?.OpenTime != last?.OpenTime && LockChart)
+        if (LockChart)
         {
-          maxUnix += unixDiff;
-          minUnix += unixDiff;
-
-          var lastCandleUnix = actualCandles.Last().UnixTime;
-
-          if (lastCandleUnix > maxUnix)
+          if (MaxUnix < last?.UnixTime)
           {
-            var diff = maxUnix - minUnix;
-            maxUnix = lastCandleUnix + (long)(diff * 0.3);
-            minUnix = maxUnix - diff;
+            var viewCandles = ActualCandles.TakeLast(150);
+
+            maxUnix = viewCandles.Max(x => x.UnixTime) + (unixDiff * 30);
+            minUnix = viewCandles.Min(x => x.UnixTime) + (unixDiff * 30);
+          }
+          else if (lastLockedCandle?.OpenTime != last?.OpenTime)
+          {
+            maxUnix += unixDiff;
+            minUnix += unixDiff;
+
+            var lastCandleUnix = actualCandles.Last().UnixTime;
+
+            if (lastCandleUnix > maxUnix)
+            {
+              var diff = maxUnix - minUnix;
+              maxUnix = lastCandleUnix + (long)(diff * 0.3);
+              minUnix = maxUnix - diff;
+            }
           }
 
           RaisePropertyChanged(nameof(MaxUnix));
           RaisePropertyChanged(nameof(MinUnix));
         }
 
-
-        lastLockedCandle = last;
+      
 
         var chart = DrawChart(dc, candlesToRender, imageHeight, imageWidth);
         double desiredCanvasHeight = imageHeight;
@@ -696,16 +724,23 @@ namespace CTKS_Chart.ViewModels
               imageWidth);
           }
 
-          DrawActualPrice(dc, Layout, ActualCandles, imageHeight, imageWidth);
-          var maxCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredCanvasHeight, desiredCanvasHeight, MaxValue, MinValue);
-          var minCanvasValue = (decimal)TradingHelper.GetValueFromCanvas(desiredCanvasHeight, -2 * (desiredCanvasHeight - canvasHeight), MaxValue, MinValue);
+
+          var maxCanvasValue = MaxValue;
+          var minCanvasValue = MinValue;
+          var diff = (MaxValue - MinValue) * 0.025m;
+
+          maxCanvasValue = MaxValue - diff;
+          minCanvasValue = MinValue + diff;
+
+          var lastCandle = ActualCandles.Last();
+          var lastPrice = lastCandle.Close;
+
+          if (lastPrice < maxCanvasValue && lastPrice > minCanvasValue)
+            DrawActualPrice(dc, lastCandle, imageHeight, imageWidth);
 
           if (TradingBot.Strategy is StrategyViewModel strategyViewModel)
           {
             decimal price = strategyViewModel.AvrageBuyPrice;
-
-            maxCanvasValue = Math.Max(maxCanvasValue, chartCandles.Max(x => x.Candle.High.Value));
-            minCanvasValue = Math.Min(minCanvasValue, chartCandles.Min(x => x.Candle.Low.Value));
 
             if (ShowAveragePrice)
             {
@@ -759,7 +794,7 @@ namespace CTKS_Chart.ViewModels
 
       var padding = unixDiff;
 
-      if(unixDiff > 120000)
+      if (unixDiff > 120000)
       {
         padding = (long)(unixDiff * 0.91);
       }
@@ -1025,8 +1060,10 @@ namespace CTKS_Chart.ViewModels
       TimeFrame minTimeframe = TimeFrame.W1
       )
     {
-      var maxCanvasValue = MaxValue;
-      var minCanvasValue = MinValue;
+      var diff = (MaxValue - MinValue) * 0.01m;
+
+      var maxCanvasValue = MaxValue - diff;
+      var minCanvasValue = MinValue + diff;
 
       var validIntersection = intersections
         .Where(x => x.Value > minCanvasValue && x.Value < maxCanvasValue && minTimeframe <= x.TimeFrame)
@@ -1072,7 +1109,8 @@ namespace CTKS_Chart.ViewModels
 
           FormattedText formattedText = DrawingHelper.GetFormattedText(intersection.Value.ToString(), selectedBrush);
 
-          drawingContext.DrawText(formattedText, new Point(canvasWidth * 0.93, lineY - formattedText.Height / 2));
+          if (ShowLabels)
+            drawingContext.DrawText(formattedText, new Point(canvasWidth * 0.93, lineY - formattedText.Height / 2));
 
           Pen pen = new Pen(selectedBrush, 1);
           pen.DashStyle = DashStyles.Dash;
@@ -1154,9 +1192,8 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawActualPrice
 
-    public void DrawActualPrice(DrawingContext drawingContext, Layout layout, IList<Candle> candles, double canvasHeight, double canvasWidth)
+    public void DrawActualPrice(DrawingContext drawingContext, Candle lastCandle, double canvasHeight, double canvasWidth)
     {
-      var lastCandle = candles.Last();
       var price = lastCandle.Close;
 
       if (price > 0 && price > MinValue && price < MaxValue)

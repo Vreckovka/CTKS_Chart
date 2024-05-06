@@ -155,7 +155,7 @@ namespace CTKS_Chart.Views.Controls
           actualMousePosition = value;
           OnPropertyChanged();
 
-          ActualMousePositionX = DateTimeHelper.UnixTimeStampToLocalDateTime((long)TradingHelper.GetValueFromCanvasLinear(ChartContent.ActualWidth, actualMousePosition.X, (long)MaxXValue, (long)MinXValue));
+          ActualMousePositionX = DateTimeHelper.UnixTimeStampToUtcDateTime((long)TradingHelper.GetValueFromCanvasLinear(ChartContent.ActualWidth, actualMousePosition.X, (long)MaxXValue, (long)MinXValue));
           ActualMousePositionY = TradingHelper.GetValueFromCanvas(ChartContent.ActualHeight, ChartContent.ActualHeight - actualMousePosition.Y, MaxYValue, MinYValue);
 
           if(AssetPriceRound > 0)

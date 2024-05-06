@@ -60,20 +60,31 @@
             <MenuItem Header="Default">
               <Border Padding="10">
                 <UniformGrid Columns="1">
-                  <StackPanel Margin="5" Orientation="Horizontal">
-                    <Button
-                      Width="120"
-                      Margin="10,0,10,0"
-                      Command="{Binding ShowLines}">
-                      Show lines
-                    </Button>
-                    <Button
-                      Width="120"
-                      Margin="10,0,10,0"
-                      Command="{Binding ShowIntersections}">
-                      Show intersections
-                    </Button>
 
+                  <StackPanel
+                    Margin="5"
+                    DataContext="{Binding DrawingViewModel}"
+                    Orientation="Horizontal">
+                    <CheckBox IsChecked="{Binding ShowLabels}">Show labels</CheckBox>
+
+                    <CheckBox
+                      Width="120"
+                      Margin="10,0,10,0"
+                      IsChecked="{Binding ShowAveragePrice}">
+                      Show Average Price
+                    </CheckBox>
+
+
+                    <CheckBox
+                      Width="120"
+                      Margin="10,0,10,0"
+                      IsChecked="{Binding ShowATH}">
+                      Show All Time High Price
+                    </CheckBox>
+
+                  </StackPanel>
+
+                  <StackPanel Margin="5" Orientation="Horizontal">
                     <Button
                       Width="120"
                       Margin="10,0,10,0"
@@ -82,28 +93,8 @@
                     </Button>
 
 
-
-
                   </StackPanel>
 
-                  <StackPanel
-                    Margin="5"
-                    DataContext="{Binding DrawingViewModel}"
-                    Orientation="Horizontal">
-                    <TextBox
-                      Width="80"
-                      Margin="10,0,10,0"
-                      Text="{Binding MaxValue}" />
-                    <TextBox
-                      Width="80"
-                      Margin="10,0,10,0"
-                      Text="{Binding MinValue}" />
-
-                    <TextBox
-                      Width="50"
-                      Margin="10,0,10,0"
-                      Text="{Binding CandleCount}" />
-                  </StackPanel>
 
                   <StackPanel
                     Margin="5"
@@ -120,20 +111,6 @@
 
 
 
-                    <CheckBox
-                      Width="120"
-                      Margin="10,0,10,0"
-                      IsChecked="{Binding ShowAveragePrice}">
-                      Show Average Price
-                    </CheckBox>
-
-
-                    <CheckBox
-                      Width="120"
-                      Margin="10,0,10,0"
-                      IsChecked="{Binding ShowATH}">
-                      Show All Time High Price
-                    </CheckBox>
 
                   </StackPanel>
                 </UniformGrid>
