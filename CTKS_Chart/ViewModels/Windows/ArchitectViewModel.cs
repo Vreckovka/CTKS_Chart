@@ -390,7 +390,7 @@ namespace CTKS_Chart.ViewModels
         dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(CanvasHeight, CanvasWidth));
         candles = candles.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
 
-        var drawnChart = drawingViewModel.DrawChart_New(dc, candles, CanvasHeight, CanvasWidth);
+        var drawnChart = drawingViewModel.DrawChart(dc, candles, CanvasHeight, CanvasWidth);
         var renderedLines = RenderLines(dc, CanvasHeight, CanvasWidth);
 
         RenderIntersections(dc, SelectedLayout.Ctks.ctksIntersections,

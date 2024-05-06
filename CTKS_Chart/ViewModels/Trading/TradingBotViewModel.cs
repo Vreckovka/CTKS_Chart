@@ -281,7 +281,7 @@ namespace CTKS_Chart.ViewModels
 
     #region Commands
 
-   
+
 
     #region OpenArchitectView
 
@@ -516,7 +516,7 @@ namespace CTKS_Chart.ViewModels
 
     #region Initialize
 
-    public override void Initialize()
+    public async override void Initialize()
     {
       base.Initialize();
 
@@ -582,22 +582,15 @@ namespace CTKS_Chart.ViewModels
 
 
       LayoutIntervals.ViewModels[6].IsSelected = true;
-      KlineInterval = LayoutIntervals.SelectedItem.Model.Interval;
 
-      LayoutIntervals.OnActualItemChanged.Subscribe(x =>
-      {
-        if (x != null)
-        {
-          KlineInterval = x.Model.Interval;
-        }
-      });
+      KlineInterval = LayoutIntervals.SelectedItem.Model.Interval;
     }
 
     #endregion
 
     #region Start
 
-    public virtual void Start()
+    public virtual async void Start()
     {
       LoadLayoutSettings();
 
@@ -628,6 +621,17 @@ namespace CTKS_Chart.ViewModels
       };
 
       ForexChart_Loaded();
+
+
+      LayoutIntervals.OnActualItemChanged.Skip(1).Subscribe(x =>
+      {
+        if (x != null)
+        {
+          KlineInterval = x.Model.Interval;
+        }
+      });
+
+      await ChangeKlineInterval();
     }
 
     #endregion
@@ -655,7 +659,7 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval))).ToList();
 
       await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
-     
+
 
       LoadSecondaryLayouts();
       LoadIndicators();
@@ -883,7 +887,7 @@ namespace CTKS_Chart.ViewModels
         var athPrice = GetAthPrice();
 
         if (DrawChart)
-          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, DrawingViewModel.CanvasHeight));
+          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(athPrice));
 
         this.actual = actual;
 
@@ -925,7 +929,7 @@ namespace CTKS_Chart.ViewModels
         }
 
         if (DrawChart)
-          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(ctksIntersections, athPrice, DrawingViewModel.CanvasHeight));
+          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(athPrice));
       }
       finally
       {
@@ -938,7 +942,7 @@ namespace CTKS_Chart.ViewModels
     #region CreateCtks
 
     protected CtksLayout CreateCtks(
-      string location, 
+      string location,
       TimeFrame timeFrame,
       double canvasWidth,
       double canvasHeight,
@@ -1150,25 +1154,32 @@ namespace CTKS_Chart.ViewModels
       {
         if (fetchNewCandles && !IsSimulation)
         {
-          DrawingViewModel.ActualCandles =
-            (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval)))
-            .ToList();
-          await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
+          await ChangeKlineInterval();
 
-          if (DrawingViewModel.ActualCandles.Count > 0)
-          {
-            DrawingViewModel.unixDiff = DrawingViewModel.ActualCandles[1].UnixTime - DrawingViewModel.ActualCandles[0].UnixTime;
-          }
+          DrawingViewModel.OnRestChart();
+
+          DrawingViewModel.LockChart = true;
         }
 
         if (DrawingViewModel.ActualCandles.Count > 0)
         {
-          DrawingViewModel.RenderOverlay(ctksIntersections, GetAthPrice(), DrawingViewModel.CanvasHeight);
+          DrawingViewModel.RenderOverlay(GetAthPrice());
         }
       }
     }
 
     #endregion
+
+    private async Task ChangeKlineInterval()
+    {
+      DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval))).ToList();
+      await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
+
+      if (DrawingViewModel.ActualCandles.Count > 0)
+      {
+        DrawingViewModel.unixDiff = DrawingViewModel.ActualCandles[1].UnixTime - DrawingViewModel.ActualCandles[0].UnixTime;
+      }
+    }
 
     #region LoadLayoutSettings
 

@@ -107,6 +107,7 @@ namespace CTKS_Chart.ViewModels
 
       DrawingViewModel.MaxValue = MainLayout.MaxValue;
       DrawingViewModel.MinValue = MainLayout.MinValue;
+
       DrawingViewModel.LockChart = true;
       DrawingViewModel.ShowATH = true;
 

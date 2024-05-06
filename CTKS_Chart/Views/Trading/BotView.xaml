@@ -70,20 +70,24 @@
           Mode="Horizontal"
           Size="{Binding CanvasWidth}" />
 
-        <CheckBox
-          Margin="5,0"
-          VerticalAlignment="Bottom"
-          IsChecked="{Binding LockChart}">
-          Lock chart
-        </CheckBox>
+        <StackPanel Margin="5,5" Orientation="Horizontal">
+          <CheckBox
+            Margin="5,0"
+            VerticalAlignment="Bottom"
+            IsChecked="{Binding LockChart}">
+            Lock chart
+          </CheckBox>
 
-        <Button
-          Margin="155,0"
-          HorizontalAlignment="Left"
-          VerticalAlignment="Bottom"
-          Command="{Binding ResetChart}">
-          Rest chart
-        </Button>
+
+          <Button
+            Margin="5,5"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Bottom"
+            Command="{Binding ResetChart}">
+            Rest chart
+          </Button>
+        </StackPanel>
+
       </Grid>
 
 
