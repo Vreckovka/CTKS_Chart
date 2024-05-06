@@ -308,9 +308,10 @@ namespace CTKS_Chart.Binance
         onUpdate = data;
 
         var subOkay = await socketClient.SpotApi.Account.SubscribeToUserDataUpdatesAsync(key, data, null, null, null);
+        
         if (!subOkay.Success)
         {
-          return;
+          LogError(subOkay.Error?.Message);
         }
 
         logger.Log(MessageType.Inform2, $"{DateTime.UtcNow} Subscribe to stream success", simpleMessage: true);

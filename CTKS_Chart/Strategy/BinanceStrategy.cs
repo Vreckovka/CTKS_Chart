@@ -34,7 +34,7 @@ namespace CTKS_Chart.Strategy
       this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
       Logger = this.logger;
 
-#if !DEBUG
+#if RELEASE
       Subscribe();
 #endif
     }

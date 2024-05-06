@@ -686,6 +686,8 @@ namespace CTKS_Chart.ViewModels
               maxUnix = lastCandleUnix + (long)(diff * 0.3);
               minUnix = maxUnix - diff;
             }
+
+            lastLockedCandle = last;
           }
 
           RaisePropertyChanged(nameof(MaxUnix));
@@ -1110,13 +1112,13 @@ namespace CTKS_Chart.ViewModels
           FormattedText formattedText = DrawingHelper.GetFormattedText(intersection.Value.ToString(), selectedBrush);
 
           if (ShowLabels)
-            drawingContext.DrawText(formattedText, new Point(canvasWidth * 0.93, lineY - formattedText.Height / 2));
+            drawingContext.DrawText(formattedText, new Point(canvasWidth * 0.95, lineY - formattedText.Height / 2));
 
           Pen pen = new Pen(selectedBrush, 1);
           pen.DashStyle = DashStyles.Dash;
           pen.Thickness = DrawingHelper.GetPositionThickness(frame);
 
-          drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth * 0.9, lineY));
+          drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth * 0.91, lineY));
         }
       }
     }

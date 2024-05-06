@@ -584,6 +584,8 @@ namespace CTKS_Chart.ViewModels
       LayoutIntervals.ViewModels[6].IsSelected = true;
 
       KlineInterval = LayoutIntervals.SelectedItem.Model.Interval;
+
+      RaisePropertyChanged(nameof(ConsoleCollectionLogger));
     }
 
     #endregion
