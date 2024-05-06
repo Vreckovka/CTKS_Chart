@@ -93,20 +93,23 @@ namespace CTKS_Chart.ViewModels
 
       var mainCandles = TradingViewHelper.ParseTradingView(DataPath);
 
-      MainLayout.MaxValue = mainCandles.Max(x => x.High.Value);
-      MainLayout.MinValue = mainCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
-
       var fromDate = new DateTime(2018, 9, 21);
       //fromDate = new DateTime(2021,8, 30);
 
       cutCandles = mainCandles.Where(x => x.CloseTime > fromDate).ToList();
-      DrawingViewModel.ActualCandles = mainCandles.Where(x => x.CloseTime < fromDate).ToList();
+      var candles = mainCandles.Where(x => x.CloseTime < fromDate).ToList();
 
-      MainLayout.MaxValue = cutCandles.Max(x => x.High.Value);
-      MainLayout.MinValue = cutCandles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
+      DrawingViewModel.ActualCandles = candles;
+
+      var unixDiff = candles[1].UnixTime - candles[0].UnixTime;
+
+      MainLayout.MaxValue = candles.Max(x => x.High.Value);
+      MainLayout.MinValue = candles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
       DrawingViewModel.MaxValue = MainLayout.MaxValue;
       DrawingViewModel.MinValue = MainLayout.MinValue;
+      DrawingViewModel.MaxUnix = candles.Max(x => x.UnixTime) + (unixDiff * 20);
+      DrawingViewModel.MinUnix = DrawingViewModel.MaxUnix - (unixDiff * 100);
 
       DrawingViewModel.LockChart = true;
       DrawingViewModel.ShowATH = true;
@@ -151,8 +154,6 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-
-
 
     public override void Start()
     {

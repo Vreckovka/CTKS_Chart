@@ -553,7 +553,6 @@ namespace CTKS_Chart.ViewModels
     #region RenderOverlay
 
     private List<CtksIntersection> last = null;
-    private decimal? lastAthPrice = null;
     public long unixDiff;
     private Candle lastLockedCandle;
 
@@ -566,6 +565,16 @@ namespace CTKS_Chart.ViewModels
 
       double imageHeight = 1000;
       double imageWidth = 1000;
+
+      if(unixDiff == 0 && ActualCandles.Count > 1)
+      {
+        unixDiff = ActualCandles[1].UnixTime - ActualCandles[0].UnixTime;
+      }
+
+      if (lastLockedCandle == null && ActualCandles.Count > 0)
+      {
+        lastLockedCandle = ActualCandles.Last();
+      }
 
       using (DrawingContext dc = dGroup.Open())
       {
@@ -675,8 +684,8 @@ namespace CTKS_Chart.ViewModels
 
           if (ShowATH)
           {
-            if (lastAthPrice < maxCanvasValue && lastAthPrice > minCanvasValue)
-              DrawPriceToATH(dc, Layout, lastAthPrice.Value, imageHeight, imageWidth);
+            if (athPrice < maxCanvasValue && athPrice > minCanvasValue)
+              DrawPriceToATH(dc, Layout, athPrice.Value, imageHeight, imageWidth);
           }
 
 

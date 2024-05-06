@@ -596,6 +596,9 @@ namespace CTKS_Chart.ViewModels
 
       stopwatch.Start();
 
+  
+      ForexChart_Loaded();
+
       if (!IsSimulation)
       {
         Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
@@ -618,12 +621,8 @@ namespace CTKS_Chart.ViewModels
             File.WriteAllText(Path.Combine(Settings.DataPath, "asset.json"), json);
           }
         });
-      };
 
-      ForexChart_Loaded();
-
-
-      LayoutIntervals.OnActualItemChanged.Skip(1).Subscribe(x =>
+        LayoutIntervals.OnActualItemChanged.Skip(1).Subscribe(x =>
       {
         if (x != null)
         {
@@ -631,7 +630,8 @@ namespace CTKS_Chart.ViewModels
         }
       });
 
-      await ChangeKlineInterval();
+        await ChangeKlineInterval();
+      }
     }
 
     #endregion
@@ -809,7 +809,18 @@ namespace CTKS_Chart.ViewModels
             continue;
           }
 
-          if (TradingViewHelper.IsOutDated(secondaryLayout.TimeFrame, secondaryLayout.AllCandles))
+          var isOutDated = false;
+
+          if(IsSimulation)
+          {
+            isOutDated = actual.OpenTime > TradingViewHelper.GetNextTime(lastCandle.OpenTime, secondaryLayout.TimeFrame);
+          }
+          else
+          {
+            isOutDated = TradingViewHelper.IsOutDated(secondaryLayout.TimeFrame, secondaryLayout.AllCandles);
+          }
+
+          if (isOutDated)
           {
             var fileCheck = true;
 
