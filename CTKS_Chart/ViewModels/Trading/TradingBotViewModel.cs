@@ -1204,7 +1204,7 @@ namespace CTKS_Chart.ViewModels
 
     #region FetchAdditionalCandles
 
-    int maxCandlesToFetch = 5000;
+    int maxCandlesToFetch = 15000;
     private async Task FetchAdditionalCandles()
     {
       var startDate = DateTimeHelper.UnixTimeStampToUtcDateTime(DrawingViewModel.MinUnix);
