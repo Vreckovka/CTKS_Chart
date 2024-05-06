@@ -622,9 +622,9 @@ namespace CTKS_Chart.ViewModels
           }
         });
 
-        LayoutIntervals.OnActualItemChanged.Skip(1).Subscribe(x =>
+        LayoutIntervals.OnActualItemChanged.Subscribe(x =>
       {
-        if (x != null)
+        if (x != null && KlineInterval != x.Model.Interval)
         {
           KlineInterval = x.Model.Interval;
         }
@@ -1207,7 +1207,10 @@ namespace CTKS_Chart.ViewModels
           var savedLayout = LayoutIntervals.ViewModels.SingleOrDefault(x => x.Model.Interval == settings.LayoutInterval);
 
           if (savedLayout != null)
+          {
             savedLayout.IsSelected = true;
+            klineInterval = savedLayout.Model.Interval;
+          }
 
           if (settings.ColorSettings != null)
           {

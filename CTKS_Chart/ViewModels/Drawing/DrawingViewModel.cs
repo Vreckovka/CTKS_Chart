@@ -555,6 +555,7 @@ namespace CTKS_Chart.ViewModels
     private List<CtksIntersection> last = null;
     public long unixDiff;
     private Candle lastLockedCandle;
+    private decimal? lastAth;
 
     public new void RenderOverlay(decimal? athPrice = null)
     {
@@ -574,6 +575,11 @@ namespace CTKS_Chart.ViewModels
       if (lastLockedCandle == null && ActualCandles.Count > 0)
       {
         lastLockedCandle = ActualCandles.Last();
+      }
+
+      if(athPrice != null)
+      {
+        lastAth = athPrice;
       }
 
       using (DrawingContext dc = dGroup.Open())
@@ -607,6 +613,14 @@ namespace CTKS_Chart.ViewModels
 
             maxValue = maxValue * (1 - diff);
             minValue = minValue * (1 - diff);
+
+            if (close < minValue)
+            {
+              var di = maxValue - minValue;
+
+              minValue = close - (di * 0.3m);
+              maxValue = minValue + di;
+            }
           }
           else if (close > maxView)
           {
@@ -614,6 +628,14 @@ namespace CTKS_Chart.ViewModels
 
             maxValue = maxValue * (1 + diff);
             minValue = minValue * (1 + diff);
+
+            if(close > maxValue)
+            {
+              var di = maxValue - minValue;
+
+              maxValue = close + (di * 0.3m);
+              minValue = maxValue - diff;
+            }
           }
 
 
@@ -625,6 +647,15 @@ namespace CTKS_Chart.ViewModels
           {
             maxUnix += unixDiff;
             minUnix += unixDiff;
+
+            var lastCandleUnix = actualCandles.Last().UnixTime;
+
+            if (lastCandleUnix > maxUnix)
+            {
+              var diff = maxUnix - minUnix;
+              maxUnix = lastCandleUnix + (long)(diff * 0.3);
+              minUnix = maxUnix - diff;
+            }
 
             RaisePropertyChanged(nameof(MaxUnix));
             RaisePropertyChanged(nameof(MinUnix));
@@ -684,8 +715,8 @@ namespace CTKS_Chart.ViewModels
 
           if (ShowATH)
           {
-            if (athPrice < maxCanvasValue && athPrice > minCanvasValue)
-              DrawPriceToATH(dc, Layout, athPrice.Value, imageHeight, imageWidth);
+            if (lastAth < maxCanvasValue && lastAth > minCanvasValue)
+              DrawPriceToATH(dc, Layout, lastAth.Value, imageHeight, imageWidth);
           }
 
 
