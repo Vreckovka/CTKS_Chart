@@ -282,15 +282,16 @@ namespace CTKS_Chart.Views.Controls
 
     private void Border_MouseWheel(object sender, MouseWheelEventArgs e)
     {
-      var delta = (decimal)0.005;
+      var delta = (decimal)0.025;
+      var diff = (MaxXValue - MinXValue) * delta;
 
       if (e.Delta > 0)
       {
-        MinXValue *= (1 + delta);
+        MinXValue += diff;
       }
       else
       {
-        MinXValue *= (1 - delta);
+        MinXValue -= diff;
       }
     }
 

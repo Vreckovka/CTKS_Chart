@@ -757,9 +757,13 @@ namespace CTKS_Chart.ViewModels
       double maxDrawnPoint = 0;
       var drawnCandles = new List<ChartCandle>();
 
-      var padding = (long)(unixDiff * 0.9);
+      var padding = unixDiff;
 
-      if (unixDiff > 200000)
+      if(unixDiff > 120000)
+      {
+        padding = (long)(unixDiff * 0.91);
+      }
+      else if (unixDiff > 200000)
       {
         padding = (long)(unixDiff * 0.85);
       }
