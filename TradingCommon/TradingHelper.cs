@@ -144,7 +144,7 @@ namespace CTKS_Chart.Trading
 
     #region IsOutDated
 
-    public static bool IsOutDated(TimeFrame timeFrame, List<Candle> innerCandles)
+    public static bool IsOutDated(TimeFrame timeFrame, IList<Candle> innerCandles)
     {
       var last = innerCandles.Last();
       if (DateTime.Now > TradingViewHelper.GetNextTime(last.OpenTime, timeFrame))

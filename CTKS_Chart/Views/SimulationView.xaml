@@ -44,7 +44,7 @@
         Margin="5,0"
         VerticalAlignment="Center"
         Foreground="#45ffffff"
-        Text="{Binding Model.RunningTime, StringFormat={}{0:mm\\:ss}}" />
+        Text="{Binding SelectedBot.RunningTime, StringFormat={}{0:mm\\:ss}}" />
     </StackPanel>
 
 

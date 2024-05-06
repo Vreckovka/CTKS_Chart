@@ -3,14 +3,17 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using Binance.Net.Enums;
 using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using LiveCharts.Wpf.Charts.Base;
+using Microsoft.Expression.Interactivity.Core;
 using VCore.Standard;
 using VCore.Standard.Helpers;
 using VCore.WPF.ItemsCollections;
@@ -218,6 +221,7 @@ namespace CTKS_Chart.ViewModels
 
     private bool lockChart;
     private decimal actualPriceChartViewDiff;
+    IDisposable disposable;
 
     public bool LockChart
     {
@@ -240,6 +244,13 @@ namespace CTKS_Chart.ViewModels
 
           RenderOverlay();
           RaisePropertyChanged();
+        }
+
+        disposable?.Dispose();
+
+        if (!value)
+        {
+          disposable = Observable.Timer(TimeSpan.FromMinutes(1)).ObserveOnDispatcher().Subscribe((x) => LockChart = true);
         }
       }
     }
@@ -404,6 +415,29 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
+    #endregion
+
+    #region ResetChart
+
+    protected ActionCommand resetChart;
+
+    public ICommand ResetChart
+    {
+      get
+      {
+        return resetChart ??= new ActionCommand(OnRestChart);
+      }
+    }
+
+
+    public void OnRestChart()
+    {
+      MaxValue = ActualCandles.Max(x => x.High.Value);
+      MinValue = ActualCandles.Min(x => x.High.Value);
+      MaxUnix = ActualCandles.Max(x => x.UnixTime);
+      MinUnix = ActualCandles.Min(x => x.UnixTime);
+    }
 
     #endregion
 

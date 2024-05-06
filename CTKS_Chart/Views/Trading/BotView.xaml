@@ -76,6 +76,14 @@
           IsChecked="{Binding LockChart}">
           Lock chart
         </CheckBox>
+
+        <Button
+          Margin="155,0"
+          HorizontalAlignment="Left"
+          VerticalAlignment="Bottom"
+          Command="{Binding ResetChart}">
+          Rest chart
+        </Button>
       </Grid>
 
 

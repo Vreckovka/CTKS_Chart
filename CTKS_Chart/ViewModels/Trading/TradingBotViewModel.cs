@@ -805,7 +805,7 @@ namespace CTKS_Chart.ViewModels
             continue;
           }
 
-          if (actual.OpenTime > TradingViewHelper.GetNextTime(lastCandle.OpenTime, secondaryLayout.TimeFrame))
+          if (TradingViewHelper.IsOutDated(secondaryLayout.TimeFrame, secondaryLayout.AllCandles))
           {
             var fileCheck = true;
 
