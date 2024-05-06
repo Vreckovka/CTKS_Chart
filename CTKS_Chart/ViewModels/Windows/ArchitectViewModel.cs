@@ -78,11 +78,11 @@ namespace CTKS_Chart.ViewModels
 
       drawingViewModel = new DrawingViewModel(
         new TradingBot(
-        new Asset() 
-        { 
+        new Asset()
+        {
           NativeRound = asset.NativeRound,
           PriceRound = asset.PriceRound
-         }, null), new CtksLayout());
+        }, null), new CtksLayout());
 
       drawingViewModel.Initialize();
       drawingViewModel.ColorScheme = colorSchemeViewModel;
@@ -94,7 +94,7 @@ namespace CTKS_Chart.ViewModels
         VSynchronizationContext.PostOnUIThread(RenderOverlay);
       });
 
-     
+
     }
 
 
@@ -264,25 +264,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region ActualCandles
-
-    private List<Candle> actualCandles = new List<Candle>();
-
-    public List<Candle> ActualCandles
-    {
-      get { return actualCandles; }
-      set
-      {
-        if (value != actualCandles)
-        {
-          actualCandles = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
     #region ColorScheme
 
     private ColorSchemeViewModel colorScheme;
@@ -346,7 +327,7 @@ namespace CTKS_Chart.ViewModels
 
     #region OnLayoutChanged
 
-   
+
     private void OnLayoutChanged()
     {
       var ctksLines = SelectedLayout.Ctks.ctksLines.ToList();
@@ -484,6 +465,11 @@ namespace CTKS_Chart.ViewModels
       double canvasWidth)
     {
       var list = new List<CtksLine>();
+      var lastCandle = SelectedLayout.Ctks.Candles.LastOrDefault();
+      double actualLeft = 0.0;
+
+      if (lastCandle != null)
+        actualLeft = TradingHelper.GetCanvasValueLinear(canvasWidth, lastCandle.UnixTime, maxUnix, minUnix);
 
       foreach (var vm in Lines.Where(x => x.IsVisible))
       {
@@ -517,7 +503,7 @@ namespace CTKS_Chart.ViewModels
           y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
         }
 
-       
+
         if (line.FirstPoint.Price > MaxValue || line.SecondPoint.Price > MaxValue)
         {
           continue;
@@ -538,8 +524,31 @@ namespace CTKS_Chart.ViewModels
         drawingContext.DrawLine(pen, ctksLine.StartPoint, ctksLine.EndPoint);
         drawingContext.DrawLine(pen, ctksLine.EndPoint, finalPoint);
 
+
+
+        var firstPoint = new Point(
+            TradingHelper.GetCanvasValueLinear(canvasWidth, line.FirstPoint.UnixTime, maxUnix, minUnix),
+            TradingHelper.GetCanvasValue(canvasHeight, line.FirstPoint.Price, maxValue, minValue));
+
+        var secondPoint = new Point(
+          TradingHelper.GetCanvasValueLinear(canvasWidth, line.SecondPoint.UnixTime, maxUnix, minUnix),
+          TradingHelper.GetCanvasValue(canvasHeight, line.SecondPoint.Price, maxValue, minValue));
+
+        var intersectionPoint = TradingHelper.GetPointOnLine(firstPoint.X, firstPoint.Y, secondPoint.X, secondPoint.Y, actualLeft);
+
+        if (intersectionPoint < CanvasHeight && intersectionPoint > 0 && actualLeft < canvasWidth && actualLeft > 0)
+        {
+          drawingContext.DrawEllipse(Brushes.Red, pen, new Point(actualLeft, canvasHeight - intersectionPoint), 2, 2);
+        }
+
         list.Add(ctksLine);
       }
+
+      var actualPen = new Pen(Brushes.White, 1);
+      actualPen.DashStyle = new DashStyle(new List<double>() { 15 }, 5);
+
+      if (actualLeft < canvasWidth && actualLeft > 0)
+        drawingContext.DrawLine(actualPen, new Point(actualLeft, 0), new Point(actualLeft, canvasHeight));
 
       return list;
     }
@@ -562,10 +571,10 @@ namespace CTKS_Chart.ViewModels
       var startPoint = new Point(x1, y1);
       var endPoint = new Point(x2, y2);
 
-      if (MinUnix < ctksLine.FirstPoint.UnixTime && 
-          ctksLine.FirstPoint.UnixTime < MaxUnix && 
-          MinUnix < ctksLine.SecondPoint.UnixTime && 
-          ctksLine.SecondPoint.UnixTime < MaxUnix) 
+      if (MinUnix < ctksLine.FirstPoint.UnixTime &&
+          ctksLine.FirstPoint.UnixTime < MaxUnix &&
+          MinUnix < ctksLine.SecondPoint.UnixTime &&
+          ctksLine.SecondPoint.UnixTime < MaxUnix)
       {
         return new CtksLine()
         {

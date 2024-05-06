@@ -23,6 +23,8 @@ namespace CTKS_Chart.ViewModels
 {
   public class DrawingViewModel : ViewModel, IDrawingViewModel
   {
+    DashStyle pricesDashStyle = new DashStyle(new List<double>() { 2 }, 5);
+
     public DrawingViewModel(TradingBot tradingBot, Layout layout)
     {
       TradingBot = tradingBot;
@@ -567,7 +569,7 @@ namespace CTKS_Chart.ViewModels
       double imageHeight = 1000;
       double imageWidth = 1000;
 
-      if(unixDiff == 0 && ActualCandles.Count > 1)
+      if (unixDiff == 0 && ActualCandles.Count > 1)
       {
         unixDiff = ActualCandles[1].UnixTime - ActualCandles[0].UnixTime;
       }
@@ -577,7 +579,7 @@ namespace CTKS_Chart.ViewModels
         lastLockedCandle = ActualCandles.Last();
       }
 
-      if(athPrice != null)
+      if (athPrice != null)
       {
         lastAth = athPrice;
       }
@@ -614,13 +616,13 @@ namespace CTKS_Chart.ViewModels
             maxValue = maxValue * (1 - diff);
             minValue = minValue * (1 - diff);
 
-            if (close < minValue)
-            {
-              var di = maxValue - minValue;
+            //if (close < minValue)
+            //{
+            //  var di = maxValue - minValue;
 
-              minValue = close - (di * 0.3m);
-              maxValue = minValue + di;
-            }
+            //  minValue = close - (di * 0.3m);
+            //  maxValue = minValue + di;
+            //}
           }
           else if (close > maxView)
           {
@@ -629,39 +631,38 @@ namespace CTKS_Chart.ViewModels
             maxValue = maxValue * (1 + diff);
             minValue = minValue * (1 + diff);
 
-            if(close > maxValue)
-            {
-              var di = maxValue - minValue;
+            //if (close > maxValue)
+            //{
+            //  var di = maxValue - minValue;
 
-              maxValue = close + (di * 0.3m);
-              minValue = maxValue - diff;
-            }
+            //  maxValue = close + (di * 0.3m);
+            //  minValue = maxValue - diff;
+            //}
           }
 
 
           RaisePropertyChanged(nameof(MaxValue));
           RaisePropertyChanged(nameof(MinValue));
+        }
 
+        if (lastLockedCandle?.OpenTime != last?.OpenTime && LockChart)
+        {
+          maxUnix += unixDiff;
+          minUnix += unixDiff;
 
-          if (lastLockedCandle?.OpenTime != last?.OpenTime)
+          var lastCandleUnix = actualCandles.Last().UnixTime;
+
+          if (lastCandleUnix > maxUnix)
           {
-            maxUnix += unixDiff;
-            minUnix += unixDiff;
-
-            var lastCandleUnix = actualCandles.Last().UnixTime;
-
-            if (lastCandleUnix > maxUnix)
-            {
-              var diff = maxUnix - minUnix;
-              maxUnix = lastCandleUnix + (long)(diff * 0.3);
-              minUnix = maxUnix - diff;
-            }
-
-            RaisePropertyChanged(nameof(MaxUnix));
-            RaisePropertyChanged(nameof(MinUnix));
+            var diff = maxUnix - minUnix;
+            maxUnix = lastCandleUnix + (long)(diff * 0.3);
+            minUnix = maxUnix - diff;
           }
 
+          RaisePropertyChanged(nameof(MaxUnix));
+          RaisePropertyChanged(nameof(MinUnix));
         }
+
 
         lastLockedCandle = last;
 
@@ -798,17 +799,15 @@ namespace CTKS_Chart.ViewModels
 
       if (candles.Any() && width > 0)
       {
-        foreach (var point in candles)
+        foreach (var candle in candles)
         {
-          var close = TradingHelper.GetCanvasValue(canvasHeight, point.Close.Value, MaxValue, MinValue);
-          var open = TradingHelper.GetCanvasValue(canvasHeight, point.Open.Value, MaxValue, MinValue);
+          var close = TradingHelper.GetCanvasValue(canvasHeight, candle.Close.Value, MaxValue, MinValue);
+          var open = TradingHelper.GetCanvasValue(canvasHeight, candle.Open.Value, MaxValue, MinValue);
 
-          var high = TradingHelper.GetCanvasValue(canvasHeight, point.High.Value, MaxValue, MinValue);
-          var low = TradingHelper.GetCanvasValue(canvasHeight, point.Low.Value, MaxValue, MinValue);
+          var high = TradingHelper.GetCanvasValue(canvasHeight, candle.High.Value, MaxValue, MinValue);
+          var low = TradingHelper.GetCanvasValue(canvasHeight, candle.Low.Value, MaxValue, MinValue);
 
-          var green = point.Open <= point.Close;
-
-          var selectedBrush = green ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
+          var selectedBrush = candle.IsGreen ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
 
           Pen pen = new Pen(selectedBrush, 1);
           Pen wickPen = new Pen(selectedBrush, 1);
@@ -825,7 +824,7 @@ namespace CTKS_Chart.ViewModels
 
           double candleHeight = 0;
 
-          if (green)
+          if (candle.IsGreen)
           {
             if (open > 0)
               candleHeight = close - open;
@@ -848,7 +847,7 @@ namespace CTKS_Chart.ViewModels
           }
 
 
-          var x = TradingHelper.GetCanvasValueLinear(canvasWidth, point.UnixTime, MaxUnix, MinUnix);
+          var x = TradingHelper.GetCanvasValueLinear(canvasWidth, candle.UnixTime, MaxUnix, MinUnix);
 
           newCandle.X = x - (width / 2);
 
@@ -881,7 +880,7 @@ namespace CTKS_Chart.ViewModels
             }
           }
 
-          if (green)
+          if (candle.IsGreen)
           {
             newCandle.Y = canvasHeight - close;
           }
@@ -902,8 +901,8 @@ namespace CTKS_Chart.ViewModels
           }
 
 
-          var wickTop = green ? close : open;
-          var wickBottom = green ? open : close;
+          var wickTop = candle.IsGreen ? close : open;
+          var wickBottom = candle.IsGreen ? open : close;
 
 
           var topY = canvasHeight - high;
@@ -978,7 +977,7 @@ namespace CTKS_Chart.ViewModels
 
           drawnCandles.Add(new ChartCandle()
           {
-            Candle = point,
+            Candle = candle,
             Body = newCandle,
             TopWick = topWick,
             BottomWick = bottomWick
@@ -1164,7 +1163,6 @@ namespace CTKS_Chart.ViewModels
 
         var brush = lastCandle.IsGreen ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
         var pen = new Pen(brush, 1);
-        pen.DashStyle = DashStyles.Dash;
 
         var text = DrawingHelper.GetFormattedText(price.Value.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 20);
         drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 25, lineY - text.Height - 5));
@@ -1186,7 +1184,7 @@ namespace CTKS_Chart.ViewModels
 
         var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AVERAGE_BUY].Brush);
         var pen = new Pen(brush, 1.5);
-        pen.DashStyle = DashStyles.Dash;
+        pen.DashStyle = pricesDashStyle;
 
         var text = DrawingHelper.GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
         drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));
@@ -1209,7 +1207,7 @@ namespace CTKS_Chart.ViewModels
 
         var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.ATH].Brush);
         var pen = new Pen(brush, 1.5);
-        pen.DashStyle = DashStyles.Dash;
+        pen.DashStyle = pricesDashStyle;
 
         var text = DrawingHelper.GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
 
@@ -1234,7 +1232,7 @@ namespace CTKS_Chart.ViewModels
 
         var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.MAX_BUY_PRICE].Brush);
         var pen = new Pen(brush, 1.5);
-        pen.DashStyle = DashStyles.Dash;
+        pen.DashStyle = pricesDashStyle;
 
         var text = DrawingHelper.GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
         drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));
@@ -1257,7 +1255,7 @@ namespace CTKS_Chart.ViewModels
 
         var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.MIN_SELL_PRICE].Brush);
         var pen = new Pen(brush, 1.5);
-        pen.DashStyle = DashStyles.Dash;
+        pen.DashStyle = pricesDashStyle;
 
         var text = DrawingHelper.GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
         drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));

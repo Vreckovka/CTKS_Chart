@@ -19,7 +19,7 @@ namespace CTKS_Chart.Trading
 
     public bool IsGreen
     {
-      get { return Close > Open; }
+      get { return Close >= Open; }
     }
 
     public long UnixTime { get; set; }
