@@ -35,13 +35,16 @@ namespace CTKS_Chart.Views.Controls
       DependencyProperty.Register(
         nameof(ChartContent),
         typeof(FrameworkElement),
-        typeof(Chart), new PropertyMetadata(null, new PropertyChangedCallback((obj,y) => { 
-        
-        if(obj is Chart chart)
+        typeof(Chart), new PropertyMetadata(null, new PropertyChangedCallback((obj, y) =>
+        {
+
+          if (obj is Chart chart && y.NewValue is FrameworkElement frameworkElement)
           {
             chart.MouseMove += chart.Grid_MouseMove;
+            chart.MouseLeave += chart.Chart_MouseLeave;
           }
         })));
+
 
     #endregion
 
@@ -141,6 +144,23 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
+    #region AssetPriceRound
+
+    public int AssetPriceRound
+    {
+      get { return (int)GetValue(AssetPriceRoundProperty); }
+      set { SetValue(AssetPriceRoundProperty, value); }
+    }
+
+    public static readonly DependencyProperty AssetPriceRoundProperty =
+      DependencyProperty.Register(
+        nameof(AssetPriceRound),
+        typeof(int),
+        typeof(Chart), new PropertyMetadata(5));
+
+
+    #endregion
+
     #region ActualMousePosition
 
     private Point actualMousePosition;
@@ -158,10 +178,29 @@ namespace CTKS_Chart.Views.Controls
           ActualMousePositionX = DateTimeHelper.UnixTimeStampToUtcDateTime((long)TradingHelper.GetValueFromCanvasLinear(ChartContent.ActualWidth, actualMousePosition.X, (long)MaxXValue, (long)MinXValue));
           ActualMousePositionY = TradingHelper.GetValueFromCanvas(ChartContent.ActualHeight, ChartContent.ActualHeight - actualMousePosition.Y, MaxYValue, MinYValue);
 
-          if(AssetPriceRound > 0)
+          if (AssetPriceRound > 0)
           {
             ActualMousePositionY = Math.Round(actualMousePositionY, AssetPriceRound);
           }
+        }
+      }
+    }
+
+    #endregion
+
+    #region ActualOverlayMousePosition
+
+    private Point actualOverlayMousePosition;
+
+    public Point ActualOverlayMousePosition
+    {
+      get { return actualOverlayMousePosition; }
+      set
+      {
+        if (value != actualOverlayMousePosition)
+        {
+          actualOverlayMousePosition = value;
+          OnPropertyChanged();
         }
       }
     }
@@ -180,25 +219,6 @@ namespace CTKS_Chart.Views.Controls
         if (value != actualMousePositionY)
         {
           actualMousePositionY = value;
-          OnPropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region AssetPriceRound
-
-    private int assetPriceRound;
-
-    public int AssetPriceRound
-    {
-      get { return assetPriceRound; }
-      set
-      {
-        if (value != assetPriceRound)
-        {
-          assetPriceRound = value;
           OnPropertyChanged();
         }
       }
@@ -225,16 +245,41 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
+    public Canvas Overlay { get; } = new Canvas() { Background = Brushes.Transparent };
 
     public Chart()
     {
       InitializeComponent();
+
+      Overlay.MouseLeave += Overlay_MouseLeave;
+      Overlay.MouseEnter += Overlay_MouseEnter;
     }
 
+    private void Overlay_MouseEnter(object sender, MouseEventArgs e)
+    {
+      renderOverlay = true;
+    }
+
+    bool renderOverlay = false;
+    private void Overlay_MouseLeave(object sender, MouseEventArgs e)
+    {
+      Overlay.Children.Clear();
+
+      renderOverlay = false;
+    }
+
+    private void Chart_MouseLeave(object sender, MouseEventArgs e)
+    {
+      Overlay.Children.Clear();
+    }
+
+
+    #region Grid_MouseMove
 
     double? startY;
     double? startX;
 
+    bool wasPressed = false;
     private void Grid_MouseMove(object sender, MouseEventArgs e)
     {
       base.OnMouseMove(e);
@@ -242,9 +287,23 @@ namespace CTKS_Chart.Views.Controls
       if (sender is FrameworkElement fr)
       {
         ActualMousePosition = e.GetPosition(ChartContent);
+        ActualOverlayMousePosition = e.GetPosition(Overlay);
+
+        if(wasPressed)
+        {
+          Mouse.OverrideCursor = null;
+          wasPressed = false;
+        }
+      
+
+        if (renderOverlay)
+          DrawOveralay();
 
         if (e.LeftButton == MouseButtonState.Pressed)
         {
+          Mouse.OverrideCursor = Cursors.Hand;
+          wasPressed = true;
+
           if (startY != null)
           {
             var startPrice = TradingHelper.GetValueFromCanvas(ChartHeight, startY.Value, MaxYValue, MinYValue);
@@ -280,6 +339,80 @@ namespace CTKS_Chart.Views.Controls
 
     }
 
+    #endregion
+
+    #region DrawOverlay
+
+    private void DrawOveralay()
+    {
+      Overlay.Children.Clear();
+
+      var gray = DrawingHelper.GetBrushFromHex("#45ffffff");
+
+      var verticalCrosshair = new Line()
+      {
+        X1 = ActualOverlayMousePosition.X,
+        X2 = ActualOverlayMousePosition.X,
+        Y1 = 0,
+        Y2 = Overlay.ActualHeight,
+        Stroke = gray,
+        StrokeThickness = 1,
+        StrokeDashArray = new DoubleCollection() { 5 }
+      };
+
+      var horizontalCrosshair = new Line()
+      {
+        X1 = 0,
+        X2 = Overlay.ActualWidth,
+        Y1 = ActualOverlayMousePosition.Y,
+        Y2 = ActualOverlayMousePosition.Y,
+        Stroke = gray,
+        StrokeThickness = 1,
+        StrokeDashArray = new DoubleCollection() { 5 }
+      };
+
+      var text = Math.Round(ActualMousePositionY, AssetPriceRound).ToString();
+      var fontSize = 11;
+      var brush = Brushes.White;
+
+      var border = new Border() { Background = DrawingHelper.GetBrushFromHex("#3b3d40"), 
+        Padding = new Thickness(2,2,2,2), 
+        CornerRadius = new CornerRadius(2,2,2,2) };
+
+
+      var price = new TextBlock() { Text = text, FontSize = fontSize, Foreground = brush, FontWeight = FontWeights.Bold };
+      var formattedText = DrawingHelper.GetFormattedText(text, brush, fontSize);
+
+      border.Child = price;
+      Overlay.Children.Add(border);
+      Canvas.SetLeft(border, Overlay.ActualWidth - (formattedText.Width + 2 + 2 + 4));
+      Canvas.SetTop(border, ActualOverlayMousePosition.Y - ((formattedText.Height / 2) + 2));
+
+
+      var formattedTextDate = DrawingHelper.GetFormattedText(ActualMousePositionX.ToString("dd.MM.yyy HH:mm:ss"), brush, fontSize);
+      var date = new TextBlock() { Text = ActualMousePositionX.ToString("dd.MM.yyy HH:mm:ss"), FontSize = fontSize, Foreground = brush, FontWeight = FontWeights.Bold };
+      var borderDate = new Border()
+      {
+        Background = border.Background,
+        Padding = border.Padding,
+        CornerRadius = border.CornerRadius
+      };
+
+      borderDate.Child = date;
+
+      Overlay.Children.Add(borderDate);
+      Canvas.SetLeft(borderDate, ActualOverlayMousePosition.X - (formattedTextDate.Width / 2) );
+      Canvas.SetTop(borderDate, Overlay.ActualHeight - 20);
+
+
+      Overlay.Children.Add(verticalCrosshair);
+      Overlay.Children.Add(horizontalCrosshair);
+    }
+
+    #endregion
+
+    #region Border_MouseWheel
+
     private void Border_MouseWheel(object sender, MouseWheelEventArgs e)
     {
       var delta = (decimal)0.025;
@@ -294,6 +427,8 @@ namespace CTKS_Chart.Views.Controls
         MinXValue -= diff;
       }
     }
+
+    #endregion
 
     public event PropertyChangedEventHandler PropertyChanged;
 

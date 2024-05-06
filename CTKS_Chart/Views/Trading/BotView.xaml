@@ -40,8 +40,11 @@
           <ColumnDefinition Width="auto" />
         </Grid.ColumnDefinitions>
 
+
         <controls1:Chart
+          x:Name="Chart"
           Grid.Column="0"
+          AssetPriceRound="{Binding TradingBot.Asset.PriceRound}"
           ChartContent="{Binding ChartImage}"
           ChartHeight="{Binding CanvasHeight}"
           ChartWidth="{Binding CanvasWidth}"
@@ -52,17 +55,20 @@
 
         <controls1:Ruler
           Grid.Column="0"
-          Width="50"
+          MinWidth="10"
           HorizontalAlignment="Right"
+          AssetPriceRound="{Binding TradingBot.Asset.PriceRound}"
           MaxValue="{Binding MaxValue, Mode=TwoWay}"
           MinValue="{Binding MinValue, Mode=TwoWay}"
-          Size="{Binding CanvasHeight}" />
+          Size="{Binding CanvasHeight}"
+          ValuesToRender="{Binding RenderedIntersections}" />
 
         <controls1:Ruler
           Grid.Row="1"
           Grid.Column="0"
           Grid.ColumnSpan="2"
-          Height="50"
+          Height="40"
+          Margin="0"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Bottom"
           MaxValue="{Binding MaxUnix, Mode=TwoWay}"

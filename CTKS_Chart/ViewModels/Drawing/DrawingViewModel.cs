@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -21,6 +22,16 @@ using PositionSide = CTKS_Chart.Strategy.PositionSide;
 
 namespace CTKS_Chart.ViewModels
 {
+  public class RenderedIntesection : ViewModel<CtksIntersection>
+  {
+    public RenderedIntesection(CtksIntersection model) : base(model)
+    {
+    }
+
+    public Brush SelectedBrush { get; set; }
+  }
+
+
   public class DrawingViewModel : ViewModel, IDrawingViewModel
   {
     DashStyle pricesDashStyle = new DashStyle(new List<double>() { 2 }, 5);
@@ -35,6 +46,8 @@ namespace CTKS_Chart.ViewModels
 
     public Layout Layout { get; }
     public TradingBot TradingBot { get; }
+
+    public ObservableCollection<RenderedIntesection> RenderedIntersections { get; } = new ObservableCollection<RenderedIntesection>();
 
     #region Chart
 
@@ -157,7 +170,7 @@ namespace CTKS_Chart.ViewModels
 
     #region ShowLabels
 
-    private bool showLabels = true;
+    private bool showLabels;
 
     public bool ShowLabels
     {
@@ -582,6 +595,7 @@ namespace CTKS_Chart.ViewModels
     {
       Pen shapeOutlinePen = new Pen(Brushes.Transparent, 1);
       shapeOutlinePen.Freeze();
+      RenderedIntersections.Clear();
 
       DrawingGroup dGroup = new DrawingGroup();
 
@@ -694,7 +708,7 @@ namespace CTKS_Chart.ViewModels
           RaisePropertyChanged(nameof(MinUnix));
         }
 
-      
+
 
         var chart = DrawChart(dc, candlesToRender, imageHeight, imageWidth);
         double desiredCanvasHeight = imageHeight;
@@ -708,6 +722,9 @@ namespace CTKS_Chart.ViewModels
 
         if (chartCandles.Any())
         {
+          var removed = RenderedIntersections.Where(x => !TradingBot.Strategy.Intersections.Any(y => y == x.Model));
+          removed.ForEach(x => RenderedIntersections.Remove(x));
+
           RenderIntersections(dc, Layout, TradingBot.Strategy.Intersections,
                               TradingBot.Strategy.AllOpenedPositions.ToList(),
                               chartCandles,
@@ -1118,7 +1135,10 @@ namespace CTKS_Chart.ViewModels
           pen.DashStyle = DashStyles.Dash;
           pen.Thickness = DrawingHelper.GetPositionThickness(frame);
 
-          drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth * 0.91, lineY));
+          drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth * 0.92, lineY));
+
+          if (RenderedIntersections.SingleOrDefault(x => x.Model == intersection) == null)
+            RenderedIntersections.Add(new RenderedIntesection(intersection) { SelectedBrush = selectedBrush });
         }
       }
     }

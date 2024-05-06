@@ -12,17 +12,7 @@
     <Grid DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:Chart}}" MouseWheel="Border_MouseWheel">
       <ContentControl Content="{Binding ChartContent}" />
 
-      <Grid>
-        <TextBlock
-          Margin="5,0"
-          HorizontalAlignment="Right"
-          VerticalAlignment="Bottom"
-          Foreground="#45ffffff">
-          <Run DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:Chart}}" Text="{Binding ActualMousePositionY}" />
-          <Run DataContext="{Binding RelativeSource={RelativeSource AncestorType=local:Chart}}" Text="{Binding ActualMousePositionX, StringFormat={}{0:dd.MM.yyy HH:mm:ss}}" />
-        </TextBlock>
-      </Grid>
+      <ContentControl Panel.ZIndex="100" Content="{Binding Overlay}" />
     </Grid>
-
   </Border>
 </UserControl>

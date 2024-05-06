@@ -9,10 +9,14 @@
   d:DesignWidth="800"
   mc:Ignorable="d">
   <Border
-    Padding="5"
     Background="#08ffffff"
     MouseMove="Grid_MouseMove"
     MouseWheel="Border_MouseWheel">
+    <Grid>
+      <ContentPresenter Content="{Binding Overlay, RelativeSource={RelativeSource AncestorType=local:Ruler}}" />
+    </Grid>
+
+
     <Border.Style>
       <Style TargetType="Border">
         <Setter Property="Cursor" Value="SizeWE" />
