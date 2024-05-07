@@ -374,7 +374,7 @@ namespace CTKS_Chart.ViewModels
         var drawnChart = drawingViewModel.DrawChart(dc, candles, CanvasHeight, CanvasWidth);
         var renderedLines = RenderLines(dc, CanvasHeight, CanvasWidth);
 
-        RenderIntersections(dc, SelectedLayout.Ctks.ctksIntersections,
+        RenderIntersections(dc, SelectedLayout.Ctks.Intersections,
           drawnChart.Candles.ToList(),
           CanvasHeight,
           CanvasHeight,

@@ -115,7 +115,7 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.ShowATH = true;
 
       //Intersection precision testing
-      TradingBot.Strategy.EnableManualPositions = false;
+      //TradingBot.Strategy.EnableManualPositions = false;
 
 
       var rangeFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
@@ -205,7 +205,7 @@ namespace CTKS_Chart.ViewModels
 
         disposable?.Dispose();
 
-      }, cts.Token);
+     }, cts.Token);
 
 
     }

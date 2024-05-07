@@ -1571,7 +1571,7 @@ namespace CTKS_Chart.Strategy
       {
         var inter = postion.Intersection;
 
-        var found = ctksIntersections.SingleOrDefault(y => y.IsSame(inter));
+        var found = ctksIntersections.FirstOrDefault(y => y.IsSame(inter));
 
         if (found != null)
         {
@@ -1587,7 +1587,7 @@ namespace CTKS_Chart.Strategy
       foreach (var postion in ActualPositions)
       {
         var inter = postion.Intersection;
-        var found = ctksIntersections.SingleOrDefault(y => y.IsSame(inter));
+        var found = ctksIntersections.FirstOrDefault(y => y.IsSame(inter));
 
         if (found != null)
         {

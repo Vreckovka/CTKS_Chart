@@ -1,10 +1,12 @@
-﻿using System;
+﻿using KMeans;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using VCore.Standard.Helpers;
 
 namespace CTKS_Chart.Trading
 {
@@ -34,7 +36,7 @@ namespace CTKS_Chart.Trading
     }
 
     public List<CtksLine> ctksLines = new List<CtksLine>();
-    public List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
+    public List<CtksIntersection> Intersections { get; private set; } = new List<CtksIntersection>();
 
     public bool IntersectionsVisible { get; set; }
     public IList<Candle> Candles { get; set; } = new List<Candle>();
@@ -183,14 +185,16 @@ namespace CTKS_Chart.Trading
       var highestClose = Candles.Max(x => x.High);
       var lowestClose = Candles.Min(x => x.Low);
 
+      var newCtksIntersections = new List<CtksIntersection>();
+
       foreach (var line in ctksLines)
       {
-        var actualLeft = TradingHelper.GetCanvasValueLinear(canvasWidth, lastCandle.UnixTime, maxUnix, minUnix); 
+        var actualLeft = TradingHelper.GetCanvasValueLinear(canvasWidth, lastCandle.UnixTime, maxUnix, minUnix);
         var actual = TradingHelper.GetPointOnLine(line.StartPoint.X, line.StartPoint.Y, line.EndPoint.X, line.EndPoint.Y, actualLeft);
         var value = Math.Round(TradingHelper.GetValueFromCanvas(canvasHeight, canvasHeight - actual, layout.MaxValue, layout.MinValue), asset.PriceRound);
 
 
-        if (value > lowestClose * (decimal)0.995 && value < highestClose * 100)
+        if (value > lowestClose * (decimal)0.99995 && value < highestClose * 10000)
         {
           var intersection = new CtksIntersection()
           {
@@ -199,9 +203,13 @@ namespace CTKS_Chart.Trading
             Line = line
           };
 
-          ctksIntersections.Add(intersection);
+          newCtksIntersections.Add(intersection);
         }
       }
+
+     Intersections = newCtksIntersections;
+      
+      CreateClusters(newCtksIntersections);
     }
 
     #endregion
@@ -211,7 +219,7 @@ namespace CTKS_Chart.Trading
     public void CrateCtks(IList<Candle> candles)
     {
       Candles = null;
-      ctksIntersections.Clear();
+      Intersections.Clear();
       ctksLines.Clear();
 
       if (candles.Count > 1)
@@ -230,5 +238,30 @@ namespace CTKS_Chart.Trading
     }
 
     #endregion
+
+    private void CreateClusters(IEnumerable<CtksIntersection> intersections)
+    {
+      var division = 5;
+
+      if(intersections.Count() > division * 2)
+      {
+        //Data points
+        List<DataVec> points = intersections.Select(x => new DataVec(new decimal[] { 0, x.Value })).ToList();
+
+        // First argument of the constructor is a reference to data points. Second argument is k (number of clusters)
+        KMeansClustering cl = new KMeansClustering(points.ToArray(), (int)(intersections.Count() / division));
+
+        // Perform clasification and return results
+        Cluster[] clusters = cl.Compute();
+
+        var clusterIntersections = clusters.Select(x => new CtksIntersection() { 
+          Value = Math.Round(x.Centroid.Components[1], asset.PriceRound), 
+          TimeFrame = timeFrame, Cluster = x });
+
+        Intersections.AddRange(clusterIntersections);
+      }
+    }
   }
 }
+
+

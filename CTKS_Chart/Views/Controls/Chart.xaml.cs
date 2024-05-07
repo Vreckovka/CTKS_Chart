@@ -703,7 +703,7 @@ namespace CTKS_Chart.Views.Controls
           var text = (TextBlock)stackPanel.Children[0];
 
           ((Run)text.Inlines.ToList()[0]).Text = $"{StartPrice} - {representedPrice}";
-          ((Run)text.Inlines.ToList()[2]).Text = $"{representedPrice - StartPrice} ({((representedPrice - StartPrice) / representedPrice * 100).ToString("N2")}%)";
+          ((Run)text.Inlines.ToList()[2]).Text = $"{representedPrice - StartPrice} ({((StartPrice - representedPrice) / StartPrice * 100 * -1).ToString("N2")}%)";
 
           ((Run)text.Inlines.ToList()[4]).Text = $"{(represnetedDate - StartDate).ToString(@"dd\.hh\:mm\:ss")}";
         }

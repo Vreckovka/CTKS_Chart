@@ -18,6 +18,7 @@ using System.Windows.Shapes;
 using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using CTKS_Chart.ViewModels;
+using VCore.Standard.Helpers;
 using VCore.WPF.Controls;
 
 namespace CTKS_Chart.Views.Controls
@@ -155,7 +156,8 @@ namespace CTKS_Chart.Views.Controls
       DependencyProperty.Register(
         nameof(ChartContent),
         typeof(FrameworkElement),
-        typeof(Ruler), new PropertyMetadata(null, (obj,y) => {
+        typeof(Ruler), new PropertyMetadata(null, (obj, y) =>
+        {
           if (obj is Ruler ruler && y.NewValue is FrameworkElement frameworkElement)
           {
             frameworkElement.SizeChanged += ruler.FrameworkElement_SizeChanged;
@@ -165,11 +167,6 @@ namespace CTKS_Chart.Views.Controls
 
 
     #endregion
-
-    private void ValuesToRender_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-    {
-      RenderValues();
-    }
 
     #region AssetPriceRound
 
@@ -188,9 +185,33 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
+    protected override void OnInitialized(EventArgs e)
+    {
+      base.OnInitialized(e);
+
+      SizeChanged += Ruler_SizeChanged;
+    }
+
+    private void Ruler_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+      RenderValues();
+    }
+
+    private void ValuesToRender_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+      RenderValues();
+    }
+
     private void FrameworkElement_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-      Overlay.Height = e.NewSize.Height;
+      if(Mode == RulerMode.Horizontal)
+      {
+        Overlay.Width = e.NewSize.Width;
+      }
+      else
+      {
+        Overlay.Height = e.NewSize.Height;
+      }
 
       RenderValues();
     }
@@ -200,8 +221,6 @@ namespace CTKS_Chart.Views.Controls
     {
       RenderValues();
     }
-
-    public Canvas Overlay { get; } = new Canvas();
 
     public Ruler()
     {
@@ -267,44 +286,123 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
+    #region RenderValues
+
     private void RenderValues()
     {
       Overlay.Children.Clear();
       var fontSize = 10;
-      var padding = 4;
+      var padding = 8;
 
-      if(ValuesToRender.Any())
+
+      if(ValuesToRender.Count == 0 && Mode == RulerMode.Horizontal)
+      {
+        var diff = (long)(MaxValue - MinValue);
+        var count = 9;
+
+        var step = diff / count;
+        long actualStep = (long)MinValue + (step / 2);
+
+        for (int i = 0; i < count ; i++)
+        {
+          var utcDate = DateTimeHelper.UnixTimeStampToUtcDateTime(actualStep);
+          var x = TradingHelper.GetCanvasValueLinear(Overlay.ActualWidth, actualStep, (long)MaxValue, (long)MinValue);
+
+          var label = utcDate.ToString("dd.MM HH:mm:ss");
+
+          //Month
+          if (step >= 2628000)
+          {
+            label = utcDate.ToString("MM");
+          }
+          else if (step > 350000)
+          {
+            label = utcDate.ToString("dd.MM");
+          }
+          else if (step > 50000)
+          {
+            label = utcDate.ToString("dd.MM HH");
+          }
+          else if (step > 35000)
+          {
+            label = utcDate.ToString("dd HH:mm");
+          }
+          else
+          {
+            label = utcDate.ToString("HH:mm:ss");
+          }
+
+          var brush = DrawingHelper.GetBrushFromHex("#45ffffff");
+          var formattedText = DrawingHelper.GetFormattedText(label, brush, fontSize);
+
+          var dateText = new TextBlock()
+          {
+            Text = label,
+            FontSize = fontSize,
+            Foreground = brush,
+          };
+
+          Overlay.Children.Add(dateText);
+
+          Canvas.SetLeft(dateText, x - (formattedText.Width / 2));
+          Canvas.SetTop(dateText, Overlay.ActualHeight - ((Overlay.ActualHeight / 2) + 5) );
+
+          actualStep += step;
+        }
+      }
+
+      if (ValuesToRender.Any())
       {
         var max = ValuesToRender
-      .Select(x => DrawingHelper.GetFormattedText(Math.Round(x.Model.Value, AssetPriceRound).ToString(), x.SelectedBrush, fontSize))
+      .Select(x => DrawingHelper.GetFormattedText($"*{Math.Round(x.Model.Value, AssetPriceRound)}*".ToString(),
+      x.SelectedBrush, fontSize))
       .Max(x => x.Width);
 
         Width = max + (padding * 2);
-      
 
         foreach (var intersection in ValuesToRender)
         {
-         
+          padding = 8;
+
           var pricePositionY = TradingHelper.GetCanvasValue(Overlay.ActualHeight, intersection.Model.Value, MaxValue, MinValue);
 
           var text = Math.Round(intersection.Model.Value, AssetPriceRound).ToString();
 
+          if (intersection.Model.IsCluster)
+          {
+            text = $"*{text}*";
+          }
 
           var formattedText = DrawingHelper.GetFormattedText(text, intersection.SelectedBrush, fontSize);
 
-          var price = new TextBlock() { Text = text, FontSize = fontSize, Foreground = intersection.SelectedBrush };
+          var price = new TextBlock()
+          {
+            Text = text,
+            FontSize = fontSize,
+            Foreground = intersection.SelectedBrush,
+            FontWeight = intersection.Model.IsCluster ? FontWeights.Bold : FontWeights.Normal
+          };
 
 
 
           pricePositionY = pricePositionY + (formattedText.Height / 2);
+
+          if (intersection.Model.IsCluster)
+          {
+            padding -= 5;
+          }
+
           Overlay.Children.Add(price);
 
           Canvas.SetLeft(price, padding);
           Canvas.SetTop(price, Overlay.ActualHeight - pricePositionY);
         }
       }
-    
     }
+
+    #endregion
+
+    #region OnPropertyChanged
 
     public event PropertyChangedEventHandler PropertyChanged;
 
@@ -312,5 +410,7 @@ namespace CTKS_Chart.Views.Controls
     {
       PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
+
+    #endregion
   }
 }

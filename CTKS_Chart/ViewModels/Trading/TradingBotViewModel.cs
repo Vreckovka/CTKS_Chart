@@ -867,7 +867,7 @@ namespace CTKS_Chart.ViewModels
 
           for (int y = 0; y < secondaryLayouts.Count; y++)
           {
-            var intersections = secondaryLayouts[y].Ctks.ctksIntersections;
+            var intersections = secondaryLayouts[y].Ctks.Intersections;
 
             var validIntersections = intersections
               .Where(x => x.Value < decimal.MaxValue && x.Value > decimal.MinValue).ToList();
