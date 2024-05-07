@@ -722,7 +722,9 @@ namespace CTKS_Chart.ViewModels
 
         if (chartCandles.Any())
         {
-          var removed = RenderedIntersections.Where(x => !TradingBot.Strategy.Intersections.Any(y => y == x.Model));
+          var removed = RenderedIntersections.Where(x => !TradingBot.Strategy.Intersections.Any(y => y == x.Model)).ToList();
+          removed.AddRange(RenderedIntersections.Where(x => x.Model.Value < MinValue || x.Model.Value > MaxValue));
+
           removed.ForEach(x => RenderedIntersections.Remove(x));
 
           if(LastFilled != TradingBot.Strategy.AllClosedPositions.Max(x => x.FilledDate))
