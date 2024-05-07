@@ -263,16 +263,17 @@ namespace CTKS_Chart.Views.Controls
     bool renderOverlay = false;
     private void Overlay_MouseLeave(object sender, MouseEventArgs e)
     {
-      Overlay.Children.Clear();
+      ClearOverlay();
 
       renderOverlay = false;
     }
 
     private void Chart_MouseLeave(object sender, MouseEventArgs e)
     {
-      Overlay.Children.Clear();
-    }
+      ClearOverlay();
 
+      renderOverlay = false;
+    }
 
     #region Grid_MouseMove
 
@@ -341,72 +342,138 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
-    #region DrawOverlay
-
-    private void DrawOveralay()
+    private void ClearOverlay()
     {
       Overlay.Children.Clear();
 
+      verticalCrosshair = null;
+      horizontalCrosshair = null;
+      priceBorder = null; 
+      dateBorder = null; 
+
+      priceTextBlock = null;
+      dateTextBlock = null;
+    }
+
+    #region DrawOverlay
+
+    Line verticalCrosshair;
+    Line horizontalCrosshair;
+    Border priceBorder;
+    Border dateBorder;
+    TextBlock priceTextBlock;
+    TextBlock dateTextBlock;
+
+    private void DrawOveralay()
+    {
       var gray = DrawingHelper.GetBrushFromHex("#45ffffff");
 
-      var verticalCrosshair = new Line()
+      if(verticalCrosshair != null)
       {
-        X1 = ActualOverlayMousePosition.X,
-        X2 = ActualOverlayMousePosition.X,
-        Y1 = 0,
-        Y2 = Overlay.ActualHeight,
-        Stroke = gray,
-        StrokeThickness = 1,
-        StrokeDashArray = new DoubleCollection() { 5 }
+        Canvas.SetLeft(verticalCrosshair, ActualOverlayMousePosition.X);
+      }
+      else
+      {
+        verticalCrosshair = new Line()
+        {
+          X1 = 0,
+          X2 = 0,
+          Y1 = 0,
+          Y2 = Overlay.ActualHeight,
+          Stroke = gray,
+          StrokeThickness = 1,
+          StrokeDashArray = new DoubleCollection() { 5 },
+          IsHitTestVisible = false
+        };
+
+        Canvas.SetLeft(verticalCrosshair, ActualOverlayMousePosition.X);
+
+        Overlay.Children.Add(verticalCrosshair);
       };
 
-      var horizontalCrosshair = new Line()
+      if (horizontalCrosshair != null)
       {
-        X1 = 0,
-        X2 = Overlay.ActualWidth,
-        Y1 = ActualOverlayMousePosition.Y,
-        Y2 = ActualOverlayMousePosition.Y,
-        Stroke = gray,
-        StrokeThickness = 1,
-        StrokeDashArray = new DoubleCollection() { 5 }
+        Canvas.SetTop(horizontalCrosshair, ActualOverlayMousePosition.Y);
+      }
+      else
+      {
+        horizontalCrosshair = new Line()
+        {
+          X1 = 0,
+          X2 = Overlay.ActualWidth,
+          Y1 = 0,
+          Y2 = 0,
+          Stroke = gray,
+          StrokeThickness = 1,
+          StrokeDashArray = new DoubleCollection() { 5 },
+          IsHitTestVisible = false
+        };
+
+        Canvas.SetTop(horizontalCrosshair, ActualOverlayMousePosition.Y);
+        Overlay.Children.Add(horizontalCrosshair);
       };
 
-      var text = Math.Round(ActualMousePositionY, AssetPriceRound).ToString();
+
+      var priceText = Math.Round(ActualMousePositionY, AssetPriceRound).ToString();
+      var dateText = ActualMousePositionX.ToString("dd.MM.yyy HH:mm:ss");
+
       var fontSize = 11;
       var brush = Brushes.White;
 
-      var border = new Border() { Background = DrawingHelper.GetBrushFromHex("#3b3d40"), 
-        Padding = new Thickness(2,2,2,2), 
-        CornerRadius = new CornerRadius(2,2,2,2) };
-
-
-      var price = new TextBlock() { Text = text, FontSize = fontSize, Foreground = brush, FontWeight = FontWeights.Bold };
-      var formattedText = DrawingHelper.GetFormattedText(text, brush, fontSize);
-
-      border.Child = price;
-      Overlay.Children.Add(border);
-      Canvas.SetLeft(border, Overlay.ActualWidth - (formattedText.Width + 2 + 2 + 4));
-      Canvas.SetTop(border, ActualOverlayMousePosition.Y - ((formattedText.Height / 2) + 2));
-
-
-      var formattedTextDate = DrawingHelper.GetFormattedText(ActualMousePositionX.ToString("dd.MM.yyy HH:mm:ss"), brush, fontSize);
-      var date = new TextBlock() { Text = ActualMousePositionX.ToString("dd.MM.yyy HH:mm:ss"), FontSize = fontSize, Foreground = brush, FontWeight = FontWeights.Bold };
-      var borderDate = new Border()
+      if (priceBorder == null)
       {
-        Background = border.Background,
-        Padding = border.Padding,
-        CornerRadius = border.CornerRadius
-      };
+        priceBorder = new Border()
+        {
+          Background = DrawingHelper.GetBrushFromHex("#3b3d40"),
+          Padding = new Thickness(2, 2, 2, 2),
+          CornerRadius = new CornerRadius(2, 2, 2, 2),
+          IsHitTestVisible = false,
+        };
 
-      borderDate.Child = date;
+        priceTextBlock = new TextBlock() { Text = priceText, FontSize = fontSize, Foreground = brush, FontWeight = FontWeights.Bold };
+        var formattedText = DrawingHelper.GetFormattedText(priceText, brush, fontSize);
 
-      Overlay.Children.Add(borderDate);
-      Canvas.SetLeft(borderDate, ActualOverlayMousePosition.X - (formattedTextDate.Width / 2) );
-      Canvas.SetTop(borderDate, Overlay.ActualHeight - 20);
+        priceBorder.Child = priceTextBlock;
 
+        Canvas.SetLeft(priceBorder, Overlay.ActualWidth - (formattedText.Width + 2 + 2 + 4));
+        Canvas.SetTop(priceBorder, ActualOverlayMousePosition.Y - ((formattedText.Height / 2) + 2));
 
-      Overlay.Children.Add(verticalCrosshair);
-      Overlay.Children.Add(horizontalCrosshair);
+        Overlay.Children.Add(priceBorder);
+      }
+      else
+      {
+        priceTextBlock.Text = priceText;
+
+        Canvas.SetTop(priceBorder, ActualOverlayMousePosition.Y - ((this.priceTextBlock.ActualHeight / 2) + 2));
+      }
+    
+     
+ 
+     
+      if(dateBorder == null)
+      {
+        var formattedTextDate = DrawingHelper.GetFormattedText(ActualMousePositionX.ToString("dd.MM.yyy HH:mm:ss"), brush, fontSize);
+        dateTextBlock = new TextBlock() { Text = dateText, FontSize = fontSize, Foreground = brush, FontWeight = FontWeights.Bold };
+        
+        dateBorder = new Border()
+        {
+          Background = priceBorder.Background,
+          Padding = priceBorder.Padding,
+          CornerRadius = priceBorder.CornerRadius,
+          IsHitTestVisible = false,
+        };
+
+        dateBorder.Child = dateTextBlock;
+
+        Overlay.Children.Add(dateBorder);
+        Canvas.SetLeft(dateBorder, ActualOverlayMousePosition.X - (formattedTextDate.Width / 2));
+        Canvas.SetTop(dateBorder, Overlay.ActualHeight - 20);
+      }
+      else
+      {
+        dateTextBlock.Text = dateText;
+        Canvas.SetLeft(dateBorder, ActualOverlayMousePosition.X - (dateTextBlock.ActualWidth / 2));
+      }
     }
 
     #endregion
