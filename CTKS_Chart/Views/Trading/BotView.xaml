@@ -58,6 +58,7 @@
           MinWidth="10"
           HorizontalAlignment="Right"
           AssetPriceRound="{Binding TradingBot.Asset.PriceRound}"
+          ChartContent="{Binding ChartImage}"
           MaxValue="{Binding MaxValue, Mode=TwoWay}"
           MinValue="{Binding MinValue, Mode=TwoWay}"
           Size="{Binding CanvasHeight}"
@@ -76,23 +77,27 @@
           Mode="Horizontal"
           Size="{Binding CanvasWidth}" />
 
-        <StackPanel Margin="5,5" Orientation="Horizontal">
+        <Grid Margin="5,5">
           <CheckBox
             Margin="5,0"
+            HorizontalAlignment="Right"
             VerticalAlignment="Bottom"
             IsChecked="{Binding LockChart}">
             Lock chart
           </CheckBox>
 
 
-          <Button
+          <controls:PathButton
             Margin="5,5"
             HorizontalAlignment="Left"
             VerticalAlignment="Bottom"
-            Command="{Binding ResetChart}">
-            Rest chart
-          </Button>
-        </StackPanel>
+            Command="{Binding ResetChart}"
+            Glyph=""
+            IconMargin="0"
+            IsReadOnly="True"
+            Style="{StaticResource FontAwesomeGlyphStyle}"
+            ToolTip="Reset chart" />
+        </Grid>
 
       </Grid>
 

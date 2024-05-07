@@ -143,6 +143,29 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
+    #region ChartContent
+
+    public FrameworkElement ChartContent
+    {
+      get { return (FrameworkElement)GetValue(ChartContentProperty); }
+      set { SetValue(ChartContentProperty, value); }
+    }
+
+    public static readonly DependencyProperty ChartContentProperty =
+      DependencyProperty.Register(
+        nameof(ChartContent),
+        typeof(FrameworkElement),
+        typeof(Ruler), new PropertyMetadata(null, (obj,y) => {
+          if (obj is Ruler ruler && y.NewValue is FrameworkElement frameworkElement)
+          {
+            frameworkElement.SizeChanged += ruler.FrameworkElement_SizeChanged;
+          }
+        }));
+
+
+
+    #endregion
+
     private void ValuesToRender_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
       RenderValues();
@@ -164,6 +187,14 @@ namespace CTKS_Chart.Views.Controls
 
 
     #endregion
+
+    private void FrameworkElement_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+      Overlay.Height = e.NewSize.Height;
+
+      RenderValues();
+    }
+
 
     private void Overlay_SizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -249,9 +280,11 @@ namespace CTKS_Chart.Views.Controls
       .Max(x => x.Width);
 
         Width = max + (padding * 2);
+      
 
         foreach (var intersection in ValuesToRender)
         {
+         
           var pricePositionY = TradingHelper.GetCanvasValue(Overlay.ActualHeight, intersection.Model.Value, MaxValue, MinValue);
 
           var text = Math.Round(intersection.Model.Value, AssetPriceRound).ToString();
@@ -278,14 +311,6 @@ namespace CTKS_Chart.Views.Controls
     protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
     {
       PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
-    {
-      if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-      field = value;
-      OnPropertyChanged(propertyName);
-      return true;
     }
   }
 }
