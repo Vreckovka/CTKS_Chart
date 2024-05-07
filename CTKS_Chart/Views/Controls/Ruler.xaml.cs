@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Windows;
@@ -238,26 +239,38 @@ namespace CTKS_Chart.Views.Controls
     private void RenderValues()
     {
       Overlay.Children.Clear();
+      var fontSize = 10;
+      var padding = 4;
 
-      foreach (var intersection in ValuesToRender)
+      if(ValuesToRender.Any())
       {
-        var pricePositionY = TradingHelper.GetCanvasValue(Overlay.ActualHeight, intersection.Model.Value, MaxValue, MinValue);
+        var max = ValuesToRender
+      .Select(x => DrawingHelper.GetFormattedText(Math.Round(x.Model.Value, AssetPriceRound).ToString(), x.SelectedBrush, fontSize))
+      .Max(x => x.Width);
 
-        var text = Math.Round(intersection.Model.Value, AssetPriceRound).ToString();
-        var fontSize = 11;
+        Width = max + (padding * 2);
 
-        var formattedText = DrawingHelper.GetFormattedText(text, intersection.SelectedBrush, fontSize);
+        foreach (var intersection in ValuesToRender)
+        {
+          var pricePositionY = TradingHelper.GetCanvasValue(Overlay.ActualHeight, intersection.Model.Value, MaxValue, MinValue);
 
-        var price = new TextBlock() { Text = text, FontSize = fontSize, Foreground = intersection.SelectedBrush };
+          var text = Math.Round(intersection.Model.Value, AssetPriceRound).ToString();
 
-        var padding = 5;
-        Width = formattedText.Width + (padding * 2);
-        pricePositionY = pricePositionY + (formattedText.Height / 2);
-        Overlay.Children.Add(price);
 
-        Canvas.SetLeft(price, padding);
-        Canvas.SetTop(price, Overlay.ActualHeight - pricePositionY);
+          var formattedText = DrawingHelper.GetFormattedText(text, intersection.SelectedBrush, fontSize);
+
+          var price = new TextBlock() { Text = text, FontSize = fontSize, Foreground = intersection.SelectedBrush };
+
+
+
+          pricePositionY = pricePositionY + (formattedText.Height / 2);
+          Overlay.Children.Add(price);
+
+          Canvas.SetLeft(price, padding);
+          Canvas.SetTop(price, Overlay.ActualHeight - pricePositionY);
+        }
       }
+    
     }
 
     public event PropertyChangedEventHandler PropertyChanged;

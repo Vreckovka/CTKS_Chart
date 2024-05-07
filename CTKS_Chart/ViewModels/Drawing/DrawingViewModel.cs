@@ -590,12 +590,12 @@ namespace CTKS_Chart.ViewModels
     public long unixDiff;
     private Candle lastLockedCandle;
     private decimal? lastAth;
+    private DateTime? LastFilled;
 
     public new void RenderOverlay(decimal? athPrice = null)
     {
       Pen shapeOutlinePen = new Pen(Brushes.Transparent, 1);
       shapeOutlinePen.Freeze();
-      RenderedIntersections.Clear();
 
       DrawingGroup dGroup = new DrawingGroup();
 
@@ -724,6 +724,13 @@ namespace CTKS_Chart.ViewModels
         {
           var removed = RenderedIntersections.Where(x => !TradingBot.Strategy.Intersections.Any(y => y == x.Model));
           removed.ForEach(x => RenderedIntersections.Remove(x));
+
+          if(LastFilled != TradingBot.Strategy.AllClosedPositions.Max(x => x.FilledDate))
+          {
+            RenderedIntersections.Clear();
+          }
+
+          LastFilled = TradingBot.Strategy.AllClosedPositions.Max(x => x.FilledDate);
 
           RenderIntersections(dc, Layout, TradingBot.Strategy.Intersections,
                               TradingBot.Strategy.AllOpenedPositions.ToList(),
@@ -1137,8 +1144,13 @@ namespace CTKS_Chart.ViewModels
 
           drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth * 0.92, lineY));
 
-          if (RenderedIntersections.SingleOrDefault(x => x.Model == intersection) == null)
+
+          var rendered = RenderedIntersections.SingleOrDefault(x => x.Model == intersection);
+
+          if (rendered == null)
             RenderedIntersections.Add(new RenderedIntesection(intersection) { SelectedBrush = selectedBrush });
+          else
+            rendered.SelectedBrush = selectedBrush;
         }
       }
     }
