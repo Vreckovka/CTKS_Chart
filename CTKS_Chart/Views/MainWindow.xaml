@@ -63,10 +63,8 @@
 
                   <StackPanel
                     Margin="5"
-                    DataContext="{Binding DrawingViewModel}"
+                    DataContext="{Binding DrawingViewModel.DrawingSettings}"
                     Orientation="Horizontal">
-                    <CheckBox IsChecked="{Binding ShowLabels}">Show labels</CheckBox>
-
                     <CheckBox
                       Width="120"
                       Margin="10,0,10,0"

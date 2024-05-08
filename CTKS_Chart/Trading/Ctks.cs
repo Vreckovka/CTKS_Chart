@@ -7,6 +7,8 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using VCore.Standard.Helpers;
+using Dbscan;
+using Point = System.Windows.Point;
 
 namespace CTKS_Chart.Trading
 {
@@ -207,9 +209,8 @@ namespace CTKS_Chart.Trading
         }
       }
 
-     Intersections = newCtksIntersections;
-      
-      CreateClusters(newCtksIntersections);
+      Intersections = newCtksIntersections;
+      Intersections.AddRange(CreateClusters(newCtksIntersections));
     }
 
     #endregion
@@ -239,28 +240,96 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
-    private void CreateClusters(IEnumerable<CtksIntersection> intersections)
+    //dbscan
+    private IEnumerable<CtksIntersection> CreateClusters(IEnumerable<CtksIntersection> intersections)
     {
       var division = 5;
+      var clusterIntersections = new List<CtksIntersection>();
 
-      if(intersections.Count() > division * 2)
+      //if (intersections.Count() > division * 2)
+      //{
+      //  List<DataVec> points = intersections.Select(x => new DataVec(new decimal[] { 0, x.Value })).ToList();
+      //  KMeansClustering cl = new KMeansClustering(points.ToArray(), (int)(intersections.Count() / division));
+
+      //  Cluster[] clusters = cl.Compute();
+
+      //  clusterIntersections = clusters.Select(x => new CtksIntersection()
+      //  {
+      //    Value = Math.Round(x.Centroid.Components[1], asset.PriceRound),
+      //    TimeFrame = timeFrame,
+      //    Cluster = new CtksCluster()
+      //    {
+      //      Value = Math.Round(x.Centroid.Components[1], asset.PriceRound)
+      //    }
+      //  }).ToList();
+      //}
+
+      var clusterscc = Dbscan.Dbscan.CalculateClusters(
+                        intersections.Select(x => new SimplePoint(0, (double)x.Value)
+                        {
+                          Intersection = x
+                        }),
+                        epsilon: 0.5,
+                        minimumPointsPerCluster: 2);
+
+
+      foreach (var cluster in clusterscc.Clusters)
       {
-        //Data points
-        List<DataVec> points = intersections.Select(x => new DataVec(new decimal[] { 0, x.Value })).ToList();
+        var intersectionValues = cluster.Objects.Select(y => (decimal)y.Point.Y);
+        var median = GetMedian(intersectionValues.ToArray());
+        //var average = intersectionValues.Average();
 
-        // First argument of the constructor is a reference to data points. Second argument is k (number of clusters)
-        KMeansClustering cl = new KMeansClustering(points.ToArray(), (int)(intersections.Count() / division));
+        var value = Math.Round(median, asset.PriceRound);
 
-        // Perform clasification and return results
-        Cluster[] clusters = cl.Compute();
+        var newCluster = new CtksCluster()
+        {
+          Value = value,
+          Intersections = cluster.Objects.Select(x => x.Intersection)
+        };
 
-        var clusterIntersections = clusters.Select(x => new CtksIntersection() { 
-          Value = Math.Round(x.Centroid.Components[1], asset.PriceRound), 
-          TimeFrame = timeFrame, Cluster = x });
+        var ctksIntersection = new CtksIntersection()
+        {
+          TimeFrame = timeFrame,
+          Value = value,
+          Cluster = newCluster
+        };
 
-        Intersections.AddRange(clusterIntersections);
+        clusterIntersections.Add(ctksIntersection);
       }
+
+      //Intersections.AddRange(clusterscc.UnclusteredObjects.Select(x => x.Intersection));
+      return clusterIntersections;
     }
+
+    #region GetMedian
+
+    public static decimal GetMedian(decimal[] sourceNumbers)
+    {
+      //Framework 2.0 version of this method. there is an easier way in F4        
+      if (sourceNumbers == null || sourceNumbers.Length == 0)
+        throw new System.Exception("Median of empty array not defined.");
+
+      //make sure the list is sorted, but use a new array
+      decimal[] sortedPNumbers = (decimal[])sourceNumbers.Clone();
+      Array.Sort(sortedPNumbers);
+
+      //get the median
+      int size = sortedPNumbers.Length;
+      int mid = size / 2;
+      decimal median = (size % 2 != 0) ? sortedPNumbers[mid] : (sortedPNumbers[mid] + sortedPNumbers[mid - 1]) / 2;
+      return median;
+    }
+
+    #endregion
+
+    public class SimplePoint : IPointData
+    {
+      public SimplePoint(double x, double y) => Point = new Dbscan.Point(x, y);
+      public Dbscan.Point Point { get; }
+
+      public CtksIntersection Intersection { get; set; }
+    }
+
   }
 }
 

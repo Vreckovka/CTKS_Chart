@@ -112,7 +112,7 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.MinUnix = DrawingViewModel.MaxUnix - (unixDiff * 100);
 
       DrawingViewModel.LockChart = true;
-      DrawingViewModel.ShowATH = true;
+      DrawingViewModel.DrawingSettings.ShowATH = true;
 
       //Intersection precision testing
       //TradingBot.Strategy.EnableManualPositions = false;

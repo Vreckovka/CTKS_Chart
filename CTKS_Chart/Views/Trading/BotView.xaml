@@ -6,7 +6,6 @@
   xmlns:controls1="clr-namespace:CTKS_Chart.Views.Controls"
   xmlns:converters="clr-namespace:VCore.WPF.Converters;assembly=VCore.WPF"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-  xmlns:local="clr-namespace:CTKS_Chart.Views.Trading"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   d:DesignHeight="450"
   d:DesignWidth="800"
@@ -36,14 +35,120 @@
 
       <Grid Background="#ff05080d" DataContext="{Binding DrawingViewModel}">
         <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="auto" />
           <ColumnDefinition />
           <ColumnDefinition Width="auto" />
         </Grid.ColumnDefinitions>
 
+        <Grid.RowDefinitions>
+          <RowDefinition />
+          <RowDefinition Height="auto" />
+        </Grid.RowDefinitions>
+
+        <Border
+          Width="50"
+          Margin="0,0,0,0"
+          Padding="0,15,0,0"
+          HorizontalAlignment="Left"
+          Panel.ZIndex="100"
+          Background="#45000000">
+          <Grid Margin="0,90,0,0">
+            <StackPanel Orientation="Vertical">
+              <controls:PathButton
+                Margin="0,0,0,10"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Glyph=""
+                GlyphFontSize="25"
+                IconCheckedColor="{StaticResource YellowColor}"
+                IconHeight="auto"
+                IconMargin="0"
+                IconWidth="auto"
+                IsChecked="{Binding ElementName=Chart, Path=MeasureTool.IsEnabled, Mode=TwoWay}"
+                ToolTip="Measure" />
+
+              <StackPanel DataContext="{Binding DrawingSettings}" Orientation="Vertical">
+                <controls:PathButton
+                  Margin="0,10"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Top"
+                  Glyph=""
+                  GlyphFontSize="25"
+                  IconCheckedColor="{StaticResource YellowColor}"
+                  IconHeight="auto"
+                  IconMargin="0"
+                  IconWidth="auto"
+                  IsChecked="{Binding ShowIntersections, Mode=TwoWay}"
+                  ToolTip="Show intersections" />
+
+                <controls:PathButton
+                  Margin="0,10"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Top"
+                  Glyph=""
+                  GlyphFontSize="25"
+                  IconCheckedColor="{StaticResource YellowColor}"
+                  IconHeight="auto"
+                  IconMargin="0"
+                  IconWidth="auto"
+                  IsChecked="{Binding ShowClusters, Mode=TwoWay}"
+                  ToolTip="Show clusters" />
+
+                <controls:PathButton
+                  x:Name="show_positions_toggle"
+                  Margin="0,15"
+                  HorizontalAlignment="Center"
+                  Glyph="{StaticResource square-poll-horizontal}"
+                  GlyphFontSize="25"
+                  IconCheckedColor="{StaticResource YellowColor}"
+                  IconDefaultColor="{StaticResource YellowColor}"
+                  IconHoverColor="{StaticResource YellowColor}"
+                  IconMargin="0" />
+
+
+                <Popup
+                  IsOpen="{Binding ElementName=show_positions_toggle, Path=IsChecked, Mode=TwoWay}"
+                  Placement="Bottom"
+                  PlacementTarget="{Binding ElementName=show_positions_toggle}"
+                  StaysOpen="False">
+                  <Border
+                    Padding="5"
+                    Background="#101010"
+                    DataContext="{Binding DataContext.TradingBotViewModel.DrawingViewModel.DrawingSettings, RelativeSource={RelativeSource AncestorType=Window}}">
+                    <StackPanel Orientation="Vertical">
+                      <CheckBox
+                        Margin="0,5"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        IsChecked="{Binding ShowAutoPositions}">
+                        Show auto positions
+                      </CheckBox>
+
+
+                      <CheckBox
+                        Margin="0,5"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        IsChecked="{Binding ShowManualPositions}">
+                        Show manual positions
+                      </CheckBox>
+
+                    </StackPanel>
+                  </Border>
+
+                </Popup>
+
+              </StackPanel>
+
+            </StackPanel>
+
+          </Grid>
+        </Border>
 
         <controls1:Chart
           x:Name="Chart"
-          Grid.Column="0"
+          Grid.Row="0"
+          Grid.Column="1"
           AssetPriceRound="{Binding TradingBot.Asset.PriceRound}"
           ChartContent="{Binding ChartImage}"
           ChartHeight="{Binding CanvasHeight}"
@@ -54,8 +159,9 @@
           MinYValue="{Binding MinValue, Mode=TwoWay}" />
 
         <controls1:Ruler
-          Grid.Column="0"
-          MinWidth="10"
+          Grid.Row="0"
+          Grid.Column="2"
+          MinWidth="40"
           HorizontalAlignment="Right"
           VerticalAlignment="Center"
           AssetPriceRound="{Binding TradingBot.Asset.PriceRound}"
@@ -67,8 +173,7 @@
 
         <controls1:Ruler
           Grid.Row="1"
-          Grid.Column="0"
-          Grid.ColumnSpan="2"
+          Grid.Column="1"
           Height="40"
           HorizontalAlignment="Center"
           VerticalAlignment="Bottom"
@@ -78,7 +183,10 @@
           Mode="Horizontal"
           Size="{Binding CanvasWidth}" />
 
-        <Grid Margin="5,5">
+        <Grid
+          Grid.Row="1"
+          Grid.ColumnSpan="3"
+          Margin="5,5">
           <CheckBox
             Margin="5,0"
             HorizontalAlignment="Right"
@@ -217,46 +325,6 @@
                 </TextBlock.Style>
               </TextBlock>
 
-              <controls:PathButton
-                x:Name="show_positions_toggle"
-                Margin="5,0,0,0"
-                Glyph="{StaticResource square-poll-horizontal}"
-                GlyphFontSize="18"
-                IconCheckedColor="{StaticResource YellowColor}"
-                IconDefaultColor="{StaticResource YellowColor}"
-                IconHoverColor="{StaticResource YellowColor}" />
-
-
-              <Popup
-                IsOpen="{Binding ElementName=show_positions_toggle, Path=IsChecked, Mode=TwoWay}"
-                Placement="Bottom"
-                PlacementTarget="{Binding ElementName=show_positions_toggle}"
-                StaysOpen="False">
-                <Border Padding="5" Background="#101010">
-                  <StackPanel Orientation="Vertical">
-                    <CheckBox
-                      Margin="0,5"
-                      HorizontalAlignment="Left"
-                      VerticalAlignment="Top"
-                      DataContext="{Binding DataContext.TradingBotViewModel.DrawingViewModel, RelativeSource={RelativeSource AncestorType=Window}}"
-                      IsChecked="{Binding ShowAutoPositions}">
-                      Show auto positions
-                    </CheckBox>
-
-
-                    <CheckBox
-                      Margin="0,5"
-                      HorizontalAlignment="Left"
-                      VerticalAlignment="Top"
-                      DataContext="{Binding DataContext.TradingBotViewModel.DrawingViewModel, RelativeSource={RelativeSource AncestorType=Window}}"
-                      IsChecked="{Binding ShowManualPositions}">
-                      Show manual positions
-                    </CheckBox>
-
-                  </StackPanel>
-                </Border>
-
-              </Popup>
 
             </StackPanel>
           </Border>

@@ -295,7 +295,7 @@ namespace CTKS_Chart.Views.Controls
       var padding = 8;
 
 
-      if(ValuesToRender.Count == 0 && Mode == RulerMode.Horizontal)
+      if(Mode == RulerMode.Horizontal)
       {
         var diff = (long)(MaxValue - MinValue);
         var count = 9;
@@ -350,52 +350,85 @@ namespace CTKS_Chart.Views.Controls
           actualStep += step;
         }
       }
-
-      if (ValuesToRender.Any())
+      else if(Mode == RulerMode.Vertical)
       {
-        var max = ValuesToRender
-      .Select(x => DrawingHelper.GetFormattedText($"*{Math.Round(x.Model.Value, AssetPriceRound)}*".ToString(),
-      x.SelectedBrush, fontSize))
-      .Max(x => x.Width);
-
-        Width = max + (padding * 2);
-
-        foreach (var intersection in ValuesToRender)
+        if(ValuesToRender.Count > 0 && ValuesToRender.Count < 30)
         {
-          padding = 8;
+          var max = ValuesToRender
+                   .Select(x => DrawingHelper.GetFormattedText($"*{Math.Round(x.Model.Value, AssetPriceRound)}*".ToString(),
+                   x.SelectedBrush, fontSize))
+                   .Max(x => x.Width);
 
-          var pricePositionY = TradingHelper.GetCanvasValue(Overlay.ActualHeight, intersection.Model.Value, MaxValue, MinValue);
+          Width = max + (padding * 2);
 
-          var text = Math.Round(intersection.Model.Value, AssetPriceRound).ToString();
-
-          if (intersection.Model.IsCluster)
+          foreach (var intersection in ValuesToRender)
           {
-            text = $"*{text}*";
+            padding = 8;
+
+            var pricePositionY = TradingHelper.GetCanvasValue(Overlay.ActualHeight, intersection.Model.Value, MaxValue, MinValue);
+
+            var text = Math.Round(intersection.Model.Value, AssetPriceRound).ToString();
+
+            if (intersection.Model.IsCluster)
+            {
+              text = $"*{text}*";
+            }
+
+            var formattedText = DrawingHelper.GetFormattedText(text, intersection.SelectedBrush, fontSize);
+
+            var price = new TextBlock()
+            {
+              Text = text,
+              FontSize = fontSize,
+              Foreground = intersection.SelectedBrush,
+              FontWeight = intersection.Model.IsCluster ? FontWeights.Bold : FontWeights.Normal
+            };
+
+            pricePositionY = pricePositionY + (formattedText.Height / 2);
+
+            if (intersection.Model.IsCluster)
+            {
+              padding -= 5;
+            }
+
+            Overlay.Children.Add(price);
+
+            Canvas.SetLeft(price, padding);
+            Canvas.SetTop(price, Overlay.ActualHeight - pricePositionY);
           }
+        }
+        
+        if(ValuesToRender.Count < 5 || ValuesToRender.Count > 30)
+        {
+          var diff = (MaxValue - MinValue);
+          var count = 9;
 
-          var formattedText = DrawingHelper.GetFormattedText(text, intersection.SelectedBrush, fontSize);
+          var step = diff / count;
+          decimal actualStep = MinValue + (step / 2);
 
-          var price = new TextBlock()
+          for (int i = 0; i < count; i++)
           {
-            Text = text,
-            FontSize = fontSize,
-            Foreground = intersection.SelectedBrush,
-            FontWeight = intersection.Model.IsCluster ? FontWeights.Bold : FontWeights.Normal
-          };
+            var y = Overlay.ActualHeight - TradingHelper.GetCanvasValue(Overlay.ActualHeight, actualStep, MaxValue, MinValue);
 
+            var brush = DrawingHelper.GetBrushFromHex("#45ffffff");
+            var label = Math.Round(actualStep, AssetPriceRound).ToString();
 
+            var formattedText = DrawingHelper.GetFormattedText(label, brush, fontSize);
 
-          pricePositionY = pricePositionY + (formattedText.Height / 2);
+            var dateText = new TextBlock()
+            {
+              Text = label,
+              FontSize = fontSize,
+              Foreground = brush,
+            };
 
-          if (intersection.Model.IsCluster)
-          {
-            padding -= 5;
+            Overlay.Children.Add(dateText);
+
+            Canvas.SetLeft(dateText, padding);
+            Canvas.SetTop(dateText, y - (formattedText.Height / 2));
+
+            actualStep += step;
           }
-
-          Overlay.Children.Add(price);
-
-          Canvas.SetLeft(price, padding);
-          Canvas.SetTop(price, Overlay.ActualHeight - pricePositionY);
         }
       }
     }

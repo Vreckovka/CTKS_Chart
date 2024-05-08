@@ -1,14 +1,23 @@
 ﻿using KMeans;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace CTKS_Chart.Trading
 {
+  public class CtksCluster 
+  {
+    public decimal Value { get; set; }
+    public IEnumerable<CtksIntersection> Intersections { get; set; }
+  }
+
+
   public class CtksIntersection
   {
     public decimal Value { get; set; }
     public TimeFrame TimeFrame { get; set; }
     public CtksLine Line { get; set; }
+    public CtksCluster Cluster { get; set; }
 
-    public Cluster Cluster { get; set; }
     public bool IsEnabled { get; set; } = true;
 
     public bool IsCluster {
@@ -31,9 +40,11 @@ namespace CTKS_Chart.Trading
       }
       else if(Cluster != null && other.Cluster != null)
       {
-        return Cluster.Centroid.Components.Length > 1 && other.Cluster.Centroid.Components.Length > 1 &&
-          Cluster.Centroid.Components[0] == other.Cluster.Centroid.Components[0] &&
-          Cluster.Centroid.Components[1] == other.Cluster.Centroid.Components[1];
+        return Cluster.Value == other.Cluster.Value && TimeFrame == other.TimeFrame;
+      }
+      else if(Cluster != null && other.Cluster == null || Line != null && other.Line == null)
+      {
+        return false;
       }
       else
         return Value == other.Value && TimeFrame == other.TimeFrame;

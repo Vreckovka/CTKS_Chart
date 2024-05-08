@@ -12,7 +12,6 @@ using System.Windows.Shapes;
 using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using VCore.ItemsCollections;
-using VCore.Standard;
 using VCore.Standard.Factories.ViewModels;
 using VCore.WPF;
 using VCore.WPF.ItemsCollections;
@@ -21,49 +20,13 @@ using VCore.WPF.Prompts;
 
 namespace CTKS_Chart.ViewModels
 {
-  public interface IDrawingViewModel
-  {
-    public decimal MaxValue { get; set; }
-    public decimal MinValue { get; set; }
-
-    public double CanvasHeight { get; set; }
-    public double CanvasWidth { get; set; }
-    public int CandleCount { get; set; }
-  }
-
-  public class CtksLineViewModel : SelectableViewModel<CtksLine>
-  {
-    public CtksLineViewModel(CtksLine model) : base(model)
-    {
-    }
-
-    #region IsVisible
-
-    private bool isVisible;
-    public bool IsVisible
-    {
-      get { return isVisible; }
-      set
-      {
-        if (value != isVisible)
-        {
-          isVisible = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-  }
-
   public class ArchitectViewModel : BasePromptViewModel, IDrawingViewModel
   {
     private readonly IViewModelsFactory viewModelsFactory;
     private readonly Asset Asset;
     private SerialDisposable serialDisposable = new SerialDisposable();
     long unixDiff = 0;
-    public DrawingViewModel drawingViewModel;
+
 
     public ArchitectViewModel(
       IList<CtksLayout> layouts,
@@ -76,7 +39,7 @@ namespace CTKS_Chart.ViewModels
       Layouts = layouts ?? throw new ArgumentNullException(nameof(layouts));
       ColorScheme = colorSchemeViewModel ?? throw new ArgumentNullException(nameof(colorSchemeViewModel));
 
-      drawingViewModel = new DrawingViewModel(
+      DrawingViewModel = new DrawingViewModel(
         new TradingBot(
         new Asset()
         {
@@ -84,8 +47,8 @@ namespace CTKS_Chart.ViewModels
           PriceRound = asset.PriceRound
         }, null), new CtksLayout());
 
-      drawingViewModel.Initialize();
-      drawingViewModel.ColorScheme = colorSchemeViewModel;
+      DrawingViewModel.Initialize();
+      DrawingViewModel.ColorScheme = colorSchemeViewModel;
 
       SelectedLayout = layouts[5];
 
@@ -93,8 +56,6 @@ namespace CTKS_Chart.ViewModels
       {
         VSynchronizationContext.PostOnUIThread(RenderOverlay);
       });
-
-
     }
 
 
@@ -102,6 +63,7 @@ namespace CTKS_Chart.ViewModels
     public override string Title { get; set; } = "Architect";
     public Image ChartImage { get; } = new Image();
 
+    public DrawingViewModel DrawingViewModel { get; }
 
     #region SelectedLayout
 
@@ -360,98 +322,44 @@ namespace CTKS_Chart.ViewModels
 
       var candles = SelectedLayout.Ctks.Candles;
 
-      drawingViewModel.MaxValue = MaxValue;
-      drawingViewModel.MinValue = MinValue;
-      drawingViewModel.MaxUnix = MaxUnix;
-      drawingViewModel.MinUnix = MinUnix;
-      drawingViewModel.unixDiff = unixDiff;
+      DrawingViewModel.MaxValue = MaxValue;
+      DrawingViewModel.MinValue = MinValue;
+      DrawingViewModel.MaxUnix = MaxUnix;
+      DrawingViewModel.MinUnix = MinUnix;
+      DrawingViewModel.unixDiff = unixDiff;
 
       using (DrawingContext dc = dGroup.Open())
       {
         dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(CanvasHeight, CanvasWidth));
         candles = candles.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
 
-        var drawnChart = drawingViewModel.DrawChart(dc, candles, CanvasHeight, CanvasWidth);
+        var drawnChart = DrawingViewModel.DrawChart(dc, candles, CanvasHeight, CanvasWidth);
         var renderedLines = RenderLines(dc, CanvasHeight, CanvasWidth);
 
-        RenderIntersections(dc, SelectedLayout.Ctks.Intersections,
-          drawnChart.Candles.ToList(),
-          CanvasHeight,
-          CanvasHeight,
-          CanvasWidth);
+        if (DrawingViewModel.DrawingSettings.ShowIntersections)
+        {
+          DrawingViewModel.DrawIntersections(
+                dc,
+                SelectedLayout.Ctks.Intersections,
+                CanvasHeight,
+                CanvasWidth
+           );
+        }
+
+        if (DrawingViewModel.DrawingSettings.ShowClusters)
+        {
+          DrawingViewModel.DrawClusters(
+               dc,
+               SelectedLayout.Ctks.Intersections,
+               CanvasHeight,
+               CanvasWidth
+          );
+        }
 
         DrawingImage dImageSource = new DrawingImage(dGroup);
 
         Chart = dImageSource;
         this.ChartImage.Source = Chart;
-      }
-    }
-
-    #endregion
-
-    #region CreateIntersections
-
-    private List<CtksIntersection> CreateIntersections(IEnumerable<CtksLine> lines, Candle lastCandle)
-    {
-      List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
-
-      foreach (var line in lines)
-      {
-        var actualLeft = TradingHelper.GetCanvasValueLinear(CanvasWidth, lastCandle.UnixTime, MaxUnix, MinUnix); ;
-        var actual = TradingHelper.GetPointOnLine(line.StartPoint.X, line.StartPoint.Y, line.EndPoint.X, line.EndPoint.Y, actualLeft);
-        var value = Math.Round(TradingHelper.GetValueFromCanvas(CanvasHeight, CanvasHeight - actual, MaxValue, MinValue), Asset.PriceRound);
-
-        if (value > 0)
-        {
-          var intersection = new CtksIntersection()
-          {
-            Value = value,
-            TimeFrame = line.TimeFrame,
-            Line = line
-          };
-
-          ctksIntersections.Add(intersection);
-        }
-      }
-
-      return ctksIntersections;
-    }
-
-    #endregion
-
-    #region RenderIntersections
-
-    public void RenderIntersections(
-      DrawingContext drawingContext,
-      IEnumerable<CtksIntersection> intersections,
-      IList<ChartCandle> candles,
-      double desiredHeight,
-      double canvasHeight,
-      double canvasWidth)
-    {
-      var validIntersection = intersections
-        .Where(x => x.Value > MinValue && x.Value < MaxValue)
-        .ToList();
-
-      foreach (var intersection in validIntersection)
-      {
-        Brush selectedBrush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush);
-
-        var actual = TradingHelper.GetCanvasValue(canvasHeight, intersection.Value, MaxValue, MinValue);
-
-        var frame = intersection.TimeFrame;
-
-        var lineY = canvasHeight - actual;
-
-        FormattedText formattedText = DrawingHelper.GetFormattedText(intersection.Value.ToString(), selectedBrush);
-
-        drawingContext.DrawText(formattedText, new Point(CanvasWidth * 0.95, lineY - formattedText.Height / 2));
-
-        Pen pen = new Pen(selectedBrush, 1);
-        pen.DashStyle = DashStyles.Dash;
-        pen.Thickness = DrawingHelper.GetPositionThickness(frame);
-
-        drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth * 0.95, lineY));
       }
     }
 

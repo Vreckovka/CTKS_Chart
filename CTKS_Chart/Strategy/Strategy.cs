@@ -755,7 +755,7 @@ namespace CTKS_Chart.Strategy
       {
         await buyLock.WaitAsync();
         lastCandle = actualCandle;
-       
+
 
 #if DEBUG
         foreach (var innerStrategy in InnerStrategies)
@@ -1278,114 +1278,116 @@ namespace CTKS_Chart.Strategy
             .ToList();
         }
 
-        int i = 0;
         List<Position> createdPositions = new List<Position>();
 
-        while (buyPosition.PositionSize > 0 && nextLines.Count > 0)
+        foreach (var nextLine in nextLines)
         {
-          foreach (var nextLine in nextLines)
+          var leftPositionSize = buyPosition.PositionSize;
+
+          if (leftPositionSize < 0)
           {
-            var leftPositionSize = buyPosition.PositionSize;
-
-            if (leftPositionSize < 0)
-            {
-              buyPosition.PositionSize = 0;
-            }
-
-            var ctksIntersection = nextLine;
-            var forcePositionSize = i > 0 || nextLine.Value > buyPosition.Price * (decimal)1.5;
-
-
-            var positionSize = buyPosition.PositionSize;
-
-            var maxPOsitionOnIntersection = (decimal)GetPositionSize(ctksIntersection.TimeFrame, buyPosition.IsAutomatic, PositionSide.Sell);
-
-            var positionsOnIntersesction = OpenSellPositions
-              .Where(x => x.Intersection.IsSame(ctksIntersection))
-              .Sum(x => x.PositionSize);
-
-            leftPositionSize = (decimal)maxPOsitionOnIntersection - positionsOnIntersesction;
-
-
-            if (!forcePositionSize && MinPositionValue > leftPositionSize)
-            {
-              continue;
-            }
-
-            if (buyPosition.PositionSize > leftPositionSize)
-            {
-              positionSize = leftPositionSize;
-            }
-
-            if (leftPositionSize <= 0 && !forcePositionSize)
-              continue;
-
-            if (forcePositionSize)
-            {
-              if (buyPosition.PositionSize > maxPOsitionOnIntersection)
-                positionSize = maxPOsitionOnIntersection;
-              else
-                positionSize = buyPosition.PositionSize;
-            }
-
-            decimal roundedNativeSize = 0;
-
-            roundedNativeSize = Math.Round(positionSize / buyPosition.Price, Asset.NativeRound);
-
-            if (buyPosition.PositionSizeNative < roundedNativeSize)
-            {
-              roundedNativeSize = buyPosition.PositionSizeNative;
-            }
-
-            if (buyPosition.PositionSize - positionSize == 0 && buyPosition.PositionSizeNative - roundedNativeSize > 0)
-            {
-              roundedNativeSize = buyPosition.PositionSizeNative;
-            }
-
-            positionSize = buyPosition.Price * roundedNativeSize;
-            if (positionSize <= 0)
-            {
-              continue;
-            }
-
-            var leftSize = buyPosition.PositionSize - positionSize;
-
-            if (MinPositionValue > leftSize && leftSize > 0)
-            {
-              roundedNativeSize = roundedNativeSize + (buyPosition.PositionSizeNative - roundedNativeSize);
-
-            }
-
-            positionSize = buyPosition.Price * roundedNativeSize;
-            if (positionSize <= 0)
-            {
-              continue;
-            }
-
-            var newPosition = new Position(positionSize, ctksIntersection.Value, roundedNativeSize)
-            {
-              Side = PositionSide.Sell,
-              TimeFrame = ctksIntersection.TimeFrame,
-              Intersection = ctksIntersection,
-              State = PositionState.Open,
-              IsAutomatic = buyPosition.IsAutomatic
-            };
-
-            newPosition.OpositPositions.Add(buyPosition);
-
-            buyPosition.PositionSize -= positionSize;
-            buyPosition.PositionSizeNative -= roundedNativeSize;
-            buyPosition.OpositPositions.Add(newPosition);
-
-
-            createdPositions.Add(newPosition);
-
-  
-            if (buyPosition.PositionSize <= 0)
-              break;
+            buyPosition.PositionSize = 0;
           }
 
-          i++;
+          var ctksIntersection = nextLine;
+
+          var positionSize = buyPosition.PositionSize;
+
+          var maxPOsitionOnIntersection = (decimal)GetPositionSize(ctksIntersection.TimeFrame, buyPosition.IsAutomatic, PositionSide.Sell);
+
+          var positionsOnIntersesction = OpenSellPositions
+            .Where(x => x.Intersection.IsSame(ctksIntersection))
+            .Sum(x => x.PositionSize);
+
+          leftPositionSize = (decimal)maxPOsitionOnIntersection - positionsOnIntersesction;
+
+          if (MinPositionValue > leftPositionSize)
+          {
+            continue;
+          }
+
+          if (buyPosition.PositionSize > leftPositionSize)
+          {
+            positionSize = leftPositionSize;
+          }
+
+          if (leftPositionSize <= 0)
+            continue;
+
+          decimal roundedNativeSize = 0;
+
+          roundedNativeSize = Math.Round(positionSize / buyPosition.Price, Asset.NativeRound);
+
+          if (buyPosition.PositionSizeNative < roundedNativeSize)
+          {
+            roundedNativeSize = buyPosition.PositionSizeNative;
+          }
+
+          if (buyPosition.PositionSize - positionSize == 0 && buyPosition.PositionSizeNative - roundedNativeSize > 0)
+          {
+            roundedNativeSize = buyPosition.PositionSizeNative;
+          }
+
+          positionSize = buyPosition.Price * roundedNativeSize;
+          if (positionSize <= 0)
+          {
+            continue;
+          }
+
+          var leftSize = buyPosition.PositionSize - positionSize;
+
+          if (MinPositionValue > leftSize && leftSize > 0)
+          {
+            roundedNativeSize = roundedNativeSize + (buyPosition.PositionSizeNative - roundedNativeSize);
+
+          }
+
+          positionSize = buyPosition.Price * roundedNativeSize;
+          if (positionSize <= 0)
+          {
+            continue;
+          }
+
+          var newPosition = new Position(positionSize, ctksIntersection.Value, roundedNativeSize)
+          {
+            Side = PositionSide.Sell,
+            TimeFrame = ctksIntersection.TimeFrame,
+            Intersection = ctksIntersection,
+            State = PositionState.Open,
+            IsAutomatic = buyPosition.IsAutomatic
+          };
+
+          newPosition.OpositPositions.Add(buyPosition);
+
+          buyPosition.PositionSize -= positionSize;
+          buyPosition.PositionSizeNative -= roundedNativeSize;
+          buyPosition.OpositPositions.Add(newPosition);
+
+
+          createdPositions.Add(newPosition);
+
+
+          if (buyPosition.PositionSize <= 0)
+            break;
+        }
+
+        if (buyPosition.PositionSize > 0)
+        {
+          var lastCreated = createdPositions.Last();
+          var positionSize = lastCreated.PositionSize + buyPosition.PositionSize;
+          var roundedNativeSize = Math.Round(positionSize / buyPosition.Price, Asset.NativeRound);
+
+          var position = new Position(positionSize, lastCreated.Price, roundedNativeSize)
+          {
+            Side = PositionSide.Sell,
+            TimeFrame = lastCreated.TimeFrame,
+            Intersection = lastCreated.Intersection,
+            State = PositionState.Open,
+            IsAutomatic = buyPosition.IsAutomatic
+          };
+
+          createdPositions.Remove(lastCreated);
+          createdPositions.Add(position);
         }
 
         foreach (var sell in createdPositions)
@@ -1571,7 +1573,7 @@ namespace CTKS_Chart.Strategy
       {
         var inter = postion.Intersection;
 
-        var found = ctksIntersections.FirstOrDefault(y => y.IsSame(inter));
+        var found = ctksIntersections.SingleOrDefault(y => y.IsSame(inter));
 
         if (found != null)
         {
@@ -1587,7 +1589,7 @@ namespace CTKS_Chart.Strategy
       foreach (var postion in ActualPositions)
       {
         var inter = postion.Intersection;
-        var found = ctksIntersections.FirstOrDefault(y => y.IsSame(inter));
+        var found = ctksIntersections.SingleOrDefault(y => y.IsSame(inter));
 
         if (found != null)
         {

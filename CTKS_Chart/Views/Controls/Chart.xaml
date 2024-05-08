@@ -14,30 +14,9 @@
       <Grid MouseWheel="Border_MouseWheel">
         <ContentControl Content="{Binding ChartContent}" />
         <ContentControl Content="{Binding Overlay}" />
-
-
       </Grid>
 
-      <Border
-        Width="50"
-        Margin="0,0,0,0"
-        Padding="0,15,0,0"
-        HorizontalAlignment="Left"
-        Panel.ZIndex="100"
-        Background="#45000000">
-        <Grid Margin="0,100,0,0">
-          <controls:PathButton
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"
-            Glyph=""
-            GlyphFontSize="25"
-            IconCheckedColor="{StaticResource YellowColor}"
-            IconHeight="auto"
-            IconMargin="0"
-            IconWidth="auto"
-            IsChecked="{Binding MeasureTool.IsEnabled, Mode=TwoWay}" />
-        </Grid>
-      </Border>
+
     </Grid>
   </Border>
 </UserControl>

@@ -33,7 +33,6 @@ namespace CTKS_Chart.Views.Trading
         var viewModel = vm.DrawingViewModel;
 
         base.OnMouseMove(e);
-        var delta = 0.01;
         var position = e.GetPosition(this);
 
         if (e.LeftButton == MouseButtonState.Pressed && startY != null)
@@ -52,23 +51,6 @@ namespace CTKS_Chart.Views.Trading
         if (e.LeftButton != MouseButtonState.Pressed && startY != null)
         {
           startY = null;
-        }
-      }
-    }
-
-    private void Border_MouseWheel(object sender, MouseWheelEventArgs e)
-    {
-      if (DataContext is TradingBotViewModel vm)
-      {
-        var viewModel = vm.DrawingViewModel;
-
-        if (e.Delta > 0)
-        {
-          viewModel.CandleCount += 1;
-        }
-        else
-        {
-          viewModel.CandleCount -= 1;
         }
       }
     }

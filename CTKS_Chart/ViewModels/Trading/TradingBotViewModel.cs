@@ -1253,7 +1253,6 @@ namespace CTKS_Chart.ViewModels
 
         if (settings != null)
         {
-          DrawingViewModel.ShowClosedPositions = settings.ShowClosedPositions;
           var savedLayout = LayoutIntervals.ViewModels.SingleOrDefault(x => x.Model.Interval == settings.LayoutInterval);
 
           if (savedLayout != null)
@@ -1274,11 +1273,7 @@ namespace CTKS_Chart.ViewModels
             }
           }
 
-          DrawingViewModel.ShowAveragePrice = settings.ShowAveragePrice;
-          DrawingViewModel.ShowATH = settings.ShowATH;
-
-          if (settings.CandleCount > 0)
-            DrawingViewModel.CandleCount = settings.CandleCount;
+          DrawingViewModel.DrawingSettings = settings.DrawingSettings;
         }
       }
     }
@@ -1293,12 +1288,9 @@ namespace CTKS_Chart.ViewModels
       {
         var settings = new LayoutSettings()
         {
-          ShowClosedPositions = DrawingViewModel.ShowClosedPositions,
-          LayoutInterval = LayoutIntervals.SelectedItem.Model.Interval,
+          LayoutInterval = KlineInterval,
           ColorSettings = DrawingViewModel.ColorScheme.ColorSettings.Select(x => x.Value.Model),
-          ShowAveragePrice = DrawingViewModel.ShowAveragePrice,
-          ShowATH = DrawingViewModel.ShowATH,
-          CandleCount = DrawingViewModel.CandleCount
+          DrawingSettings = DrawingViewModel.DrawingSettings,
         };
 
         var options = new JsonSerializerOptions()

@@ -339,7 +339,18 @@ namespace CTKS_Chart.Strategy
 
           foreach (var op in closedBuy.OpositePositions)
           {
-            var pos = sells.SingleOrDefault(x => x.Id == op);
+            Position pos = null;
+
+            //Is Debug
+            if (op == 1)
+            {
+              pos = sells.FirstOrDefault(x => x.Id == op);
+            }
+            else
+            {
+              pos = sells.SingleOrDefault(x => x.Id == op);
+            }
+           
 
             if (pos != null)
             {
