@@ -249,14 +249,13 @@ namespace CTKS_Chart.Trading
                         {
                           Intersection = x
                         }),
-                        epsilon: 0.0015m,
+                        epsilon: 0.01m,
                         minimumPointsPerCluster: 2);
 
       foreach (var cluster in clusterscc.Clusters)
       {
         var intersectionValues = cluster.Objects.Select(y => y.Point.Y);
         var median = GetMedian(intersectionValues.ToArray());
-        //var average = intersectionValues.Average();
 
         var value = Math.Round(median, asset.PriceRound);
 
