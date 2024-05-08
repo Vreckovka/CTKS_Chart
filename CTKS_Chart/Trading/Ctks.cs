@@ -9,6 +9,7 @@ using System.Windows.Shapes;
 using VCore.Standard.Helpers;
 using Dbscan;
 using Point = System.Windows.Point;
+using DbscanImplementation;
 
 namespace CTKS_Chart.Trading
 {
@@ -209,10 +210,8 @@ namespace CTKS_Chart.Trading
         }
       }
 
-      var epsilon = (double)(lastCandle.Close * 0.01m);
-
       Intersections = newCtksIntersections;
-      Intersections.AddRange(CreateClusters(epsilon,newCtksIntersections));
+      Intersections.AddRange(CreateClusters(newCtksIntersections));
     }
 
     #endregion
@@ -243,65 +242,68 @@ namespace CTKS_Chart.Trading
     #endregion
 
     //dbscan
-    private IEnumerable<CtksIntersection> CreateClusters(double epsilon,IEnumerable<CtksIntersection> intersections)
+    private IEnumerable<CtksIntersection> CreateClusters(IEnumerable<CtksIntersection> intersections)
     {
       var division = 5;
       var clusterIntersections = new List<CtksIntersection>();
 
-      if (intersections.Count() > division * 2)
-      {
-        List<SimplePoint> points = intersections.Select(x => new SimplePoint(new decimal[] { 0, x.Value }) { Intersection = x }).ToList();
-        KMeansClustering cl = new KMeansClustering(points.ToArray(), (int)(intersections.Count() / division));
-
-        Cluster[] clusters = cl.Compute();
-
-        clusterIntersections = clusters.Select(x => new CtksIntersection()
-        {
-          Value = Math.Round(x.Centroid.Components[1], asset.PriceRound),
-          TimeFrame = timeFrame,
-          Cluster = new CtksCluster()
-          {
-            Value = Math.Round(x.Centroid.Components[1], asset.PriceRound),
-            Intersections = x.Points.Select(x => x.Intersection)
-          }
-        }).ToList();
-      }
-
-      //var clusterscc = Dbscan.Dbscan.CalculateClusters(
-      //                  intersections.Select(x => new SimplePoint(0, (double)x.Value)
-      //                  {
-      //                    Intersection = x
-      //                  }),
-      //                  epsilon: epsilon,
-      //                  minimumPointsPerCluster: 2);
-
-
-      //foreach (var cluster in clusterscc.Clusters)
+      //if (intersections.Count() > division * 2)
       //{
-      //  var intersectionValues = cluster.Objects.Select(y => (decimal)y.Point.Y);
-      //  var median = GetMedian(intersectionValues.ToArray());
-      //  //var average = intersectionValues.Average();
+      //  List<SimplePoint> points = intersections.Select(x => new SimplePoint(new decimal[] { 0, x.Value }) { Intersection = x }).ToList();
+      //  KMeansClustering cl = new KMeansClustering(points.ToArray(), (int)(intersections.Count() / division));
 
-      //  var value = Math.Round(median, asset.PriceRound);
+      //  Cluster[] clusters = cl.Compute();
 
-      //  var newCluster = new CtksCluster()
+      //  clusterIntersections = clusters.Select(x => new CtksIntersection()
       //  {
-      //    Value = value,
-      //    Intersections = cluster.Objects.Select(x => x.Intersection)
-      //  };
-
-      //  var ctksIntersection = new CtksIntersection()
-      //  {
+      //    Value = Math.Round(x.Centroid.Components[1], asset.PriceRound),
       //    TimeFrame = timeFrame,
-      //    Value = value,
-      //    Cluster = newCluster
-      //  };
-
-      //  clusterIntersections.Add(ctksIntersection);
+      //    Cluster = new CtksCluster()
+      //    {
+      //      Value = Math.Round(x.Centroid.Components[1], asset.PriceRound),
+      //      Intersections = x.Points.Select(x => x.Intersection)
+      //    }
+      //  }).ToList();
       //}
 
-      return clusterIntersections;
+
+
+      //199 165
+      var clusterscc = Dbscan.Dbscan.CalculateClusters(
+                        intersections.Select(x => new SimplePoint(0, x.Value)
+                        {
+                          Intersection = x
+                        }),
+                        epsilon: 0.0015m,
+                        minimumPointsPerCluster: 2);
+
+      foreach (var cluster in clusterscc.Clusters)
+      {
+        var intersectionValues = cluster.Objects.Select(y => y.Point.Y);
+        var median = GetMedian(intersectionValues.ToArray());
+        //var average = intersectionValues.Average();
+
+        var value = Math.Round(median, asset.PriceRound);
+
+        var newCluster = new CtksCluster()
+        {
+          Value = value,
+          Intersections = cluster.Objects.Select(x => x.Intersection)
+        };
+
+        var ctksIntersection = new CtksIntersection()
+        {
+          TimeFrame = timeFrame,
+          Value = value,
+          Cluster = newCluster
+        };
+
+        clusterIntersections.Add(ctksIntersection);
+      }
+
+      return clusterIntersections.DistinctBy(x => x.Value);
     }
+
 
     #region GetMedian
 
@@ -331,12 +333,11 @@ namespace CTKS_Chart.Trading
         Components = data;
       }
 
-      public SimplePoint(double x, double y) => Point = new Dbscan.Point(x, y);
+      public SimplePoint(decimal x, decimal y) => Point = new Dbscan.Point(x, y);
       public Dbscan.Point Point { get; }
 
       public CtksIntersection Intersection { get; set; }
     }
-
   }
 }
 
