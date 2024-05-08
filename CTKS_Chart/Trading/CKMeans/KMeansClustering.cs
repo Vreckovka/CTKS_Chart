@@ -1,5 +1,5 @@
 using System;
-
+using static CTKS_Chart.Trading.Ctks;
 
 namespace KMeans
 {
@@ -11,7 +11,7 @@ namespace KMeans
 
         private readonly int MAX_ITERATIONS = 100;
         private int m_K;
-        private DataVec [] p_DataPoints;
+        private SimplePoint[] p_DataPoints;
         private Cluster[] m_Clusters;
 
         /// <summary>
@@ -19,7 +19,7 @@ namespace KMeans
         /// </summary>
         /// <param name="points">All data points</param>
         /// <param name="k">Number of bins</param>
-        public KMeansClustering(DataVec[] points, int k)
+        public KMeansClustering(SimplePoint[] points, int k)
         {
             KMSState state = CheckData(points, k);
             if(state != KMSState.OK)

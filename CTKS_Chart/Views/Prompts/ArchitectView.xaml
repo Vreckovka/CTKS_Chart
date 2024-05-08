@@ -20,53 +20,88 @@
       <RowDefinition />
     </Grid.RowDefinitions>
 
-    <ListView
-      Grid.RowSpan="2"
-      Grid.Column="0"
-      ItemsSource="{Binding Lines}"
-      Style="{StaticResource {x:Type ListView}}">
-      <ListView.ItemTemplate>
-        <DataTemplate>
-          <Grid>
-            <Grid.RowDefinitions>
-              <RowDefinition />
-              <RowDefinition />
-            </Grid.RowDefinitions>
+    <Grid Grid.RowSpan="2" Grid.Column="0">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="auto" />
+        <RowDefinition />
+      </Grid.RowDefinitions>
 
-            <StackPanel DataContext="{Binding Model}">
-              <StackPanel Margin="0,5" Orientation="Horizontal">
-                <TextBlock Margin="5,0" Text="{Binding LineType}" />
-                <TextBlock Text="{Binding TimeFrame}" />
+      <StackPanel DataContext="{Binding DrawingViewModel.DrawingSettings}" Orientation="Vertical">
+        <controls1:PathButton
+          Margin="0,10"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Top"
+          Glyph=""
+          GlyphFontSize="25"
+          IconCheckedColor="{StaticResource YellowColor}"
+          IconHeight="auto"
+          IconMargin="0"
+          IconWidth="auto"
+          IsChecked="{Binding ShowIntersections, Mode=TwoWay}"
+          ToolTip="Show intersections" />
+
+        <controls1:PathButton
+          Margin="0,10"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Top"
+          Glyph=""
+          GlyphFontSize="25"
+          IconCheckedColor="{StaticResource YellowColor}"
+          IconHeight="auto"
+          IconMargin="0"
+          IconWidth="auto"
+          IsChecked="{Binding ShowClusters, Mode=TwoWay}"
+          ToolTip="Show clusters" />
+      </StackPanel>
+
+      <ListView
+        Grid.Row="1"
+        ItemsSource="{Binding Lines}"
+        Style="{StaticResource {x:Type ListView}}">
+        <ListView.ItemTemplate>
+          <DataTemplate>
+            <Grid>
+              <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition />
+              </Grid.RowDefinitions>
+
+              <StackPanel DataContext="{Binding Model}">
+                <StackPanel Margin="0,5" Orientation="Horizontal">
+                  <TextBlock Margin="5,0" Text="{Binding LineType}" />
+                  <TextBlock Text="{Binding TimeFrame}" />
+                </StackPanel>
+
+                <StackPanel
+                  Margin="0,5"
+                  DataContext="{Binding FirstPoint}"
+                  Orientation="Horizontal">
+                  <TextBlock Margin="5,0" Text="{Binding Price}" />
+                  <TextBlock Text="{Binding UnixTime}" />
+                </StackPanel>
+
+
+                <StackPanel
+                  Margin="0,5"
+                  DataContext="{Binding SecondPoint}"
+                  Orientation="Horizontal">
+                  <TextBlock Margin="5,0" Text="{Binding Price}" />
+                  <TextBlock Text="{Binding UnixTime}" />
+                </StackPanel>
               </StackPanel>
 
-              <StackPanel
-                Margin="0,5"
-                DataContext="{Binding FirstPoint}"
-                Orientation="Horizontal">
-                <TextBlock Margin="5,0" Text="{Binding Price}" />
-                <TextBlock Text="{Binding UnixTime}" />
+              <StackPanel Grid.Row="1" Orientation="Horizontal">
+                <controls1:PathButton
+                  Glyph=""
+                  IconCheckedColor="{StaticResource GreenColor}"
+                  IsChecked="{Binding IsVisible}" />
               </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ListView.ItemTemplate>
+      </ListView>
+    </Grid>
 
-
-              <StackPanel
-                Margin="0,5"
-                DataContext="{Binding SecondPoint}"
-                Orientation="Horizontal">
-                <TextBlock Margin="5,0" Text="{Binding Price}" />
-                <TextBlock Text="{Binding UnixTime}" />
-              </StackPanel>
-            </StackPanel>
-
-            <StackPanel Grid.Row="1" Orientation="Horizontal">
-              <controls1:PathButton
-                Glyph=""
-                IconCheckedColor="{StaticResource GreenColor}"
-                IsChecked="{Binding IsVisible}" />
-            </StackPanel>
-          </Grid>
-        </DataTemplate>
-      </ListView.ItemTemplate>
-    </ListView>
 
     <ItemsControl
       Grid.Row="0"

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using static CTKS_Chart.Trading.Ctks;
 
 namespace KMeans
 {
@@ -29,14 +30,14 @@ namespace KMeans
         /// <summary>
         /// Members of this cluster
         /// </summary>
-        public List<DataVec> Points { get; set; }
+        public List<SimplePoint> Points { get; set; }
 
 
         public Cluster()
         {
             const int defaultN = 2;
             Centroid = new DataVec(defaultN);
-            Points = new List<DataVec>();
+            Points = new List<SimplePoint>();
         }
 
         /// <summary>

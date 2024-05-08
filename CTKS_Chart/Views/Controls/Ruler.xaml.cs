@@ -398,7 +398,7 @@ namespace CTKS_Chart.Views.Controls
           }
         }
         
-        if(ValuesToRender.Count < 5 || ValuesToRender.Count > 30)
+        if(ValuesToRender.Count < 5 || ValuesToRender.Count >= 30)
         {
           var diff = (MaxValue - MinValue);
           var count = 9;

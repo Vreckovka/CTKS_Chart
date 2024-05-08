@@ -52,10 +52,14 @@ namespace CTKS_Chart.ViewModels
 
       SelectedLayout = layouts[5];
 
+      DrawingViewModel.chartDiff = 0;
+
       serialDisposable.Disposable = Lines.ItemUpdated.Subscribe(x =>
       {
         VSynchronizationContext.PostOnUIThread(RenderOverlay);
       });
+
+      DrawingViewModel.DrawingSettings.RenderLayout = () => RenderOverlay();
     }
 
 

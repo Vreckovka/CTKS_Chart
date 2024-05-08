@@ -167,7 +167,7 @@ namespace CTKS_Chart.ViewModels
   public class DrawingViewModel : ViewModel, IDrawingViewModel
   {
     DashStyle pricesDashStyle = new DashStyle(new List<double>() { 2 }, 5);
-
+    public decimal chartDiff = 0.01m;
     public DrawingViewModel(TradingBot tradingBot, Layout layout)
     {
       TradingBot = tradingBot;
@@ -1094,7 +1094,7 @@ namespace CTKS_Chart.ViewModels
       TimeFrame minTimeframe = TimeFrame.W1
       )
     {
-      var diff = (MaxValue - MinValue) * 0.01m;
+      var diff = (MaxValue - MinValue) * chartDiff;
 
       var maxCanvasValue = MaxValue - diff;
       var minCanvasValue = MinValue + diff;
@@ -1383,7 +1383,7 @@ namespace CTKS_Chart.ViewModels
       IList<Position> allPositions = null,
       TimeFrame minTimeframe = TimeFrame.W1)
     {
-      var diff = (MaxValue - MinValue) * 0.01m;
+      var diff = (MaxValue - MinValue) * chartDiff;
 
       var maxCanvasValue = MaxValue - diff;
       var minCanvasValue = MinValue + diff;
@@ -1443,8 +1443,11 @@ namespace CTKS_Chart.ViewModels
         pen.DashStyle = DashStyles.Dash;
         pen.Thickness = DrawingHelper.GetPositionThickness(frame);
 
-        var max = canvasHeight - TradingHelper.GetCanvasValue(canvasHeight, intersection.Cluster.Intersections.Max(x => x.Value), MaxValue, MinValue);
-        var min = canvasHeight - TradingHelper.GetCanvasValue(canvasHeight, intersection.Cluster.Intersections.Min(x => x.Value), MaxValue, MinValue);
+        var maxValue = intersection.Cluster.Intersections.Any() ? intersection.Cluster.Intersections.Max(x => x.Value) : intersection.Value;
+        var minValue = intersection.Cluster.Intersections.Any() ? intersection.Cluster.Intersections.Min(x => x.Value) : intersection.Value;
+
+        var max = canvasHeight - TradingHelper.GetCanvasValue(canvasHeight, maxValue, MaxValue, MinValue);
+        var min = canvasHeight - TradingHelper.GetCanvasValue(canvasHeight, minValue, MaxValue, MinValue);
 
         var clusterRect = new Rect()
         {
