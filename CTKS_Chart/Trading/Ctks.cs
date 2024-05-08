@@ -9,7 +9,6 @@ using System.Windows.Shapes;
 using VCore.Standard.Helpers;
 using Dbscan;
 using Point = System.Windows.Point;
-using DbscanImplementation;
 
 namespace CTKS_Chart.Trading
 {
@@ -241,34 +240,10 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
-    //dbscan
     private IEnumerable<CtksIntersection> CreateClusters(IEnumerable<CtksIntersection> intersections)
     {
-      var division = 5;
       var clusterIntersections = new List<CtksIntersection>();
 
-      //if (intersections.Count() > division * 2)
-      //{
-      //  List<SimplePoint> points = intersections.Select(x => new SimplePoint(new decimal[] { 0, x.Value }) { Intersection = x }).ToList();
-      //  KMeansClustering cl = new KMeansClustering(points.ToArray(), (int)(intersections.Count() / division));
-
-      //  Cluster[] clusters = cl.Compute();
-
-      //  clusterIntersections = clusters.Select(x => new CtksIntersection()
-      //  {
-      //    Value = Math.Round(x.Centroid.Components[1], asset.PriceRound),
-      //    TimeFrame = timeFrame,
-      //    Cluster = new CtksCluster()
-      //    {
-      //      Value = Math.Round(x.Centroid.Components[1], asset.PriceRound),
-      //      Intersections = x.Points.Select(x => x.Intersection)
-      //    }
-      //  }).ToList();
-      //}
-
-
-
-      //199 165
       var clusterscc = Dbscan.Dbscan.CalculateClusters(
                         intersections.Select(x => new SimplePoint(0, x.Value)
                         {
