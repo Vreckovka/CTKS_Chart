@@ -1437,6 +1437,8 @@ namespace CTKS_Chart.ViewModels
           selectedBrush = DrawingHelper.GetBrushFromHex("#f5c19d");
         }
 
+        selectedBrush.Opacity = 0.25;
+
         FormattedText formattedText = DrawingHelper.GetFormattedText(intersection.Value.ToString(), selectedBrush);
 
         Pen pen = new Pen(selectedBrush, 1);
@@ -1474,10 +1476,13 @@ namespace CTKS_Chart.ViewModels
 
         var rendered = RenderedIntersections.SingleOrDefault(x => x.Model == intersection);
 
+        var clone = selectedBrush.Clone();
+        clone.Opacity = 1;
+
         if (rendered == null)
-          RenderedIntersections.Add(new RenderedIntesection(intersection) { SelectedBrush = selectedBrush });
+          RenderedIntersections.Add(new RenderedIntesection(intersection) { SelectedBrush = clone });
         else
-          rendered.SelectedBrush = selectedBrush;
+          rendered.SelectedBrush = clone;
 
       }
     }
