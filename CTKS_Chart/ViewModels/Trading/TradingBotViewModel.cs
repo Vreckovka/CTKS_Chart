@@ -272,6 +272,18 @@ namespace CTKS_Chart.ViewModels
         if (value != drawChart)
         {
           drawChart = value;
+
+          if(IsSimulation && drawChart && DrawingViewModel.ActualCandles.Any())
+          {
+            var candles = DrawingViewModel.ActualCandles.TakeLast(150).ToList();
+
+            DrawingViewModel.maxValue = candles.Max(x => x.Close.Value) * 1.4m;
+            DrawingViewModel.minValue = candles.Min(x => x.Close.Value) * 0.7m;
+            DrawingViewModel.maxUnix = candles.Max(x => x.UnixTime) + (DrawingViewModel.unixDiff * 20);
+            DrawingViewModel.minUnix = candles.Min(x => x.UnixTime);
+
+          }
+
           RaisePropertyChanged();
         }
       }

@@ -26,33 +26,38 @@
         <RowDefinition />
       </Grid.RowDefinitions>
 
-      <StackPanel DataContext="{Binding DrawingViewModel.DrawingSettings}" Orientation="Vertical">
-        <controls1:PathButton
-          Margin="0,10"
-          HorizontalAlignment="Center"
-          VerticalAlignment="Top"
-          Glyph=""
-          GlyphFontSize="25"
-          IconCheckedColor="{StaticResource YellowColor}"
-          IconHeight="auto"
-          IconMargin="0"
-          IconWidth="auto"
-          IsChecked="{Binding ShowIntersections, Mode=TwoWay}"
-          ToolTip="Show intersections" />
+      <StackPanel>
+        <StackPanel DataContext="{Binding DrawingViewModel.DrawingSettings}" Orientation="Vertical">
+          <controls1:PathButton
+            Margin="0,10"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Glyph=""
+            GlyphFontSize="25"
+            IconCheckedColor="{StaticResource YellowColor}"
+            IconHeight="auto"
+            IconMargin="0"
+            IconWidth="auto"
+            IsChecked="{Binding ShowIntersections, Mode=TwoWay}"
+            ToolTip="Show intersections" />
 
-        <controls1:PathButton
-          Margin="0,10"
-          HorizontalAlignment="Center"
-          VerticalAlignment="Top"
-          Glyph=""
-          GlyphFontSize="25"
-          IconCheckedColor="{StaticResource YellowColor}"
-          IconHeight="auto"
-          IconMargin="0"
-          IconWidth="auto"
-          IsChecked="{Binding ShowClusters, Mode=TwoWay}"
-          ToolTip="Show clusters" />
+          <controls1:PathButton
+            Margin="0,10"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            Glyph=""
+            GlyphFontSize="25"
+            IconCheckedColor="{StaticResource YellowColor}"
+            IconHeight="auto"
+            IconMargin="0"
+            IconWidth="auto"
+            IsChecked="{Binding ShowClusters, Mode=TwoWay}"
+            ToolTip="Show clusters" />
+        </StackPanel>
+
+        <TextBox Text="{Binding Epsilon, Mode=TwoWay}" />
       </StackPanel>
+
 
       <ListView
         Grid.Row="1"

@@ -96,6 +96,26 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region Epsilon
+
+    public decimal Epsilon
+    {
+      get { return SelectedLayout.Ctks.Epsilon; }
+      set
+      {
+        if (value != SelectedLayout.Ctks.Epsilon)
+        {
+          SelectedLayout.Ctks.Epsilon = value;
+         SelectedLayout.Ctks.AddIntersections();
+
+          RenderOverlay();
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     #region Chart
 
     private DrawingImage chart;
@@ -415,16 +435,6 @@ namespace CTKS_Chart.ViewModels
           y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
         }
 
-
-        if (line.FirstPoint.Price > MaxValue || line.SecondPoint.Price > MaxValue)
-        {
-          continue;
-        }
-
-        if (line.FirstPoint.Price < MinValue || line.SecondPoint.Price < MinValue)
-        {
-          continue;
-        }
 
         if (x3 < 0)
           continue;

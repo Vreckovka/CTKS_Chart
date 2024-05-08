@@ -226,7 +226,7 @@ namespace CTKS_Chart.ViewModels
 
     #region MaxValue
 
-    private decimal maxValue;
+    public decimal maxValue;
 
     public decimal MaxValue
     {
@@ -251,7 +251,7 @@ namespace CTKS_Chart.ViewModels
 
     #region MinValue
 
-    private decimal minValue = (decimal)0.001;
+    public decimal minValue = (decimal)0.001;
 
     public decimal MinValue
     {
@@ -648,38 +648,25 @@ namespace CTKS_Chart.ViewModels
 
           if (candlesToRender.Count > 1 && LockChart)
           {
+            var close = candlesToRender.Last().Close.Value;
 
-            var close = candlesToRender.SkipLast(1).Last().Close.Value;
-
-            var minView = minValue * (1 + actualPriceChartViewDiff * 0.2m);
-            var maxView = maxValue * (1 - (actualPriceChartViewDiff * 0.2m));
-            var diff = Math.Abs((close - maxView) / close);
+            var minView = minValue * (1 + actualPriceChartViewDiff * 0.3m);
+            var maxView = maxValue * (1 - (actualPriceChartViewDiff * 0.3m));
+            
 
             if (close < minView)
             {
+              var diff = Math.Abs((minView - close) / minView);
+
               maxValue = maxValue * (1 - diff);
               minValue = minValue * (1 - diff);
-
-              //if (close < minValue)
-              //{
-              //  var di = maxValue - minValue;
-
-              //  minValue = close - (di * 0.3m);
-              //  maxValue = minValue + di;
-              //}
             }
             else if (close > maxView)
             {
+              var diff = Math.Abs((maxView - close) / maxView);
+
               maxValue = maxValue * (1 + diff);
               minValue = minValue * (1 + diff);
-
-              //if (close > maxValue)
-              //{
-              //  var di = maxValue - minValue;
-
-              //  maxValue = close + (di * 0.3m);
-              //  minValue = maxValue - diff;
-              //}
             }
 
 

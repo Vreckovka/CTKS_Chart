@@ -111,6 +111,10 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.MaxUnix = candles.Max(x => x.UnixTime) + (unixDiff * 20);
       DrawingViewModel.MinUnix = DrawingViewModel.MaxUnix - (unixDiff * 100);
 
+      DrawingViewModel.DrawingSettings.ShowAveragePrice = false;
+      DrawingViewModel.DrawingSettings.ShowAutoPositions = false;
+      DrawingViewModel.DrawingSettings.ShowManualPositions = false;
+
       DrawingViewModel.LockChart = true;
       DrawingViewModel.DrawingSettings.ShowATH = true;
 

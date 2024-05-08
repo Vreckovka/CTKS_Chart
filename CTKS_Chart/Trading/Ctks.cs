@@ -43,6 +43,24 @@ namespace CTKS_Chart.Trading
     public bool IntersectionsVisible { get; set; }
     public IList<Candle> Candles { get; set; } = new List<Candle>();
 
+    #region Epsilon
+
+    private decimal epsilon = 0.01m;
+
+    public decimal Epsilon
+    {
+      get { return epsilon; }
+      set
+      {
+        if (value != epsilon)
+        {
+          epsilon = value;
+        }
+      }
+    }
+
+    #endregion
+
 
     #region CreateLines
 
@@ -183,6 +201,8 @@ namespace CTKS_Chart.Trading
 
     public void AddIntersections()
     {
+      Intersections.Clear();
+
       var lastCandle = Candles.Last();
       var highestClose = Candles.Max(x => x.High);
       var lowestClose = Candles.Min(x => x.Low);
@@ -240,19 +260,21 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
+    #region CreateClusters
+
     private IEnumerable<CtksIntersection> CreateClusters(IEnumerable<CtksIntersection> intersections)
     {
       var clusterIntersections = new List<CtksIntersection>();
 
-      var clusterscc = Dbscan.Dbscan.CalculateClusters(
+      var clusters = Dbscan.Dbscan.CalculateClusters(
                         intersections.Select(x => new SimplePoint(0, x.Value)
                         {
                           Intersection = x
                         }),
-                        epsilon: 0.01m,
+                        epsilon: Epsilon,
                         minimumPointsPerCluster: 2);
 
-      foreach (var cluster in clusterscc.Clusters)
+      foreach (var cluster in clusters.Clusters)
       {
         var intersectionValues = cluster.Objects.Select(y => y.Point.Y);
         var median = GetMedian(intersectionValues.ToArray());
@@ -275,9 +297,12 @@ namespace CTKS_Chart.Trading
         clusterIntersections.Add(ctksIntersection);
       }
 
+      //clusterIntersections.AddRange(clusters.UnclusteredObjects.Select(x => x.Intersection));
+
       return clusterIntersections.DistinctBy(x => x.Value);
     }
 
+    #endregion
 
     #region GetMedian
 
