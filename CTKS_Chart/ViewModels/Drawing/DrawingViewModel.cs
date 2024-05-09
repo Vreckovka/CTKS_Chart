@@ -635,7 +635,7 @@ namespace CTKS_Chart.ViewModels
 
         if (candlesToRender.Count > 0)
         {
-          var last = ActualCandles.LastOrDefault();
+          var lastCandle = ActualCandles.LastOrDefault();
 
           if (actualPriceChartViewDiff == 0)
           {
@@ -647,26 +647,27 @@ namespace CTKS_Chart.ViewModels
           }
 
           if (candlesToRender.Count > 1 && LockChart)
-          {
-            var close = candlesToRender.Last().Close.Value;
+          { 
+            var low = lastCandle.Low.Value;
+            var high = lastCandle.High.Value;
 
-            var minView = minValue * (1 + actualPriceChartViewDiff * 0.3m);
-            var maxView = maxValue * (1 - (actualPriceChartViewDiff * 0.3m));
+            var minView = minValue * (1 + actualPriceChartViewDiff * 0.20m);
+            var maxView = maxValue * (1 - (actualPriceChartViewDiff * 0.20m));
             
 
-            if (close < minView)
+            if (low < minView)
             {
-              var diff = Math.Abs((minView - close) / minView);
+              var diff = 1 - ((Math.Abs((minView - low) / minView)));
 
-              maxValue = maxValue * (1 - diff);
-              minValue = minValue * (1 - diff);
+              maxValue = maxValue * diff;
+              minValue = minValue * diff;
             }
-            else if (close > maxView)
+            else if (high > maxView)
             {
-              var diff = Math.Abs((maxView - close) / maxView);
+              var diff = (Math.Abs((maxView - high) / maxView)) + 1;
 
-              maxValue = maxValue * (1 + diff);
-              minValue = minValue * (1 + diff);
+              maxValue = maxValue * diff;
+              minValue = minValue * diff;
             }
 
 
@@ -676,14 +677,14 @@ namespace CTKS_Chart.ViewModels
 
           if (LockChart)
           {
-            if (MaxUnix < last?.UnixTime)
+            if (MaxUnix < lastCandle?.UnixTime)
             {
               var viewCandles = ActualCandles.TakeLast(150);
 
               maxUnix = viewCandles.Max(x => x.UnixTime) + (unixDiff * 30);
               minUnix = viewCandles.Min(x => x.UnixTime) + (unixDiff * 30);
             }
-            else if (lastLockedCandle?.OpenTime != last?.OpenTime)
+            else if (lastLockedCandle?.OpenTime != lastCandle?.OpenTime)
             {
               maxUnix += unixDiff;
               minUnix += unixDiff;
@@ -697,7 +698,7 @@ namespace CTKS_Chart.ViewModels
                 minUnix = maxUnix - diffX;
               }
 
-              lastLockedCandle = last;
+              lastLockedCandle = lastCandle;
             }
 
             RaisePropertyChanged(nameof(MaxUnix));
@@ -754,7 +755,6 @@ namespace CTKS_Chart.ViewModels
           maxCanvasValue = MaxValue - chartDiff;
           minCanvasValue = MinValue + chartDiff;
 
-          var lastCandle = ActualCandles.Last();
           var lastPrice = lastCandle.Close;
 
           if (lastPrice < maxCanvasValue && lastPrice > minCanvasValue)
