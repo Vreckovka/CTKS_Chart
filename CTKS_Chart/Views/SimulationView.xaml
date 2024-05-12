@@ -17,7 +17,13 @@
       <RowDefinition />
     </Grid.RowDefinitions>
 
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="auto" />
+      <ColumnDefinition />
+    </Grid.ColumnDefinitions>
+
     <StackPanel
+      Grid.Column="1"
       Margin="5"
       HorizontalAlignment="Left"
       Orientation="Horizontal">
@@ -45,9 +51,56 @@
         VerticalAlignment="Center"
         Foreground="#45ffffff"
         Text="{Binding SelectedBot.RunningTime, StringFormat={}{0:mm\\:ss}}" />
+
+      <TextBox Text="{Binding SelectedBot.Delay, Mode=TwoWay}" />
+
+      <Button Focusable="True">X</Button>
     </StackPanel>
 
+    <trading:BotView
+      Grid.Row="1"
+      Grid.Column="1"
+      DataContext="{Binding SelectedBot}" />
 
-    <trading:BotView Grid.Row="1" DataContext="{Binding SelectedBot}" />
+    <ScrollViewer
+      Grid.RowSpan="2"
+      Grid.Column="0"
+      Width="150"
+      HorizontalScrollBarVisibility="Auto"
+      VerticalScrollBarVisibility="Auto">
+      <ItemsControl ItemsSource="{Binding SelectedBot.SimulationResults}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Margin="5,5" Orientation="Vertical">
+              <TextBlock Foreground="#555555" Text="{Binding Date, StringFormat={}{0:dd.MM.yyyy hh:mm}}" />
+
+              <TextBlock
+                Margin="0,2"
+                FontSize="15"
+                Foreground="{StaticResource YellowBrush}"
+                Text="{Binding TotalValue, StringFormat={}{0:N2} $}"
+                ToolTip="Total value" />
+
+              <TextBlock
+                Foreground="{StaticResource GreenBrush3}"
+                Text="{Binding TotalProfit, StringFormat={}{0:N2} $}"
+                ToolTip="Profit" />
+
+
+              <TextBlock
+                Foreground="{StaticResource YellowBrush3}"
+                Text="{Binding TotalNative}"
+                ToolTip="Native asset size" />
+
+              <TextBlock
+                Foreground="{StaticResource MagentaBrush}"
+                Text="{Binding TotalNativeValue, StringFormat={}{0:N2} $}"
+                ToolTip="Native asset value $" />
+              <TextBlock Foreground="#555555" Text="{Binding RunTime, StringFormat={}{0:mm\\:ss}}" />
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
   </Grid>
 </UserControl>

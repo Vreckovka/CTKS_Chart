@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using CTKS_Chart.Binance;
@@ -13,14 +16,26 @@ using CTKS_Chart.Trading;
 using CTKS_Chart.Views;
 using Logger;
 using VCore.Standard.Factories.ViewModels;
+using VCore.Standard.Helpers;
 using VCore.WPF;
 using VCore.WPF.Interfaces.Managers;
 
 namespace CTKS_Chart.ViewModels
 {
+  public class SimulationResult
+  {
+    public decimal TotalValue { get; set; }
+    public decimal TotalProfit { get; set; }
+    public decimal TotalNativeValue { get; set; }
+    public decimal TotalNative { get; set; }
+    public TimeSpan RunTime { get; set; }
+    public long RunTimeTicks { get; set; }
+    public DateTime Date { get; set; }
+  }
   public class SimulationTradingBot : TradingBotViewModel
   {
     private readonly BinanceDataProvider binanceDataProvider;
+    string results;
 
     public SimulationTradingBot(
       TradingBot tradingBot,
@@ -36,7 +51,12 @@ namespace CTKS_Chart.ViewModels
       IsSimulation = true;
 
       DrawChart = false;
+
+      results = $"{TradingBot.Asset.Symbol}_simulation_results.txt";
+      LoadSimulationResults();
     }
+
+    public ObservableCollection<SimulationResult> SimulationResults { get; } = new ObservableCollection<SimulationResult>();
 
     public string DisplayName
     {
@@ -84,6 +104,25 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region Delay
+
+    private int delay = 1;
+
+    public int Delay
+    {
+      get { return delay; }
+      set
+      {
+        if (value != delay)
+        {
+          delay = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     #region LoadLayouts
 
     private List<Candle> cutCandles = new List<Candle>();
@@ -122,8 +161,10 @@ namespace CTKS_Chart.ViewModels
       //TradingBot.Strategy.EnableManualPositions = false;
 
 
-      var rangeFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
-      TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy(rangeFilterData, TradingBot.Strategy));
+      var rangeAdaFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
+      var rangeBtcFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\INDEX BTCUSD, 1D.csv";
+
+      TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy(rangeAdaFilterData, rangeBtcFilterData, TradingBot.Strategy));
 
       LoadSecondaryLayouts(fromDate);
       PreLoadCTks(fromDate);
@@ -159,6 +200,24 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    private void LoadSimulationResults()
+    {
+      if(File.Exists(results))
+      {
+        var content = File.ReadAllLines(results);
+
+        foreach (var line in content)
+        {
+          var result = JsonSerializer.Deserialize<SimulationResult>(line);
+
+          result.RunTime = TimeSpan.FromTicks(result.RunTimeTicks);
+          SimulationResults.Add(result);
+        }
+
+        SimulationResults.LinqSortDescending(x => x.Date);
+      }
+    }
+
     public override void Start()
     {
       base.Start();
@@ -170,7 +229,7 @@ namespace CTKS_Chart.ViewModels
     IDisposable disposable;
     DateTime lastElapsed;
 
-    private void Simulate(List<Candle> cutCandles, List<CtksLayout> secondaryLayouts)
+    private async void Simulate(List<Candle> cutCandles, List<CtksLayout> secondaryLayouts)
     {
       RunningTime = new TimeSpan();
       cts?.Cancel();
@@ -193,7 +252,7 @@ namespace CTKS_Chart.ViewModels
          lastElapsed = DateTime.Now;
        });
 
-      Task.Run(async () =>
+      await Task.Run(async () =>
       {
         for (int i = 0; i < cutCandles.Count; i++)
         {
@@ -204,14 +263,46 @@ namespace CTKS_Chart.ViewModels
 
           SimulateCandle(secondaryLayouts, actual);
 
-          await Task.Delay(!IsSimulation || DrawChart ? 1 : 0);
+          await Task.Delay(!IsSimulation || DrawChart ? Delay : 0);
         }
 
         disposable?.Dispose();
 
      }, cts.Token);
 
+      if (!cts.IsCancellationRequested)
+      {
+        DrawingViewModel.OnRestChart();
+        DrawingViewModel.RenderOverlay();
 
+        var result = new SimulationResult()
+        {
+          TotalValue = TradingBot.Strategy.TotalValue,
+          TotalProfit = TradingBot.Strategy.TotalProfit,
+          TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
+          TotalNative = TradingBot.Strategy.TotalNativeAsset,
+          RunTime = RunningTime,
+          RunTimeTicks = RunningTime.Ticks,
+          Date = DateTime.Now
+        };
+
+        var json = JsonSerializer.Serialize(result);
+
+        if (File.Exists(results))
+        {
+          using (StreamWriter w = File.AppendText(results))
+          {
+            w.WriteLine(JsonSerializer.Serialize(result));
+          }
+        }
+        else
+        {
+          File.WriteAllText(results, json);
+        }
+
+        SimulationResults.Add(result);
+        SimulationResults.LinqSortDescending(x => x.Date);
+      }
     }
 
     #endregion

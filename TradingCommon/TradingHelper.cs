@@ -147,7 +147,7 @@ namespace CTKS_Chart.Trading
     public static bool IsOutDated(TimeFrame timeFrame, IList<Candle> innerCandles)
     {
       var last = innerCandles.Last();
-      if (DateTime.Now > TradingViewHelper.GetNextTime(last.OpenTime, timeFrame))
+      if (DateTime.UtcNow > TradingViewHelper.GetNextTime(last.OpenTime, timeFrame))
       {
         return true;
       }

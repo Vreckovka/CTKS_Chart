@@ -14,13 +14,17 @@ namespace CTKS_Chart.Strategy
   public class RangeFilterStrategy : InnerStrategy
   {
     private readonly string path;
+    private readonly string btcPath;
     private readonly Strategy strategy;
-    private List<Candle> candles;
+    private List<Candle> AssetCandles;
+    private List<Candle> BtcCandles;
+
     private IEnumerable<KeyValuePair<TimeFrame, decimal>> originalMapping;
 
-    public RangeFilterStrategy(string path, Strategy strategy)
+    public RangeFilterStrategy(string path,string btcPath, Strategy strategy)
     {
       this.path = path ?? throw new ArgumentNullException(nameof(path));
+      this.btcPath = btcPath ?? throw new ArgumentNullException(nameof(btcPath));
       this.strategy = strategy ?? throw new ArgumentNullException(nameof(strategy));
     }
 
@@ -28,30 +32,38 @@ namespace CTKS_Chart.Strategy
 
     public override void Calculate(Candle newCandle)
     {
-      if (candles == null)
+      if (AssetCandles == null)
       {
-        candles = TradingViewHelper.ParseTradingView(path);
+        AssetCandles = TradingViewHelper.ParseTradingView(path);
+        BtcCandles = TradingViewHelper.ParseTradingView(btcPath);
       }
 
-      var actualCandle = candles.FirstOrDefault(x => x.CloseTime > newCandle.CloseTime && x.OpenTime < newCandle.OpenTime);
+      var actualAssetCandle = AssetCandles.FirstOrDefault(x => x.CloseTime >= newCandle.CloseTime && x.OpenTime <= newCandle.OpenTime);
+      var actualBtcCandle = BtcCandles.FirstOrDefault(x => x.CloseTime >= newCandle.CloseTime && x.OpenTime <= newCandle.OpenTime);
 
- 
-      if (actualCandle != null && actualCandle.IndicatorData.RangeFilter > 0 && lastCandle != actualCandle)
+      if (actualAssetCandle != null && actualAssetCandle.IndicatorData.RangeFilter > 0 && lastCandle != actualAssetCandle)
       {
-        var bullish = actualCandle.IndicatorData.Upward;
-        var bbwp = (double)actualCandle.IndicatorData.BBWP / 100.0;
+        //var bullish = actualAssetCandle.IndicatorData.Upward;
+        //var bullish = actualBtcCandle.IndicatorData.Upward;
+        var bullish = actualBtcCandle.IndicatorData.Upward || actualAssetCandle.IndicatorData.Upward;
+        //var bullish = actualBtcCandle.IndicatorData.Upward && actualAssetCandle.IndicatorData.Upward;
 
-        bool wasChange = false;
+        var size = 0.025;
 
-
-
-
-        var size = 0.1;
+        if (actualBtcCandle.IndicatorData.Upward && actualAssetCandle.IndicatorData.Upward)
+        {
+          size = 0.2;
+        }
+        else if (!actualBtcCandle.IndicatorData.Upward && !actualAssetCandle.IndicatorData.Upward)
+        {
+          size = 0.2;
+        }
 
         var minValue = 0.0075;
         var maxValue = 0.25;
 
         var list = this.strategy.MinBuyMapping.ToList();
+
         foreach (var buy in list)
         {
           var newValue = buy.Value * (bullish ? 1 - size : 1 + size);
@@ -117,21 +129,6 @@ namespace CTKS_Chart.Strategy
           }
 
           newList[positionSize.Key] = newValue;
-
-
-
-          //31557
-
-          //if (strategy.StrategyPosition == StrategyPosition.Bearish)
-          //{
-          //  var positionsToStop = strategy.ActualPositions
-          //    .Where(x => x.TimeFrame == positionSize.Key)
-          //    .Where(x => !x.IsAutomatic)
-          //    .Where(x => x.OriginalPositionSize > originalMapping.SingleOrDefault(y => y.Key == positionSize.Key).Value);
-
-          //  if (positionsToStop.Any())
-          //    StopPositions(newCandle, positionsToStop);
-          //}
         }
 
         if (bullish)
@@ -155,17 +152,10 @@ namespace CTKS_Chart.Strategy
 
         strategy.PositionSizeMapping = newList;
 
-        lastCandle = actualCandle;
+        lastCandle = actualAssetCandle;
 
 
         strategy.StrategyPosition = bullish ? StrategyPosition.Bullish : StrategyPosition.Bearish;
-
-        //strategy.DisableOnBuy = !bullish;
-
-        //if (bullish)
-        //{
-        //  strategy.Intersections.ForEach(x => x.IsEnabled = true);
-        //}
       }
     }
   }

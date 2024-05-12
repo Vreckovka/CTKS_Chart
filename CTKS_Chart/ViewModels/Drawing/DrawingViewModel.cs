@@ -484,12 +484,15 @@ namespace CTKS_Chart.ViewModels
       lastLockedCandle = viewCandles.Last();
       var lastClose = lastLockedCandle.Close.Value;
 
+      var isLocked = LockChart;
+
       MaxValue = lastClose * (1 + diff);
       MinValue = lastClose * (1 - diff);
 
       MaxUnix = viewCandles.Max(x => x.UnixTime) + (unixDiff * 30);
       MinUnix = viewCandles.Min(x => x.UnixTime) + (unixDiff * 30);
 
+      LockChart = isLocked;
       RenderOverlay();
     }
 

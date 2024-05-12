@@ -112,11 +112,9 @@ namespace CTKS_Chart.Strategy
       var multi = 1;
       var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
-      StartingBudget = 100000;
-      StartingBudget *= multi;
+      //StartingBudget = 100000;
+      //StartingBudget *= multi;
       Budget = StartingBudget;
-      //MaxBuyPrice = (decimal)0.0005;
-      //MinSellPrice = (decimal)8.5;
 
       MaxAutomaticBudget = StartingBudget * (decimal)0.35;
       AutomaticBudget = StartingBudget * (decimal)0.35;
@@ -140,7 +138,6 @@ namespace CTKS_Chart.Strategy
       PositionSizeMapping = newss;
       ScaleSize = 0;
       StrategyPosition = StrategyPosition.Neutral;
-      //499
 #endif
     }
 
@@ -175,7 +172,7 @@ namespace CTKS_Chart.Strategy
 
     #region StrategyPosition
 
-    private StrategyPosition strategyPosition = StrategyPosition.Bullish;
+    private StrategyPosition strategyPosition = StrategyPosition.Neutral;
 
     public StrategyPosition StrategyPosition
     {
@@ -317,7 +314,7 @@ namespace CTKS_Chart.Strategy
 
     public decimal AutomaticPositionSizeValue
     {
-      get { return PositionSizeMapping.Single(x => x.Key == TimeFrame.W1).Value * (decimal)AutomaticPositionSize; }
+      get { return Math.Max(MinPositionValue, PositionSizeMapping.Single(x => x.Key == TimeFrame.W1).Value * (decimal)AutomaticPositionSize); }
     }
 
     #endregion
@@ -926,7 +923,7 @@ namespace CTKS_Chart.Strategy
         leftSize = leftSize - existing;
       }
 
-      if (leftSize > MinPositionValue)
+      if (leftSize >= MinPositionValue)
       {
         var validPositions =
           OpenBuyPositions
@@ -1281,7 +1278,7 @@ namespace CTKS_Chart.Strategy
         int i = 0;
         List<Position> createdPositions = new List<Position>();
 
-        while (buyPosition.PositionSize > 0 && nextLines.Count > 0)
+        //while (buyPosition.PositionSize > 0 && nextLines.Count > 0)
         {
           foreach (var nextLine in nextLines)
           {

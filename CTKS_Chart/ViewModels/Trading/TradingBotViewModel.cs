@@ -282,6 +282,9 @@ namespace CTKS_Chart.ViewModels
             DrawingViewModel.maxUnix = candles.Max(x => x.UnixTime) + (DrawingViewModel.unixDiff * 20);
             DrawingViewModel.minUnix = candles.Min(x => x.UnixTime);
 
+            DrawingViewModel.OnRestChart();
+            DrawingViewModel.LockChart = true;
+
           }
 
           RaisePropertyChanged();

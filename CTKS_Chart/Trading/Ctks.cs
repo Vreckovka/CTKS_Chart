@@ -287,8 +287,6 @@ namespace CTKS_Chart.Trading
           break;
       }
 
-      //176 601
-
       var clusters = Dbscan.Dbscan.CalculateClusters(
                         intersections.Select(x => new SimplePoint(0, x.Value)
                         {
@@ -317,7 +315,7 @@ namespace CTKS_Chart.Trading
           Cluster = newCluster
         };
 
-        if(newCluster.Intersections.Count() == 2)
+        if(newCluster.Intersections.Count() <= 2)
         {
           foreach(var inter in newCluster.Intersections)
           {
@@ -327,8 +325,6 @@ namespace CTKS_Chart.Trading
 
         clusterIntersections.Add(ctksIntersection);
       }
-
-      //clusterIntersections.AddRange(clusters.UnclusteredObjects.Select(x => x.Intersection));
 
       return clusterIntersections.DistinctBy(x => x.Value);
     }
