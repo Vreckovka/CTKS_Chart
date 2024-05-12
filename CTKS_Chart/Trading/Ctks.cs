@@ -1,5 +1,4 @@
-﻿using KMeans;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -229,8 +228,9 @@ namespace CTKS_Chart.Trading
         }
       }
 
-      Intersections = newCtksIntersections;
+    
       Intersections.AddRange(CreateClusters(newCtksIntersections));
+      Intersections.AddRange(newCtksIntersections);
     }
 
     #endregion
@@ -262,9 +262,32 @@ namespace CTKS_Chart.Trading
 
     #region CreateClusters
 
-    private IEnumerable<CtksIntersection> CreateClusters(IEnumerable<CtksIntersection> intersections)
+    private IEnumerable<CtksIntersection> CreateClusters(List<CtksIntersection> intersections)
     {
       var clusterIntersections = new List<CtksIntersection>();
+
+      switch (timeFrame)
+      {
+        case TimeFrame.Null:
+          break;
+        case TimeFrame.M12:
+          Epsilon = 0.2m;
+          break;
+        case TimeFrame.M6:
+          Epsilon = 0.15m;
+          break;
+        case TimeFrame.M3:
+          Epsilon = 0.1m;
+          break;
+        case TimeFrame.M1:
+          Epsilon = 0.05m;
+          break;
+        case TimeFrame.W2:
+          Epsilon = 0.02m;
+          break;
+      }
+
+      //176 601
 
       var clusters = Dbscan.Dbscan.CalculateClusters(
                         intersections.Select(x => new SimplePoint(0, x.Value)
@@ -294,6 +317,14 @@ namespace CTKS_Chart.Trading
           Cluster = newCluster
         };
 
+        if(newCluster.Intersections.Count() == 2)
+        {
+          foreach(var inter in newCluster.Intersections)
+          {
+            intersections.Remove(inter);
+          }
+        }
+
         clusterIntersections.Add(ctksIntersection);
       }
 
@@ -304,6 +335,7 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
+    //200 165
     #region GetMedian
 
     public static decimal GetMedian(decimal[] sourceNumbers)
@@ -325,13 +357,8 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
-    public class SimplePoint : DataVec, IPointData
+    public class SimplePoint :  IPointData
     {
-      public SimplePoint(decimal[] data)
-      {
-        Components = data;
-      }
-
       public SimplePoint(decimal x, decimal y) => Point = new Dbscan.Point(x, y);
       public Dbscan.Point Point { get; }
 

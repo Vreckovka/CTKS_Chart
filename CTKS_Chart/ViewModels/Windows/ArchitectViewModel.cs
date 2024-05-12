@@ -89,7 +89,7 @@ namespace CTKS_Chart.ViewModels
 
           OnLayoutChanged();
           RaisePropertyChanged();
-
+          RaisePropertyChanged(nameof(Epsilon));
         }
       }
     }
