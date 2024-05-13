@@ -20,6 +20,7 @@ using CTKS_Chart.Trading;
 using CTKS_Chart.ViewModels;
 using VCore.Standard.Helpers;
 using VCore.WPF.Controls;
+using DecimalMath;
 
 namespace CTKS_Chart.Views.Controls
 {
@@ -398,20 +399,20 @@ namespace CTKS_Chart.Views.Controls
           }
         }
         
-        if(ValuesToRender.Count < 5 || ValuesToRender.Count >= 30)
+        if((ValuesToRender.Count < 5 || ValuesToRender.Count >= 30) && Overlay.ActualHeight > 0)
         {
-          var diff = (MaxValue - MinValue);
-          var count = 9;
+          var count = 12;
 
-          var step = diff / count;
-          decimal actualStep = MinValue + (step / 2);
+          var step = Overlay.ActualHeight / count;
+          var actualStep = step;
 
-          for (int i = 0; i < count; i++)
+          for (int i = 0; i < count - 1; i++)
           {
-            var y = Overlay.ActualHeight - TradingHelper.GetCanvasValue(Overlay.ActualHeight, actualStep, MaxValue, MinValue);
+            var yPrice = TradingHelper.GetValueFromCanvas(Overlay.ActualHeight, actualStep, MaxValue, MinValue);
+            var y = Overlay.ActualHeight - TradingHelper.GetCanvasValue(Overlay.ActualHeight, yPrice, MaxValue, MinValue);
 
             var brush = DrawingHelper.GetBrushFromHex("#45ffffff");
-            var label = Math.Round(actualStep, AssetPriceRound).ToString();
+            var label = Math.Round(yPrice, AssetPriceRound).ToString();
 
             var formattedText = DrawingHelper.GetFormattedText(label, brush, fontSize);
 

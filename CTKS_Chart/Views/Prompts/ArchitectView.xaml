@@ -56,6 +56,22 @@
         </StackPanel>
 
         <TextBox Text="{Binding Epsilon, Mode=TwoWay}" />
+
+        <StackPanel Margin="5" Orientation="Horizontal">
+          <Button
+            Margin="5,0"
+            Command="{Binding SetAllLinesVisibility}"
+            CommandParameter="true">
+            Show all lines
+          </Button>
+          <Button
+            Margin="5,0"
+            Command="{Binding SetAllLinesVisibility}"
+            CommandParameter="false">
+            Hide all lines
+          </Button>
+        </StackPanel>
+
       </StackPanel>
 
 
@@ -66,18 +82,18 @@
         <ListView.ItemTemplate>
           <DataTemplate>
             <Grid>
-              <Grid.RowDefinitions>
-                <RowDefinition />
-                <RowDefinition />
-              </Grid.RowDefinitions>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+              </Grid.ColumnDefinitions>
 
-              <StackPanel DataContext="{Binding Model}">
+              <StackPanel DataContext="{Binding Model}" Orientation="Horizontal">
                 <StackPanel Margin="0,5" Orientation="Horizontal">
                   <TextBlock Margin="5,0" Text="{Binding LineType}" />
                   <TextBlock Text="{Binding TimeFrame}" />
                 </StackPanel>
 
-                <StackPanel
+                <!--<StackPanel
                   Margin="0,5"
                   DataContext="{Binding FirstPoint}"
                   Orientation="Horizontal">
@@ -92,10 +108,15 @@
                   Orientation="Horizontal">
                   <TextBlock Margin="5,0" Text="{Binding Price}" />
                   <TextBlock Text="{Binding UnixTime}" />
-                </StackPanel>
+                </StackPanel>-->
+
+
               </StackPanel>
 
-              <StackPanel Grid.Row="1" Orientation="Horizontal">
+              <StackPanel
+                Grid.Column="1"
+                HorizontalAlignment="Right"
+                Orientation="Horizontal">
                 <controls1:PathButton
                   Glyph=""
                   IconCheckedColor="{StaticResource GreenColor}"

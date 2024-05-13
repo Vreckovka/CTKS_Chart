@@ -112,8 +112,8 @@ namespace CTKS_Chart.Strategy
       var multi = 1;
       var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
-      //StartingBudget = 100000;
-      //StartingBudget *= multi;
+      StartingBudget = 100000;
+      StartingBudget *= multi;
       Budget = StartingBudget;
 
       MaxAutomaticBudget = StartingBudget * (decimal)0.35;

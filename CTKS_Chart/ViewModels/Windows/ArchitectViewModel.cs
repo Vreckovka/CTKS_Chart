@@ -62,6 +62,7 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.DrawingSettings.RenderLayout = () => RenderOverlay();
     }
 
+    #region Properties
 
     public IEnumerable<CtksLayout> Layouts { get; }
     public override string Title { get; set; } = "Architect";
@@ -106,7 +107,7 @@ namespace CTKS_Chart.ViewModels
         if (value != SelectedLayout.Ctks.Epsilon)
         {
           SelectedLayout.Ctks.Epsilon = value;
-         SelectedLayout.Ctks.AddIntersections();
+          SelectedLayout.Ctks.AddIntersections();
 
           RenderOverlay();
           RaisePropertyChanged();
@@ -309,6 +310,28 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #endregion
+
+    #region SetAllLinesVisibility
+
+    protected ActionCommand<bool> setAllLinesVisibility;
+
+    public ICommand SetAllLinesVisibility
+    {
+      get
+      {
+        return setAllLinesVisibility ??= new ActionCommand<bool>(OnSetAllLinesVisibility);
+      }
+    }
+
+
+    public void OnSetAllLinesVisibility(bool value)
+    {
+      Lines.ForEach(x => x.IsVisible = value);
+    }
+
+    #endregion
+
     #region Methods
 
     #region OnLayoutChanged
@@ -406,47 +429,67 @@ namespace CTKS_Chart.ViewModels
       foreach (var vm in Lines.Where(x => x.IsVisible))
       {
         var line = vm.Model;
-
+       
         Brush selectedBrush = Brushes.Yellow;
 
         if (vm.IsSelected)
         {
           selectedBrush = Brushes.Red;
         }
-
-        var x3 = canvasWidth;
-
-        var ctksLine = CreateLine(canvasHeight, canvasWidth, line);
-
-        if (ctksLine == null)
-          continue;
-
-        var y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
-
-        while (y3 < 0 && x3 > 0)
-        {
-          x3 -= 1;
-          y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
-        }
-
-        while (y3 > canvasHeight && x3 > 0)
-        {
-          x3 -= 1;
-          y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
-        }
-
-
-        if (x3 < 0)
-          continue;
-
         Pen pen = new Pen(selectedBrush, 1);
 
+        var x3 = canvasWidth;
+        var ctksLine = CreateLine(canvasHeight, canvasWidth, line);
+
+        if(ctksLine.StartPoint.X > canvasWidth && ctksLine.EndPoint.X > canvasWidth)
+        {
+          continue;
+        }
+
+        var y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
+        Point startPoint = ctksLine.StartPoint;
+
+        if (startPoint.X < 0)
+        {
+          var newY = TradingHelper.GetPointOnLine(startPoint.X, startPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, 0);
+          startPoint = new Point(0, newY);
+        }
+
+        if (startPoint.Y > canvasHeight)
+        {
+          var newX = TradingHelper.GetPointOnLine(startPoint.Y, startPoint.X, ctksLine.EndPoint.Y, ctksLine.EndPoint.X, canvasHeight);
+          startPoint = new Point(newX, canvasHeight);
+        }
+        else if (startPoint.Y < 0)
+        {
+          var newX = TradingHelper.GetPointOnLine(startPoint.Y, startPoint.X, ctksLine.EndPoint.Y, ctksLine.EndPoint.X, 0);
+          startPoint = new Point(newX, 0);
+        }
+
+        if (y3 < 0)
+        {
+          x3 = TradingHelper.GetPointOnLine(startPoint.Y, startPoint.X, ctksLine.EndPoint.Y, ctksLine.EndPoint.X, 0);
+          y3 = 0;
+        }
+        else if(y3 > canvasHeight)
+        {
+          x3 = TradingHelper.GetPointOnLine(startPoint.Y, startPoint.X, ctksLine.EndPoint.Y, ctksLine.EndPoint.X, canvasHeight);
+          y3 = canvasHeight;
+        }
+
+        if(x3 < 0 || x3 > canvasWidth)
+        {
+          continue;
+        }
+
+        if (startPoint.Y < 0)
+        {
+          continue;
+        }
+
         var finalPoint = new Point(x3, y3);
-
-        drawingContext.DrawLine(pen, ctksLine.StartPoint, ctksLine.EndPoint);
-        drawingContext.DrawLine(pen, ctksLine.EndPoint, finalPoint);
-
-
+       
+        drawingContext.DrawLine(pen, startPoint, finalPoint);
 
         var firstPoint = new Point(
             TradingHelper.GetCanvasValueLinear(canvasWidth, line.FirstPoint.UnixTime, maxUnix, minUnix),
@@ -493,21 +536,13 @@ namespace CTKS_Chart.ViewModels
       var startPoint = new Point(x1, y1);
       var endPoint = new Point(x2, y2);
 
-      if (MinUnix < ctksLine.FirstPoint.UnixTime &&
-          ctksLine.FirstPoint.UnixTime < MaxUnix &&
-          MinUnix < ctksLine.SecondPoint.UnixTime &&
-          ctksLine.SecondPoint.UnixTime < MaxUnix)
+      return new CtksLine()
       {
-        return new CtksLine()
-        {
-          StartPoint = startPoint,
-          EndPoint = endPoint,
-          TimeFrame = ctksLine.TimeFrame,
-          LineType = ctksLine.LineType
-        };
-      }
-
-      return null;
+        StartPoint = startPoint,
+        EndPoint = endPoint,
+        TimeFrame = ctksLine.TimeFrame,
+        LineType = ctksLine.LineType
+      };
     }
 
     #endregion 
