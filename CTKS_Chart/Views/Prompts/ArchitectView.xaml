@@ -208,7 +208,7 @@
         MinXValue="{Binding MinUnix, Mode=TwoWay}"
         MinYValue="{Binding MinValue, Mode=TwoWay}" />
 
-      <controls:Ruler
+      <controls:VerticalRuler
         Grid.Row="0"
         Grid.Column="1"
         Width="50"
@@ -217,7 +217,7 @@
         MinValue="{Binding MinValue, Mode=TwoWay}"
         Size="{Binding CanvasHeight}" />
 
-      <controls:Ruler
+      <controls:HorizontalRuler
         Grid.Row="1"
         Grid.Column="0"
         Grid.ColumnSpan="2"
@@ -226,7 +226,6 @@
         VerticalAlignment="Bottom"
         MaxValue="{Binding MaxUnix, Mode=TwoWay}"
         MinValue="{Binding MinUnix, Mode=TwoWay}"
-        Mode="Horizontal"
         Size="{Binding CanvasWidth}" />
     </Grid>
 

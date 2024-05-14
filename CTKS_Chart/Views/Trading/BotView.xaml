@@ -64,7 +64,7 @@
                 IconHeight="auto"
                 IconMargin="0"
                 IconWidth="auto"
-                IsChecked="{Binding ElementName=Chart, Path=MeasureTool.IsEnabled, Mode=TwoWay}"
+                IsChecked="{Binding ElementName=Overlay, Path=MeasureTool.IsEnabled, Mode=TwoWay}"
                 ToolTip="Measure" />
 
               <StackPanel DataContext="{Binding DrawingSettings}" Orientation="Vertical">
@@ -156,12 +156,23 @@
           MaxXValue="{Binding MaxUnix, Mode=TwoWay}"
           MaxYValue="{Binding MaxValue, Mode=TwoWay}"
           MinXValue="{Binding MinUnix, Mode=TwoWay}"
-          MinYValue="{Binding MinValue, Mode=TwoWay}" />
+          MinYValue="{Binding MinValue, Mode=TwoWay}"
+          Overlay="{Binding ElementName=Overlay}" />
 
-        <controls1:Ruler
+        <controls1:Overlay
+          x:Name="Overlay"
+          Grid.RowSpan="2"
+          Grid.Column="1"
+          Grid.ColumnSpan="2"
+          Chart="{Binding ElementName=Chart}"
+          HorizontalRuler="{Binding ElementName=HorizontalRuler}"
+          VerticalRuler="{Binding ElementName=VerticalRuler}" />
+
+        <controls1:VerticalRuler
+          x:Name="VerticalRuler"
           Grid.Row="0"
           Grid.Column="2"
-          MinWidth="40"
+          Width="55"
           HorizontalAlignment="Right"
           VerticalAlignment="Center"
           AssetPriceRound="{Binding TradingBot.Asset.PriceRound}"
@@ -171,18 +182,17 @@
           Size="{Binding CanvasHeight}"
           ValuesToRender="{Binding RenderedIntersections}" />
 
-        <controls1:Ruler
+        <controls1:HorizontalRuler
+          x:Name="HorizontalRuler"
           Grid.Row="1"
           Grid.Column="1"
-          Height="40"
+          Height="22"
           HorizontalAlignment="Center"
           VerticalAlignment="Bottom"
           ChartContent="{Binding ChartImage}"
           MaxValue="{Binding MaxUnix, Mode=TwoWay}"
           MinValue="{Binding MinUnix, Mode=TwoWay}"
-          Mode="Horizontal"
           Size="{Binding CanvasWidth}" />
-
         <Grid
           Grid.Row="1"
           Grid.ColumnSpan="3"
