@@ -109,35 +109,35 @@ namespace CTKS_Chart.Strategy
     {
       Budget = StartingBudget;
 #if DEBUG
-      var multi = 1;
-      var newss = new List<KeyValuePair<TimeFrame, decimal>>();
+      //var multi = 1;
+      //var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
-      StartingBudget = 100000;
-      StartingBudget *= multi;
-      Budget = StartingBudget;
+      //StartingBudget = 100000;
+      //StartingBudget *= multi;
+      //Budget = StartingBudget;
 
-      MaxAutomaticBudget = StartingBudget * (decimal)0.35;
-      AutomaticBudget = StartingBudget * (decimal)0.35;
+      //MaxAutomaticBudget = StartingBudget * (decimal)0.35;
+      //AutomaticBudget = StartingBudget * (decimal)0.35;
 
 
-      PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
-      {
-        { TimeFrame.M12, 700},
-        { TimeFrame.M6, 600},
-        { TimeFrame.M3, 500},
-        { TimeFrame.M1, 400},
-        { TimeFrame.W2, 300},
-        { TimeFrame.W1, 200},
-      };
+      //PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
+      //{
+      //  { TimeFrame.M12, 700},
+      //  { TimeFrame.M6, 600},
+      //  { TimeFrame.M3, 500},
+      //  { TimeFrame.M1, 400},
+      //  { TimeFrame.W2, 300},
+      //  { TimeFrame.W1, 200},
+      //};
 
-      foreach (var data in StrategyData.PositionSizeMapping)
-      {
-        newss.Add(new KeyValuePair<TimeFrame, decimal>(data.Key, data.Value * multi));
-      }
+      //foreach (var data in StrategyData.PositionSizeMapping)
+      //{
+      //  newss.Add(new KeyValuePair<TimeFrame, decimal>(data.Key, data.Value * multi));
+      //}
 
-      PositionSizeMapping = newss;
-      ScaleSize = 0;
-      StrategyPosition = StrategyPosition.Neutral;
+      //PositionSizeMapping = newss;
+      //ScaleSize = 0;
+      //StrategyPosition = StrategyPosition.Neutral;
 #endif
     }
 
@@ -167,8 +167,6 @@ namespace CTKS_Chart.Strategy
     };
 
     public List<InnerStrategy> InnerStrategies { get; set; } = new List<InnerStrategy>();
-
-
 
     #region StrategyPosition
 
@@ -231,11 +229,12 @@ namespace CTKS_Chart.Strategy
           RaisePropertyChanged(nameof(ScaleSize));
           RaisePropertyChanged(nameof(MaxBuyPrice));
           RaisePropertyChanged(nameof(MinSellPrice));
-          RaisePropertyChanged(nameof(AutoATHPriceAsMaxBuy));
           RaisePropertyChanged(nameof(AutomaticBudget));
           RaisePropertyChanged(nameof(MaxAutomaticBudget));
           RaisePropertyChanged(nameof(AutomaticPositionSize));
           RaisePropertyChanged(nameof(AutomaticPositionSizeValue));
+          RaisePropertyChanged(nameof(EnableManualPositions));
+          RaisePropertyChanged(nameof(EnableAutoPositions));
         }
       }
     }
@@ -345,7 +344,7 @@ namespace CTKS_Chart.Strategy
               {
                 foreach (var buyPosition in openedBuy)
                 {
-                  await OnCancelPosition(buyPosition);
+                  await CancelPosition(buyPosition);
                 }
               });
             }
@@ -388,7 +387,7 @@ namespace CTKS_Chart.Strategy
               {
                 foreach (var buyPosition in openedBuy)
                 {
-                  await OnCancelPosition(buyPosition);
+                  await CancelPosition(buyPosition);
                 }
               });
             }
@@ -463,31 +462,6 @@ namespace CTKS_Chart.Strategy
           if (wasStrategyDataLoaded)
           {
             RecreateAllManualSell();
-          }
-        }
-      }
-    }
-
-    #endregion
-
-    #region AutoATHPriceAsMaxBuy
-
-    public bool AutoATHPriceAsMaxBuy
-    {
-      get
-      {
-        return StrategyData.AutoATHPriceAsMaxBuy;
-      }
-      set
-      {
-        if (value != StrategyData.AutoATHPriceAsMaxBuy)
-        {
-          StrategyData.AutoATHPriceAsMaxBuy = value;
-          RaisePropertyChanged();
-
-          if (wasStrategyDataLoaded)
-          {
-            SaveStrategyData();
           }
         }
       }
@@ -727,7 +701,90 @@ namespace CTKS_Chart.Strategy
 
     public bool DisableOnBuy { get; set; }
 
-    public bool EnableManualPositions { get; set; } = true;
+    #region EnableManualPositions
+
+    public bool EnableManualPositions
+    {
+      get { return StrategyData.EnableManualPositions; }
+      set
+      {
+        if (value != StrategyData.EnableManualPositions)
+        {
+          StrategyData.EnableManualPositions = value;
+
+
+          if (wasStrategyDataLoaded)
+          {
+            SaveStrategyData();
+          }
+
+          RaisePropertyChanged();
+
+          if (!StrategyData.EnableManualPositions)
+          {
+            VSynchronizationContext.InvokeOnDispatcher(async () =>
+            {
+              var manualPositions = OpenBuyPositions.Where(x => !x.IsAutomatic).ToList();
+
+              foreach (var position in manualPositions)
+              {
+                await CancelPosition(position);
+              }
+            });
+
+            AutomaticBudget = Budget;
+            MaxAutomaticBudget = Budget;
+          }
+        }
+      }
+    }
+
+    #endregion
+
+    #region EnableAutoPositions
+
+    public bool EnableAutoPositions
+    {
+      get { return StrategyData.EnableAutoPositions; }
+      set
+      {
+        if (value != StrategyData.EnableAutoPositions)
+        {
+          StrategyData.EnableAutoPositions = value;
+
+          if (wasStrategyDataLoaded)
+          {
+            SaveStrategyData();
+          }
+
+          RaisePropertyChanged();
+
+          if (!StrategyData.EnableAutoPositions)
+          {
+            VSynchronizationContext.InvokeOnDispatcher(async () =>
+            {
+              try
+              {
+                await buyLock.WaitAsync();
+
+                var manualPositions = OpenBuyPositions.Where(x => x.IsAutomatic).ToList();
+
+                foreach (var position in manualPositions)
+                {
+                  await CancelPosition(position);
+                }
+              }
+              finally 
+              {
+                buyLock.Release();
+              }
+            });
+          }
+        }
+      }
+    }
+
+    #endregion
 
     #region Methods
 
@@ -794,7 +851,7 @@ namespace CTKS_Chart.Strategy
           }
         }
 
-        if (StrategyData.MaxAutomaticBudget > 0)
+        if (StrategyData.MaxAutomaticBudget > 0 && EnableAutoPositions)
         {
           var autoIntersections = inter.Where(x => x.Value < actualCandle.Close.Value * (decimal)0.995);
 
@@ -828,7 +885,7 @@ namespace CTKS_Chart.Strategy
 
       foreach (var buyPosition in openedBuy)
       {
-        await OnCancelPosition(buyPosition);
+        await CancelPosition(buyPosition);
       }
 
       if (StrategyData.MaxAutomaticBudget > 0)
@@ -842,7 +899,7 @@ namespace CTKS_Chart.Strategy
 
         foreach (var buyPosition in automaticOpenedBuy)
         {
-          await OnCancelPosition(buyPosition);
+          await CancelPosition(buyPosition);
         }
       }
 
@@ -964,7 +1021,7 @@ namespace CTKS_Chart.Strategy
           {
             Logger?.Log(MessageType.Warning, $"Cancelling buyPosition {openLow.Intersection.Value} in order to create another {intersection.Value}", simpleMessage: true);
 
-            var result = await OnCancelPosition(openLow);
+            var result = await CancelPosition(openLow);
 
             if (automatic && result)
             {
@@ -1024,7 +1081,7 @@ namespace CTKS_Chart.Strategy
 
       foreach (var sellPosition in sellPositions)
       {
-        await OnCancelPosition(sellPosition, removedBu);
+        await CancelPosition(sellPosition, removedBu);
       }
 
 
@@ -1446,7 +1503,7 @@ namespace CTKS_Chart.Strategy
 
           while (id == 0)
           {
-            id = await CreatePosition(sell);
+            id = await PlaceCreatePosition(sell);
 
             if (id > 0)
             {
@@ -1500,7 +1557,7 @@ namespace CTKS_Chart.Strategy
         IsAutomatic = automatic
       };
 
-      var id = await CreatePosition(newPosition);
+      var id = await PlaceCreatePosition(newPosition);
 
       if (id > 0)
       {
@@ -1524,9 +1581,9 @@ namespace CTKS_Chart.Strategy
 
     #region OnCancelPosition
 
-    public async Task<bool> OnCancelPosition(Position position, HashSet<Position> removed = null, bool force = false)
+    public async Task<bool> CancelPosition(Position position, HashSet<Position> removed = null, bool force = false)
     {
-      var cancled = await CancelPosition(position);
+      var cancled = await PlaceCancelPosition(position);
 
       if (cancled || force)
       {
@@ -1663,8 +1720,8 @@ namespace CTKS_Chart.Strategy
 #endif
     }
 
-    protected abstract Task<bool> CancelPosition(Position position);
-    protected abstract Task<long> CreatePosition(Position position);
+    protected abstract Task<bool> PlaceCancelPosition(Position position);
+    protected abstract Task<long> PlaceCreatePosition(Position position);
     public abstract void SaveState();
     public abstract void SaveStrategyData();
     public abstract void LoadState();
@@ -1682,7 +1739,7 @@ namespace CTKS_Chart.Strategy
 
         foreach (var open in asd)
         {
-          await OnCancelPosition(open, force: true);
+          await CancelPosition(open, force: true);
         }
 
         LeftSize = TotalNativeAsset;

@@ -146,7 +146,7 @@ namespace CTKS_Chart.Strategy
               }
               else if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Canceled)
               {
-                await OnCancelPosition(postion, force: true);
+                await CancelPosition(postion, force: true);
               }
             }
           }
@@ -228,7 +228,7 @@ namespace CTKS_Chart.Strategy
 
     #region CancelPosition
 
-    protected override async Task<bool> CancelPosition(Position position)
+    protected override async Task<bool> PlaceCancelPosition(Position position)
     {
 
 #if RELEASE
@@ -243,7 +243,7 @@ namespace CTKS_Chart.Strategy
     #region CreatePosition
 
     private static int FakeId = 1;
-    protected override async Task<long> CreatePosition(Position position)
+    protected override async Task<long> PlaceCreatePosition(Position position)
     {
 
 #if RELEASE

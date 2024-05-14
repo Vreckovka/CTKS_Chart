@@ -18,6 +18,7 @@ using CTKS_Chart.Trading;
 using CTKS_Chart.ViewModels;
 using VCore.WPF.Controls;
 using DecimalMath;
+using VCore.ItemsCollections;
 
 namespace CTKS_Chart.Views.Controls
 {
@@ -104,23 +105,24 @@ namespace CTKS_Chart.Views.Controls
 
     #region ValuesToRender
 
-    public ObservableCollection<RenderedIntesection> ValuesToRender
+    public RxObservableCollection<RenderedIntesection> ValuesToRender
     {
-      get { return (ObservableCollection<RenderedIntesection>)GetValue(ValuesToRenderProperty); }
+      get { return (RxObservableCollection<RenderedIntesection>)GetValue(ValuesToRenderProperty); }
       set { SetValue(ValuesToRenderProperty, value); }
     }
 
     public static readonly DependencyProperty ValuesToRenderProperty =
       DependencyProperty.Register(
         nameof(ValuesToRender),
-        typeof(ObservableCollection<RenderedIntesection>),
-        typeof(Ruler), new PropertyMetadata(new ObservableCollection<RenderedIntesection>(), (x, y) =>
+        typeof(RxObservableCollection<RenderedIntesection>),
+        typeof(Ruler), new PropertyMetadata(new RxObservableCollection<RenderedIntesection>(), (x, y) =>
         {
 
-          if (x is Ruler ruler)
+          if (x is Ruler ruler && y.NewValue is RxObservableCollection<RenderedIntesection> collection)
           {
             ruler.RenderValues();
             ruler.ValuesToRender.CollectionChanged += ruler.ValuesToRender_CollectionChanged;
+            collection.ItemUpdated.Subscribe((x) => { ruler.RenderValues(); });
           }
         }));
 

@@ -439,7 +439,7 @@ namespace CTKS_Chart.ViewModels
           var list = TradingBot.Strategy.OpenBuyPositions.ToList();
           foreach (var buy in list)
           {
-            await TradingBot.Strategy.OnCancelPosition(buy);
+            await TradingBot.Strategy.CancelPosition(buy);
           }
         }
       }
@@ -648,6 +648,12 @@ namespace CTKS_Chart.ViewModels
       });
 
         await ChangeKlineInterval();
+
+        if (DrawingViewModel.MaxValue == 0)
+        {
+          DrawingViewModel.OnRestChart();
+        }
+
       }
     }
 
@@ -933,21 +939,6 @@ namespace CTKS_Chart.ViewModels
               TradingBot.Strategy.UpdateIntersections(ctksIntersections);
           }
 
-
-          if (lastAthPriceUpdated != athPrice && TradingBot.Strategy.AutoATHPriceAsMaxBuy)
-          {
-            lastAthPriceUpdated = athPrice;
-
-            if (athPrice > 0 && TradingBot.Strategy.OpenSellPositions.Count > 1)
-            {
-              TradingBot.Strategy.MaxBuyPrice = athPrice;
-            }
-            else
-            {
-              TradingBot.Strategy.MaxBuyPrice = decimal.MaxValue;
-            }
-          }
-
           TradingBot.Strategy.ValidatePositions(actual);
           TradingBot.Strategy.CreatePositions(actual);
         }
@@ -1119,7 +1110,13 @@ namespace CTKS_Chart.ViewModels
             .ActualPositions.Where(x => !x.IsAutomatic)
             .Sum(x => x.ActualProfit);
 
-          var athPrice = GetToAthPrice(lastStates.Max(x => x.TotalValue) ?? 0);
+          decimal? athPrice = GetToAthPrice(lastStates.Max(x => x.TotalValue) ?? 0);
+
+          if(lastStates.Any())
+          {
+            athPrice = athPrice != 0 ? athPrice : lastStates.Last(x => x.AthPrice > 0).AthPrice;
+          }
+
           lastState = new State()
           {
             Date = actual.OpenTime.Date,
@@ -1127,7 +1124,7 @@ namespace CTKS_Chart.ViewModels
             TotalValue = TradingBot.Strategy.TotalValue,
             TotalNative = TradingBot.Strategy.TotalNativeAsset,
             TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
-            AthPrice = athPrice != 0 ? athPrice : lastStates.Last(x => x.AthPrice > 0).AthPrice,
+            AthPrice = athPrice,
             ClosePrice = actual.Close ?? 0,
             ActualAutoValue = actualAutoValue,
             ActualValue = actualValue,

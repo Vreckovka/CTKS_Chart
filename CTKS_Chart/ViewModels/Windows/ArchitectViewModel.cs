@@ -367,13 +367,14 @@ namespace CTKS_Chart.ViewModels
 
       DrawingGroup dGroup = new DrawingGroup();
 
-      var candles = SelectedLayout.Ctks.Candles;
+      var candles = SelectedLayout.Ctks.Candles.ToList();
 
       DrawingViewModel.MaxValue = MaxValue;
       DrawingViewModel.MinValue = MinValue;
       DrawingViewModel.MaxUnix = MaxUnix;
       DrawingViewModel.MinUnix = MinUnix;
       DrawingViewModel.unixDiff = unixDiff;
+      DrawingViewModel.ActualCandles = candles;
 
       using (DrawingContext dc = dGroup.Open())
       {

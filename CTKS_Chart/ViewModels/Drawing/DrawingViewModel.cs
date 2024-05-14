@@ -16,6 +16,7 @@ using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using LiveCharts.Wpf.Charts.Base;
 using Microsoft.Expression.Interactivity.Core;
+using VCore.ItemsCollections;
 using VCore.Standard;
 using VCore.Standard.Helpers;
 using VCore.WPF.ItemsCollections;
@@ -29,7 +30,24 @@ namespace CTKS_Chart.ViewModels
     {
     }
 
-    public Brush SelectedBrush { get; set; }
+    #region SelectedBrush
+
+    private Brush selectedBrush;
+
+    public Brush SelectedBrush
+    {
+      get { return selectedBrush; }
+      set
+      {
+        if (value != selectedBrush)
+        {
+          selectedBrush = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
   }
 
   public class DrawingSettings : ViewModel
@@ -178,7 +196,7 @@ namespace CTKS_Chart.ViewModels
 
     public Layout Layout { get; }
     public TradingBot TradingBot { get; }
-    public ObservableCollection<RenderedIntesection> RenderedIntersections { get; } = new ObservableCollection<RenderedIntesection>();
+    public RxObservableCollection<RenderedIntesection> RenderedIntersections { get; } = new RxObservableCollection<RenderedIntesection>();
 
     #region DrawingSettings
 
@@ -193,7 +211,7 @@ namespace CTKS_Chart.ViewModels
         {
           drawingSettings = value;
 
-          if(drawingSettings != null)
+          if (drawingSettings != null)
           {
             drawingSettings.RenderLayout = () => RenderOverlay();
           }
@@ -633,10 +651,12 @@ namespace CTKS_Chart.ViewModels
       using (DrawingContext dc = dGroup.Open())
       {
         dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(imageHeight, imageWidth));
+        
         var candlesToRender = ActualCandles.ToList();
+        
         candlesToRender = candlesToRender.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
-
-        if (candlesToRender.Count > 0)
+        
+        if (candlesToRender.Count > 0 && TradingBot.Strategy != null)
         {
           var lastCandle = ActualCandles.LastOrDefault();
 
@@ -650,13 +670,13 @@ namespace CTKS_Chart.ViewModels
           }
 
           if (candlesToRender.Count > 1 && LockChart)
-          { 
+          {
             var low = lastCandle.Low.Value;
             var high = lastCandle.High.Value;
 
             var minView = minValue * (1 + actualPriceChartViewDiff * 0.20m);
             var maxView = maxValue * (1 - (actualPriceChartViewDiff * 0.20m));
-            
+
 
             if (low < minView)
             {
@@ -708,21 +728,20 @@ namespace CTKS_Chart.ViewModels
             RaisePropertyChanged(nameof(MinUnix));
           }
 
-          if (TradingBot.Strategy != null)
+
+          var removed = RenderedIntersections.Where(x => !TradingBot.Strategy.Intersections.Any(y => y == x.Model)).ToList();
+          removed.AddRange(RenderedIntersections.Where(x => x.Model.Value < MinValue || x.Model.Value > MaxValue));
+
+          removed.ForEach(x => RenderedIntersections.Remove(x));
+
+          if (lastFilledPosition != TradingBot.Strategy.AllClosedPositions.Max(x => x.FilledDate))
           {
-            var removed = RenderedIntersections.Where(x => !TradingBot.Strategy.Intersections.Any(y => y == x.Model)).ToList();
-            removed.AddRange(RenderedIntersections.Where(x => x.Model.Value < MinValue || x.Model.Value > MaxValue));
-
-            removed.ForEach(x => RenderedIntersections.Remove(x));
-
-            if (lastFilledPosition != TradingBot.Strategy.AllClosedPositions.Max(x => x.FilledDate))
-            {
-              RenderedIntersections.Clear();
-            }
-
-            lastFilledPosition = TradingBot.Strategy.AllClosedPositions.Max(x => x.FilledDate);
+            RenderedIntersections.Clear();
           }
 
+          lastFilledPosition = TradingBot.Strategy.AllClosedPositions.Max(x => x.FilledDate);
+          
+          
           if (DrawingSettings.ShowIntersections)
           {
             DrawIntersections(dc, TradingBot.Strategy.Intersections,
@@ -818,6 +837,7 @@ namespace CTKS_Chart.ViewModels
       double minDrawnPoint = 0;
       double maxDrawnPoint = 0;
       var drawnCandles = new List<ChartCandle>();
+
 
       var padding = unixDiff;
 
@@ -1342,7 +1362,7 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawMaxBuyPrice
 
-    public void DrawMinSellPrice(DrawingContext drawingContext,decimal price, double canvasHeight, double canvasWidth)
+    public void DrawMinSellPrice(DrawingContext drawingContext, decimal price, double canvasHeight, double canvasWidth)
     {
       if (price > 0 && price > MinValue && price < MaxValue)
       {
@@ -1454,7 +1474,7 @@ namespace CTKS_Chart.ViewModels
           clusterRect.Height = clusterRect.Height - (min - canvasHeight);
         }
 
-        if(max < 0)
+        if (max < 0)
         {
           clusterRect.Y = 0;
           clusterRect.Height += max;

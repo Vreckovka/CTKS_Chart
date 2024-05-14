@@ -61,13 +61,13 @@ namespace CTKS_Chart.Strategy
       base.ValidatePositions(candle);
     }
 
-    protected override Task<bool> CancelPosition(Position position)
+    protected override Task<bool> PlaceCancelPosition(Position position)
     {
       return Task.FromResult(true);
     }
 
     private long actual = 1;
-    protected override Task<long> CreatePosition(Position position)
+    protected override Task<long> PlaceCreatePosition(Position position)
     {
       position.CreatedDate = lastCandle.CloseTime;
       return Task.FromResult((long)actual++);
