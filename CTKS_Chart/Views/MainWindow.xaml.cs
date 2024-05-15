@@ -174,7 +174,10 @@ namespace CTKS_Chart.Views
       {
         icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.cardano.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
       }
-     
+      else if (symbol.Contains("BNB"))
+      {
+        icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.binance.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+      }
 
       this.Icon = icon;
     }
