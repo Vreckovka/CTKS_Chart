@@ -1112,7 +1112,7 @@ namespace CTKS_Chart.ViewModels
 
           decimal? athPrice = GetToAthPrice(lastStates.Max(x => x.TotalValue) ?? 0);
 
-          if(lastStates.Any())
+          if(lastStates.Any(x => x.AthPrice > 0))
           {
             athPrice = athPrice != 0 ? athPrice : lastStates.Last(x => x.AthPrice > 0).AthPrice;
           }

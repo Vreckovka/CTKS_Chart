@@ -350,7 +350,7 @@ namespace CTKS_Chart.Strategy
             {
               pos = sells.SingleOrDefault(x => x.Id == op);
             }
-           
+
 
             if (pos != null)
             {
@@ -362,32 +362,20 @@ namespace CTKS_Chart.Strategy
 
           ClosedBuyPositions.Add(normalPos);
         }
-
-
-        if (File.Exists(Path.Combine(path, "data.json")))
-        {
-          StrategyData = JsonSerializer.Deserialize<StrategyData>(File.ReadAllText(Path.Combine(path, "data.json")));
-          wasStrategyDataLoaded = true;
-        }
-        else
-        {
-          var map = JsonSerializer.Deserialize<IEnumerable<KeyValuePair<TimeFrame, decimal>>>(File.ReadAllText(Path.Combine(path, "map.json")));
-
-          PositionSizeMapping = map.ToDictionary(x => x.Key, x => x.Value);
-          Budget = (decimal)double.Parse(File.ReadAllText(Path.Combine(path, "budget.json")));
-          TotalProfit = decimal.Parse(File.ReadAllText(Path.Combine(path, "totalProfit.json")));
-          StartingBudget = decimal.Parse(File.ReadAllText(Path.Combine(path, "startBug.json")));
-          TotalNativeAsset = decimal.Parse(File.ReadAllText(Path.Combine(path, "native.json")));
-        }
-
-
-        ActualPositions = new ObservableCollection<Position>(ClosedBuyPositions.Where(x => x.State == PositionState.Filled));
-
-        RaisePropertyChanged(nameof(TotalBuy));
-        RaisePropertyChanged(nameof(TotalSell));
-        RaisePropertyChanged(nameof(AllCompletedPositions));
-        RaisePropertyChanged(nameof(TotalExpectedProfit));
       }
+
+      if (File.Exists(Path.Combine(path, "data.json")))
+      {
+        StrategyData = JsonSerializer.Deserialize<StrategyData>(File.ReadAllText(Path.Combine(path, "data.json")));
+        wasStrategyDataLoaded = true;
+      }
+     
+      ActualPositions = new ObservableCollection<Position>(ClosedBuyPositions.Where(x => x.State == PositionState.Filled));
+
+      RaisePropertyChanged(nameof(TotalBuy));
+      RaisePropertyChanged(nameof(TotalSell));
+      RaisePropertyChanged(nameof(AllCompletedPositions));
+      RaisePropertyChanged(nameof(TotalExpectedProfit));
     }
 
     #endregion

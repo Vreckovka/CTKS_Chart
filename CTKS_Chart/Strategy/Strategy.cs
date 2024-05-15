@@ -108,36 +108,41 @@ namespace CTKS_Chart.Strategy
     public Strategy()
     {
       Budget = StartingBudget;
+
+#if RELEASE
+   Budget = 0;
+#endif
+
 #if DEBUG
-      //var multi = 1;
-      //var newss = new List<KeyValuePair<TimeFrame, decimal>>();
+      var multi = 1;
+      var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
-      //StartingBudget = 100000;
-      //StartingBudget *= multi;
-      //Budget = StartingBudget;
+      StartingBudget = 100000;
+      StartingBudget *= multi;
+      Budget = StartingBudget;
 
-      //MaxAutomaticBudget = StartingBudget * (decimal)0.35;
-      //AutomaticBudget = StartingBudget * (decimal)0.35;
+      MaxAutomaticBudget = StartingBudget * (decimal)0.35;
+      AutomaticBudget = StartingBudget * (decimal)0.35;
 
 
-      //PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
-      //{
-      //  { TimeFrame.M12, 700},
-      //  { TimeFrame.M6, 600},
-      //  { TimeFrame.M3, 500},
-      //  { TimeFrame.M1, 400},
-      //  { TimeFrame.W2, 300},
-      //  { TimeFrame.W1, 200},
-      //};
+      PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
+      {
+        { TimeFrame.M12, 700},
+        { TimeFrame.M6, 600},
+        { TimeFrame.M3, 500},
+        { TimeFrame.M1, 400},
+        { TimeFrame.W2, 300},
+        { TimeFrame.W1, 200},
+      };
 
-      //foreach (var data in StrategyData.PositionSizeMapping)
-      //{
-      //  newss.Add(new KeyValuePair<TimeFrame, decimal>(data.Key, data.Value * multi));
-      //}
+      foreach (var data in StrategyData.PositionSizeMapping)
+      {
+        newss.Add(new KeyValuePair<TimeFrame, decimal>(data.Key, data.Value * multi));
+      }
 
-      //PositionSizeMapping = newss;
-      //ScaleSize = 0;
-      //StrategyPosition = StrategyPosition.Neutral;
+      PositionSizeMapping = newss;
+      ScaleSize = 0;
+      StrategyPosition = StrategyPosition.Neutral;
 #endif
     }
 
@@ -774,7 +779,7 @@ namespace CTKS_Chart.Strategy
                   await CancelPosition(position);
                 }
               }
-              finally 
+              finally
               {
                 buyLock.Release();
               }
@@ -853,7 +858,7 @@ namespace CTKS_Chart.Strategy
 
         if (StrategyData.MaxAutomaticBudget > 0 && EnableAutoPositions)
         {
-          var autoIntersections = inter.Where(x => x.Value < actualCandle.Close.Value * (decimal)0.995);
+          var autoIntersections = inter.Where(x => x.Value < lastSell * 0.995m && x.Value < actualCandle.Close.Value * 0.995m);
 
           foreach (var intersection in autoIntersections)
           {
@@ -1629,12 +1634,34 @@ namespace CTKS_Chart.Strategy
 
     private void Scale(decimal profit)
     {
-      var perc = ((profit * (decimal)100.0 / (TotalProfit + StartingBudget))) / (decimal)100.0;
-      var map = PositionSizeMapping.ToList();
+      if(lastCandle != null)
+      {
+        var perc = ((profit * (decimal)100.0 / (TotalProfit + StartingBudget))) / (decimal)100.0;
+        var map = PositionSizeMapping.ToList();
 
-      var size = (1 + (perc * (decimal)1 * (decimal)ScaleSize));
-      var maxValue = lastCandle.Close * TotalNativeAssetValue * (decimal)0.25;
-      var nextMaxValue = PositionSizeMapping.Single(x => x.Key == TimeFrame.M12).Value * size;
+        var size = (1 + (perc * (decimal)1 * (decimal)ScaleSize));
+        var maxValue = lastCandle.Close * TotalNativeAssetValue * (decimal)0.25;
+        var nextMaxValue = PositionSizeMapping.Single(x => x.Key == TimeFrame.M12).Value * size;
+
+        var newList = new Dictionary<TimeFrame, decimal>();
+
+        if (nextMaxValue > maxValue && BasePositionSizeMapping != null && size > 1)
+        {
+          return;
+        }
+
+        if (BasePositionSizeMapping != null)
+        {
+          foreach (var mapping in BasePositionSizeMapping.ToList())
+          {
+            newList.Add(mapping.Key, mapping.Value * size);
+          }
+        }
+
+
+        BasePositionSizeMapping = newList;
+      }
+    
 
       //var newList = new Dictionary<TimeFrame, decimal>();
 
@@ -1650,23 +1677,7 @@ namespace CTKS_Chart.Strategy
       //  SaveState();
       //}
 
-      var newList = new Dictionary<TimeFrame, decimal>();
-
-      if (nextMaxValue > maxValue && BasePositionSizeMapping != null && size > 1)
-      {
-        return;
-      }
-
-      if (BasePositionSizeMapping != null)
-      {
-        foreach (var mapping in BasePositionSizeMapping.ToList())
-        {
-          newList.Add(mapping.Key, mapping.Value * size);
-        }
-      }
-
-
-      BasePositionSizeMapping = newList;
+    
 
     }
 
