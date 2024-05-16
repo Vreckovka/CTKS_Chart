@@ -28,9 +28,7 @@
     </ResourceDictionary>
   </UserControl.Resources>
 
-
   <Grid>
-
     <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 
       <Grid Background="#ff05080d" DataContext="{Binding DrawingViewModel}">
@@ -111,10 +109,7 @@
                   Placement="Bottom"
                   PlacementTarget="{Binding ElementName=show_positions_toggle}"
                   StaysOpen="False">
-                  <Border
-                    Padding="5"
-                    Background="#101010"
-                    DataContext="{Binding DataContext.TradingBotViewModel.DrawingViewModel.DrawingSettings, RelativeSource={RelativeSource AncestorType=Window}}">
+                  <Border Padding="5" Background="#101010">
                     <StackPanel Orientation="Vertical">
                       <CheckBox
                         Margin="0,5"
@@ -180,7 +175,17 @@
           MaxValue="{Binding MaxValue, Mode=TwoWay}"
           MinValue="{Binding MinValue, Mode=TwoWay}"
           Size="{Binding CanvasHeight}"
-          ValuesToRender="{Binding RenderedIntersections}" />
+          ValuesToRender="{Binding RenderedIntersections}">
+          <controls1:VerticalRuler.Style>
+            <Style TargetType="controls1:VerticalRuler">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.SelectedBot.IsSimulation, RelativeSource={RelativeSource AncestorType=Window}}" Value="true">
+                  <Setter Property="Visibility" Value="Hidden" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </controls1:VerticalRuler.Style>
+        </controls1:VerticalRuler>
 
         <controls1:HorizontalRuler
           x:Name="HorizontalRuler"
@@ -192,7 +197,18 @@
           ChartContent="{Binding ChartImage}"
           MaxValue="{Binding MaxUnix, Mode=TwoWay}"
           MinValue="{Binding MinUnix, Mode=TwoWay}"
-          Size="{Binding CanvasWidth}" />
+          Size="{Binding CanvasWidth}">
+          <controls1:HorizontalRuler.Style>
+            <Style TargetType="controls1:HorizontalRuler">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.SelectedBot.IsSimulation, RelativeSource={RelativeSource AncestorType=Window}}" Value="true">
+                  <Setter Property="Visibility" Value="Hidden" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </controls1:HorizontalRuler.Style>
+        </controls1:HorizontalRuler>
+
         <Grid
           Grid.Row="1"
           Grid.ColumnSpan="3"
@@ -217,7 +233,6 @@
             Style="{StaticResource FontAwesomeGlyphStyle}"
             ToolTip="Reset chart" />
         </Grid>
-
       </Grid>
 
 

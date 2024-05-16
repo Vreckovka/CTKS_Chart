@@ -13,7 +13,7 @@
     MouseMove="Grid_MouseMove"
     MouseWheel="Border_MouseWheel">
     <Grid>
-      <Canvas x:Name="Overlay" ClipToBounds="False" />
+      <Canvas x:Name="Overlay" ClipToBounds="True" />
     </Grid>
 
 

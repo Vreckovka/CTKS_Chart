@@ -36,8 +36,6 @@
         Command="{Binding StopCommand}"
         Content="Stop" />
 
-
-
       <CheckBox IsChecked="{Binding SelectedBot.DrawChart}">Draw chart</CheckBox>
 
       <ComboBox

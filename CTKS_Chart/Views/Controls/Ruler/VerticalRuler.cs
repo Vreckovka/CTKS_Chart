@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -20,9 +21,19 @@ namespace CTKS_Chart.Views.Controls
 
     protected override void RenderValues()
     {
+      if (Visibility != Visibility.Visible && MaxValue > 0 && MinValue > 0)
+      {
+        return;
+      }
+
+
+
       base.RenderValues();
       var fontSize = 10;
       var padding = 8;
+
+
+      List<RenderedLabel> labelsToRender = new List<RenderedLabel>();
 
       if (ValuesToRender.Count > 0 && ValuesToRender.Count < 30)
       {
@@ -30,8 +41,6 @@ namespace CTKS_Chart.Views.Controls
                  .Select(x => DrawingHelper.GetFormattedText($"*{Math.Round(x.Model.Value, AssetPriceRound)}*".ToString(),
                  x.SelectedBrush, fontSize))
                  .Max(x => x.Width);
-
-        Width = max + (padding * 2);
 
         foreach (var intersection in ValuesToRender)
         {
@@ -53,37 +62,38 @@ namespace CTKS_Chart.Views.Controls
             Text = text,
             FontSize = fontSize,
             Foreground = intersection.SelectedBrush,
-            FontWeight = intersection.Model.IsCluster ? FontWeights.Bold : FontWeights.Normal
+            FontWeight = intersection.Model.IsCluster ? FontWeights.Bold : FontWeights.Normal,
+            TextAlignment = TextAlignment.Center,
+            Width = ActualWidth
           };
 
           pricePositionY = pricePositionY + (formattedText.Height / 2);
 
-          if (intersection.Model.IsCluster)
+
+          var newff = new RenderedLabel()
           {
-            padding -= 5;
-          }
+            TextBlock = price,
+            Position = new Point(padding, Overlay.ActualHeight - pricePositionY),
+          };
 
-          Overlay.Children.Add(price);
-          Labels.Add(price);
+          labelsToRender.Add(newff);
 
-          Canvas.SetLeft(price, padding);
-          Canvas.SetTop(price, Overlay.ActualHeight - pricePositionY);
         }
       }
 
-      if ((ValuesToRender.Count < 5 || ValuesToRender.Count >= 30) && Overlay.ActualHeight > 0)
+      if ((ValuesToRender.Count <= 5 || ValuesToRender.Count >= 30) && Overlay.ActualHeight > 0)
       {
         var count = 12;
 
         var step = Overlay.ActualHeight / count;
         var actualStep = step;
+        var brush = DrawingHelper.GetBrushFromHex("#45ffffff");
 
         for (int i = 0; i < count - 1; i++)
         {
           var yPrice = TradingHelper.GetValueFromCanvas(Overlay.ActualHeight, actualStep, MaxValue, MinValue);
           var y = Overlay.ActualHeight - TradingHelper.GetCanvasValue(Overlay.ActualHeight, yPrice, MaxValue, MinValue);
 
-          var brush = DrawingHelper.GetBrushFromHex("#45ffffff");
           var label = Math.Round(yPrice, AssetPriceRound).ToString();
 
           var formattedText = DrawingHelper.GetFormattedText(label, brush, fontSize);
@@ -93,18 +103,76 @@ namespace CTKS_Chart.Views.Controls
             Text = label,
             FontSize = fontSize,
             Foreground = brush,
+            TextAlignment = TextAlignment.Center,
+            Width = ActualWidth
           };
 
-          Overlay.Children.Add(price);
-          Labels.Add(price);
+          var newff = new RenderedLabel() { TextBlock = price, Position = new Point(padding, y - (formattedText.Height / 2)), Order = i };
 
-          Canvas.SetLeft(price, padding);
-          Canvas.SetTop(price, y - (formattedText.Height / 2));
-
+          labelsToRender.Add(newff);
           actualStep += step;
         }
       }
+
+      labelsToRender = labelsToRender.Where(x => x.Position.Y > 0).ToList();
+
+      var isIntersections = labelsToRender.All(x => x.Order == null);
+      List<RenderedLabel> notFound = new List<RenderedLabel>();
+
+      if (isIntersections)
+      {
+        notFound = Labels
+         .Where(x => !labelsToRender.Any(y => y.TextBlock.Text == x.TextBlock.Text))
+         .ToList();
+
+        notFound.AddRange(Labels.Where(x => x.Order != null));
+      }
+      else
+      {
+        notFound = Labels
+        .Where(y => y.Order == null)
+        .ToList();
+      }
+
+      foreach (var label in notFound)
+      {
+        Overlay.Children.Remove(label.TextBlock);
+        Labels.Remove(label);
+      }
+
+      foreach (var label in labelsToRender)
+      {
+        RenderedLabel existing = null;
+
+        if (isIntersections)
+          existing = Labels.SingleOrDefault(x => x.TextBlock.Text == label.TextBlock.Text);
+        else if(label.Order != null && Labels.Count > label.Order.Value)
+          existing = Labels[label.Order.Value];
+
+        var x = label.Position.X;
+        var y = label.Position.Y;
+
+        if (existing == null)
+        {
+          existing = label;
+          Overlay.Children.Add(existing.TextBlock);
+          Labels.Add(existing);
+
+          Canvas.SetTop(existing.TextBlock, y);
+        }
+
+        if (existing.Position.Y != y)
+          Canvas.SetTop(existing.TextBlock, y);
+
+
+        existing.Position = new Point(x, y);
+        existing.TextBlock.Foreground = label.TextBlock.Foreground;
+        existing.TextBlock.Text = label.TextBlock.Text;
+        existing.TextBlock.Width = ActualWidth;
+      }
     }
+
+
 
     TextBlock priceTextBlock;
 

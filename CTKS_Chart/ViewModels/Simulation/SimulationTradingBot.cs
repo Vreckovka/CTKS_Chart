@@ -133,7 +133,7 @@ namespace CTKS_Chart.ViewModels
       var mainCandles = TradingViewHelper.ParseTradingView(DataPath);
 
       var fromDate = new DateTime(2018, 9, 21);
-      //fromDate = new DateTime(2021,8, 30);
+      fromDate = new DateTime(2021,8, 30);
 
       cutCandles = mainCandles.Where(x => x.CloseTime > fromDate).ToList();
       var candles = mainCandles.Where(x => x.CloseTime < fromDate).ToList();
@@ -158,7 +158,7 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.DrawingSettings.ShowATH = true;
 
       //Intersection precision testing
-      //TradingBot.Strategy.EnableManualPositions = false;
+      TradingBot.Strategy.EnableManualPositions = false;
 
 
       var rangeAdaFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
@@ -200,9 +200,11 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region LoadSimulationResults
+
     private void LoadSimulationResults()
     {
-      if(File.Exists(results))
+      if (File.Exists(results))
       {
         var content = File.ReadAllLines(results);
 
@@ -218,10 +220,7 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
-    public override void Start()
-    {
-      base.Start();
-    }
+    #endregion
 
     #region Simulate
 

@@ -122,10 +122,10 @@ namespace CTKS_Chart.Trading
       LineType lineType,
       TimeFrame timeFrame)
     {
-      decimal price1 = 0;
-      decimal price2 = 0;
-      long unix1 = 0;
-      long unix2 = 0;
+      decimal price1;
+      decimal price2;
+      long unix1;
+      long unix2;
 
       switch (lineType)
       {

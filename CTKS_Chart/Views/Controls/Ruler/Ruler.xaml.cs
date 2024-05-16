@@ -19,9 +19,18 @@ using CTKS_Chart.ViewModels;
 using VCore.WPF.Controls;
 using DecimalMath;
 using VCore.ItemsCollections;
+using System.Linq;
 
 namespace CTKS_Chart.Views.Controls
 {
+
+  public class RenderedLabel
+  {
+    public int? Order { get; set; }
+    public TextBlock TextBlock { get; set; }
+    public Border Border { get; set; }
+    public Point Position { get; set; }
+  }
   public enum RulerMode
   {
     Vertical,
@@ -35,7 +44,7 @@ namespace CTKS_Chart.Views.Controls
   {
     public abstract RulerMode Mode { get; }
 
-    protected List<FrameworkElement> Labels { get; } = new List<FrameworkElement>();
+    protected List<RenderedLabel> Labels { get; } = new List<RenderedLabel>();
 
     #region MaxValue
 
@@ -208,17 +217,16 @@ namespace CTKS_Chart.Views.Controls
 
     private void Border_MouseWheel(object sender, MouseWheelEventArgs e)
     {
-      var delta = 0.05;
+      var delta = (decimal)0.055;
+      var diff = (MaxValue - MinValue) * delta;
 
       if (e.Delta > 0)
       {
-        MaxValue *= (decimal)(1 - delta);
-        MinValue *= (decimal)(1 + delta);
+        MinValue += diff;
       }
       else
       {
-        MaxValue *= (decimal)(1 + delta);
-        MinValue *= (decimal)(1 - delta);
+        MinValue -= diff;
       }
     }
 
@@ -273,20 +281,15 @@ namespace CTKS_Chart.Views.Controls
 
     protected virtual void RenderValues()
     {
-      foreach(var label in Labels)
-      {
-        Overlay.Children.Remove(label);
-      }
-
-      Labels.Clear();
+    
     }
 
     #endregion
 
     public abstract void RenderLabel(Point mousePoint, decimal price, DateTime date, int assetPriceRound);
     public abstract void ClearLabel();
-   
-  
+
+
 
     #region OnPropertyChanged
 

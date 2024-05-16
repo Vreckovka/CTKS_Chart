@@ -815,15 +815,6 @@ namespace CTKS_Chart.Strategy
         await buyLock.WaitAsync();
         lastCandle = actualCandle;
 
-
-#if DEBUG
-        foreach (var innerStrategy in InnerStrategies)
-        {
-          innerStrategy.Calculate(actualCandle);
-        }
-#endif
-
-
         var limits = GetMaxAndMinBuy(actualCandle);
 
         var lastSell = limits.Item1;
@@ -831,9 +822,17 @@ namespace CTKS_Chart.Strategy
         var maxBuy = limits.Item3;
 
         await CheckPositions(actualCandle, minBuy, maxBuy);
+        var validIntersections = Intersections;
+
+#if DEBUG
+        foreach (var innerStrategy in InnerStrategies)
+        {
+          validIntersections = innerStrategy.Calculate(actualCandle).ToList();
+        }
+#endif
 
         //Intersections are already ordered by value
-        var inter = Intersections
+        var inter = validIntersections
                     .Where(x => x.IsEnabled)
                     .Where(x => x.Value < actualCandle.Close.Value &&
                                 x.Value > minBuy &&
@@ -884,6 +883,7 @@ namespace CTKS_Chart.Strategy
       var openedBuy = OpenBuyPositions
         .Where(x => !x.IsAutomatic)
         .Where(x => x.Price != x.Intersection.Value ||
+                    x.Intersection.IsEnabled == false ||
                     x.Price < minBuy ||
                     x.Price > maxBuy)
         .ToList();
@@ -898,6 +898,7 @@ namespace CTKS_Chart.Strategy
         var automaticOpenedBuy = OpenBuyPositions
           .Where(x => x.IsAutomatic)
           .Where(x => x.Price != x.Intersection.Value ||
+                      x.Intersection.IsEnabled == false ||
                       x.Price < minBuy)
           .ToList();
 
@@ -910,7 +911,9 @@ namespace CTKS_Chart.Strategy
 
       var openedSell = OpenSellPositions
         .Where(x => !x.IsAutomatic)
-        .Where(x => x.Price != x.Intersection.Value || x.Price < MinSellPrice)
+        .Where(x => x.Price != x.Intersection.Value ||
+                   x.Intersection.IsEnabled == false ||
+                    x.Price < MinSellPrice)
         .ToList();
 
       if (openedSell.Any())
@@ -921,7 +924,9 @@ namespace CTKS_Chart.Strategy
       {
         var openedAutoSell = OpenSellPositions
         .Where(x => x.IsAutomatic)
-        .Where(x => x.Price != x.Intersection.Value)
+        .Where(x => x.Price != x.Intersection.Value 
+        || x.Intersection.IsEnabled == false 
+        )
         .ToList();
 
         if (openedAutoSell.Any())
@@ -1634,7 +1639,7 @@ namespace CTKS_Chart.Strategy
 
     private void Scale(decimal profit)
     {
-      if(lastCandle != null)
+      if (lastCandle != null)
       {
         var perc = ((profit * (decimal)100.0 / (TotalProfit + StartingBudget))) / (decimal)100.0;
         var map = PositionSizeMapping.ToList();
@@ -1661,7 +1666,7 @@ namespace CTKS_Chart.Strategy
 
         BasePositionSizeMapping = newList;
       }
-    
+
 
       //var newList = new Dictionary<TimeFrame, decimal>();
 
@@ -1677,7 +1682,7 @@ namespace CTKS_Chart.Strategy
       //  SaveState();
       //}
 
-    
+
 
     }
 

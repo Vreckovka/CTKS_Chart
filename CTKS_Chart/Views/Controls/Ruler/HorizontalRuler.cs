@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -11,7 +13,7 @@ namespace CTKS_Chart.Views.Controls
   {
     TextBlock dateTextBlock;
 
-    public override RulerMode Mode =>  RulerMode.Horizontal;
+    public override RulerMode Mode => RulerMode.Horizontal;
 
     protected override void FrameworkElement_SizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -22,6 +24,11 @@ namespace CTKS_Chart.Views.Controls
 
     protected override void RenderValues()
     {
+      if (Visibility != Visibility.Visible || MaxValue == 0 || MinValue == 0)
+      {
+        return;
+      }
+
       base.RenderValues();
       var fontSize = 10;
 
@@ -31,12 +38,13 @@ namespace CTKS_Chart.Views.Controls
       var step = diff / count;
       long actualStep = (long)MinValue + (step / 2);
 
+
       for (int i = 0; i < count; i++)
       {
         var utcDate = DateTimeHelper.UnixTimeStampToUtcDateTime(actualStep);
         var x = TradingHelper.GetCanvasValueLinear(Overlay.ActualWidth, actualStep, (long)MaxValue, (long)MinValue);
 
-        var label = utcDate.ToString("dd.MM HH:mm:ss");
+        string label;
 
         //Month
         if (step >= 2628000)
@@ -68,17 +76,51 @@ namespace CTKS_Chart.Views.Controls
           Text = label,
           FontSize = fontSize,
           Foreground = brush,
+          VerticalAlignment = VerticalAlignment.Center,
+          TextAlignment = TextAlignment.Center
         };
 
-        Overlay.Children.Add(dateText);
-        Labels.Add(dateText);
 
-        Canvas.SetLeft(dateText, x - (formattedText.Width / 2));
-        Canvas.SetTop(dateText, Overlay.ActualHeight - ((Overlay.ActualHeight / 2) + 5));
+        x = x - (formattedText.Width / 2);
+        var y = Overlay.ActualHeight - ((Overlay.ActualHeight / 2) + 5);
 
+        var newPoint = new Point(x, y);
+        RenderedLabel existingLabel = Labels.SingleOrDefault(x => x.Order == i);
+
+        if (existingLabel == null)
+        {
+          var border = new Border();
+          border.Child = dateText;
+          border.Height = ActualHeight;
+
+          Overlay.Children.Add(border);
+
+          var newLabel = new RenderedLabel()
+          {
+            Border = border,
+            Position = newPoint,
+            TextBlock = dateText,
+            Order = i
+          };
+
+          existingLabel = newLabel;
+
+          Labels.Add(existingLabel);
+        }
+       
+
+        if (existingLabel.Position.X != x)
+          Canvas.SetLeft(existingLabel.Border, x);
+
+
+        existingLabel.Position = newPoint;
+        existingLabel.TextBlock.Text = dateText.Text;
+  
         actualStep += step;
       }
     }
+
+    #region RenderLabel
 
     public override void RenderLabel(Point mousePoint, decimal price, DateTime date, int assetPriceRound)
     {
@@ -123,6 +165,7 @@ namespace CTKS_Chart.Views.Controls
       labelBorder.Height = Overlay.ActualHeight;
     }
 
+    #endregion
 
     public override void ClearLabel()
     {

@@ -837,51 +837,14 @@ namespace CTKS_Chart.ViewModels
       double minDrawnPoint = 0;
       double maxDrawnPoint = 0;
       var drawnCandles = new List<ChartCandle>();
+      long unix_diff = unixDiff;
 
+      if (unixDiff < 604800)
+        unix_diff = (long)(unixDiff * 0.60);
+      else
+        unix_diff = (long)((1 / 2.195) * 2 * unix_diff);
 
-      var padding = unixDiff;
-
-      if (unixDiff > 120000)
-      {
-        padding = (long)(unixDiff * 0.91);
-      }
-      else if (unixDiff > 200000)
-      {
-        padding = (long)(unixDiff * 0.85);
-      }
-      else if (unixDiff > 50000)
-      {
-        padding = (long)(unixDiff * 0.8);
-      }
-      else if (unixDiff > 35000)
-      {
-        padding = (long)(unixDiff * 0.75);
-      }
-      else if (unixDiff > 25000)
-      {
-        padding = (long)(unixDiff * 0.7);
-      }
-      else if (unixDiff > 15000)
-      {
-        padding = (long)(unixDiff * 0.65);
-      }
-      else if (unixDiff > 10000)
-      {
-        padding = (long)(unixDiff * 0.6);
-      }
-      else if (unixDiff < 10000)
-      {
-        padding = (long)(unixDiff * 0.55);
-      }
-
-      if (padding == 0)
-      {
-        padding = 1;
-      }
-
-      var width = TradingHelper.GetCanvasValueLinear(canvasWidth, MinUnix + padding, MaxUnix, MinUnix);
-
-
+      var width = TradingHelper.GetCanvasValueLinear(canvasWidth, MinUnix + unix_diff, MaxUnix, MinUnix);
 
       if (candles.Any() && width > 0)
       {
@@ -1115,43 +1078,14 @@ namespace CTKS_Chart.ViewModels
 
       foreach (var intersection in validIntersection)
       {
-        Brush selectedBrush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush);
+        var selectedBrush = GetIntersectionBrush(allPositions, intersection);
 
         var actual = TradingHelper.GetCanvasValue(canvasHeight, intersection.Value, MaxValue, MinValue);
 
         var frame = intersection.TimeFrame;
 
         var lineY = canvasHeight - actual;
-
-        if (allPositions != null)
-        {
-          var positionsOnIntersesction = allPositions
-              .Where(x => x.Intersection.IsSame(intersection))
-              .ToList();
-
-          var firstPositionsOnIntersesction = positionsOnIntersesction.FirstOrDefault();
-          var isOnlyAuto = positionsOnIntersesction.All(x => x.IsAutomatic);
-          var isCombined = positionsOnIntersesction.Any(x => x.IsAutomatic) && positionsOnIntersesction.Any(x => !x.IsAutomatic);
-
-          if (firstPositionsOnIntersesction != null)
-          {
-            selectedBrush =
-              firstPositionsOnIntersesction.Side == PositionSide.Buy ?
-                  isOnlyAuto ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_BUY].Brush) :
-                  isCombined ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.COMBINED_BUY].Brush) :
-                  DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.BUY].Brush) :
-
-                  isOnlyAuto ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_SELL].Brush) :
-                  isCombined ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.COMBINED_SELL].Brush) :
-                  DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.SELL].Brush);
-          }
-        }
-
-        if (!intersection.IsEnabled)
-        {
-          selectedBrush = DrawingHelper.GetBrushFromHex("#f5c19d");
-        }
-
+        
         FormattedText formattedText = DrawingHelper.GetFormattedText(intersection.Value.ToString(), selectedBrush);
 
         Pen pen = new Pen(selectedBrush, 1);
@@ -1399,55 +1333,27 @@ namespace CTKS_Chart.ViewModels
       var minCanvasValue = MinValue + diff;
 
       var validIntersection = intersections
-        .Where(x => x.Value > minCanvasValue &&
-                x.Value < maxCanvasValue &&
+        .Where(x =>
                 minTimeframe <= x.TimeFrame &&
                  x.Cluster != null &&
-                 x.TimeFrame >= minTimeframe
+                 x.TimeFrame >= minTimeframe &&
+                 x.Cluster.Intersections.Any()
                 )
-
+        .Select(x => new {
+          minValue =  x.Cluster.Intersections.Min(x => x.Value) ,
+          maxValue = x.Cluster.Intersections.Max(x => x.Value),
+          intersection = x
+        })
+        .Where(x => x.maxValue > minCanvasValue &&
+                x.minValue < maxCanvasValue) 
         .ToList();
 
-      foreach (var intersection in validIntersection)
+      foreach (var actualIntersectionObject in validIntersection)
       {
-        Brush selectedBrush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush);
+        var intersection = actualIntersectionObject.intersection;
 
-        var actual = TradingHelper.GetCanvasValue(canvasHeight, intersection.Value, MaxValue, MinValue);
-
+        var selectedBrush = GetIntersectionBrush(allPositions, intersection);
         var frame = intersection.TimeFrame;
-
-        var lineY = canvasHeight - actual;
-
-        if (allPositions != null)
-        {
-          var positionsOnIntersesction = allPositions
-          .Where(x => x.Intersection.IsSame(intersection))
-          .ToList();
-
-          var firstPositionsOnIntersesction = positionsOnIntersesction.FirstOrDefault();
-          var isOnlyAuto = positionsOnIntersesction.All(x => x.IsAutomatic);
-          var isCombined = positionsOnIntersesction.Any(x => x.IsAutomatic) && positionsOnIntersesction.Any(x => !x.IsAutomatic);
-
-          if (firstPositionsOnIntersesction != null)
-          {
-            selectedBrush =
-              firstPositionsOnIntersesction.Side == PositionSide.Buy ?
-                  isOnlyAuto ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_BUY].Brush) :
-                  isCombined ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.COMBINED_BUY].Brush) :
-                  DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.BUY].Brush) :
-
-                  isOnlyAuto ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_SELL].Brush) :
-                  isCombined ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.COMBINED_SELL].Brush) :
-                  DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.SELL].Brush);
-          }
-        }
-
-        if (!intersection.IsEnabled)
-        {
-          selectedBrush = DrawingHelper.GetBrushFromHex("#f5c19d");
-        }
-
-        selectedBrush.Opacity = 0.25;
 
         FormattedText formattedText = DrawingHelper.GetFormattedText(intersection.Value.ToString(), selectedBrush);
 
@@ -1455,8 +1361,8 @@ namespace CTKS_Chart.ViewModels
         pen.DashStyle = DashStyles.Dash;
         pen.Thickness = DrawingHelper.GetPositionThickness(frame);
 
-        var maxValue = intersection.Cluster.Intersections.Any() ? intersection.Cluster.Intersections.Max(x => x.Value) : intersection.Value;
-        var minValue = intersection.Cluster.Intersections.Any() ? intersection.Cluster.Intersections.Min(x => x.Value) : intersection.Value;
+        var maxValue = actualIntersectionObject.maxValue;
+        var minValue = actualIntersectionObject.minValue;
 
         var max = canvasHeight - TradingHelper.GetCanvasValue(canvasHeight, maxValue, MaxValue, MinValue);
         var min = canvasHeight - TradingHelper.GetCanvasValue(canvasHeight, minValue, MaxValue, MinValue);
@@ -1480,6 +1386,8 @@ namespace CTKS_Chart.ViewModels
           clusterRect.Height += max;
         }
 
+
+        selectedBrush.Opacity = 0.25;
         drawingContext.DrawRectangle(selectedBrush, pen, clusterRect);
 
 
@@ -1495,6 +1403,52 @@ namespace CTKS_Chart.ViewModels
           rendered.SelectedBrush = clone;
 
       }
+    }
+
+    #endregion
+
+    #region GetIntersectionBrush
+
+    private Brush GetIntersectionBrush(IList<Position> allPositions, CtksIntersection intersection)
+    {
+      Brush selectedBrush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush);
+
+      var actual = TradingHelper.GetCanvasValue(canvasHeight, intersection.Value, MaxValue, MinValue);
+
+      var lineY = canvasHeight - actual;
+
+      if (!intersection.IsEnabled)
+      {
+        selectedBrush = DrawingHelper.GetBrushFromHex("#614c4c");
+        selectedBrush.Opacity = 0.25;
+      }
+
+      if (allPositions != null)
+      {
+        var positionsOnIntersesction = allPositions
+        .Where(x => x.Intersection.IsSame(intersection))
+        .ToList();
+
+        var firstPositionsOnIntersesction = positionsOnIntersesction.FirstOrDefault();
+        var isOnlyAuto = positionsOnIntersesction.All(x => x.IsAutomatic);
+        var isCombined = positionsOnIntersesction.Any(x => x.IsAutomatic) && positionsOnIntersesction.Any(x => !x.IsAutomatic);
+
+        if (firstPositionsOnIntersesction != null)
+        {
+          selectedBrush =
+            firstPositionsOnIntersesction.Side == PositionSide.Buy ?
+                isOnlyAuto ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_BUY].Brush) :
+                isCombined ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.COMBINED_BUY].Brush) :
+                DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.BUY].Brush) :
+
+                isOnlyAuto ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_SELL].Brush) :
+                isCombined ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.COMBINED_SELL].Brush) :
+                DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.SELL].Brush);
+        }
+      }
+
+
+      return selectedBrush;
     }
 
     #endregion
