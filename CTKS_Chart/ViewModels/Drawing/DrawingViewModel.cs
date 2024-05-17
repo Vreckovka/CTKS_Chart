@@ -119,7 +119,6 @@ namespace CTKS_Chart.ViewModels
 
           LockChart = false;
           Layout.MaxValue = MaxValue;
-          TradingBot.Asset.StartMaxPrice = MaxValue;
 
           RenderOverlay();
           RaisePropertyChanged();
@@ -143,7 +142,6 @@ namespace CTKS_Chart.ViewModels
           minValue = value;
           LockChart = false;
           Layout.MinValue = MinValue;
-          TradingBot.Asset.StartLowPrice = MinValue;
 
           RenderOverlay();
           RaisePropertyChanged();
@@ -168,7 +166,7 @@ namespace CTKS_Chart.ViewModels
 
           LockChart = false;
           Layout.MaxUnix = MaxUnix;
-          TradingBot.Asset.StartMaxUnix = MaxUnix;
+
           RenderOverlay();
           RaisePropertyChanged();
         }
@@ -193,7 +191,7 @@ namespace CTKS_Chart.ViewModels
 
           LockChart = false;
           Layout.MinUnix = MinUnix;
-          TradingBot.Asset.StartMinUnix = MinUnix;
+
           RenderOverlay();
           RaisePropertyChanged();
         }
@@ -244,7 +242,7 @@ namespace CTKS_Chart.ViewModels
 
     #region LockChart
 
-    private bool lockChart;
+    public bool lockChart;
     private decimal actualPriceChartViewDiff;
     IDisposable disposable;
 
@@ -538,7 +536,12 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+    
 
+    public void Raise(string name)
+    {
+      RaisePropertyChanged(name);
+    }
     #region RenderOverlay
 
     private List<CtksIntersection> last = null;

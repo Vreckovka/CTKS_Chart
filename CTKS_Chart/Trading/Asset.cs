@@ -7,10 +7,6 @@ namespace CTKS_Chart.Trading
     public string Symbol { get; set; }
     public int NativeRound { get; set; }
     public int PriceRound { get; set; }
-    public decimal StartLowPrice { get; set; }
-    public decimal StartMaxPrice { get; set; }
-    public long StartMaxUnix { get; set; }
-    public long StartMinUnix { get; set; }
 
     public TimeSpan RunTime { get; set; }
     public long RunTimeTicks { get; set; }

@@ -41,7 +41,7 @@ namespace CTKS_Chart.ViewModels
     private readonly IViewModelsFactory viewModelsFactory;
     private Stopwatch stopwatch = new Stopwatch();
     private TimeSpan lastElapsed;
-    private string layoutPath = "layout.json";
+    private string layoutPath = Path.Combine(Settings.DataPath, "layout.json");
     public static string stateDataPath = Path.Combine(Settings.DataPath, "state_data.txt");
 
     public TradingBotViewModel(
@@ -238,24 +238,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region MaxBuyPrice
-
-    public decimal? MaxBuyPrice
-    {
-      get { return TradingBot.Strategy.MaxBuyPrice; }
-      set
-      {
-        if (value != TradingBot.Strategy.MaxBuyPrice)
-        {
-          TradingBot.Strategy.MaxBuyPrice = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-
     public ItemsViewModel<LayoutIntervalViewModel> LayoutIntervals { get; } = new ItemsViewModel<LayoutIntervalViewModel>();
 
     #endregion
@@ -273,7 +255,7 @@ namespace CTKS_Chart.ViewModels
         {
           drawChart = value;
 
-          if(IsSimulation && drawChart && DrawingViewModel.ActualCandles.Any())
+          if (IsSimulation && drawChart && DrawingViewModel.ActualCandles.Any())
           {
             var candles = DrawingViewModel.ActualCandles.TakeLast(150).ToList();
 
@@ -535,21 +517,26 @@ namespace CTKS_Chart.ViewModels
     {
       base.Initialize();
 
-      TradingBot.LoadTimeFrames();
-      TradingBot.LoadIndicators();
       DrawingViewModel = viewModelsFactory.Create<DrawingViewModel>(TradingBot, MainLayout);
 
-      MainLayout.MaxValue = TradingBot.Asset.StartMaxPrice;
-      MainLayout.MinValue = TradingBot.Asset.StartLowPrice;
-      MainLayout.MaxUnix = TradingBot.Asset.StartMaxUnix;
-      MainLayout.MinUnix = TradingBot.Asset.StartMinUnix;
+      LoadLayoutSettings();
+      TradingBot.LoadTimeFrames();
+      TradingBot.LoadIndicators();
+     
+      if(layoutSettings != null)
+      {
+        MainLayout.MaxValue = layoutSettings.StartMaxPrice;
+        MainLayout.MinValue = layoutSettings.StartLowPrice;
+        MainLayout.MaxUnix = layoutSettings.StartMaxUnix;
+        MainLayout.MinUnix = layoutSettings.StartMinUnix;
 
-      DrawingViewModel.MaxValue = MainLayout.MaxValue;
-      DrawingViewModel.MinValue = MainLayout.MinValue;
-      DrawingViewModel.MaxUnix = MainLayout.MaxUnix;
-      DrawingViewModel.MinUnix = MainLayout.MinUnix;
-
-      DrawingViewModel.LockChart = true;
+        DrawingViewModel.maxValue = MainLayout.MaxValue;
+        DrawingViewModel.minValue = MainLayout.MinValue;
+        DrawingViewModel.maxUnix = MainLayout.MaxUnix;
+        DrawingViewModel.minUnix = MainLayout.MinUnix;
+      }
+   
+      DrawingViewModel.lockChart = true;
 
       foreach (KlineInterval interval in EnumHelper.GetAllValues(KlineInterval.GetType()))
       {
@@ -609,10 +596,9 @@ namespace CTKS_Chart.ViewModels
 
     public virtual async void Start()
     {
-      LoadLayoutSettings();
+
 
       stopwatch.Start();
-
 
       ForexChart_Loaded();
 
@@ -628,14 +614,7 @@ namespace CTKS_Chart.ViewModels
 
           if (Math.Round(activeTime.TotalSeconds, 0) % 10 == 0)
           {
-            TradingBot.Asset.RunTimeTicks = TotalRunTime.Ticks;
-            var options = new JsonSerializerOptions()
-            {
-              WriteIndented = true
-            };
-
-            var json = JsonSerializer.Serialize<Asset>(TradingBot.Asset, options);
-            File.WriteAllText(Path.Combine(Settings.DataPath, "asset.json"), json);
+            SaveAsset();
           }
         });
 
@@ -679,8 +658,8 @@ namespace CTKS_Chart.ViewModels
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, DrawingViewModel.CanvasHeight, DrawingViewModel.CanvasWidth, TradingBot.Asset);
 
-      DrawingViewModel.ActualCandles = (await 
-        binanceBroker.GetCandles(TradingBot.Asset.Symbol, 
+      DrawingViewModel.ActualCandles = (await
+        binanceBroker.GetCandles(TradingBot.Asset.Symbol,
         TradingHelper.GetTimeSpanFromInterval(KlineInterval),
         limit: DrawingViewModel.InitialCandleCount)).ToList();
 
@@ -1024,6 +1003,8 @@ namespace CTKS_Chart.ViewModels
 
     private async void OnBinanceKlineUpdate(IBinanceStreamKline binanceStreamKline)
     {
+      return;
+
       try
       {
         await binanceKlineUpdateLock.WaitAsync();
@@ -1115,7 +1096,7 @@ namespace CTKS_Chart.ViewModels
 
           decimal? athPrice = GetToAthPrice(lastStates.Max(x => x.TotalValue) ?? 0);
 
-          if(lastStates.Any(x => x.AthPrice > 0))
+          if (lastStates.Any(x => x.AthPrice > 0))
           {
             athPrice = athPrice != 0 ? athPrice : lastStates.Last(x => x.AthPrice > 0).AthPrice;
           }
@@ -1160,7 +1141,7 @@ namespace CTKS_Chart.ViewModels
           }
         }
 
-        if(DrawingViewModel.ActualCandles.Min(x => x.UnixTime) > DrawingViewModel.MinUnix)
+        if (DrawingViewModel.ActualCandles.Min(x => x.UnixTime) > DrawingViewModel.MinUnix)
         {
           await FetchAdditionalCandles();
         }
@@ -1210,7 +1191,7 @@ namespace CTKS_Chart.ViewModels
       await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
 
       DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(
-        TradingBot.Asset.Symbol, 
+        TradingBot.Asset.Symbol,
         TradingHelper.GetTimeSpanFromInterval(KlineInterval),
         limit: (int)(DrawingViewModel.InitialCandleCount * 1.2))).ToList();
 
@@ -1262,16 +1243,18 @@ namespace CTKS_Chart.ViewModels
 
     #region LoadLayoutSettings
 
+    public LayoutSettings layoutSettings;
+
     public void LoadLayoutSettings()
     {
       if (File.Exists(layoutPath))
       {
         var data = File.ReadAllText(layoutPath);
-        var settings = JsonSerializer.Deserialize<LayoutSettings>(data);
+        layoutSettings = JsonSerializer.Deserialize<LayoutSettings>(data);
 
-        if (settings != null)
+        if (layoutSettings != null)
         {
-          var savedLayout = LayoutIntervals.ViewModels.SingleOrDefault(x => x.Model.Interval == settings.LayoutInterval);
+          var savedLayout = LayoutIntervals.ViewModels.SingleOrDefault(x => x.Model.Interval == layoutSettings.LayoutInterval);
 
           if (savedLayout != null)
           {
@@ -1279,19 +1262,19 @@ namespace CTKS_Chart.ViewModels
             klineInterval = savedLayout.Model.Interval;
           }
 
-          if (settings.ColorSettings != null)
+          if (layoutSettings.ColorSettings != null)
           {
             var lsit = DrawingViewModel.ColorScheme.ColorSettings.ToList();
             foreach (var setting in lsit)
             {
-              var found = settings.ColorSettings.FirstOrDefault(x => x.Purpose == setting.Key);
+              var found = layoutSettings.ColorSettings.FirstOrDefault(x => x.Purpose == setting.Key);
 
               if (found != null)
                 DrawingViewModel.ColorScheme.ColorSettings[setting.Key] = new ColorSettingViewModel(found);
             }
           }
 
-          DrawingViewModel.DrawingSettings = settings.DrawingSettings;
+          DrawingViewModel.DrawingSettings = layoutSettings.DrawingSettings;
         }
       }
     }
@@ -1309,6 +1292,10 @@ namespace CTKS_Chart.ViewModels
           LayoutInterval = KlineInterval,
           ColorSettings = DrawingViewModel.ColorScheme.ColorSettings.Select(x => x.Value.Model),
           DrawingSettings = DrawingViewModel.DrawingSettings,
+          StartLowPrice = DrawingViewModel.MinValue,
+          StartMaxPrice = DrawingViewModel.MaxValue,
+          StartMaxUnix = DrawingViewModel.MaxUnix,
+          StartMinUnix = DrawingViewModel.MinUnix,
         };
 
         var options = new JsonSerializerOptions()
@@ -1316,7 +1303,30 @@ namespace CTKS_Chart.ViewModels
           WriteIndented = true
         };
 
+        layoutSettings = settings;
+
         File.WriteAllText(layoutPath, JsonSerializer.Serialize(settings, options));
+      }
+    }
+
+    #endregion
+
+    #region SaveAsset
+
+    public void SaveAsset()
+    {
+      if (!IsSimulation)
+      {
+        TradingBot.Asset.RunTimeTicks = TotalRunTime.Ticks;
+
+
+        var options = new JsonSerializerOptions()
+        {
+          WriteIndented = true
+        };
+
+        var json = JsonSerializer.Serialize<Asset>(TradingBot.Asset, options);
+        File.WriteAllText(Path.Combine(Settings.DataPath, "asset.json"), json);
       }
     }
 

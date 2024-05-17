@@ -103,70 +103,6 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
-    #region MaxYValue
-
-    public decimal MaxYValue
-    {
-      get { return (decimal)GetValue(MaxYValueProperty); }
-      set { SetValue(MaxYValueProperty, value); }
-    }
-
-    public static readonly DependencyProperty MaxYValueProperty =
-      DependencyProperty.Register(
-        nameof(MaxYValue),
-        typeof(decimal),
-        typeof(Chart));
-
-    #endregion
-
-    #region MinYValue
-
-    public decimal MinYValue
-    {
-      get { return (decimal)GetValue(MinYValueProperty); }
-      set { SetValue(MinYValueProperty, value); }
-    }
-
-    public static readonly DependencyProperty MinYValueProperty =
-      DependencyProperty.Register(
-        nameof(MinYValue),
-        typeof(decimal),
-        typeof(Chart));
-
-    #endregion
-
-    #region MaxXValue
-
-    public decimal MaxXValue
-    {
-      get { return (decimal)GetValue(MaxXValueProperty); }
-      set { SetValue(MaxXValueProperty, value); }
-    }
-
-    public static readonly DependencyProperty MaxXValueProperty =
-      DependencyProperty.Register(
-        nameof(MaxXValue),
-        typeof(decimal),
-        typeof(Chart));
-
-    #endregion
-
-    #region MinXValue
-
-    public decimal MinXValue
-    {
-      get { return (decimal)GetValue(MinXValueProperty); }
-      set { SetValue(MinXValueProperty, value); }
-    }
-
-    public static readonly DependencyProperty MinXValueProperty =
-      DependencyProperty.Register(
-        nameof(MinXValue),
-        typeof(decimal),
-        typeof(Chart));
-
-    #endregion
-
     #region AssetPriceRound
 
     public int AssetPriceRound
@@ -198,8 +134,11 @@ namespace CTKS_Chart.Views.Controls
           actualMousePosition = value;
           OnPropertyChanged();
 
-          ActualMousePositionX = DateTimeHelper.UnixTimeStampToUtcDateTime((long)TradingHelper.GetValueFromCanvasLinear(ChartContent.Width, actualMousePosition.X, (long)MaxXValue, (long)MinXValue));
-          ActualMousePositionY = TradingHelper.GetValueFromCanvas(ChartContent.Height, ChartContent.Height - actualMousePosition.Y, MaxYValue, MinYValue);
+          if (ChartContent == null || DrawingViewModel == null)
+            return;
+
+          ActualMousePositionX = DateTimeHelper.UnixTimeStampToUtcDateTime((long)TradingHelper.GetValueFromCanvasLinear(ChartContent.Width, actualMousePosition.X, DrawingViewModel.MaxUnix, DrawingViewModel.MinUnix));
+          ActualMousePositionY = TradingHelper.GetValueFromCanvas(ChartContent.Height, ChartContent.Height - actualMousePosition.Y, DrawingViewModel.MaxValue, DrawingViewModel.MinValue);
 
           if (AssetPriceRound > 0)
           {
@@ -249,6 +188,21 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
+    #region DrawingViewModel
+
+    public DrawingViewModel DrawingViewModel
+    {
+      get { return (DrawingViewModel)GetValue(DrawingViewModelProperty); }
+      set { SetValue(DrawingViewModelProperty, value); }
+    }
+
+    public static readonly DependencyProperty DrawingViewModelProperty =
+      DependencyProperty.Register(
+        nameof(DrawingViewModel),
+        typeof(DrawingViewModel),
+        typeof(Chart), new PropertyMetadata(new DrawingViewModel(null,null)));
+
+    #endregion
 
     public Chart()
     {
@@ -290,28 +244,43 @@ namespace CTKS_Chart.Views.Controls
 
         if (startY != null)
         {
-          var startPrice = TradingHelper.GetValueFromCanvas(ChartHeight, startY.Value, MaxYValue, MinYValue);
-          var nextPrice = TradingHelper.GetValueFromCanvas(ChartHeight, ActualMousePosition.Y, MaxYValue, MinYValue);
+          var startPrice = TradingHelper.GetValueFromCanvas(ChartHeight, startY.Value, DrawingViewModel.MaxValue, DrawingViewModel.MinValue);
+          var nextPrice = TradingHelper.GetValueFromCanvas(ChartHeight, ActualMousePosition.Y, DrawingViewModel.MaxValue, DrawingViewModel.MinValue);
 
           var deltaY = (nextPrice * 100 / startPrice) / 100;
 
-          MaxYValue *= deltaY;
-          MinYValue *= deltaY;
+          if (deltaY != 0)
+          {
+            DrawingViewModel.maxValue *= deltaY;
+            DrawingViewModel.minValue *= deltaY;
+          }
         }
 
         if (startX != null)
         {
-          var startPrice = TradingHelper.GetValueFromCanvas(ChartWidth, startX.Value, MaxXValue, MinXValue);
-          var nextPrice = TradingHelper.GetValueFromCanvas(ChartWidth, ActualMousePosition.X, MaxXValue, MinXValue);
+          var startPrice = (double)TradingHelper.GetValueFromCanvasLinear(ChartWidth, startX.Value, DrawingViewModel.MaxUnix, DrawingViewModel.MinUnix);
+          var nextPrice = (double)TradingHelper.GetValueFromCanvasLinear(ChartWidth, ActualMousePosition.X, DrawingViewModel.MaxUnix, DrawingViewModel.MinUnix);
 
-          var deltaY = (startPrice * 100 / nextPrice) / 100;
+          var deltaY = (startPrice * 100 / nextPrice) / 100.0;
 
-          MaxXValue *= deltaY;
-          MinXValue *= deltaY;
+          if(deltaY != 0)
+          {
+            DrawingViewModel.maxUnix = (long)(DrawingViewModel.maxUnix * deltaY);
+            DrawingViewModel.minUnix = (long)(DrawingViewModel.minUnix * deltaY);
+          }
         }
 
         startY = ActualMousePosition.Y;
         startX = ActualMousePosition.X;
+
+        DrawingViewModel.lockChart = false;
+        DrawingViewModel.RenderOverlay();
+
+        DrawingViewModel.Raise(nameof(DrawingViewModel.MaxUnix));
+        DrawingViewModel.Raise(nameof(DrawingViewModel.MinUnix));
+        DrawingViewModel.Raise(nameof(DrawingViewModel.MaxValue));
+        DrawingViewModel.Raise(nameof(DrawingViewModel.MinValue));
+        DrawingViewModel.Raise(nameof(DrawingViewModel.LockChart));
       }
 
       if (e.LeftButton != MouseButtonState.Pressed && startY != null)
@@ -328,15 +297,15 @@ namespace CTKS_Chart.Views.Controls
     private void Border_MouseWheel(object sender, MouseWheelEventArgs e)
     {
       var delta = (decimal)0.035;
-      var diff = (MaxXValue - MinXValue) * delta;
+      var diff = (long)((DrawingViewModel.MaxUnix - DrawingViewModel.MinUnix) * delta);
 
       if (e.Delta > 0)
       {
-        MinXValue += diff;
+        DrawingViewModel.MaxUnix += diff;
       }
       else
       {
-        MinXValue -= diff;
+        DrawingViewModel.MaxUnix -= diff;
       }
     }
 

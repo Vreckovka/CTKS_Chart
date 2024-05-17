@@ -8,6 +8,7 @@
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:local="clr-namespace:CTKS_Chart.Views.Prompts"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:trading="clr-namespace:CTKS_Chart.Views.Trading"
   mc:Ignorable="d">
   <Grid>
     <Grid.ColumnDefinitions>
@@ -156,136 +157,9 @@
       </ItemsControl.ItemTemplate>
     </ItemsControl>
 
-    <Grid
+    <trading:ChartLayout
       Grid.Row="1"
       Grid.Column="1"
-      Background="#ff05080d">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="auto" />
-        <ColumnDefinition />
-        <ColumnDefinition Width="auto" />
-      </Grid.ColumnDefinitions>
-
-      <Grid.RowDefinitions>
-        <RowDefinition />
-        <RowDefinition Height="auto" />
-      </Grid.RowDefinitions>
-
-      <Border
-        Width="50"
-        Margin="0,0,0,0"
-        Padding="0,15,0,0"
-        HorizontalAlignment="Left"
-        Panel.ZIndex="100"
-        Background="#45000000">
-        <Grid Margin="0,90,0,0">
-          <StackPanel Orientation="Vertical">
-            <controls1:PathButton
-              Margin="0,0,0,10"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Top"
-              Glyph=""
-              GlyphFontSize="25"
-              IconCheckedColor="{StaticResource YellowColor}"
-              IconHeight="auto"
-              IconMargin="0"
-              IconWidth="auto"
-              IsChecked="{Binding ElementName=Overlay, Path=MeasureTool.IsEnabled, Mode=TwoWay}"
-              ToolTip="Measure" />
-
-            <StackPanel DataContext="{Binding DrawingViewModel.DrawingSettings}" Orientation="Vertical">
-              <controls1:PathButton
-                Margin="0,10"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top"
-                Glyph=""
-                GlyphFontSize="25"
-                IconCheckedColor="{StaticResource YellowColor}"
-                IconHeight="auto"
-                IconMargin="0"
-                IconWidth="auto"
-                IsChecked="{Binding ShowIntersections, Mode=TwoWay}"
-                ToolTip="Show intersections" />
-
-              <controls1:PathButton
-                Margin="0,10"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top"
-                Glyph=""
-                GlyphFontSize="25"
-                IconCheckedColor="{StaticResource YellowColor}"
-                IconHeight="auto"
-                IconMargin="0"
-                IconWidth="auto"
-                IsChecked="{Binding ShowClusters, Mode=TwoWay}"
-                ToolTip="Show clusters" />
-            </StackPanel>
-
-          </StackPanel>
-
-        </Grid>
-      </Border>
-
-      <controls:Chart
-        x:Name="Chart"
-        Grid.Row="0"
-        Grid.Column="1"
-        AssetPriceRound="{Binding TradingBot.Asset.PriceRound}"
-        ChartContent="{Binding ChartImage}"
-        ChartHeight="{Binding CanvasHeight}"
-        ChartWidth="{Binding CanvasWidth}"
-        MaxXValue="{Binding MaxUnix, Mode=TwoWay}"
-        MaxYValue="{Binding MaxValue, Mode=TwoWay}"
-        MinXValue="{Binding MinUnix, Mode=TwoWay}"
-        MinYValue="{Binding MinValue, Mode=TwoWay}"
-        Overlay="{Binding ElementName=Overlay}" />
-
-      <controls:Overlay
-        x:Name="Overlay"
-        Grid.RowSpan="2"
-        Grid.Column="1"
-        Grid.ColumnSpan="2"
-        Chart="{Binding ElementName=Chart}"
-        HorizontalRuler="{Binding ElementName=HorizontalRuler}"
-        VerticalRuler="{Binding ElementName=VerticalRuler}" />
-
-      <controls:VerticalRuler
-        x:Name="VerticalRuler"
-        Grid.Row="0"
-        Grid.Column="2"
-        MinWidth="25"
-        HorizontalAlignment="Right"
-        VerticalAlignment="Center"
-        AssetPriceRound="{Binding DrawingViewModel.TradingBot.Asset.PriceRound}"
-        ChartContent="{Binding ChartImage}"
-        MaxValue="{Binding MaxValue, Mode=TwoWay}"
-        MinValue="{Binding MinValue, Mode=TwoWay}"
-        ValuesToRender="{Binding RenderedIntersections}" />
-
-      <controls:HorizontalRuler
-        x:Name="HorizontalRuler"
-        Grid.Row="1"
-        Grid.Column="1"
-        Height="22"
-        HorizontalAlignment="Center"
-        VerticalAlignment="Bottom"
-        ChartContent="{Binding ChartImage}"
-        MaxValue="{Binding MaxUnix, Mode=TwoWay}"
-        MinValue="{Binding MinUnix, Mode=TwoWay}" />
-
-
-      <controls1:PathButton
-        Grid.Row="1"
-        Margin="5,5"
-        HorizontalAlignment="Left"
-        VerticalAlignment="Bottom"
-        Command="{Binding DrawingViewModel.ResetChart}"
-        Glyph=""
-        IconMargin="0"
-        IsReadOnly="True"
-        Style="{StaticResource FontAwesomeGlyphStyle}"
-        ToolTip="Reset chart" />
-    </Grid>
-
+      DataContext="{Binding DrawingViewModel}" />
   </Grid>
 </UserControl>

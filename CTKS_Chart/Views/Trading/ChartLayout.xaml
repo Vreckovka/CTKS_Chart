@@ -121,14 +121,11 @@
       x:Name="Chart"
       Grid.Row="0"
       Grid.Column="1"
+      DrawingViewModel="{Binding}"
       AssetPriceRound="{Binding TradingBot.Asset.PriceRound}"
       ChartContent="{Binding Chart}"
       ChartHeight="{Binding CanvasHeight, Mode=TwoWay}"
       ChartWidth="{Binding CanvasWidth, Mode=TwoWay}"
-      MaxXValue="{Binding MaxUnix, Mode=TwoWay}"
-      MaxYValue="{Binding MaxValue, Mode=TwoWay}"
-      MinXValue="{Binding MinUnix, Mode=TwoWay}"
-      MinYValue="{Binding MinValue, Mode=TwoWay}"
       Overlay="{Binding ElementName=Overlay}" />
 
     <controls1:Overlay

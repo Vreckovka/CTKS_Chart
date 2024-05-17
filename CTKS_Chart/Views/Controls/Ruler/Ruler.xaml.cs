@@ -210,7 +210,8 @@ namespace CTKS_Chart.Views.Controls
 
     private void Ruler_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-      RenderValues();
+      if (MaxValue > 0 && MinValue > 0)
+        RenderValues();
     }
 
     private void ValuesToRender_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
