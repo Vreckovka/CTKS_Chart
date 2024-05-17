@@ -524,25 +524,6 @@ namespace CTKS_Chart.ViewModels
 
       DrawingViewModel = viewModelsFactory.Create<DrawingViewModel>(TradingBot, MainLayout);
 
-      LoadLayoutSettings();
-      TradingBot.LoadTimeFrames();
-      TradingBot.LoadIndicators();
-     
-      if(layoutSettings != null)
-      {
-        MainLayout.MaxValue = layoutSettings.StartMaxPrice;
-        MainLayout.MinValue = layoutSettings.StartLowPrice;
-        MainLayout.MaxUnix = layoutSettings.StartMaxUnix;
-        MainLayout.MinUnix = layoutSettings.StartMinUnix;
-
-        DrawingViewModel.maxValue = MainLayout.MaxValue;
-        DrawingViewModel.minValue = MainLayout.MinValue;
-        DrawingViewModel.maxUnix = MainLayout.MaxUnix;
-        DrawingViewModel.minUnix = MainLayout.MinUnix;
-      }
-   
-      DrawingViewModel.lockChart = true;
-
       foreach (KlineInterval interval in EnumHelper.GetAllValues(KlineInterval.GetType()))
       {
         var length = TradingHelper.GetTimeSpanFromInterval(interval);
@@ -588,9 +569,32 @@ namespace CTKS_Chart.ViewModels
       }
 
 
-      LayoutIntervals.ViewModels[6].IsSelected = true;
+      LoadLayoutSettings();
+      TradingBot.LoadTimeFrames();
+      TradingBot.LoadIndicators();
+     
+      if(layoutSettings != null)
+      {
+        MainLayout.MaxValue = layoutSettings.StartMaxPrice;
+        MainLayout.MinValue = layoutSettings.StartLowPrice;
+        MainLayout.MaxUnix = layoutSettings.StartMaxUnix;
+        MainLayout.MinUnix = layoutSettings.StartMinUnix;
 
-      KlineInterval = LayoutIntervals.SelectedItem.Model.Interval;
+        DrawingViewModel.maxValue = MainLayout.MaxValue;
+        DrawingViewModel.minValue = MainLayout.MinValue;
+        DrawingViewModel.maxUnix = MainLayout.MaxUnix;
+        DrawingViewModel.minUnix = MainLayout.MinUnix;
+      }
+      else
+      {
+        LayoutIntervals.ViewModels[6].IsSelected = true;
+
+        KlineInterval = LayoutIntervals.SelectedItem.Model.Interval;
+      }
+   
+      DrawingViewModel.lockChart = true;
+
+    
 
       RaisePropertyChanged(nameof(ConsoleCollectionLogger));
     }
@@ -1265,6 +1269,12 @@ namespace CTKS_Chart.ViewModels
           {
             savedLayout.IsSelected = true;
             klineInterval = savedLayout.Model.Interval;
+            var selected = LayoutIntervals.ViewModels.SingleOrDefault(x => x.Model.Interval == klineInterval);
+
+            if(selected != null)
+            {
+              selected.IsSelected = true;
+            }
           }
 
           if (layoutSettings.ColorSettings != null)
