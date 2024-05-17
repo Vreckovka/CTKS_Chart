@@ -13,62 +13,69 @@ using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using VCore.ItemsCollections;
 using VCore.Standard.Factories.ViewModels;
+using VCore.Standard.Helpers;
 using VCore.WPF;
 using VCore.WPF.ItemsCollections;
 using VCore.WPF.Misc;
 using VCore.WPF.Prompts;
+using VCore.WPF.ViewModels.Prompt;
 
 namespace CTKS_Chart.ViewModels
 {
-  public class ArchitectViewModel : BasePromptViewModel, IDrawingViewModel
+  public class ArchitectPromptViewModel : BasePromptViewModel<ArchitectViewModel>
+  {
+    public ArchitectPromptViewModel(ArchitectViewModel model) : base(model)
+    {
+      Title = "Architect";
+    }
+  }
+
+  public class ArchitectViewModel : DrawingViewModel
   {
     private readonly IViewModelsFactory viewModelsFactory;
-    private readonly Asset Asset;
+
     private SerialDisposable serialDisposable = new SerialDisposable();
-    long unixDiff = 0;
 
-
-    public ArchitectViewModel(
-      IList<CtksLayout> layouts,
+    public ArchitectViewModel(IList<CtksLayout> layouts,
       ColorSchemeViewModel colorSchemeViewModel,
-      IViewModelsFactory viewModelsFactory,
-      Asset asset)
+      IViewModelsFactory viewModelsFactory,TradingBot tradingBot, Layout layout) : base(tradingBot, layout)
     {
       this.viewModelsFactory = viewModelsFactory ?? throw new ArgumentNullException(nameof(viewModelsFactory));
-      this.Asset = asset ?? throw new ArgumentNullException(nameof(asset));
       Layouts = layouts ?? throw new ArgumentNullException(nameof(layouts));
       ColorScheme = colorSchemeViewModel ?? throw new ArgumentNullException(nameof(colorSchemeViewModel));
 
-      DrawingViewModel = new DrawingViewModel(
-        new TradingBot(
-        new Asset()
-        {
-          NativeRound = asset.NativeRound,
-          PriceRound = asset.PriceRound
-        }, null), new CtksLayout());
-
-      DrawingViewModel.Initialize();
-      DrawingViewModel.ColorScheme = colorSchemeViewModel;
+      ColorScheme = colorSchemeViewModel;
 
       SelectedLayout = layouts[5];
 
-      DrawingViewModel.chartDiff = 0;
-
       serialDisposable.Disposable = Lines.ItemUpdated.Subscribe(x =>
       {
-        VSynchronizationContext.PostOnUIThread(RenderOverlay);
+        VSynchronizationContext.PostOnUIThread(() => RenderOverlay());
       });
-
-      DrawingViewModel.DrawingSettings.RenderLayout = () => RenderOverlay();
     }
 
     #region Properties
 
-    public IEnumerable<CtksLayout> Layouts { get; }
-    public override string Title { get; set; } = "Architect";
-    public Image ChartImage { get; } = new Image();
+    #region Layouts
 
-    public DrawingViewModel DrawingViewModel { get; }
+    private IEnumerable<CtksLayout> layouts;
+
+    public IEnumerable<CtksLayout> Layouts
+    {
+      get { return layouts; }
+      set
+      {
+        if (value != layouts)
+        {
+          layouts = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+    
+    #endregion
 
     #region SelectedLayout
 
@@ -85,8 +92,6 @@ namespace CTKS_Chart.ViewModels
 
           maxValue = selectedLayout.MaxValue;
           minValue = selectedLayout.MinValue;
-          candleCount = selectedLayout.Ctks.Candles.Count;
-
 
           OnLayoutChanged();
           RaisePropertyChanged();
@@ -117,121 +122,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region Chart
-
-    private DrawingImage chart;
-
-    public DrawingImage Chart
-    {
-      get { return chart; }
-      set
-      {
-        if (value != chart)
-        {
-          chart = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region MaxValue
-
-    private decimal maxValue;
-
-    public decimal MaxValue
-    {
-      get { return maxValue; }
-      set
-      {
-        if (value != maxValue && value > minValue)
-        {
-          maxValue = Math.Round(value, Asset.PriceRound);
-
-          RenderOverlay();
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region MinValue
-
-    private decimal minValue = (decimal)0.001;
-
-    public decimal MinValue
-    {
-      get { return minValue; }
-      set
-      {
-        if (value != minValue && value < maxValue)
-        {
-
-          if (value > 0)
-          {
-            minValue = value;
-
-            RenderOverlay();
-            RaisePropertyChanged();
-          }
-        }
-      }
-    }
-
-
-
-    #endregion
-
-    #region MaxUnix
-
-    private long maxUnix;
-
-    public long MaxUnix
-    {
-      get { return maxUnix; }
-      set
-      {
-        if (value != maxUnix)
-        {
-          maxUnix = value;
-          RenderOverlay();
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region MinUnix
-
-    private long minUnix;
-
-    public long MinUnix
-    {
-      get { return minUnix; }
-      set
-      {
-        if (value != minUnix)
-        {
-
-          minUnix = value;
-
-          RenderOverlay();
-          RaisePropertyChanged();
-
-        }
-      }
-    }
-
-
-
-    #endregion
-
-    public double CanvasHeight { get; set; } = 1000;
-    public double CanvasWidth { get; set; } = 1000;
-
     #region Lines
 
     private RxObservableCollection<CtksLineViewModel> lines = new RxObservableCollection<CtksLineViewModel>();
@@ -244,46 +134,6 @@ namespace CTKS_Chart.ViewModels
         if (value != lines)
         {
           lines = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region ColorScheme
-
-    private ColorSchemeViewModel colorScheme;
-
-    public ColorSchemeViewModel ColorScheme
-    {
-      get { return colorScheme; }
-      set
-      {
-        if (value != colorScheme)
-        {
-          colorScheme = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region CandleCount
-
-    private int candleCount = 150;
-
-    public int CandleCount
-    {
-      get { return candleCount; }
-      set
-      {
-        if (value != candleCount)
-        {
-          candleCount = value;
-          RenderOverlay();
-
           RaisePropertyChanged();
         }
       }
@@ -310,7 +160,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #endregion
 
     #region SetAllLinesVisibility
 
@@ -360,7 +209,7 @@ namespace CTKS_Chart.ViewModels
 
     #region RenderOverlay
 
-    public void RenderOverlay()
+    public override void RenderOverlay(decimal? athPrice = null)
     {
       Pen shapeOutlinePen = new Pen(Brushes.Transparent, 1);
       shapeOutlinePen.Freeze();
@@ -369,24 +218,17 @@ namespace CTKS_Chart.ViewModels
 
       var candles = SelectedLayout.Ctks.Candles.ToList();
 
-      DrawingViewModel.MaxValue = MaxValue;
-      DrawingViewModel.MinValue = MinValue;
-      DrawingViewModel.MaxUnix = MaxUnix;
-      DrawingViewModel.MinUnix = MinUnix;
-      DrawingViewModel.unixDiff = unixDiff;
-      DrawingViewModel.ActualCandles = candles;
-
       using (DrawingContext dc = dGroup.Open())
       {
         dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(CanvasHeight, CanvasWidth));
         candles = candles.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
 
-        var drawnChart = DrawingViewModel.DrawChart(dc, candles, CanvasHeight, CanvasWidth);
+        var drawnChart = DrawChart(dc, candles, CanvasHeight, CanvasWidth);
         var renderedLines = RenderLines(dc, CanvasHeight, CanvasWidth);
 
-        if (DrawingViewModel.DrawingSettings.ShowIntersections)
+        if (DrawingSettings.ShowIntersections)
         {
-          DrawingViewModel.DrawIntersections(
+          DrawIntersections(
                 dc,
                 SelectedLayout.Ctks.Intersections,
                 CanvasHeight,
@@ -394,9 +236,9 @@ namespace CTKS_Chart.ViewModels
            );
         }
 
-        if (DrawingViewModel.DrawingSettings.ShowClusters)
+        if (DrawingSettings.ShowClusters)
         {
-          DrawingViewModel.DrawClusters(
+          DrawClusters(
                dc,
                SelectedLayout.Ctks.Intersections,
                CanvasHeight,
@@ -405,9 +247,8 @@ namespace CTKS_Chart.ViewModels
         }
 
         DrawingImage dImageSource = new DrawingImage(dGroup);
-
+        DrawnChart = drawnChart;
         Chart = dImageSource;
-        this.ChartImage.Source = Chart;
       }
     }
 
@@ -430,7 +271,7 @@ namespace CTKS_Chart.ViewModels
       foreach (var vm in Lines.Where(x => x.IsVisible))
       {
         var line = vm.Model;
-       
+
         Brush selectedBrush = Brushes.Yellow;
 
         if (vm.IsSelected)
@@ -442,7 +283,7 @@ namespace CTKS_Chart.ViewModels
         var x3 = canvasWidth;
         var ctksLine = CreateLine(canvasHeight, canvasWidth, line);
 
-        if(ctksLine.StartPoint.X > canvasWidth && ctksLine.EndPoint.X > canvasWidth)
+        if (ctksLine.StartPoint.X > canvasWidth && ctksLine.EndPoint.X > canvasWidth)
         {
           continue;
         }
@@ -472,13 +313,13 @@ namespace CTKS_Chart.ViewModels
           x3 = TradingHelper.GetPointOnLine(startPoint.Y, startPoint.X, ctksLine.EndPoint.Y, ctksLine.EndPoint.X, 0);
           y3 = 0;
         }
-        else if(y3 > canvasHeight)
+        else if (y3 > canvasHeight)
         {
           x3 = TradingHelper.GetPointOnLine(startPoint.Y, startPoint.X, ctksLine.EndPoint.Y, ctksLine.EndPoint.X, canvasHeight);
           y3 = canvasHeight;
         }
 
-        if(x3 < 0 || x3 > canvasWidth)
+        if (x3 < 0 || x3 > canvasWidth)
         {
           continue;
         }
@@ -489,7 +330,7 @@ namespace CTKS_Chart.ViewModels
         }
 
         var finalPoint = new Point(x3, y3);
-       
+
         drawingContext.DrawLine(pen, startPoint, finalPoint);
 
         var firstPoint = new Point(
@@ -504,7 +345,7 @@ namespace CTKS_Chart.ViewModels
 
         if (intersectionPoint < CanvasHeight && intersectionPoint > 0 && actualLeft < canvasWidth && actualLeft > 0)
         {
-          drawingContext.DrawEllipse(Brushes.Red, pen, new Point(actualLeft, canvasHeight - intersectionPoint), 2, 2);
+          drawingContext.DrawEllipse(Brushes.Orange, pen, new Point(actualLeft, canvasHeight - intersectionPoint), 4, 4);
         }
 
         list.Add(ctksLine);

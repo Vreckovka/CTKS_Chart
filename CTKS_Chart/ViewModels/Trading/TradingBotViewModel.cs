@@ -294,9 +294,14 @@ namespace CTKS_Chart.ViewModels
 
     protected virtual void OnOpenArchitectView()
     {
-      var arch = new ArchitectViewModel(Layouts, DrawingViewModel.ColorScheme, viewModelsFactory, TradingBot.Asset);
+      var arch = new ArchitectViewModel(Layouts, DrawingViewModel.ColorScheme, viewModelsFactory, new TradingBot(
+        new Asset()
+        {
+          NativeRound = TradingBot.Asset.NativeRound,
+          PriceRound = TradingBot.Asset.PriceRound
+        }, new SimulationStrategy()),new Layout());
 
-      windowManager.ShowPrompt<ArchitectView>(arch, 1000, 1000);
+      windowManager.ShowPrompt<ArchitectView>(new ArchitectPromptViewModel(arch), 1000, 1000);
     }
 
     #endregion

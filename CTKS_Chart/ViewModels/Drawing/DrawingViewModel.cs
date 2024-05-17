@@ -550,7 +550,7 @@ namespace CTKS_Chart.ViewModels
     private decimal? lastAth;
     private DateTime? lastFilledPosition;
 
-    public new void RenderOverlay(decimal? athPrice = null)
+    public virtual void RenderOverlay(decimal? athPrice = null)
     {
       Pen shapeOutlinePen = new Pen(Brushes.Transparent, 1);
       shapeOutlinePen.Freeze();
@@ -584,7 +584,7 @@ namespace CTKS_Chart.ViewModels
 
         candlesToRender = candlesToRender.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
 
-        if (candlesToRender.Count > 0 && TradingBot.Strategy != null)
+        if (candlesToRender.Count > 0 )
         {
           var lastCandle = ActualCandles.LastOrDefault();
 
@@ -743,6 +743,10 @@ namespace CTKS_Chart.ViewModels
           DrawMinSellPrice(dc, TradingBot.Strategy.MinSellPrice, imageHeight);
 
           DrawIndicators(dc);
+        }
+        else if(candlesToRender.Count > 0)
+        {
+          newChart = DrawChart(dc, candlesToRender, imageHeight, imageWidth);
         }
 
         Chart = new DrawingImage(dGroup);
@@ -995,8 +999,8 @@ namespace CTKS_Chart.ViewModels
     {
       var diff = (MaxValue - MinValue) * chartDiff;
 
-      var maxCanvasValue = MaxValue - diff;
-      var minCanvasValue = MinValue + diff;
+      var maxCanvasValue = MaxValue;
+      var minCanvasValue = MinValue;
 
       var validIntersection = intersections
         .Where(x => x.Value > minCanvasValue && x.Value < maxCanvasValue && minTimeframe <= x.TimeFrame)

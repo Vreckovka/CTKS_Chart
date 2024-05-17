@@ -9,6 +9,7 @@
   xmlns:local="clr-namespace:CTKS_Chart.Views.Prompts"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:trading="clr-namespace:CTKS_Chart.Views.Trading"
+  DataContext="{Binding Model}"
   mc:Ignorable="d">
   <Grid>
     <Grid.ColumnDefinitions>
@@ -114,7 +115,7 @@
       <ItemsControl.ItemTemplate>
         <DataTemplate>
           <Border>
-            <Button Command="{Binding DataContext.ShowCanvas, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
+            <Button Command="{Binding DataContext.ShowCanvas, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}">
               <TextBlock FontSize="15" Text="{Binding Title}" />
 
               <Button.Style>
@@ -160,6 +161,7 @@
     <trading:ChartLayout
       Grid.Row="1"
       Grid.Column="1"
-      DataContext="{Binding DrawingViewModel}" />
+      DataContext="{Binding}" />
+
   </Grid>
 </UserControl>

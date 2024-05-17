@@ -276,10 +276,6 @@ namespace CTKS_Chart.Views.Controls
         DrawingViewModel.lockChart = false;
         DrawingViewModel.RenderOverlay();
 
-        DrawingViewModel.Raise(nameof(DrawingViewModel.MaxUnix));
-        DrawingViewModel.Raise(nameof(DrawingViewModel.MinUnix));
-        DrawingViewModel.Raise(nameof(DrawingViewModel.MaxValue));
-        DrawingViewModel.Raise(nameof(DrawingViewModel.MinValue));
         DrawingViewModel.Raise(nameof(DrawingViewModel.LockChart));
       }
 
@@ -301,11 +297,11 @@ namespace CTKS_Chart.Views.Controls
 
       if (e.Delta > 0)
       {
-        DrawingViewModel.MaxUnix += diff;
+        DrawingViewModel.MinUnix += diff;
       }
       else
       {
-        DrawingViewModel.MaxUnix -= diff;
+        DrawingViewModel.MinUnix -= diff;
       }
     }
 

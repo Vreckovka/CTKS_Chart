@@ -121,11 +121,11 @@
       x:Name="Chart"
       Grid.Row="0"
       Grid.Column="1"
-      DrawingViewModel="{Binding}"
       AssetPriceRound="{Binding TradingBot.Asset.PriceRound}"
       ChartContent="{Binding Chart}"
       ChartHeight="{Binding CanvasHeight, Mode=TwoWay}"
       ChartWidth="{Binding CanvasWidth, Mode=TwoWay}"
+      DrawingViewModel="{Binding}"
       Overlay="{Binding ElementName=Overlay}" />
 
     <controls1:Overlay
@@ -147,9 +147,8 @@
       VerticalAlignment="Center"
       AssetPriceRound="{Binding TradingBot.Asset.PriceRound}"
       ChartContent="{Binding Chart}"
+      DrawingViewModel="{Binding}"
       LabelsToRender="{Binding RenderedLabels}"
-      MaxValue="{Binding MaxValue, Mode=TwoWay}"
-      MinValue="{Binding MinValue, Mode=TwoWay}"
       ResetChart="{Binding ResetChartY}"
       ValuesToRender="{Binding RenderedIntersections}">
       <controls1:VerticalRuler.Style>
@@ -172,8 +171,7 @@
       HorizontalAlignment="Center"
       VerticalAlignment="Bottom"
       ChartContent="{Binding Chart}"
-      MaxValue="{Binding MaxUnix, Mode=TwoWay}"
-      MinValue="{Binding MinUnix, Mode=TwoWay}"
+      DrawingViewModel="{Binding}"
       ResetChart="{Binding ResetChartX}">
       <controls1:HorizontalRuler.Style>
         <Style TargetType="controls1:HorizontalRuler">

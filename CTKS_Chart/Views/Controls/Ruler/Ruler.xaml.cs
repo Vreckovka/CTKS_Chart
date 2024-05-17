@@ -52,37 +52,19 @@ namespace CTKS_Chart.Views.Controls
     protected List<RenderedLabel> Values { get; } = new List<RenderedLabel>();
     protected List<RenderedLabel> Labels { get; } = new List<RenderedLabel>();
 
-    #region MaxValue
+    #region DrawingViewModel
 
-    public decimal MaxValue
+    public DrawingViewModel DrawingViewModel
     {
-      get { return (decimal)GetValue(MaxValueProperty); }
-      set { SetValue(MaxValueProperty, value); }
+      get { return (DrawingViewModel)GetValue(DrawingViewModelProperty); }
+      set { SetValue(DrawingViewModelProperty, value); }
     }
 
-    public static readonly DependencyProperty MaxValueProperty =
+    public static readonly DependencyProperty DrawingViewModelProperty =
       DependencyProperty.Register(
-        nameof(MaxValue),
-        typeof(decimal),
-        typeof(Ruler));
-
-
-    #endregion
-
-    #region MinValue
-
-    public decimal MinValue
-    {
-      get { return (decimal)GetValue(MinValueProperty); }
-      set { SetValue(MinValueProperty, value); }
-    }
-
-    public static readonly DependencyProperty MinValueProperty =
-      DependencyProperty.Register(
-        nameof(MinValue),
-        typeof(decimal),
-        typeof(Ruler));
-
+        nameof(DrawingViewModel),
+        typeof(DrawingViewModel),
+        typeof(Ruler), new PropertyMetadata(new DrawingViewModel(null, null)));
 
     #endregion
 
@@ -194,6 +176,44 @@ namespace CTKS_Chart.Views.Controls
 
 
     #endregion
+
+    public decimal MaxValue
+    {
+      get
+      {
+        if (DrawingViewModel != null)
+          return Mode == RulerMode.Horizontal ? DrawingViewModel.MaxUnix : DrawingViewModel.MaxValue;
+        return 1;
+      }
+      set
+      {
+        if (Mode == RulerMode.Horizontal)
+        {
+          DrawingViewModel.MaxUnix = (long)value;
+        }
+        else
+          DrawingViewModel.MaxValue = value;
+      }
+    }
+
+    public decimal MinValue
+    {
+      get
+      {
+        if (DrawingViewModel != null)
+          return Mode == RulerMode.Horizontal ? DrawingViewModel.MinUnix : DrawingViewModel.MinValue;
+        return 1;
+      }
+      set
+      {
+        if (Mode == RulerMode.Horizontal)
+        {
+          DrawingViewModel.MinUnix = (long)value;
+        }
+        else
+          DrawingViewModel.MinValue = value;
+      }
+    }
 
     protected override void OnInitialized(EventArgs e)
     {
