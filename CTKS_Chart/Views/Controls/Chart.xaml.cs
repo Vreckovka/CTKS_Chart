@@ -276,6 +276,7 @@ namespace CTKS_Chart.Views.Controls
         DrawingViewModel.lockChart = false;
         DrawingViewModel.RenderOverlay();
 
+
         DrawingViewModel.Raise(nameof(DrawingViewModel.LockChart));
       }
 

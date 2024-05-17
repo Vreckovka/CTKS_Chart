@@ -188,15 +188,6 @@
       Grid.Row="1"
       Grid.ColumnSpan="3"
       Margin="5,5">
-      <CheckBox
-        Margin="5,0"
-        HorizontalAlignment="Right"
-        VerticalAlignment="Bottom"
-        IsChecked="{Binding LockChart}">
-        Lock chart
-      </CheckBox>
-
-
       <controls:PathButton
         Margin="5,5"
         HorizontalAlignment="Left"

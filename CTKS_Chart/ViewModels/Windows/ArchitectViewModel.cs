@@ -209,7 +209,7 @@ namespace CTKS_Chart.ViewModels
 
     #region RenderOverlay
 
-    public override void RenderOverlay(decimal? athPrice = null)
+    public override void RenderOverlay(decimal? athPrice = null, Candle actual = null)
     {
       Pen shapeOutlinePen = new Pen(Brushes.Transparent, 1);
       shapeOutlinePen.Freeze();

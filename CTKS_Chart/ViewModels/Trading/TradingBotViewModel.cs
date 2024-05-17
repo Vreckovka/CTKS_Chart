@@ -669,8 +669,7 @@ namespace CTKS_Chart.ViewModels
 
       DrawingViewModel.ActualCandles = (await
         binanceBroker.GetCandles(TradingBot.Asset.Symbol,
-        TradingHelper.GetTimeSpanFromInterval(KlineInterval),
-        limit: DrawingViewModel.InitialCandleCount)).ToList();
+        TradingHelper.GetTimeSpanFromInterval(KlineInterval))).ToList();
 
       await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
 
@@ -745,12 +744,10 @@ namespace CTKS_Chart.ViewModels
     private bool wasLoaded = false;
     List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
     DateTime lastFileCheck = DateTime.Now;
-    private decimal? lastAthPriceUpdated = null;
+
     private Candle actual = null;
 
     public bool IsSimulation { get; set; } = false;
-
-
 
     #region IsPaused
 
@@ -912,7 +909,7 @@ namespace CTKS_Chart.ViewModels
         var athPrice = GetAthPrice();
 
         if (DrawChart)
-          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(athPrice));
+          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(athPrice, actual));
 
         this.actual = actual;
 
@@ -939,7 +936,7 @@ namespace CTKS_Chart.ViewModels
         }
 
         if (DrawChart)
-          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(athPrice));
+          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(athPrice, actual));
       }
       finally
       {
@@ -1199,8 +1196,7 @@ namespace CTKS_Chart.ViewModels
 
       DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(
         TradingBot.Asset.Symbol,
-        TradingHelper.GetTimeSpanFromInterval(KlineInterval),
-        limit: (int)(DrawingViewModel.InitialCandleCount * 1.2))).ToList();
+        TradingHelper.GetTimeSpanFromInterval(KlineInterval))).ToList();
 
       if (DrawingViewModel.ActualCandles.Count > 0)
       {

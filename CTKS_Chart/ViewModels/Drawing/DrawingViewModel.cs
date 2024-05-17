@@ -244,7 +244,6 @@ namespace CTKS_Chart.ViewModels
 
     public bool lockChart;
     private decimal actualPriceChartViewDiff;
-    IDisposable disposable;
 
     public bool LockChart
     {
@@ -264,16 +263,8 @@ namespace CTKS_Chart.ViewModels
             actualPriceChartViewDiff = (maxValue - minValue) / maxValue;
           }
 
-
           RenderOverlay();
           RaisePropertyChanged();
-        }
-
-        disposable?.Dispose();
-
-        if (!value)
-        {
-          disposable = Observable.Timer(TimeSpan.FromMinutes(1)).ObserveOnDispatcher().Subscribe((x) => LockChart = true);
         }
       }
     }
@@ -318,6 +309,15 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    public bool IsActualCandleVisible
+    {
+      get
+      {
+
+        return drawnChart?.Candles.LastOrDefault()?.Candle.OpenTime == actual?.OpenTime;
+      }
+    }
+
     #endregion
 
     #region InitialCandleCount
@@ -349,7 +349,8 @@ namespace CTKS_Chart.ViewModels
 
     public void OnRestChart()
     {
-      var viewCandles = ActualCandles.TakeLast(InitialCandleCount);
+      var viewCandles = ActualCandles.TakeLast(unixDiff == 1 ? 500 : InitialCandleCount);
+      lockChart = false;
 
       ResetX(viewCandles);
 
@@ -536,7 +537,7 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-    
+
 
     public void Raise(string name)
     {
@@ -549,9 +550,11 @@ namespace CTKS_Chart.ViewModels
     private Candle lastLockedCandle;
     private decimal? lastAth;
     private DateTime? lastFilledPosition;
+    private Candle actual;
 
-    public virtual void RenderOverlay(decimal? athPrice = null)
+    public virtual void RenderOverlay(decimal? athPrice = null, Candle actual = null)
     {
+      this.actual = actual;
       Pen shapeOutlinePen = new Pen(Brushes.Transparent, 1);
       shapeOutlinePen.Freeze();
 
@@ -744,9 +747,16 @@ namespace CTKS_Chart.ViewModels
 
           DrawIndicators(dc);
         }
-       
+
         Chart = new DrawingImage(dGroup);
         DrawnChart = newChart;
+
+
+        if (IsActualCandleVisible)
+        {
+          lockChart = true;
+          RaisePropertyChanged(nameof(LockChart));
+        }
       }
     }
 
