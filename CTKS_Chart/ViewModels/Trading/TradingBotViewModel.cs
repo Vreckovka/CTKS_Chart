@@ -1012,8 +1012,6 @@ namespace CTKS_Chart.ViewModels
 
     private async void OnBinanceKlineUpdate(IBinanceStreamKline binanceStreamKline)
     {
-      return;
-
       try
       {
         await binanceKlineUpdateLock.WaitAsync();
