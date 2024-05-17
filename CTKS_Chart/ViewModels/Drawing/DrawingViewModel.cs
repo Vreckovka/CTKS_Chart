@@ -584,7 +584,7 @@ namespace CTKS_Chart.ViewModels
 
         candlesToRender = candlesToRender.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
 
-        if (candlesToRender.Count > 0 )
+        if (candlesToRender.Count > 0 && TradingBot.Strategy != null)
         {
           var lastCandle = ActualCandles.LastOrDefault();
 
@@ -744,11 +744,7 @@ namespace CTKS_Chart.ViewModels
 
           DrawIndicators(dc);
         }
-        else if(candlesToRender.Count > 0)
-        {
-          newChart = DrawChart(dc, candlesToRender, imageHeight, imageWidth);
-        }
-
+       
         Chart = new DrawingImage(dGroup);
         DrawnChart = newChart;
       }
