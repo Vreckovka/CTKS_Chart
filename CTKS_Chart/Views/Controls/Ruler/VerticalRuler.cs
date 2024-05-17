@@ -31,18 +31,13 @@ namespace CTKS_Chart.Views.Controls
       base.RenderValues();
       var fontSize = 10;
       var padding = 8;
-      int maxIntersections = 15;
+      int maxIntersections = 30;
 
       List<RenderedLabel> notFound = new List<RenderedLabel>();
       List<RenderedLabel> labelsToRender = new List<RenderedLabel>();
 
       if (ValuesToRender.Count > 0 && ValuesToRender.Count < maxIntersections)
       {
-        var max = ValuesToRender
-                 .Select(x => DrawingHelper.GetFormattedText($"*{Math.Round(x.Model.Value, AssetPriceRound)}*".ToString(),
-                 x.SelectedBrush, fontSize))
-                 .Max(x => x.Width);
-
         foreach (var intersection in ValuesToRender)
         {
           padding = 8;
@@ -56,13 +51,13 @@ namespace CTKS_Chart.Views.Controls
             text = $"*{text}*";
           }
 
-          var formattedText = DrawingHelper.GetFormattedText(text, intersection.SelectedBrush, fontSize);
+          var formattedText = DrawingHelper.GetFormattedText(text, intersection.Brush, fontSize);
 
           var price = new TextBlock()
           {
             Text = text,
             FontSize = fontSize,
-            Foreground = intersection.SelectedBrush,
+            Foreground = intersection.Brush,
             FontWeight = intersection.Model.IsCluster ? FontWeights.Bold : FontWeights.Normal,
             TextAlignment = TextAlignment.Center,
             Width = ActualWidth
@@ -169,6 +164,8 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
+    #region RenderLabels
+
     protected override void RenderLabels()
     {
       var notFound = Labels.Where(y => y.Price > MaxValue || y.Price < MinValue).ToList();
@@ -200,7 +197,7 @@ namespace CTKS_Chart.Views.Controls
 
           existingLabel.Border = new Border()
           {
-            Background = label.SelectedBrush,
+            Background = label.Brush,
             Padding = new Thickness(0, 2, 0, 2),
             CornerRadius = new CornerRadius(2, 2, 2, 2),
             IsHitTestVisible = false,
@@ -220,7 +217,7 @@ namespace CTKS_Chart.Views.Controls
 
           Canvas.SetTop(existingLabel.Border, pricePositionY - ((formattedText.Height / 2) + existingLabel.Border.Padding.Bottom));
 
-          Panel.SetZIndex(existingLabel.Border, 100);
+          Panel.SetZIndex(existingLabel.Border, 1);
           Overlay.Children.Add(existingLabel.Border);
 
           Labels.Add(existingLabel);
@@ -229,14 +226,22 @@ namespace CTKS_Chart.Views.Controls
         else
         {
           existingLabel.TextBlock.Text = priceText;
-          existingLabel.Border.Background = label.SelectedBrush;
+          existingLabel.Border.Background = label.Brush;
 
           Canvas.SetTop(existingLabel.Border, pricePositionY - (existingLabel.Border.ActualHeight / 2));
+        }
+
+
+        if (existingLabel.Label?.Tag == "actual_price")
+        {
+          Panel.SetZIndex(existingLabel.Border, 2);
         }
 
         existingLabel.Border.Width = ActualWidth;
       }
     }
+
+    #endregion
 
     #region RenderLabel
 

@@ -655,7 +655,8 @@ namespace CTKS_Chart.ViewModels
 
 
           var removed = RenderedIntersections.Where(x => !TradingBot.Strategy.Intersections.Any(y => y == x.Model)).ToList();
-          removed.AddRange(RenderedIntersections.Where(x => x.Model.Value < MinValue || x.Model.Value > MaxValue));
+          removed.AddRange(RenderedIntersections.Where(x => x.Model.Cluster == null)
+            .Where(x => x.Model.Value < MinValue || x.Model.Value > MaxValue));
 
           removed.ForEach(x => RenderedIntersections.Remove(x));
 
@@ -678,6 +679,12 @@ namespace CTKS_Chart.ViewModels
           {
             RenderedIntersections.Clear();
           }
+
+          removed.AddRange(RenderedIntersections.Where(x => x.Model.Cluster != null)
+                  .Where(x => !(x.Max > MinValue &&
+                              x.Min < MaxValue)));
+
+          removed.ForEach(x => RenderedIntersections.Remove(x));
 
           if (DrawingSettings.ShowClusters)
           {
@@ -721,7 +728,7 @@ namespace CTKS_Chart.ViewModels
 
           if (DrawingSettings.ShowATH)
           {
-            DrawPriceToATH(dc, lastAth.Value, imageHeight);
+            DrawPriceToATH(dc, lastAth, imageHeight);
           }
           else
           {
@@ -931,24 +938,36 @@ namespace CTKS_Chart.ViewModels
             }
           }
 
-
+          bool rendered = false;
 
           if (newCandle.Height > 0 && newCandle.Width > 0)
+          {
             drawingContext.DrawRectangle(selectedBrush, pen, newCandle);
+            rendered = true;
+          }
 
           if (topWick != null)
-            drawingContext.DrawRectangle(selectedBrush, pen, topWick.Value);
-
-          if (bottomWick != null)
-            drawingContext.DrawRectangle(selectedBrush, pen, bottomWick.Value);
-
-          drawnCandles.Add(new ChartCandle()
           {
-            Candle = candle,
-            Body = newCandle,
-            TopWick = topWick,
-            BottomWick = bottomWick
-          });
+            drawingContext.DrawLine(pen, new Point(x, newCandle.Top), new Point(x, topWick.Value.Top));
+            rendered = true;
+          }
+          if (bottomWick != null)
+          {
+            drawingContext.DrawLine(pen, new Point(x, newCandle.Top + newCandle.Height), new Point(x, bottomWick.Value.Top + bottomWick.Value.Height));
+            rendered = true;
+          }
+
+          if (rendered)
+          {
+            drawnCandles.Add(new ChartCandle()
+            {
+              Candle = candle,
+              Body = newCandle,
+              TopWick = topWick,
+              BottomWick = bottomWick
+            });
+          }
+
         }
       }
 
@@ -990,9 +1009,10 @@ namespace CTKS_Chart.ViewModels
 
         var lineY = canvasHeight - actual;
 
-        FormattedText formattedText = DrawingHelper.GetFormattedText(intersection.Value.ToString(), selectedBrush);
 
-        Pen pen = new Pen(selectedBrush, 1);
+        FormattedText formattedText = DrawingHelper.GetFormattedText(intersection.Value.ToString(), selectedBrush.Item2);
+
+        Pen pen = new Pen(selectedBrush.Item2, 1);
         pen.DashStyle = DashStyles.Dash;
         pen.Thickness = DrawingHelper.GetPositionThickness(frame);
 
@@ -1001,9 +1021,9 @@ namespace CTKS_Chart.ViewModels
         var rendered = RenderedIntersections.SingleOrDefault(x => x.Model == intersection);
 
         if (rendered == null)
-          RenderedIntersections.Add(new RenderedIntesection(intersection) { SelectedBrush = selectedBrush });
+          RenderedIntersections.Add(new RenderedIntesection(intersection) { SelectedHex = selectedBrush.Item1, Brush = selectedBrush.Item2 });
         else
-          rendered.SelectedBrush = selectedBrush;
+          rendered.SelectedHex = selectedBrush.Item1;
       }
     }
 
@@ -1084,7 +1104,7 @@ namespace CTKS_Chart.ViewModels
         if (candle != null)
         {
           var text = position.Side == PositionSide.Buy ? "B" : "S";
-          var fontSize = isActiveBuy ? 18 : 10;
+          var fontSize = isActiveBuy ? 16 : 8;
           FormattedText formattedText = DrawingHelper.GetFormattedText(text, selectedBrush, fontSize);
 
           if (position.IsAutomatic)
@@ -1108,8 +1128,8 @@ namespace CTKS_Chart.ViewModels
 
     public void DrawActualPrice(DrawingContext drawingContext, Candle lastCandle, double canvasHeight)
     {
-      var brush = lastCandle.IsGreen ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
-      
+      var brush = lastCandle.IsGreen ? ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush : ColorScheme.ColorSettings[ColorPurpose.RED].Brush;
+
       DrawPrice(drawingContext, lastCandle.Close, "actual_price", brush, canvasHeight);
     }
 
@@ -1119,20 +1139,16 @@ namespace CTKS_Chart.ViewModels
 
     public void DrawAveragePrice(DrawingContext drawingContext, decimal price, double canvasHeight)
     {
-      var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AVERAGE_BUY].Brush);
-
-      DrawPrice(drawingContext, price, "average_price", brush, canvasHeight);
+      DrawPrice(drawingContext, price, "average_price", ColorScheme.ColorSettings[ColorPurpose.AVERAGE_BUY].Brush, canvasHeight);
     }
 
     #endregion
 
     #region DrawPriceToATH
 
-    public void DrawPriceToATH(DrawingContext drawingContext, decimal price, double canvasHeight)
+    public void DrawPriceToATH(DrawingContext drawingContext, decimal? price, double canvasHeight)
     {
-      var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.ATH].Brush);
-      
-      DrawPrice(drawingContext, price, "ath_price", brush, canvasHeight);
+      DrawPrice(drawingContext, price, "ath_price", ColorScheme.ColorSettings[ColorPurpose.ATH].Brush, canvasHeight);
     }
 
     #endregion
@@ -1141,9 +1157,7 @@ namespace CTKS_Chart.ViewModels
 
     public void DrawMaxBuyPrice(DrawingContext drawingContext, decimal? price, double canvasHeight)
     {
-      var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.MAX_BUY_PRICE].Brush);
-
-      DrawPrice(drawingContext, price, "max_buy", brush, canvasHeight);
+      DrawPrice(drawingContext, price, "max_buy", ColorScheme.ColorSettings[ColorPurpose.MAX_BUY_PRICE].Brush, canvasHeight);
     }
 
     #endregion
@@ -1152,9 +1166,7 @@ namespace CTKS_Chart.ViewModels
 
     public void DrawMinSellPrice(DrawingContext drawingContext, decimal? price, double canvasHeight)
     {
-      var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.MIN_SELL_PRICE].Brush);
-
-      DrawPrice(drawingContext, price, "min_sell", brush, canvasHeight);
+      DrawPrice(drawingContext, price, "min_sell", ColorScheme.ColorSettings[ColorPurpose.MIN_SELL_PRICE].Brush, canvasHeight);
     }
 
     #endregion
@@ -1198,9 +1210,9 @@ namespace CTKS_Chart.ViewModels
         var selectedBrush = GetIntersectionBrush(allPositions, intersection);
         var frame = intersection.TimeFrame;
 
-        FormattedText formattedText = DrawingHelper.GetFormattedText(intersection.Value.ToString(), selectedBrush);
+        FormattedText formattedText = DrawingHelper.GetFormattedText(intersection.Value.ToString(), selectedBrush.Item2);
 
-        Pen pen = new Pen(selectedBrush, 1);
+        Pen pen = new Pen(selectedBrush.Item2, 1);
         pen.DashStyle = DashStyles.Dash;
         pen.Thickness = DrawingHelper.GetPositionThickness(frame);
 
@@ -1230,20 +1242,15 @@ namespace CTKS_Chart.ViewModels
         }
 
 
-        selectedBrush.Opacity = 0.20;
-        drawingContext.DrawRectangle(selectedBrush, pen, clusterRect);
-
-
+        selectedBrush.Item2.Opacity = 0.20;
+        drawingContext.DrawRectangle(selectedBrush.Item2, pen, clusterRect);
 
         var rendered = RenderedIntersections.SingleOrDefault(x => x.Model == intersection);
 
-        var clone = selectedBrush.Clone();
-        clone.Opacity = 1;
-
         if (rendered == null)
-          RenderedIntersections.Add(new RenderedIntesection(intersection) { SelectedBrush = clone });
+          RenderedIntersections.Add(new RenderedIntesection(intersection) { SelectedHex = selectedBrush.Item1, Brush = selectedBrush.Item2, Min = minValue, Max = maxValue });
         else
-          rendered.SelectedBrush = clone;
+          rendered.SelectedHex = selectedBrush.Item1;
 
       }
     }
@@ -1252,9 +1259,9 @@ namespace CTKS_Chart.ViewModels
 
     #region GetIntersectionBrush
 
-    private Brush GetIntersectionBrush(IList<Position> allPositions, CtksIntersection intersection)
+    private Tuple<string, Brush> GetIntersectionBrush(IList<Position> allPositions, CtksIntersection intersection)
     {
-      Brush selectedBrush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush);
+      string selectedHex = ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush;
 
       var actual = TradingHelper.GetCanvasValue(canvasHeight, intersection.Value, MaxValue, MinValue);
 
@@ -1262,9 +1269,9 @@ namespace CTKS_Chart.ViewModels
 
       if (!intersection.IsEnabled)
       {
-        selectedBrush = DrawingHelper.GetBrushFromHex("#614c4c");
-        selectedBrush.Opacity = 0.25;
+        selectedHex = "#614c4c";
       }
+
 
       if (allPositions != null)
       {
@@ -1278,35 +1285,41 @@ namespace CTKS_Chart.ViewModels
 
         if (firstPositionsOnIntersesction != null)
         {
-          selectedBrush =
+          selectedHex =
             firstPositionsOnIntersesction.Side == PositionSide.Buy ?
-                isOnlyAuto ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_BUY].Brush) :
-                isCombined ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.COMBINED_BUY].Brush) :
-                DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.BUY].Brush) :
+                isOnlyAuto ? ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_BUY].Brush :
+                isCombined ? ColorScheme.ColorSettings[ColorPurpose.COMBINED_BUY].Brush :
+               ColorScheme.ColorSettings[ColorPurpose.BUY].Brush :
 
-                isOnlyAuto ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_SELL].Brush) :
-                isCombined ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.COMBINED_SELL].Brush) :
-                DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.SELL].Brush);
+                isOnlyAuto ? ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_SELL].Brush :
+                isCombined ? ColorScheme.ColorSettings[ColorPurpose.COMBINED_SELL].Brush :
+                ColorScheme.ColorSettings[ColorPurpose.SELL].Brush;
         }
       }
 
+      var selectedBrush = DrawingHelper.GetBrushFromHex(selectedHex);
+      if (!intersection.IsEnabled)
+      {
+        selectedBrush.Opacity = 0.25;
+      }
 
-      return selectedBrush;
+      return new Tuple<string, Brush>(selectedHex, selectedBrush);
     }
 
     #endregion
 
     #region DrawPrice
 
-    public void DrawPrice(DrawingContext drawingContext, decimal? price, string tag, Brush brush, double canvasHeight)
+    public void DrawPrice(DrawingContext drawingContext, decimal? price, string tag, string brush, double canvasHeight)
     {
       if (price > 0 && price > MinValue && price < MaxValue)
       {
         var close = TradingHelper.GetCanvasValue(canvasHeight, price.Value, MaxValue, MinValue);
+        var selectedBrush = DrawingHelper.GetBrushFromHex(brush);
 
         var lineY = canvasHeight - close;
 
-        var pen = new Pen(brush, 1);
+        var pen = new Pen(selectedBrush, 1);
 
         drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
 
@@ -1317,12 +1330,13 @@ namespace CTKS_Chart.ViewModels
         if (existing != null)
         {
           existing.Model = text;
-          existing.SelectedBrush = brush;
+          existing.SelectedHex = brush;
+          existing.Brush = selectedBrush;
           existing.Price = price.Value;
         }
         else
         {
-          RenderedLabels.Add(new DrawingRenderedLabel(text) { SelectedBrush = brush, Price = price.Value, Tag = tag });
+          RenderedLabels.Add(new DrawingRenderedLabel(text) { SelectedHex = brush, Price = price.Value, Tag = tag, Brush = selectedBrush });
         }
       }
       else

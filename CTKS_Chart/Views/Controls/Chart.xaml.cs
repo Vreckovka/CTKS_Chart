@@ -37,9 +37,9 @@ namespace CTKS_Chart.Views.Controls
         typeof(Chart), new PropertyMetadata(null, new PropertyChangedCallback((obj, y) =>
         {
 
-          if (obj is Chart chart && y.NewValue is FrameworkElement frameworkElement)
+          if (obj is Chart chart && y.NewValue is DrawingImage frameworkElement)
           {
-            chart.MouseMove += chart.Grid_MouseMove;
+           
           }
         })));
 
@@ -261,6 +261,8 @@ namespace CTKS_Chart.Views.Controls
     {
       ChartHeight = ActualHeight;
       ChartWidth = ActualWidth;
+
+      MouseMove += Grid_MouseMove;
     }
 
     #region Grid_MouseMove

@@ -64,14 +64,7 @@ namespace CTKS_Chart.Views.Controls
       DependencyProperty.Register(
         nameof(MaxValue),
         typeof(decimal),
-        typeof(Ruler), new PropertyMetadata(0.0m, (x, y) =>
-        {
-
-          if (x is Ruler ruler)
-          {
-            ruler.RenderValues();
-          }
-        }));
+        typeof(Ruler));
 
 
     #endregion
@@ -88,14 +81,7 @@ namespace CTKS_Chart.Views.Controls
       DependencyProperty.Register(
         nameof(MinValue),
         typeof(decimal),
-        typeof(Ruler), new PropertyMetadata(0.0m, (x, y) =>
-        {
-
-          if (x is Ruler ruler)
-          {
-            ruler.RenderValues();
-          }
-        }));
+        typeof(Ruler));
 
 
     #endregion
@@ -144,7 +130,7 @@ namespace CTKS_Chart.Views.Controls
           if (x is Ruler ruler && y.NewValue is RxObservableCollection<DrawingRenderedLabel> collection)
           {
             ruler.RenderLabels();
-            ruler.ValuesToRender.CollectionChanged += ruler.LablesToRender_CollectionChanged;
+            ruler.LabelsToRender.CollectionChanged += ruler.LablesToRender_CollectionChanged;
             collection.ItemUpdated.Subscribe((x) => { ruler.RenderLabels(); });
           }
         }));

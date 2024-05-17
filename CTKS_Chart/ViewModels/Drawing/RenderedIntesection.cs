@@ -11,19 +11,20 @@ namespace CTKS_Chart.ViewModels
     {
     }
 
-    #region SelectedBrush
+    public Brush Brush { get; set; }
 
-    private Brush selectedBrush;
+    #region SelectedHex
 
+    private string selectedHex;
 
-    public Brush SelectedBrush
+    public string SelectedHex
     {
-      get { return selectedBrush; }
+      get { return selectedHex; }
       set
       {
-        if (value != selectedBrush)
+        if (value != selectedHex)
         {
-          selectedBrush = value;
+          selectedHex = value;
           RaisePropertyChanged();
         }
       }
@@ -31,11 +32,15 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
   }
+
   public class RenderedIntesection : RenderedItem<CtksIntersection>
   {
     public RenderedIntesection(CtksIntersection model) : base(model)
     {
     }
+
+    public decimal Min { get; set; }
+    public decimal Max { get; set; }
   }
 
   public class DrawingRenderedLabel : RenderedItem<string>
