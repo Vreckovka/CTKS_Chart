@@ -13,6 +13,11 @@ namespace CTKS_Chart.Views.Controls
   {
     TextBlock dateTextBlock;
 
+    private void HorizontalRuler_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+      throw new NotImplementedException();
+    }
+
     public override RulerMode Mode => RulerMode.Horizontal;
 
     protected override void FrameworkElement_SizeChanged(object sender, SizeChangedEventArgs e)

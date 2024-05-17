@@ -260,7 +260,6 @@
         ChartContent="{Binding ChartImage}"
         MaxValue="{Binding MaxValue, Mode=TwoWay}"
         MinValue="{Binding MinValue, Mode=TwoWay}"
-        Size="{Binding CanvasHeight}"
         ValuesToRender="{Binding RenderedIntersections}" />
 
       <controls:HorizontalRuler
@@ -272,8 +271,7 @@
         VerticalAlignment="Bottom"
         ChartContent="{Binding ChartImage}"
         MaxValue="{Binding MaxUnix, Mode=TwoWay}"
-        MinValue="{Binding MinUnix, Mode=TwoWay}"
-        Size="{Binding CanvasWidth}" />
+        MinValue="{Binding MinUnix, Mode=TwoWay}" />
 
 
       <controls1:PathButton

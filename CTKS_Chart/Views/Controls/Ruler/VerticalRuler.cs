@@ -130,7 +130,7 @@ namespace CTKS_Chart.Views.Controls
       else
       {
         notFound = Labels
-        .Where(y => y.Order == null)
+        .Where(y => y.Order == null && (y.Price > MaxValue || y.Price < MinValue))
         .ToList();
       }
 
@@ -145,7 +145,7 @@ namespace CTKS_Chart.Views.Controls
         RenderedLabel existing = null;
 
         if (isIntersections)
-          existing = Labels.SingleOrDefault(x => x.TextBlock.Text == label.TextBlock.Text);
+          existing = Labels.FirstOrDefault(x => x.TextBlock.Text == label.TextBlock.Text);
         else if(label.Order != null && Labels.Count > label.Order.Value)
           existing = Labels[label.Order.Value];
 

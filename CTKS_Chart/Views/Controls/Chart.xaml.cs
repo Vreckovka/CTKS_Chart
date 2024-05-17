@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
@@ -23,16 +24,16 @@ namespace CTKS_Chart.Views.Controls
   {
     #region ChartContent
 
-    public FrameworkElement ChartContent
+    public DrawingImage ChartContent
     {
-      get { return (FrameworkElement)GetValue(ChartContentProperty); }
+      get { return (DrawingImage)GetValue(ChartContentProperty); }
       set { SetValue(ChartContentProperty, value); }
     }
 
     public static readonly DependencyProperty ChartContentProperty =
       DependencyProperty.Register(
         nameof(ChartContent),
-        typeof(FrameworkElement),
+        typeof(DrawingImage),
         typeof(Chart), new PropertyMetadata(null, new PropertyChangedCallback((obj, y) =>
         {
 
@@ -197,8 +198,8 @@ namespace CTKS_Chart.Views.Controls
           actualMousePosition = value;
           OnPropertyChanged();
 
-          ActualMousePositionX = DateTimeHelper.UnixTimeStampToUtcDateTime((long)TradingHelper.GetValueFromCanvasLinear(ChartContent.ActualWidth, actualMousePosition.X, (long)MaxXValue, (long)MinXValue));
-          ActualMousePositionY = TradingHelper.GetValueFromCanvas(ChartContent.ActualHeight, ChartContent.ActualHeight - actualMousePosition.Y, MaxYValue, MinYValue);
+          ActualMousePositionX = DateTimeHelper.UnixTimeStampToUtcDateTime((long)TradingHelper.GetValueFromCanvasLinear(ChartContent.Width, actualMousePosition.X, (long)MaxXValue, (long)MinXValue));
+          ActualMousePositionY = TradingHelper.GetValueFromCanvas(ChartContent.Height, ChartContent.Height - actualMousePosition.Y, MaxYValue, MinYValue);
 
           if (AssetPriceRound > 0)
           {
@@ -252,6 +253,14 @@ namespace CTKS_Chart.Views.Controls
     public Chart()
     {
       InitializeComponent();
+
+      SizeChanged += Chart_SizeChanged;
+    }
+
+    private void Chart_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+      ChartHeight = ActualHeight;
+      ChartWidth = ActualWidth;
     }
 
     #region Grid_MouseMove
@@ -264,7 +273,7 @@ namespace CTKS_Chart.Views.Controls
     {
       base.OnMouseMove(e);
 
-      ActualMousePosition = e.GetPosition(ChartContent);
+      ActualMousePosition = e.GetPosition(Image);
 
       if (wasPressed)
       {

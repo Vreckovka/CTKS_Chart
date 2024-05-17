@@ -6,7 +6,5 @@ namespace CTKS_Chart.ViewModels
   public class DrawnChart
   {
     public IEnumerable<ChartCandle> Candles { get; set; }
-    public double MaxDrawnPoint { get; set; }
-    public double MinDrawnPoint { get; set; }
   }
 }

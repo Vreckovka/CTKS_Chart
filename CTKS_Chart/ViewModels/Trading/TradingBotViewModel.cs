@@ -679,7 +679,10 @@ namespace CTKS_Chart.ViewModels
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, DrawingViewModel.CanvasHeight, DrawingViewModel.CanvasWidth, TradingBot.Asset);
 
-      DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval))).ToList();
+      DrawingViewModel.ActualCandles = (await 
+        binanceBroker.GetCandles(TradingBot.Asset.Symbol, 
+        TradingHelper.GetTimeSpanFromInterval(KlineInterval),
+        limit: DrawingViewModel.InitialCandleCount)).ToList();
 
       await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
 
@@ -1204,14 +1207,17 @@ namespace CTKS_Chart.ViewModels
 
     private async Task ChangeKlineInterval()
     {
-      DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(TradingBot.Asset.Symbol, TradingHelper.GetTimeSpanFromInterval(KlineInterval))).ToList();
+      await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
+
+      DrawingViewModel.ActualCandles = (await binanceBroker.GetCandles(
+        TradingBot.Asset.Symbol, 
+        TradingHelper.GetTimeSpanFromInterval(KlineInterval),
+        limit: (int)(DrawingViewModel.InitialCandleCount * 1.2))).ToList();
 
       if (DrawingViewModel.ActualCandles.Count > 0)
       {
         DrawingViewModel.unixDiff = DrawingViewModel.ActualCandles[1].UnixTime - DrawingViewModel.ActualCandles[0].UnixTime;
       }
-
-      await binanceBroker.SubscribeToKlineInterval(TradingBot.Asset.Symbol, OnBinanceKlineUpdate, KlineInterval);
     }
 
     #endregion

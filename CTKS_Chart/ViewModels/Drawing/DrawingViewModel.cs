@@ -6,7 +6,6 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -24,163 +23,6 @@ using PositionSide = CTKS_Chart.Strategy.PositionSide;
 
 namespace CTKS_Chart.ViewModels
 {
-  public class RenderedIntesection : ViewModel<CtksIntersection>
-  {
-    public RenderedIntesection(CtksIntersection model) : base(model)
-    {
-    }
-
-    #region SelectedBrush
-
-    private Brush selectedBrush;
-
-    public Brush SelectedBrush
-    {
-      get { return selectedBrush; }
-      set
-      {
-        if (value != selectedBrush)
-        {
-          selectedBrush = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-  }
-
-  public class DrawingSettings : ViewModel
-  {
-    #region ShowClusters
-
-    private bool showClusters = true;
-
-    public bool ShowClusters
-    {
-      get { return showClusters; }
-      set
-      {
-        if (value != showClusters)
-        {
-          showClusters = value;
-
-          RenderLayout?.Invoke();
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region ShowIntersections
-
-    private bool showIntersections = true;
-
-    public bool ShowIntersections
-    {
-      get { return showIntersections; }
-      set
-      {
-        if (value != showIntersections)
-        {
-          showIntersections = value;
-
-          RenderLayout?.Invoke();
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region ShowATH
-
-    private bool showATH = true;
-
-    public bool ShowATH
-    {
-      get { return showATH; }
-      set
-      {
-        if (value != showATH)
-        {
-          showATH = value;
-
-          RenderLayout?.Invoke();
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region ShowAutoPositions
-
-    private bool showAutoPositions = true;
-
-    public bool ShowAutoPositions
-    {
-      get { return showAutoPositions; }
-      set
-      {
-        if (value != showAutoPositions)
-        {
-          showAutoPositions = value;
-
-          RenderLayout?.Invoke();
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region ShowManualPositions
-
-    private bool showManualPositions = true;
-
-    public bool ShowManualPositions
-    {
-      get { return showManualPositions; }
-      set
-      {
-        if (value != showManualPositions)
-        {
-          showManualPositions = value;
-
-          RenderLayout?.Invoke();
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region ShowAveragePrice
-
-    private bool showAveragePrice = true;
-
-    public bool ShowAveragePrice
-    {
-      get { return showAveragePrice; }
-      set
-      {
-        if (value != showAveragePrice)
-        {
-          showAveragePrice = value;
-
-          RenderLayout?.Invoke();
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    [JsonIgnore]
-    public Action RenderLayout { get; set; }
-  }
 
   public class DrawingViewModel : ViewModel, IDrawingViewModel
   {
@@ -216,6 +58,25 @@ namespace CTKS_Chart.ViewModels
             drawingSettings.RenderLayout = () => RenderOverlay();
           }
 
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region DrawnChart
+
+    private DrawnChart drawnChart;
+
+    public DrawnChart DrawnChart
+    {
+      get { return drawnChart; }
+      set
+      {
+        if (value != drawnChart)
+        {
+          drawnChart = value;
           RaisePropertyChanged();
         }
       }
@@ -422,7 +283,7 @@ namespace CTKS_Chart.ViewModels
 
     #region CanvasHeight
 
-    private double canvasHeight = 1000;
+    private double canvasHeight = 500;
 
     public double CanvasHeight
     {
@@ -458,26 +319,16 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region ChartImage
+    #endregion
 
-    private Image chartImage;
-
-    public Image ChartImage
+    public int InitialCandleCount
     {
-      get { return chartImage; }
-      set
+      get
       {
-        if (value != chartImage)
-        {
-          chartImage = value;
-          RaisePropertyChanged();
-        }
+
+        return 200;
       }
     }
-
-    #endregion
-
-    #endregion
 
     #region ResetChart
 
@@ -494,25 +345,93 @@ namespace CTKS_Chart.ViewModels
 
     public void OnRestChart()
     {
-      var viewCandles = ActualCandles.TakeLast(150);
+      var viewCandles = ActualCandles.TakeLast(InitialCandleCount);
 
+      ResetX(viewCandles);
+
+      var candlesToRender = viewCandles.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
+
+      ResetY(candlesToRender);
+
+      RenderOverlay();
+    }
+
+    #region ResetChartX
+
+    protected ActionCommand resetChartX;
+
+    public ICommand ResetChartX
+    {
+      get
+      {
+        return resetChartX ??= new ActionCommand(OnRestChartX);
+      }
+    }
+
+
+    public void OnRestChartX()
+    {
+      var viewCandles = ActualCandles.TakeLast(InitialCandleCount);
+
+      ResetX(viewCandles);
+      RenderOverlay();
+    }
+
+    #endregion
+
+    #region ResetChartY
+
+    protected ActionCommand resetChartY;
+
+    public ICommand ResetChartY
+    {
+      get
+      {
+        return resetChartY ??= new ActionCommand(OnRestChartY);
+      }
+    }
+
+
+    public void OnRestChartY()
+    {
+      ResetY(DrawnChart.Candles.Select(x => x.Candle));
+
+      RenderOverlay();
+    }
+
+    #endregion
+
+    #region ResetY
+
+    private void ResetY(IEnumerable<Candle> viewCandles)
+    {
       var max = viewCandles.Max(x => x.High.Value);
       var min = viewCandles.Min(x => x.Low.Value);
       var diff = (max - min) / max;
       lastLockedCandle = viewCandles.Last();
       var lastClose = lastLockedCandle.Close.Value;
 
-      var isLocked = LockChart;
+      maxValue = max * (1 + (diff * 0.15m));
+      minValue = min * (1 - (diff * 0.15m));
 
-      MaxValue = lastClose * (1 + diff);
-      MinValue = lastClose * (1 - diff);
-
-      MaxUnix = viewCandles.Max(x => x.UnixTime) + (unixDiff * 30);
-      MinUnix = viewCandles.Min(x => x.UnixTime) + (unixDiff * 30);
-
-      LockChart = isLocked;
-      RenderOverlay();
+      RaisePropertyChanged(nameof(MaxValue));
+      RaisePropertyChanged(nameof(MinValue));
     }
+
+    #endregion
+
+    #region ResetX
+
+    private void ResetX(IEnumerable<Candle> viewCandles)
+    {
+      maxUnix = viewCandles.Max(x => x.UnixTime) + (unixDiff * 30);
+      minUnix = viewCandles.Min(x => x.UnixTime) + (unixDiff * 30);
+
+      RaisePropertyChanged(nameof(MaxUnix));
+      RaisePropertyChanged(nameof(MinUnix));
+    }
+
+    #endregion
 
     #endregion
 
@@ -629,8 +548,8 @@ namespace CTKS_Chart.ViewModels
 
       DrawingGroup dGroup = new DrawingGroup();
 
-      double imageHeight = 1000;
-      double imageWidth = 1000;
+      double imageHeight = CanvasHeight;
+      double imageWidth = CanvasWidth;
 
       if (unixDiff == 0 && ActualCandles.Count > 1)
       {
@@ -648,14 +567,14 @@ namespace CTKS_Chart.ViewModels
       }
 
 
+      DrawnChart newChart = null;
       using (DrawingContext dc = dGroup.Open())
       {
-        dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(imageHeight, imageWidth));
-        
+        dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(imageWidth, imageHeight));
         var candlesToRender = ActualCandles.ToList();
-        
+
         candlesToRender = candlesToRender.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
-        
+
         if (candlesToRender.Count > 0 && TradingBot.Strategy != null)
         {
           var lastCandle = ActualCandles.LastOrDefault();
@@ -740,8 +659,8 @@ namespace CTKS_Chart.ViewModels
           }
 
           lastFilledPosition = TradingBot.Strategy.AllClosedPositions.Max(x => x.FilledDate);
-          
-          
+
+
           if (DrawingSettings.ShowIntersections)
           {
             DrawIntersections(dc, TradingBot.Strategy.Intersections,
@@ -764,9 +683,8 @@ namespace CTKS_Chart.ViewModels
           }
 
 
-          var chart = DrawChart(dc, candlesToRender, imageHeight, imageWidth);
-          var chartCandles = chart.Candles.ToList();
-
+          newChart = DrawChart(dc, candlesToRender, imageHeight, imageWidth);
+          var chartCandles = newChart.Candles.ToList();
 
           DrawClosedPositions(dc, TradingBot.Strategy.AllClosedPositions, chartCandles, imageHeight);
 
@@ -811,16 +729,8 @@ namespace CTKS_Chart.ViewModels
           DrawIndicators(dc);
         }
 
-        DrawingImage dImageSource = new DrawingImage(dGroup);
-
-        Chart = dImageSource;
-
-        if (ChartImage == null)
-        {
-          ChartImage = new Image();
-        }
-
-        this.ChartImage.Source = Chart;
+        Chart = new DrawingImage(dGroup);
+        DrawnChart = newChart;
       }
     }
 
@@ -834,8 +744,6 @@ namespace CTKS_Chart.ViewModels
       double canvasHeight,
       double canvasWidth)
     {
-      double minDrawnPoint = 0;
-      double maxDrawnPoint = 0;
       var drawnCandles = new List<ChartCandle>();
       long unix_diff = unixDiff;
 
@@ -858,8 +766,7 @@ namespace CTKS_Chart.ViewModels
 
           var selectedBrush = candle.IsGreen ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
 
-          Pen pen = new Pen(selectedBrush, 1);
-          Pen wickPen = new Pen(selectedBrush, 1);
+          Pen pen = new Pen(selectedBrush, 0.5);
 
           var newCandle = new Rect()
           {
@@ -1019,10 +926,10 @@ namespace CTKS_Chart.ViewModels
             drawingContext.DrawRectangle(selectedBrush, pen, newCandle);
 
           if (topWick != null)
-            drawingContext.DrawRectangle(selectedBrush, wickPen, topWick.Value);
+            drawingContext.DrawRectangle(selectedBrush, pen, topWick.Value);
 
           if (bottomWick != null)
-            drawingContext.DrawRectangle(selectedBrush, wickPen, bottomWick.Value);
+            drawingContext.DrawRectangle(selectedBrush, pen, bottomWick.Value);
 
           drawnCandles.Add(new ChartCandle()
           {
@@ -1031,25 +938,11 @@ namespace CTKS_Chart.ViewModels
             TopWick = topWick,
             BottomWick = bottomWick
           });
-
-
-
-          if (bottomWick != null && bottomWick.Value.Y > maxDrawnPoint)
-          {
-            maxDrawnPoint = bottomWick.Value.Y;
-          }
-
-          if (topWick != null && topWick.Value.Y < minDrawnPoint)
-          {
-            minDrawnPoint = topWick.Value.Y;
-          }
         }
       }
 
       return new DrawnChart()
       {
-        MaxDrawnPoint = maxDrawnPoint,
-        MinDrawnPoint = minDrawnPoint,
         Candles = drawnCandles
       };
     }
@@ -1085,7 +978,7 @@ namespace CTKS_Chart.ViewModels
         var frame = intersection.TimeFrame;
 
         var lineY = canvasHeight - actual;
-        
+
         FormattedText formattedText = DrawingHelper.GetFormattedText(intersection.Value.ToString(), selectedBrush);
 
         Pen pen = new Pen(selectedBrush, 1);
@@ -1339,13 +1232,14 @@ namespace CTKS_Chart.ViewModels
                  x.TimeFrame >= minTimeframe &&
                  x.Cluster.Intersections.Any()
                 )
-        .Select(x => new {
-          minValue =  x.Cluster.Intersections.Min(x => x.Value) ,
+        .Select(x => new
+        {
+          minValue = x.Cluster.Intersections.Min(x => x.Value),
           maxValue = x.Cluster.Intersections.Max(x => x.Value),
           intersection = x
         })
         .Where(x => x.maxValue > minCanvasValue &&
-                x.minValue < maxCanvasValue) 
+                x.minValue < maxCanvasValue)
         .ToList();
 
       foreach (var actualIntersectionObject in validIntersection)
@@ -1387,7 +1281,7 @@ namespace CTKS_Chart.ViewModels
         }
 
 
-        selectedBrush.Opacity = 0.25;
+        selectedBrush.Opacity = 0.20;
         drawingContext.DrawRectangle(selectedBrush, pen, clusterRect);
 
 

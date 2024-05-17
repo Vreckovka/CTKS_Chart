@@ -8,10 +8,7 @@
   d:DesignHeight="450"
   d:DesignWidth="800"
   mc:Ignorable="d">
-  <Border
-    Background="#08ffffff"
-    MouseMove="Grid_MouseMove"
-    MouseWheel="Border_MouseWheel">
+  <Border Background="#08ffffff">
     <Grid>
       <Canvas x:Name="Overlay" ClipToBounds="True" />
     </Grid>

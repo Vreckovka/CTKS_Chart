@@ -20,6 +20,7 @@ using VCore.WPF.Controls;
 using DecimalMath;
 using VCore.ItemsCollections;
 using System.Linq;
+using System.Windows.Media;
 
 namespace CTKS_Chart.Views.Controls
 {
@@ -29,6 +30,7 @@ namespace CTKS_Chart.Views.Controls
     public int? Order { get; set; }
     public TextBlock TextBlock { get; set; }
     public Border Border { get; set; }
+    public decimal Price { get; set; }
     public Point Position { get; set; }
   }
   public enum RulerMode
@@ -94,24 +96,6 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
-    #region Size
-
-    public double Size
-    {
-      get { return (double)GetValue(SizeProperty); }
-      set { SetValue(SizeProperty, value); }
-    }
-
-    public static readonly DependencyProperty SizeProperty =
-      DependencyProperty.Register(
-        nameof(Size),
-        typeof(double),
-        typeof(Ruler),
-        new PropertyMetadata(0.0));
-
-
-    #endregion
-
     #region ValuesToRender
 
     public RxObservableCollection<RenderedIntesection> ValuesToRender
@@ -141,21 +125,21 @@ namespace CTKS_Chart.Views.Controls
 
     #region ChartContent
 
-    public FrameworkElement ChartContent
+    public DrawingImage ChartContent
     {
-      get { return (FrameworkElement)GetValue(ChartContentProperty); }
+      get { return (DrawingImage)GetValue(ChartContentProperty); }
       set { SetValue(ChartContentProperty, value); }
     }
 
     public static readonly DependencyProperty ChartContentProperty =
       DependencyProperty.Register(
         nameof(ChartContent),
-        typeof(FrameworkElement),
+        typeof(DrawingImage),
         typeof(Ruler), new PropertyMetadata(null, (obj, y) =>
         {
-          if (obj is Ruler ruler && y.NewValue is FrameworkElement frameworkElement)
+          if (obj is Ruler ruler)
           {
-            frameworkElement.SizeChanged += ruler.FrameworkElement_SizeChanged;
+            ruler.RenderValues();
           }
         }));
 
@@ -180,11 +164,34 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
+    #region ResetChart
+
+    public ICommand ResetChart
+    {
+      get { return (ICommand)GetValue(ResetChartProperty); }
+      set { SetValue(ResetChartProperty, value); }
+    }
+
+    public static readonly DependencyProperty ResetChartProperty =
+      DependencyProperty.Register(
+        nameof(ResetChart),
+        typeof(ICommand),
+        typeof(Ruler), null);
+
+
+    #endregion
+
     protected override void OnInitialized(EventArgs e)
     {
       base.OnInitialized(e);
 
       SizeChanged += Ruler_SizeChanged;
+      MouseDoubleClick += Ruler_MouseDoubleClick;
+    }
+
+    private void Ruler_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+      ResetChart?.Execute(null);
     }
 
     private void Ruler_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -211,6 +218,26 @@ namespace CTKS_Chart.Views.Controls
     public Ruler()
     {
       InitializeComponent();
+
+      MouseLeftButtonDown += Ruler_MouseLeftButtonDown;
+      MouseLeftButtonUp += Ruler_MouseLeftButtonUp;
+      MouseMove += Grid_MouseMove;
+      MouseWheel += Border_MouseWheel;
+    }
+
+    private void Ruler_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+      ReleaseMouseCapture();
+      start = null;
+      Mouse.OverrideCursor = null;
+    }
+
+    private void Ruler_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+      Mouse.Capture(this);
+      var position = e.GetPosition(this);
+      start = Mode == RulerMode.Horizontal ? position.X : position.Y;
+      Mouse.OverrideCursor = Mode == RulerMode.Horizontal ? Cursors.SizeWE : Cursors.SizeNS;
     }
 
     #region Border_MouseWheel
@@ -241,10 +268,11 @@ namespace CTKS_Chart.Views.Controls
       base.OnMouseMove(e);
       var position = e.GetPosition(this);
 
-      if (e.LeftButton == MouseButtonState.Pressed && start != null)
+      if (start != null)
       {
-        var startPrice = TradingHelper.GetValueFromCanvas(Size, start.Value, MaxValue, MinValue);
-        var nextPrice = TradingHelper.GetValueFromCanvas(Size, Mode == RulerMode.Horizontal ? position.X : position.Y, MaxValue, MinValue);
+        var size = Mode == RulerMode.Horizontal ? ActualWidth : ActualHeight;
+        var startPrice = TradingHelper.GetValueFromCanvas(size, start.Value, MaxValue, MinValue);
+        var nextPrice = TradingHelper.GetValueFromCanvas(size, Mode == RulerMode.Horizontal ? position.X : position.Y, MaxValue, MinValue);
 
         var delta = (nextPrice * 100 / startPrice) / 100;
 
@@ -263,13 +291,8 @@ namespace CTKS_Chart.Views.Controls
         {
           MinValue = 0;
         }
-      }
 
-      start = Mode == RulerMode.Horizontal ? position.X : position.Y;
-
-      if (e.LeftButton != MouseButtonState.Pressed && start != null)
-      {
-        start = null;
+        start = Mode == RulerMode.Horizontal ? position.X : position.Y;
       }
     }
 
@@ -281,15 +304,13 @@ namespace CTKS_Chart.Views.Controls
 
     protected virtual void RenderValues()
     {
-    
+
     }
 
     #endregion
 
     public abstract void RenderLabel(Point mousePoint, decimal price, DateTime date, int assetPriceRound);
     public abstract void ClearLabel();
-
-
 
     #region OnPropertyChanged
 
