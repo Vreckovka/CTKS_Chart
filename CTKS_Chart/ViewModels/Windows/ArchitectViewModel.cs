@@ -220,7 +220,7 @@ namespace CTKS_Chart.ViewModels
 
       using (DrawingContext dc = dGroup.Open())
       {
-        dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(CanvasHeight, CanvasWidth));
+        dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(CanvasWidth, CanvasHeight));
         candles = candles.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
 
         var drawnChart = DrawChart(dc, candles, CanvasHeight, CanvasWidth);
