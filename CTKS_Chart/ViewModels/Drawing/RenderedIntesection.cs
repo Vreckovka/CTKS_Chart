@@ -4,15 +4,17 @@ using VCore.Standard;
 
 namespace CTKS_Chart.ViewModels
 {
-  public class RenderedIntesection : ViewModel<CtksIntersection>
+  public class RenderedItem<TViewModel> : ViewModel<TViewModel>
   {
-    public RenderedIntesection(CtksIntersection model) : base(model)
+
+    public RenderedItem(TViewModel model) : base(model)
     {
     }
 
     #region SelectedBrush
 
     private Brush selectedBrush;
+
 
     public Brush SelectedBrush
     {
@@ -28,5 +30,39 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+  }
+  public class RenderedIntesection : RenderedItem<CtksIntersection>
+  {
+    public RenderedIntesection(CtksIntersection model) : base(model)
+    {
+    }
+  }
+
+  public class DrawingRenderedLabel : RenderedItem<string>
+  {
+    public DrawingRenderedLabel(string model) : base(model)
+    {
+    }
+
+    #region Price
+
+    private decimal price;
+
+    public decimal Price
+    {
+      get { return price; }
+      set
+      {
+        if (value != price)
+        {
+          price = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    public string Tag { get; set; }
   }
 }

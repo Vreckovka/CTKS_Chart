@@ -32,6 +32,9 @@ namespace CTKS_Chart.Views.Controls
     public Border Border { get; set; }
     public decimal Price { get; set; }
     public Point Position { get; set; }
+
+    public CtksIntersection Intersection { get; set; }
+    public DrawingRenderedLabel Label { get; set; }
   }
   public enum RulerMode
   {
@@ -46,6 +49,7 @@ namespace CTKS_Chart.Views.Controls
   {
     public abstract RulerMode Mode { get; }
 
+    protected List<RenderedLabel> Values { get; } = new List<RenderedLabel>();
     protected List<RenderedLabel> Labels { get; } = new List<RenderedLabel>();
 
     #region MaxValue
@@ -120,6 +124,30 @@ namespace CTKS_Chart.Views.Controls
         }));
 
 
+    #endregion
+
+    #region LabelsToRender
+
+    public RxObservableCollection<DrawingRenderedLabel> LabelsToRender
+    {
+      get { return (RxObservableCollection<DrawingRenderedLabel>)GetValue(LabelsToRenderProperty); }
+      set { SetValue(LabelsToRenderProperty, value); }
+    }
+
+    public static readonly DependencyProperty LabelsToRenderProperty =
+      DependencyProperty.Register(
+        nameof(LabelsToRender),
+        typeof(ObservableCollection<DrawingRenderedLabel>),
+        typeof(Ruler), new PropertyMetadata(new RxObservableCollection<DrawingRenderedLabel>(), (x, y) =>
+        {
+
+          if (x is Ruler ruler && y.NewValue is RxObservableCollection<DrawingRenderedLabel> collection)
+          {
+            ruler.RenderLabels();
+            ruler.ValuesToRender.CollectionChanged += ruler.LablesToRender_CollectionChanged;
+            collection.ItemUpdated.Subscribe((x) => { ruler.RenderLabels(); });
+          }
+        }));
 
     #endregion
 
@@ -202,6 +230,11 @@ namespace CTKS_Chart.Views.Controls
     private void ValuesToRender_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
     {
       RenderValues();
+    }
+
+    private void LablesToRender_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    {
+      RenderLabels();
     }
 
     protected virtual void FrameworkElement_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -304,13 +337,14 @@ namespace CTKS_Chart.Views.Controls
 
     protected virtual void RenderValues()
     {
-
+      RenderLabels();
     }
 
     #endregion
 
     public abstract void RenderLabel(Point mousePoint, decimal price, DateTime date, int assetPriceRound);
     public abstract void ClearLabel();
+    protected abstract void RenderLabels();
 
     #region OnPropertyChanged
 

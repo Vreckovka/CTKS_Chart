@@ -13,11 +13,6 @@ namespace CTKS_Chart.Views.Controls
   {
     TextBlock dateTextBlock;
 
-    private void HorizontalRuler_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
-    {
-      throw new NotImplementedException();
-    }
-
     public override RulerMode Mode => RulerMode.Horizontal;
 
     protected override void FrameworkElement_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -26,6 +21,8 @@ namespace CTKS_Chart.Views.Controls
 
       base.FrameworkElement_SizeChanged(sender, e);
     }
+
+    #region RenderValues
 
     protected override void RenderValues()
     {
@@ -90,7 +87,7 @@ namespace CTKS_Chart.Views.Controls
         var y = Overlay.ActualHeight - ((Overlay.ActualHeight / 2) + 5);
 
         var newPoint = new Point(x, y);
-        RenderedLabel existingLabel = Labels.SingleOrDefault(x => x.Order == i);
+        RenderedLabel existingLabel = Values.SingleOrDefault(x => x.Order == i);
 
         if (existingLabel == null)
         {
@@ -110,9 +107,9 @@ namespace CTKS_Chart.Views.Controls
 
           existingLabel = newLabel;
 
-          Labels.Add(existingLabel);
+          Values.Add(existingLabel);
         }
-       
+
 
         if (existingLabel.Position.X != x)
           Canvas.SetLeft(existingLabel.Border, x);
@@ -120,10 +117,12 @@ namespace CTKS_Chart.Views.Controls
 
         existingLabel.Position = newPoint;
         existingLabel.TextBlock.Text = dateText.Text;
-  
+
         actualStep += step;
       }
     }
+
+    #endregion
 
     #region RenderLabel
 
@@ -178,6 +177,10 @@ namespace CTKS_Chart.Views.Controls
 
       labelBorder = null;
       dateTextBlock = null;
+    }
+
+    protected override void RenderLabels()
+    {
     }
   }
 }

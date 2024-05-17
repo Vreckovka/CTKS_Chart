@@ -39,6 +39,7 @@ namespace CTKS_Chart.ViewModels
     public Layout Layout { get; }
     public TradingBot TradingBot { get; }
     public RxObservableCollection<RenderedIntesection> RenderedIntersections { get; } = new RxObservableCollection<RenderedIntesection>();
+    public RxObservableCollection<DrawingRenderedLabel> RenderedLabels { get; } = new RxObservableCollection<DrawingRenderedLabel>();
 
     #region DrawingSettings
 
@@ -321,6 +322,8 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region InitialCandleCount
+
     public int InitialCandleCount
     {
       get
@@ -329,6 +332,9 @@ namespace CTKS_Chart.ViewModels
         return 200;
       }
     }
+
+
+    #endregion
 
     #region ResetChart
 
@@ -697,10 +703,7 @@ namespace CTKS_Chart.ViewModels
 
           var lastPrice = lastCandle.Close;
 
-          if (lastPrice < maxCanvasValue && lastPrice > minCanvasValue)
-          {
-            DrawActualPrice(dc, lastCandle, imageHeight, imageWidth);
-          }
+          DrawActualPrice(dc, lastCandle, imageHeight);
 
           if (TradingBot.Strategy is StrategyViewModel strategyViewModel)
           {
@@ -708,23 +711,26 @@ namespace CTKS_Chart.ViewModels
 
             if (DrawingSettings.ShowAveragePrice)
             {
-              if (price < maxCanvasValue && price > minCanvasValue)
-                DrawAveragePrice(dc, strategyViewModel.AvrageBuyPrice, imageHeight, imageWidth);
+              DrawAveragePrice(dc, strategyViewModel.AvrageBuyPrice, imageHeight);
+            }
+            else
+            {
+              RenderedLabels.Remove(RenderedLabels.SingleOrDefault(x => x.Tag == "average_price"));
             }
           }
 
           if (DrawingSettings.ShowATH)
           {
-            if (lastAth < maxCanvasValue && lastAth > minCanvasValue)
-              DrawPriceToATH(dc, lastAth.Value, imageHeight, imageWidth);
+            DrawPriceToATH(dc, lastAth.Value, imageHeight);
+          }
+          else
+          {
+            RenderedLabels.Remove(RenderedLabels.SingleOrDefault(x => x.Tag == "ath_price"));
           }
 
 
-          if (TradingBot.Strategy.MaxBuyPrice < maxCanvasValue && TradingBot.Strategy.MaxBuyPrice > minCanvasValue)
-            DrawMaxBuyPrice(dc, TradingBot.Strategy.MaxBuyPrice.Value, imageHeight, imageWidth);
-
-          if (TradingBot.Strategy.MinSellPrice < maxCanvasValue && TradingBot.Strategy.MinSellPrice > minCanvasValue)
-            DrawMinSellPrice(dc, TradingBot.Strategy.MinSellPrice.Value, imageHeight, imageWidth);
+          DrawMaxBuyPrice(dc, TradingBot.Strategy.MaxBuyPrice, imageHeight);
+          DrawMinSellPrice(dc, TradingBot.Strategy.MinSellPrice, imageHeight);
 
           DrawIndicators(dc);
         }
@@ -751,6 +757,11 @@ namespace CTKS_Chart.ViewModels
         unix_diff = (long)(unixDiff * 0.60);
       else
         unix_diff = (long)((1 / 2.195) * 2 * unix_diff);
+
+      if (unix_diff <= 0)
+      {
+        unix_diff = 1;
+      }
 
       var width = TradingHelper.GetCanvasValueLinear(canvasWidth, MinUnix + unix_diff, MaxUnix, MinUnix);
 
@@ -1072,16 +1083,16 @@ namespace CTKS_Chart.ViewModels
 
         if (candle != null)
         {
-          var positionX = candle.Body.X - (candle.Body.Width + 5);
           var text = position.Side == PositionSide.Buy ? "B" : "S";
-          var fontSize = isActiveBuy ? 25 : 9;
+          var fontSize = isActiveBuy ? 18 : 10;
+          FormattedText formattedText = DrawingHelper.GetFormattedText(text, selectedBrush, fontSize);
 
           if (position.IsAutomatic)
           {
-            fontSize = (int)(fontSize / 1.5);
+            fontSize = (int)(fontSize / 1.33);
           }
 
-          FormattedText formattedText = DrawingHelper.GetFormattedText(text, selectedBrush, fontSize);
+          var positionX = candle.Body.X - (formattedText.Width / 2);
 
           var point = new Point(positionX, positionY - formattedText.Height / 2);
 
@@ -1095,117 +1106,55 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawActualPrice
 
-    public void DrawActualPrice(DrawingContext drawingContext, Candle lastCandle, double canvasHeight, double canvasWidth)
+    public void DrawActualPrice(DrawingContext drawingContext, Candle lastCandle, double canvasHeight)
     {
-      var price = lastCandle.Close;
-
-      if (price > 0 && price > MinValue && price < MaxValue)
-      {
-        var close = TradingHelper.GetCanvasValue(canvasHeight, price.Value, MaxValue, MinValue);
-
-        var lineY = canvasHeight - close;
-
-        var brush = lastCandle.IsGreen ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
-        var pen = new Pen(brush, 1);
-
-        var text = DrawingHelper.GetFormattedText(price.Value.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 20);
-        drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 25, lineY - text.Height - 5));
-        drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
-      }
+      var brush = lastCandle.IsGreen ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
+      
+      DrawPrice(drawingContext, lastCandle.Close, "actual_price", brush, canvasHeight);
     }
 
     #endregion
 
     #region DrawAveragePrice
 
-    public void DrawAveragePrice(DrawingContext drawingContext, decimal price, double canvasHeight, double canvasWidth)
+    public void DrawAveragePrice(DrawingContext drawingContext, decimal price, double canvasHeight)
     {
-      if (price > 0 && price > MinValue && price < MaxValue)
-      {
-        var close = TradingHelper.GetCanvasValue(canvasHeight, price, MaxValue, MinValue);
+      var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AVERAGE_BUY].Brush);
 
-        var lineY = canvasHeight - close;
-
-        var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AVERAGE_BUY].Brush);
-        var pen = new Pen(brush, 1.5);
-        pen.DashStyle = pricesDashStyle;
-
-        var text = DrawingHelper.GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
-        drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));
-        drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
-      }
-
+      DrawPrice(drawingContext, price, "average_price", brush, canvasHeight);
     }
 
     #endregion
 
     #region DrawPriceToATH
 
-    public void DrawPriceToATH(DrawingContext drawingContext, decimal price, double canvasHeight, double canvasWidth)
+    public void DrawPriceToATH(DrawingContext drawingContext, decimal price, double canvasHeight)
     {
-      if (price > 0 && price > MinValue && price < MaxValue)
-      {
-        var close = TradingHelper.GetCanvasValue(canvasHeight, price, MaxValue, MinValue);
-
-        var lineY = canvasHeight - close;
-
-        var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.ATH].Brush);
-        var pen = new Pen(brush, 1.5);
-        pen.DashStyle = pricesDashStyle;
-
-        var text = DrawingHelper.GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
-
-
-        drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));
-        drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
-      }
-
+      var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.ATH].Brush);
+      
+      DrawPrice(drawingContext, price, "ath_price", brush, canvasHeight);
     }
 
     #endregion
 
     #region DrawMaxBuyPrice
 
-    public void DrawMaxBuyPrice(DrawingContext drawingContext, decimal price, double canvasHeight, double canvasWidth)
+    public void DrawMaxBuyPrice(DrawingContext drawingContext, decimal? price, double canvasHeight)
     {
-      if (price > 0 && price > MinValue && price < MaxValue)
-      {
-        var close = TradingHelper.GetCanvasValue(canvasHeight, price, MaxValue, MinValue);
+      var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.MAX_BUY_PRICE].Brush);
 
-        var lineY = canvasHeight - close;
-
-        var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.MAX_BUY_PRICE].Brush);
-        var pen = new Pen(brush, 1.5);
-        pen.DashStyle = pricesDashStyle;
-
-        var text = DrawingHelper.GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
-        drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));
-        drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
-      }
-
+      DrawPrice(drawingContext, price, "max_buy", brush, canvasHeight);
     }
 
     #endregion
 
-    #region DrawMaxBuyPrice
+    #region DrawMinSellPrice
 
-    public void DrawMinSellPrice(DrawingContext drawingContext, decimal price, double canvasHeight, double canvasWidth)
+    public void DrawMinSellPrice(DrawingContext drawingContext, decimal? price, double canvasHeight)
     {
-      if (price > 0 && price > MinValue && price < MaxValue)
-      {
-        var close = TradingHelper.GetCanvasValue(canvasHeight, price, MaxValue, MinValue);
+      var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.MIN_SELL_PRICE].Brush);
 
-        var lineY = canvasHeight - close;
-
-        var brush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.MIN_SELL_PRICE].Brush);
-        var pen = new Pen(brush, 1.5);
-        pen.DashStyle = pricesDashStyle;
-
-        var text = DrawingHelper.GetFormattedText(price.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 15);
-        drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 15, lineY - text.Height - 5));
-        drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
-      }
-
+      DrawPrice(drawingContext, price, "min_sell", brush, canvasHeight);
     }
 
     #endregion
@@ -1343,6 +1292,48 @@ namespace CTKS_Chart.ViewModels
 
 
       return selectedBrush;
+    }
+
+    #endregion
+
+    #region DrawPrice
+
+    public void DrawPrice(DrawingContext drawingContext, decimal? price, string tag, Brush brush, double canvasHeight)
+    {
+      if (price > 0 && price > MinValue && price < MaxValue)
+      {
+        var close = TradingHelper.GetCanvasValue(canvasHeight, price.Value, MaxValue, MinValue);
+
+        var lineY = canvasHeight - close;
+
+        var pen = new Pen(brush, 1);
+
+        drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
+
+        var text = price.Value.ToString($"N{TradingBot.Asset.PriceRound}");
+
+        var existing = RenderedLabels.SingleOrDefault(x => x.Tag == tag);
+
+        if (existing != null)
+        {
+          existing.Model = text;
+          existing.SelectedBrush = brush;
+          existing.Price = price.Value;
+        }
+        else
+        {
+          RenderedLabels.Add(new DrawingRenderedLabel(text) { SelectedBrush = brush, Price = price.Value, Tag = tag });
+        }
+      }
+      else
+      {
+        var existing = RenderedLabels.SingleOrDefault(x => x.Tag == tag);
+
+        if (existing != null)
+        {
+          RenderedLabels.Remove(existing);
+        }
+      }
     }
 
     #endregion

@@ -150,6 +150,7 @@
       VerticalAlignment="Center"
       AssetPriceRound="{Binding TradingBot.Asset.PriceRound}"
       ChartContent="{Binding Chart}"
+      LabelsToRender="{Binding RenderedLabels}"
       MaxValue="{Binding MaxValue, Mode=TwoWay}"
       MinValue="{Binding MinValue, Mode=TwoWay}"
       ResetChart="{Binding ResetChartY}"
