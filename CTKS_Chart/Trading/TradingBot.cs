@@ -1,15 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using CTKS_Chart.Strategy;
 using CTKS_Chart.ViewModels;
 using VCore.Standard;
 using VCore.Standard.Helpers;
 
 namespace CTKS_Chart.Trading
 {
-  public class TradingBot : ViewModel
+  public class TradingBot : BaseTradingBot<Position>
   {
-    public TradingBot(Asset asset, Strategy.Strategy strategy)
+    public TradingBot(Asset asset, BaseStrategy<Position> strategy) : base(asset, strategy)
+    {
+    }
+  }
+
+  public class BaseTradingBot<TPosition> : ViewModel where TPosition : Position, new()
+  {
+    public BaseTradingBot(Asset asset, BaseStrategy<TPosition> strategy)
     {
       Strategy = strategy;
       Asset = asset;
@@ -20,9 +28,9 @@ namespace CTKS_Chart.Trading
 
     #region Strategy
 
-    private Strategy.Strategy strategy;
+    private BaseStrategy<TPosition> strategy;
 
-    public Strategy.Strategy Strategy
+    public BaseStrategy<TPosition> Strategy
     {
       get { return strategy; }
       set

@@ -34,7 +34,20 @@ using Path = System.IO.Path;
 
 namespace CTKS_Chart.ViewModels
 {
-  public class TradingBotViewModel : ViewModel
+  public class TradingBotViewModel : BaseTradingBotViewModel<Position>
+  {
+    public TradingBotViewModel(
+     BaseTradingBot<Position> tradingBot,
+     ILogger logger,
+     IWindowManager windowManager,
+     BinanceBroker binanceBroker,
+     IViewModelsFactory viewModelsFactory) : base(tradingBot, logger, windowManager, binanceBroker, viewModelsFactory)
+    {
+    
+    }
+  }
+
+  public class BaseTradingBotViewModel<TPosition> : ViewModel where TPosition : Position, new()
   {
     private readonly IWindowManager windowManager;
     private readonly BinanceBroker binanceBroker;
@@ -44,8 +57,8 @@ namespace CTKS_Chart.ViewModels
     private string layoutPath = Path.Combine(Settings.DataPath, "layout.json");
     public static string stateDataPath = Path.Combine(Settings.DataPath, "state_data.txt");
 
-    public TradingBotViewModel(
-      TradingBot tradingBot,
+    public BaseTradingBotViewModel(
+      BaseTradingBot<TPosition> tradingBot,
       ILogger logger,
       IWindowManager windowManager,
       BinanceBroker binanceBroker,
@@ -63,7 +76,7 @@ namespace CTKS_Chart.ViewModels
 
     //TODO: Replace by TradingBotView
     public MainWindow MainWindow { get; set; }
-    public TradingBot TradingBot { get; }
+    public BaseTradingBot<TPosition> TradingBot { get; }
 
 
     #region  ConsoleCollectionLogger
@@ -393,7 +406,7 @@ namespace CTKS_Chart.ViewModels
 
     protected void OnOpenStatistics()
     {
-      windowManager.ShowPrompt<Statistics>(new StatisticsViewModel(TradingBot.Strategy));
+      windowManager.ShowPrompt<Statistics>(new StatisticsViewModel<TPosition>(TradingBot.Strategy));
     }
 
     #endregion
@@ -412,8 +425,8 @@ namespace CTKS_Chart.ViewModels
 
     protected async void OnOpenPositionSize()
     {
-      var vm = new PositionSizeViewModel(TradingBot.Strategy, actual, windowManager);
-      var positionResult = windowManager.ShowQuestionPrompt<PositionSizeView, PositionSizeViewModel>(vm);
+      var vm = new PositionSizeViewModel<TPosition>(TradingBot.Strategy, actual, windowManager);
+      var positionResult = windowManager.ShowQuestionPrompt<PositionSizeView, PositionSizeViewModel<TPosition>>(vm);
 
       if (positionResult == PromptResult.Ok)
       {

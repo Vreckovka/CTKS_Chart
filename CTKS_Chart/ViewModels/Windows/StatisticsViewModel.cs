@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using CTKS_Chart.Strategy;
 using LiveCharts;
 using LiveCharts.Configurations;
 using LiveCharts.Defaults;
@@ -13,11 +14,11 @@ using VCore.WPF.ViewModels.Prompt;
 
 namespace CTKS_Chart.ViewModels
 {
-  public class StatisticsViewModel : PromptViewModel
+  public class StatisticsViewModel<TPosition> : PromptViewModel where TPosition : Position, new() 
   {
-    private readonly Strategy.Strategy strategy;
+    private readonly BaseStrategy<TPosition> strategy;
 
-    public StatisticsViewModel(Strategy.Strategy strategy)
+    public StatisticsViewModel(BaseStrategy<TPosition> strategy)
     {
       this.strategy = strategy ?? throw new ArgumentNullException(nameof(strategy));
 

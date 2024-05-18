@@ -23,12 +23,18 @@ using PositionSide = CTKS_Chart.Strategy.PositionSide;
 
 namespace CTKS_Chart.ViewModels
 {
+  public class DrawingViewModel : BaseDrawingViewModel<Position>
+  {
+    public DrawingViewModel(BaseTradingBot<Position> tradingBot, Layout layout) : base(tradingBot, layout)
+    {
+    }
+  }
 
-  public class DrawingViewModel : ViewModel, IDrawingViewModel
+  public class BaseDrawingViewModel<TPosition> : ViewModel, IDrawingViewModel where TPosition : Position, new()
   {
     DashStyle pricesDashStyle = new DashStyle(new List<double>() { 2 }, 5);
     public decimal chartDiff = 0.01m;
-    public DrawingViewModel(TradingBot tradingBot, Layout layout)
+    public BaseDrawingViewModel(BaseTradingBot<TPosition> tradingBot, Layout layout)
     {
       TradingBot = tradingBot;
       Layout = layout;
@@ -37,7 +43,7 @@ namespace CTKS_Chart.ViewModels
     #region Properties
 
     public Layout Layout { get; }
-    public TradingBot TradingBot { get; }
+    public BaseTradingBot<TPosition> TradingBot { get; }
     public RxObservableCollection<RenderedIntesection> RenderedIntersections { get; } = new RxObservableCollection<RenderedIntesection>();
     public RxObservableCollection<DrawingRenderedLabel> RenderedLabels { get; } = new RxObservableCollection<DrawingRenderedLabel>();
 
@@ -419,17 +425,25 @@ namespace CTKS_Chart.ViewModels
 
     private void ResetY(IEnumerable<Candle> viewCandles)
     {
-      var max = viewCandles.Max(x => x.High.Value);
-      var min = viewCandles.Min(x => x.Low.Value);
-      var diff = (max - min) / max;
-      lastLockedCandle = viewCandles.Last();
-      var lastClose = lastLockedCandle.Close.Value;
+      if(viewCandles.Count() == 0)
+      {
+        viewCandles = ActualCandles;
+      }
 
-      maxValue = max * (1 + (diff * 0.15m));
-      minValue = min * (1 - (diff * 0.15m));
+      if (viewCandles.Any())
+      {
+        var max = viewCandles.Max(x => x.High.Value);
+        var min = viewCandles.Min(x => x.Low.Value);
+        var diff = (max - min) / max;
+        lastLockedCandle = viewCandles.Last();
+        var lastClose = lastLockedCandle.Close.Value;
 
-      RaisePropertyChanged(nameof(MaxValue));
-      RaisePropertyChanged(nameof(MinValue));
+        maxValue = max * (1 + (diff * 0.15m));
+        minValue = min * (1 - (diff * 0.15m));
+
+        RaisePropertyChanged(nameof(MaxValue));
+        RaisePropertyChanged(nameof(MinValue));
+      }
     }
 
     #endregion
@@ -438,11 +452,20 @@ namespace CTKS_Chart.ViewModels
 
     private void ResetX(IEnumerable<Candle> viewCandles)
     {
-      maxUnix = viewCandles.Max(x => x.UnixTime) + (unixDiff * 30);
-      minUnix = viewCandles.Min(x => x.UnixTime) + (unixDiff * 30);
+      if (viewCandles.Count() == 0)
+      {
+        viewCandles = ActualCandles;
+      }
 
-      RaisePropertyChanged(nameof(MaxUnix));
-      RaisePropertyChanged(nameof(MinUnix));
+      if (viewCandles.Any())
+      {
+
+        maxUnix = viewCandles.Max(x => x.UnixTime) + (unixDiff * 30);
+        minUnix = viewCandles.Min(x => x.UnixTime) + (unixDiff * 30);
+
+        RaisePropertyChanged(nameof(MaxUnix));
+        RaisePropertyChanged(nameof(MinUnix));
+      }
     }
 
     #endregion
@@ -1009,7 +1032,7 @@ namespace CTKS_Chart.ViewModels
       IEnumerable<CtksIntersection> intersections,
       double canvasHeight,
       double canvasWidth,
-      IList<Position> allPositions = null,
+      IList<TPosition> allPositions = null,
       TimeFrame minTimeframe = TimeFrame.W1
       )
     {
@@ -1201,7 +1224,7 @@ namespace CTKS_Chart.ViewModels
       IEnumerable<CtksIntersection> intersections,
       double canvasHeight,
       double canvasWidth,
-      IList<Position> allPositions = null,
+      IList<TPosition> allPositions = null,
       TimeFrame minTimeframe = TimeFrame.W1)
     {
       var diff = (MaxValue - MinValue) * chartDiff;
@@ -1269,9 +1292,17 @@ namespace CTKS_Chart.ViewModels
         drawingContext.DrawRectangle(selectedBrush.Item2, pen, clusterRect);
 
         var rendered = RenderedIntersections.SingleOrDefault(x => x.Model == intersection);
+        var clone = selectedBrush.Item2.Clone();
+
+        clone.Opacity = 1;
 
         if (rendered == null)
-          RenderedIntersections.Add(new RenderedIntesection(intersection) { SelectedHex = selectedBrush.Item1, Brush = selectedBrush.Item2, Min = minValue, Max = maxValue });
+          RenderedIntersections.Add(new RenderedIntesection(intersection) { 
+            SelectedHex = selectedBrush.Item1,
+            Brush = clone, 
+            Min = minValue,
+            Max =
+            maxValue });
         else
           rendered.SelectedHex = selectedBrush.Item1;
 
@@ -1282,7 +1313,7 @@ namespace CTKS_Chart.ViewModels
 
     #region GetIntersectionBrush
 
-    private Tuple<string, Brush> GetIntersectionBrush(IList<Position> allPositions, CtksIntersection intersection)
+    private Tuple<string, Brush> GetIntersectionBrush(IList<TPosition> allPositions, CtksIntersection intersection)
     {
       string selectedHex = ColorScheme.ColorSettings[ColorPurpose.NO_POSITION].Brush;
 

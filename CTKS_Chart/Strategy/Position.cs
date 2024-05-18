@@ -15,16 +15,6 @@ namespace CTKS_Chart.Strategy
 
     }
 
-    public Position(decimal positionSize, decimal price, decimal positionSizeNative)
-    {
-      PositionSize = positionSize;
-      OriginalPositionSize = positionSize;
-      OriginalPositionSizeNative = positionSizeNative;
-      PositionSizeNative = positionSizeNative;
-      Price = price;
-    }
-
-
     #region Profit
 
     private decimal profit;

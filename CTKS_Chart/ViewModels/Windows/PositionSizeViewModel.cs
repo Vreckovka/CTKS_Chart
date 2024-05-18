@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using VCore.WPF.Interfaces.Managers;
 using VCore.WPF.Prompts;
@@ -9,13 +10,13 @@ using VCore.WPF.ViewModels.Prompt;
 
 namespace CTKS_Chart.ViewModels
 {
-  public class PositionSizeViewModel : BasePromptViewModel
+  public class PositionSizeViewModel<TPosition> : BasePromptViewModel where TPosition : Position, new() 
   {
-    private readonly Strategy.Strategy strategy;
+    private readonly BaseStrategy<TPosition> strategy;
     private readonly Candle actual;
     private readonly IWindowManager windowManager;
 
-    public PositionSizeViewModel(Strategy.Strategy strategy, Candle actual, IWindowManager windowManager)
+    public PositionSizeViewModel(BaseStrategy<TPosition> strategy, Candle actual, IWindowManager windowManager)
     {
       this.strategy = strategy ?? throw new ArgumentNullException(nameof(strategy));
       this.actual = actual ?? throw new ArgumentNullException(nameof(actual));

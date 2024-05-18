@@ -4,14 +4,19 @@ using CTKS_Chart.Trading;
 
 namespace CTKS_Chart.Strategy
 {
-  public class SimulationStrategy : Strategy
+  public class SimulationStrategy : BaseSimulationStrategy<Position>
+  {
+
+  }
+
+  public class BaseSimulationStrategy<TPosition> : BaseStrategy<TPosition> where TPosition : Position, new()
   {
     public override Task RefreshState()
     {
       return Task.CompletedTask;
     }
 
-    public override bool IsPositionFilled(Candle candle, Position position)
+    public override bool IsPositionFilled(Candle candle, TPosition position)
     {
       if (position.Side == PositionSide.Buy && candle.Low <= position.Price)
       {
@@ -61,13 +66,13 @@ namespace CTKS_Chart.Strategy
       base.ValidatePositions(candle);
     }
 
-    protected override Task<bool> PlaceCancelPosition(Position position)
+    protected override Task<bool> PlaceCancelPosition(TPosition position)
     {
       return Task.FromResult(true);
     }
 
     private long actual = 1;
-    protected override Task<long> PlaceCreatePosition(Position position)
+    protected override Task<long> PlaceCreatePosition(TPosition position)
     {
       position.CreatedDate = lastCandle.CloseTime;
       return Task.FromResult((long)actual++);

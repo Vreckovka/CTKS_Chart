@@ -12,17 +12,18 @@ namespace CTKS_Chart.Strategy
     public abstract IEnumerable<CtksIntersection> Calculate(Candle actual);
   }
 
-  public class RangeFilterStrategy : InnerStrategy
+
+  public class RangeFilterStrategy<TPosition> : InnerStrategy where TPosition : Position, new()  
   {
     private readonly string path;
     private readonly string btcPath;
-    private readonly Strategy strategy;
+    private readonly BaseStrategy<TPosition> strategy;
     private List<Candle> AssetCandles;
     private List<Candle> BtcCandles;
 
     private IEnumerable<KeyValuePair<TimeFrame, decimal>> originalMapping;
 
-    public RangeFilterStrategy(string path, string btcPath, Strategy strategy)
+    public RangeFilterStrategy(string path, string btcPath, BaseStrategy<TPosition> strategy)
     {
       this.path = path ?? throw new ArgumentNullException(nameof(path));
       this.btcPath = btcPath ?? throw new ArgumentNullException(nameof(btcPath));
@@ -44,7 +45,7 @@ namespace CTKS_Chart.Strategy
 
       if (actualAssetCandle != null && actualAssetCandle.IndicatorData.RangeFilter > 0 && lastCandle != actualAssetCandle)
       {
-        //RangeBased(actualAssetCandle, actualBtcCandle);
+        RangeBased(actualAssetCandle, actualBtcCandle);
         //return Skip(actualAssetCandle, actualBtcCandle);
       }
 
