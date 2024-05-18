@@ -273,6 +273,7 @@ namespace CTKS_Chart.Views.Controls
         startY = ActualMousePosition.Y;
         startX = ActualMousePosition.X;
 
+        DrawingViewModel.enableAutoLock = false;
         DrawingViewModel.lockChart = false;
         DrawingViewModel.RenderOverlay();
 
@@ -282,6 +283,7 @@ namespace CTKS_Chart.Views.Controls
 
       if (e.LeftButton != MouseButtonState.Pressed && startY != null)
       {
+        DrawingViewModel.enableAutoLock = true;
         startY = null;
         startX = null;
       }

@@ -313,8 +313,17 @@ namespace CTKS_Chart.ViewModels
     {
       get
       {
+        var lastRendered = drawnChart?.Candles.LastOrDefault();
 
-        return drawnChart?.Candles.LastOrDefault()?.Candle.OpenTime == actual?.OpenTime;
+        if(lastRendered != null)
+        {
+          return lastRendered.Candle.OpenTime == actual?.OpenTime 
+            && lastRendered.Candle.High > MinValue && lastRendered.Candle.Low < MaxValue;
+        }
+
+
+        return false;
+         
       }
     }
 
@@ -551,6 +560,7 @@ namespace CTKS_Chart.ViewModels
     private decimal? lastAth;
     private DateTime? lastFilledPosition;
     private Candle actual;
+    public bool enableAutoLock = true;
 
     public virtual void RenderOverlay(decimal? athPrice = null, Candle actual = null)
     {
@@ -752,7 +762,7 @@ namespace CTKS_Chart.ViewModels
         DrawnChart = newChart;
 
 
-        if (IsActualCandleVisible)
+        if (IsActualCandleVisible && enableAutoLock)
         {
           lockChart = true;
           RaisePropertyChanged(nameof(LockChart));
