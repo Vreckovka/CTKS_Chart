@@ -34,20 +34,20 @@ using Path = System.IO.Path;
 
 namespace CTKS_Chart.ViewModels
 {
-  public class TradingBotViewModel : BaseTradingBotViewModel<Position>
+  public interface ITradingBot
   {
-    public TradingBotViewModel(
-     BaseTradingBot<Position> tradingBot,
-     ILogger logger,
-     IWindowManager windowManager,
-     BinanceBroker binanceBroker,
-     IViewModelsFactory viewModelsFactory) : base(tradingBot, logger, windowManager, binanceBroker, viewModelsFactory)
-    {
-    
-    }
+    public void Start();
+    public void Stop();
+    public bool IsPaused { get; set; }
+    public MainWindow MainWindow { get; set; }
+
+    public void SaveAsset();
+    public void SaveLayoutSettings();
   }
 
-  public class BaseTradingBotViewModel<TPosition> : ViewModel where TPosition : Position, new()
+  public class BaseTradingBotViewModel<TPosition, TStrategy> : ViewModel , ITradingBot
+    where TPosition : Position, new()
+    where TStrategy : BaseStrategy<TPosition>
   {
     private readonly IWindowManager windowManager;
     private readonly BinanceBroker binanceBroker;
@@ -58,7 +58,7 @@ namespace CTKS_Chart.ViewModels
     public static string stateDataPath = Path.Combine(Settings.DataPath, "state_data.txt");
 
     public BaseTradingBotViewModel(
-      BaseTradingBot<TPosition> tradingBot,
+      BaseTradingBot<TPosition, TStrategy> tradingBot,
       ILogger logger,
       IWindowManager windowManager,
       BinanceBroker binanceBroker,
@@ -76,7 +76,7 @@ namespace CTKS_Chart.ViewModels
 
     //TODO: Replace by TradingBotView
     public MainWindow MainWindow { get; set; }
-    public BaseTradingBot<TPosition> TradingBot { get; }
+    public BaseTradingBot<TPosition, TStrategy> TradingBot { get; }
 
 
     #region  ConsoleCollectionLogger
@@ -113,9 +113,9 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawingViewModel
 
-    private DrawingViewModel drawingViewModel;
+    private BaseDrawingViewModel<TPosition, TStrategy> drawingViewModel;
 
-    public DrawingViewModel DrawingViewModel
+    public BaseDrawingViewModel<TPosition, TStrategy> DrawingViewModel
     {
       get { return drawingViewModel; }
       set
@@ -272,10 +272,10 @@ namespace CTKS_Chart.ViewModels
           {
             var candles = DrawingViewModel.ActualCandles.TakeLast(150).ToList();
 
-            DrawingViewModel.maxValue = candles.Max(x => x.Close.Value) * 1.4m;
-            DrawingViewModel.minValue = candles.Min(x => x.Close.Value) * 0.7m;
-            DrawingViewModel.maxUnix = candles.Max(x => x.UnixTime) + (DrawingViewModel.unixDiff * 20);
-            DrawingViewModel.minUnix = candles.Min(x => x.UnixTime);
+            DrawingViewModel.SetMaxValue(candles.Max(x => x.Close.Value) * 1.4m);
+            DrawingViewModel.SetMinValue(candles.Min(x => x.Close.Value) * 0.7m);
+            DrawingViewModel.SetMaxUnix(candles.Max(x => x.UnixTime) + (DrawingViewModel.unixDiff * 20));
+            DrawingViewModel.SetMinUnix(candles.Min(x => x.UnixTime));
 
             DrawingViewModel.OnRestChart();
             DrawingViewModel.LockChart = true;
@@ -291,8 +291,6 @@ namespace CTKS_Chart.ViewModels
 
     #region Commands
 
-
-
     #region OpenArchitectView
 
     protected ActionCommand openArchitectView;
@@ -307,7 +305,7 @@ namespace CTKS_Chart.ViewModels
 
     protected virtual void OnOpenArchitectView()
     {
-      var arch = new ArchitectViewModel(Layouts, DrawingViewModel.ColorScheme, viewModelsFactory, new TradingBot(
+      var arch = new ArchitectViewModel(Layouts, DrawingViewModel.ColorScheme, viewModelsFactory, new BaseTradingBot<Position, SimulationStrategy>(
         new Asset()
         {
           NativeRound = TradingBot.Asset.NativeRound,
@@ -535,7 +533,7 @@ namespace CTKS_Chart.ViewModels
     {
       base.Initialize();
 
-      DrawingViewModel = viewModelsFactory.Create<DrawingViewModel>(TradingBot, MainLayout);
+      DrawingViewModel = viewModelsFactory.Create<BaseDrawingViewModel<TPosition, TStrategy>>(TradingBot, MainLayout);
 
       foreach (KlineInterval interval in EnumHelper.GetAllValues(KlineInterval.GetType()))
       {
@@ -593,10 +591,10 @@ namespace CTKS_Chart.ViewModels
         MainLayout.MaxUnix = layoutSettings.StartMaxUnix;
         MainLayout.MinUnix = layoutSettings.StartMinUnix;
 
-        DrawingViewModel.maxValue = MainLayout.MaxValue;
-        DrawingViewModel.minValue = MainLayout.MinValue;
-        DrawingViewModel.maxUnix = MainLayout.MaxUnix;
-        DrawingViewModel.minUnix = MainLayout.MinUnix;
+        DrawingViewModel.SetMaxValue(MainLayout.MaxValue);
+        DrawingViewModel.SetMinValue(MainLayout.MinValue);
+        DrawingViewModel.SetMaxUnix(MainLayout.MaxUnix);
+        DrawingViewModel.SetMinUnix(MainLayout.MinUnix);
       }
       else
       {
@@ -605,7 +603,7 @@ namespace CTKS_Chart.ViewModels
         KlineInterval = LayoutIntervals.SelectedItem.Model.Interval;
       }
    
-      DrawingViewModel.lockChart = true;
+      DrawingViewModel.SetLock(true);
 
     
 
@@ -1457,6 +1455,10 @@ namespace CTKS_Chart.ViewModels
       }
 
       return price;
+    }
+
+    public virtual void Stop()
+    {
     }
 
     #endregion

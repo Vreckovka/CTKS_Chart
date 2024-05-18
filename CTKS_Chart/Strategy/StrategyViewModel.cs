@@ -8,7 +8,7 @@ using VCore.Standard.Helpers;
 
 namespace CTKS_Chart.Strategy
 {
-  public abstract class StrategyViewModel : Strategy
+  public abstract class StrategyViewModel : BaseStrategy<Position>
   {
     public override IList<Position> ClosedBuyPositions { get; set; } = new ObservableCollection<Position>();
     public override IList<Position> ClosedSellPositions { get; set; } = new ObservableCollection<Position>();

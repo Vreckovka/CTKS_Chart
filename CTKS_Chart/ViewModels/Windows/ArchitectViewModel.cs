@@ -22,6 +22,16 @@ using VCore.WPF.ViewModels.Prompt;
 
 namespace CTKS_Chart.ViewModels
 {
+  public class ArchitectViewModel : BaseArchitectViewModel<Position, SimulationStrategy>
+  {
+    public ArchitectViewModel(IList<CtksLayout> layouts, 
+      ColorSchemeViewModel colorSchemeViewModel, 
+      IViewModelsFactory viewModelsFactory, 
+      BaseTradingBot<Position, SimulationStrategy> tradingBot, Layout layout) : base(layouts, colorSchemeViewModel, viewModelsFactory, tradingBot, layout)
+    {
+    }
+  }
+
   public class ArchitectPromptViewModel : BasePromptViewModel<ArchitectViewModel>
   {
     public ArchitectPromptViewModel(ArchitectViewModel model) : base(model)
@@ -30,15 +40,18 @@ namespace CTKS_Chart.ViewModels
     }
   }
 
-  public class ArchitectViewModel : DrawingViewModel
+  public class BaseArchitectViewModel<TPosition, TStrategy> : BaseDrawingViewModel<TPosition, TStrategy>
+    where TPosition : Position, new()
+    where TStrategy : BaseSimulationStrategy<TPosition>, new() 
+
   {
     private readonly IViewModelsFactory viewModelsFactory;
 
     private SerialDisposable serialDisposable = new SerialDisposable();
 
-    public ArchitectViewModel(IList<CtksLayout> layouts,
+    public BaseArchitectViewModel(IList<CtksLayout> layouts,
       ColorSchemeViewModel colorSchemeViewModel,
-      IViewModelsFactory viewModelsFactory,TradingBot tradingBot, Layout layout) : base(tradingBot, layout)
+      IViewModelsFactory viewModelsFactory, BaseTradingBot<TPosition, TStrategy> tradingBot, Layout layout) : base(tradingBot, layout)
     {
       this.viewModelsFactory = viewModelsFactory ?? throw new ArgumentNullException(nameof(viewModelsFactory));
       Layouts = layouts ?? throw new ArgumentNullException(nameof(layouts));
@@ -90,8 +103,8 @@ namespace CTKS_Chart.ViewModels
         {
           selectedLayout = value;
 
-          maxValue = selectedLayout.MaxValue;
-          minValue = selectedLayout.MinValue;
+          SetMaxValue(selectedLayout.MaxValue);
+          SetMinValue(selectedLayout.MinValue);
 
           OnLayoutChanged();
           RaisePropertyChanged();
@@ -196,8 +209,8 @@ namespace CTKS_Chart.ViewModels
 
       unixDiff = candles[1].UnixTime - candles[0].UnixTime;
 
-      minUnix = candles.First().UnixTime - (unixDiff * 2);
-      maxUnix = candles.Last().UnixTime + (unixDiff * 2);
+      SetMinUnix(candles.First().UnixTime - (unixDiff * 2));
+      SetMaxUnix(candles.Last().UnixTime + (unixDiff * 2));
 
       RaisePropertyChanged(nameof(MaxUnix));
       RaisePropertyChanged(nameof(MinUnix));
@@ -266,7 +279,7 @@ namespace CTKS_Chart.ViewModels
       double actualLeft = 0.0;
 
       if (lastCandle != null)
-        actualLeft = TradingHelper.GetCanvasValueLinear(canvasWidth, lastCandle.UnixTime, maxUnix, minUnix);
+        actualLeft = TradingHelper.GetCanvasValueLinear(canvasWidth, lastCandle.UnixTime, MaxUnix, MinUnix);
 
       foreach (var vm in Lines.Where(x => x.IsVisible))
       {
@@ -334,12 +347,12 @@ namespace CTKS_Chart.ViewModels
         drawingContext.DrawLine(pen, startPoint, finalPoint);
 
         var firstPoint = new Point(
-            TradingHelper.GetCanvasValueLinear(canvasWidth, line.FirstPoint.UnixTime, maxUnix, minUnix),
-            TradingHelper.GetCanvasValue(canvasHeight, line.FirstPoint.Price, maxValue, minValue));
+            TradingHelper.GetCanvasValueLinear(canvasWidth, line.FirstPoint.UnixTime, MaxUnix, MinUnix),
+            TradingHelper.GetCanvasValue(canvasHeight, line.FirstPoint.Price, MaxValue, MinValue));
 
         var secondPoint = new Point(
-          TradingHelper.GetCanvasValueLinear(canvasWidth, line.SecondPoint.UnixTime, maxUnix, minUnix),
-          TradingHelper.GetCanvasValue(canvasHeight, line.SecondPoint.Price, maxValue, minValue));
+          TradingHelper.GetCanvasValueLinear(canvasWidth, line.SecondPoint.UnixTime, MaxUnix, MinUnix),
+          TradingHelper.GetCanvasValue(canvasHeight, line.SecondPoint.Price, MaxValue, MinValue));
 
         var intersectionPoint = TradingHelper.GetPointOnLine(firstPoint.X, firstPoint.Y, secondPoint.X, secondPoint.Y, actualLeft);
 
@@ -372,8 +385,8 @@ namespace CTKS_Chart.ViewModels
       var y1 = canvasHeight - TradingHelper.GetCanvasValue(canvasHeight, ctksLine.FirstPoint.Price, MaxValue, MinValue);
       var y2 = canvasHeight - TradingHelper.GetCanvasValue(canvasHeight, ctksLine.SecondPoint.Price, MaxValue, MinValue);
 
-      var x1 = TradingHelper.GetCanvasValueLinear(canvasWidth, ctksLine.FirstPoint.UnixTime, maxUnix, minUnix);
-      var x2 = TradingHelper.GetCanvasValueLinear(canvasWidth, ctksLine.SecondPoint.UnixTime, maxUnix, minUnix);
+      var x1 = TradingHelper.GetCanvasValueLinear(canvasWidth, ctksLine.FirstPoint.UnixTime, MaxUnix, MinUnix);
+      var x2 = TradingHelper.GetCanvasValueLinear(canvasWidth, ctksLine.SecondPoint.UnixTime, MaxUnix, MinUnix);
 
       var startPoint = new Point(x1, y1);
       var endPoint = new Point(x2, y2);

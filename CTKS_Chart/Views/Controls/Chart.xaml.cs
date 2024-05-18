@@ -11,6 +11,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using CTKS_Chart.ViewModels;
 using VCore.Standard.Helpers;
@@ -190,17 +191,17 @@ namespace CTKS_Chart.Views.Controls
 
     #region DrawingViewModel
 
-    public DrawingViewModel DrawingViewModel
+    public IDrawingViewModel DrawingViewModel
     {
-      get { return (DrawingViewModel)GetValue(DrawingViewModelProperty); }
+      get { return (IDrawingViewModel)GetValue(DrawingViewModelProperty); }
       set { SetValue(DrawingViewModelProperty, value); }
     }
 
     public static readonly DependencyProperty DrawingViewModelProperty =
       DependencyProperty.Register(
         nameof(DrawingViewModel),
-        typeof(DrawingViewModel),
-        typeof(Chart), new PropertyMetadata(new DrawingViewModel(null,null)));
+        typeof(IDrawingViewModel),
+        typeof(Chart), new PropertyMetadata(new BaseDrawingViewModel<Position,SimulationStrategy>(null,null)));
 
     #endregion
 
@@ -251,8 +252,8 @@ namespace CTKS_Chart.Views.Controls
 
           if (deltaY != 0)
           {
-            DrawingViewModel.maxValue *= deltaY;
-            DrawingViewModel.minValue *= deltaY;
+            DrawingViewModel.SetMaxValue(DrawingViewModel.MaxValue *= deltaY);
+            DrawingViewModel.SetMinValue(DrawingViewModel.MinValue *= deltaY);
           }
         }
 
@@ -265,16 +266,16 @@ namespace CTKS_Chart.Views.Controls
 
           if(deltaY != 0)
           {
-            DrawingViewModel.maxUnix = (long)(DrawingViewModel.maxUnix * deltaY);
-            DrawingViewModel.minUnix = (long)(DrawingViewModel.minUnix * deltaY);
+            DrawingViewModel.SetMaxUnix((long)(DrawingViewModel.MaxUnix * deltaY));
+            DrawingViewModel.SetMinUnix((long)(DrawingViewModel.MinUnix * deltaY));
           }
         }
 
         startY = ActualMousePosition.Y;
         startX = ActualMousePosition.X;
 
-        DrawingViewModel.enableAutoLock = false;
-        DrawingViewModel.lockChart = false;
+        DrawingViewModel.EnableAutoLock = false;
+        DrawingViewModel.SetLock(false);
         DrawingViewModel.RenderOverlay();
 
 
@@ -283,7 +284,7 @@ namespace CTKS_Chart.Views.Controls
 
       if (e.LeftButton != MouseButtonState.Pressed && startY != null)
       {
-        DrawingViewModel.enableAutoLock = true;
+        DrawingViewModel.EnableAutoLock = true;
         startY = null;
         startX = null;
       }

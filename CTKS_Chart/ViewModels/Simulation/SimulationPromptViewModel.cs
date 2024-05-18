@@ -1,4 +1,5 @@
 ﻿using CTKS_Chart.Strategy;
+using CTKS_Chart.Strategy.Futures;
 using CTKS_Chart.Trading;
 using System;
 using System.Collections.Generic;
@@ -28,9 +29,9 @@ namespace CTKS_Chart.ViewModels
 
     #region Bots
 
-    private ObservableCollection<SimulationTradingBot> bots = new ObservableCollection<SimulationTradingBot>();
+    private ObservableCollection<ITradingBot> bots = new ObservableCollection<ITradingBot>();
 
-    public ObservableCollection<SimulationTradingBot> Bots
+    public ObservableCollection<ITradingBot> Bots
     {
       get { return bots; }
       set
@@ -47,9 +48,9 @@ namespace CTKS_Chart.ViewModels
 
     #region SelectedBot
 
-    private SimulationTradingBot selectedBot;
+    private ITradingBot selectedBot;
 
-    public SimulationTradingBot SelectedBot
+    public ITradingBot SelectedBot
     {
       get { return selectedBot; }
       set
@@ -130,7 +131,17 @@ namespace CTKS_Chart.ViewModels
         TimeFrame.M12
         };
 
-      var adaBot = viewModelsFactory.Create<SimulationTradingBot>(new TradingBot(new Asset()
+      //var adaBot = viewModelsFactory.Create<BaseSimulationTradingBot<FuturesPosition, FuturesStrategy>>(new BaseTradingBot<FuturesPosition, FuturesStrategy>(new Asset()
+      //{
+      //  Symbol = "ADAUSDT",
+      //  NativeRound = 1,
+      //  PriceRound = 4,
+      //  DataPath = path,
+      //  DataSymbol = "BINANCE ADAUSD",
+      //  TimeFrames = timeFrames,
+      //}, new FuturesStrategy()));
+
+      var adaBot = viewModelsFactory.Create<BaseSimulationTradingBot<Position, SimulationStrategy>>(new BaseTradingBot<Position, SimulationStrategy>(new Asset()
       {
         Symbol = "ADAUSDT",
         NativeRound = 1,
@@ -142,7 +153,7 @@ namespace CTKS_Chart.ViewModels
 
       adaBot.DataPath = $"ADAUSDT-240-generated.csv";
 
-      var ltcBot = viewModelsFactory.Create<SimulationTradingBot>(new TradingBot(new Asset()
+      var ltcBot = viewModelsFactory.Create<BaseSimulationTradingBot<Position, SimulationStrategy>>(new BaseTradingBot<Position, SimulationStrategy>(new Asset()
       {
         Symbol = "LTCUSDT",
         NativeRound = 3,
@@ -152,7 +163,7 @@ namespace CTKS_Chart.ViewModels
         TimeFrames = timeFrames,
       }, new SimulationStrategy()));
 
-      var btcBot = viewModelsFactory.Create<SimulationTradingBot>(new TradingBot(new Asset()
+      var btcBot = viewModelsFactory.Create<BaseSimulationTradingBot<Position, SimulationStrategy>>(new BaseTradingBot<Position, SimulationStrategy>(new Asset()
       {
         Symbol = "BTCUSDT",
         NativeRound = 5,

@@ -8,16 +8,11 @@ using VCore.Standard.Helpers;
 
 namespace CTKS_Chart.Trading
 {
-  public class TradingBot : BaseTradingBot<Position>
+  public class BaseTradingBot<TPosition,TStrategy> : ViewModel 
+    where TPosition : Position, new()
+    where TStrategy : BaseStrategy<TPosition>
   {
-    public TradingBot(Asset asset, BaseStrategy<Position> strategy) : base(asset, strategy)
-    {
-    }
-  }
-
-  public class BaseTradingBot<TPosition> : ViewModel where TPosition : Position, new()
-  {
-    public BaseTradingBot(Asset asset, BaseStrategy<TPosition> strategy)
+    public BaseTradingBot(Asset asset, TStrategy strategy)
     {
       Strategy = strategy;
       Asset = asset;
@@ -28,9 +23,9 @@ namespace CTKS_Chart.Trading
 
     #region Strategy
 
-    private BaseStrategy<TPosition> strategy;
+    private TStrategy strategy;
 
-    public BaseStrategy<TPosition> Strategy
+    public TStrategy Strategy
     {
       get { return strategy; }
       set

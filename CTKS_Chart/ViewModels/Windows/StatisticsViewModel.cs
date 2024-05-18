@@ -394,7 +394,7 @@ namespace CTKS_Chart.ViewModels
 
     private void LoadStats()
     {
-      var lines = File.ReadLines(TradingBotViewModel.stateDataPath);
+      var lines = File.ReadLines(BaseTradingBotViewModel<Position, SimulationStrategy>.stateDataPath);
       var states = new List<State>();
       var dates = new List<DateTime>();
 

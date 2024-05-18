@@ -72,9 +72,9 @@ namespace CTKS_Chart.ViewModels
 
     #region TradingBotViewModel
 
-    private TradingBotViewModel tradingBotViewModel;
+    private ITradingBot tradingBotViewModel;
 
-    public TradingBotViewModel TradingBotViewModel
+    public ITradingBot TradingBotViewModel
     {
       get { return tradingBotViewModel; }
       set
@@ -128,9 +128,9 @@ namespace CTKS_Chart.ViewModels
       asset.RunTime = TimeSpan.FromTicks(asset.RunTimeTicks);
 
 
-      var selectedBot = new TradingBot(asset, ViewModelsFactory.Create<BinanceStrategy>());
+      var selectedBot = new BaseTradingBot<Position, BinanceStrategy>(asset, ViewModelsFactory.Create<BinanceStrategy>());
 
-      TradingBotViewModel = ViewModelsFactory.Create<TradingBotViewModel>(selectedBot);
+      TradingBotViewModel = ViewModelsFactory.Create<BaseTradingBotViewModel<Position, BinanceStrategy>>(selectedBot);
 
 
       TradingBotViewModel.MainWindow = (MainWindow)Window;

@@ -13,7 +13,7 @@ namespace CTKS_Chart.Strategy.Futures
 
   }
 
-  public class FuturesStrategy : SimulationStrategy
+  public class FuturesStrategy : BaseSimulationStrategy<FuturesPosition>
   {
     public async override void CreatePositions(Candle actualCandle)
     {

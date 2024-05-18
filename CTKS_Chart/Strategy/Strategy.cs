@@ -25,11 +25,6 @@ namespace CTKS_Chart.Strategy
     Neutral
   }
 
-  public abstract class Strategy : BaseStrategy<Position>
-  {
-
-  }
-
   public abstract class BaseStrategy<TPosition> : ViewModel where TPosition : Position, new()
   {
     protected decimal LeftSize = 0;

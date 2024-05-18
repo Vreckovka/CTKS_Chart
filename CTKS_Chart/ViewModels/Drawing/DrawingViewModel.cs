@@ -23,18 +23,13 @@ using PositionSide = CTKS_Chart.Strategy.PositionSide;
 
 namespace CTKS_Chart.ViewModels
 {
-  public class DrawingViewModel : BaseDrawingViewModel<Position>
-  {
-    public DrawingViewModel(BaseTradingBot<Position> tradingBot, Layout layout) : base(tradingBot, layout)
-    {
-    }
-  }
-
-  public class BaseDrawingViewModel<TPosition> : ViewModel, IDrawingViewModel where TPosition : Position, new()
+  public class BaseDrawingViewModel<TPosition, TStrategy> : ViewModel, IDrawingViewModel 
+    where TPosition : Position, new()
+    where TStrategy : BaseStrategy<TPosition>
   {
     DashStyle pricesDashStyle = new DashStyle(new List<double>() { 2 }, 5);
     public decimal chartDiff = 0.01m;
-    public BaseDrawingViewModel(BaseTradingBot<TPosition> tradingBot, Layout layout)
+    public BaseDrawingViewModel(BaseTradingBot<TPosition, TStrategy> tradingBot, Layout layout)
     {
       TradingBot = tradingBot;
       Layout = layout;
@@ -43,7 +38,7 @@ namespace CTKS_Chart.ViewModels
     #region Properties
 
     public Layout Layout { get; }
-    public BaseTradingBot<TPosition> TradingBot { get; }
+    public BaseTradingBot<TPosition, TStrategy> TradingBot { get; }
     public RxObservableCollection<RenderedIntesection> RenderedIntersections { get; } = new RxObservableCollection<RenderedIntesection>();
     public RxObservableCollection<DrawingRenderedLabel> RenderedLabels { get; } = new RxObservableCollection<DrawingRenderedLabel>();
 
@@ -112,7 +107,7 @@ namespace CTKS_Chart.ViewModels
 
     #region MaxValue
 
-    public decimal maxValue;
+    private decimal maxValue;
 
     public decimal MaxValue
     {
@@ -136,7 +131,7 @@ namespace CTKS_Chart.ViewModels
 
     #region MinValue
 
-    public decimal minValue = (decimal)0.001;
+    private decimal minValue = (decimal)0.001;
 
     public decimal MinValue
     {
@@ -159,7 +154,7 @@ namespace CTKS_Chart.ViewModels
 
     #region MaxUnix
 
-    public long maxUnix;
+    private long maxUnix;
 
     public long MaxUnix
     {
@@ -183,7 +178,7 @@ namespace CTKS_Chart.ViewModels
 
     #region MinUnix
 
-    public long minUnix;
+    private long minUnix;
 
     public long MinUnix
     {
@@ -248,7 +243,7 @@ namespace CTKS_Chart.ViewModels
 
     #region LockChart
 
-    public bool lockChart;
+    private bool lockChart;
     private decimal actualPriceChartViewDiff;
 
     public bool LockChart
@@ -411,7 +406,6 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
-
     public void OnRestChartY()
     {
       ResetY(DrawnChart.Candles.Select(x => x.Candle));
@@ -471,6 +465,8 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
     #endregion
+
+    public bool EnableAutoLock { get; set; }
 
     #region Methods
 
@@ -583,7 +579,6 @@ namespace CTKS_Chart.ViewModels
     private decimal? lastAth;
     private DateTime? lastFilledPosition;
     private Candle actual;
-    public bool enableAutoLock = true;
 
     public virtual void RenderOverlay(decimal? athPrice = null, Candle actual = null)
     {
@@ -785,7 +780,7 @@ namespace CTKS_Chart.ViewModels
         DrawnChart = newChart;
 
 
-        if (IsActualCandleVisible && enableAutoLock)
+        if (IsActualCandleVisible && EnableAutoLock)
         {
           lockChart = true;
           RaisePropertyChanged(nameof(LockChart));
@@ -1425,6 +1420,31 @@ namespace CTKS_Chart.ViewModels
       //  drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 25, lineY - text.Height - 5));
       //  drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
       //}
+    }
+
+    public void SetMaxValue(decimal newValue)
+    {
+      maxValue = newValue;
+    }
+
+    public void SetMinValue(decimal newValue)
+    {
+      minValue = newValue;
+    }
+
+    public void SetMaxUnix(long newValue)
+    {
+      maxUnix = newValue;
+    }
+
+    public void SetMinUnix(long newValue)
+    {
+      minUnix = newValue;
+    }
+
+    public void SetLock(bool newValue)
+    {
+      lockChart = newValue;
     }
 
     #endregion

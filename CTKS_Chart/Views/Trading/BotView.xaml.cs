@@ -24,35 +24,5 @@ namespace CTKS_Chart.Views.Trading
     {
       InitializeComponent();
     }
-
-    double? startY;
-    private void Grid_MouseMove(object sender, MouseEventArgs e)
-    {
-      if (DataContext is TradingBotViewModel vm)
-      {
-        var viewModel = vm.DrawingViewModel;
-
-        base.OnMouseMove(e);
-        var position = e.GetPosition(this);
-
-        if (e.LeftButton == MouseButtonState.Pressed && startY != null)
-        {
-          var startPrice = TradingHelper.GetValueFromCanvas(viewModel.CanvasHeight, startY.Value, viewModel.MaxValue, viewModel.MinValue);
-          var nextPrice = TradingHelper.GetValueFromCanvas(viewModel.CanvasHeight, position.Y, viewModel.MaxValue, viewModel.MinValue);
-
-          var deltaY = (nextPrice * 100 / startPrice) / 100;
-
-          viewModel.MaxValue *= deltaY;
-          viewModel.MinValue *= deltaY;
-        }
-
-        startY = position.Y;
-
-        if (e.LeftButton != MouseButtonState.Pressed && startY != null)
-        {
-          startY = null;
-        }
-      }
-    }
   }
 }

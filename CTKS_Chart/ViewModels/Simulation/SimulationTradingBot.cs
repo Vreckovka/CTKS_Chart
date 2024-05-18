@@ -32,13 +32,16 @@ namespace CTKS_Chart.ViewModels
     public long RunTimeTicks { get; set; }
     public DateTime Date { get; set; }
   }
-  public class SimulationTradingBot : TradingBotViewModel
+
+  public class BaseSimulationTradingBot<TPosition, TStrategy> : BaseTradingBotViewModel<TPosition, TStrategy> 
+    where TPosition : Position, new()
+    where TStrategy : BaseSimulationStrategy<TPosition>, new()
   {
     private readonly BinanceDataProvider binanceDataProvider;
     string results;
 
-    public SimulationTradingBot(
-      TradingBot tradingBot,
+    public BaseSimulationTradingBot(
+      BaseTradingBot<TPosition, TStrategy> tradingBot,
       ILogger logger,
       IWindowManager windowManager,
       BinanceBroker binanceBroker,
@@ -164,7 +167,7 @@ namespace CTKS_Chart.ViewModels
       var rangeAdaFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
       var rangeBtcFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\INDEX BTCUSD, 1D.csv";
 
-      TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy<Position>(rangeAdaFilterData, rangeBtcFilterData, TradingBot.Strategy));
+      TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy<TPosition>(rangeAdaFilterData, rangeBtcFilterData, TradingBot.Strategy));
 
       LoadSecondaryLayouts(fromDate);
       PreLoadCTks(fromDate);
@@ -267,7 +270,7 @@ namespace CTKS_Chart.ViewModels
 
         disposable?.Dispose();
 
-     }, cts.Token);
+      }, cts.Token);
 
       if (!cts.IsCancellationRequested)
       {
@@ -310,7 +313,7 @@ namespace CTKS_Chart.ViewModels
     {
       cts?.Cancel();
       disposable?.Dispose();
-      var simulationStrategy = new SimulationStrategy();
+      var simulationStrategy = new TStrategy();
 
       simulationStrategy.Asset = TradingBot.Asset;
       Layouts.Clear();

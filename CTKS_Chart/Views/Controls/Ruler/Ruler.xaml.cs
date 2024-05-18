@@ -54,17 +54,17 @@ namespace CTKS_Chart.Views.Controls
 
     #region DrawingViewModel
 
-    public DrawingViewModel DrawingViewModel
+    public IDrawingViewModel DrawingViewModel
     {
-      get { return (DrawingViewModel)GetValue(DrawingViewModelProperty); }
+      get { return (IDrawingViewModel)GetValue(DrawingViewModelProperty); }
       set { SetValue(DrawingViewModelProperty, value); }
     }
 
     public static readonly DependencyProperty DrawingViewModelProperty =
       DependencyProperty.Register(
         nameof(DrawingViewModel),
-        typeof(DrawingViewModel),
-        typeof(Ruler), new PropertyMetadata(new DrawingViewModel(null, null)));
+        typeof(IDrawingViewModel),
+        typeof(Ruler), new PropertyMetadata(new BaseDrawingViewModel<Position, SimulationStrategy>(null, null)));
 
     #endregion
 
