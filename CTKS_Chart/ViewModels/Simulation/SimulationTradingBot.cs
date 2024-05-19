@@ -131,7 +131,7 @@ namespace CTKS_Chart.ViewModels
     private List<Candle> cutCandles = new List<Candle>();
     protected override async Task LoadLayouts(CtksLayout mainLayout)
     {
-      var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, DrawingViewModel.CanvasHeight, DrawingViewModel.CanvasWidth, TradingBot.Asset);
+      var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, TradingBot.Asset);
 
       var mainCandles = TradingViewHelper.ParseTradingView(TimeFrame.H4, DataPath);
 

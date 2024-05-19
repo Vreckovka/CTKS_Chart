@@ -805,13 +805,13 @@ namespace CTKS_Chart.ViewModels
         maxCanvasValue = MaxValue - chartDiff;
         minCanvasValue = MinValue + chartDiff;
 
-        if(lastCandle != null)
+        if (lastCandle != null)
         {
           var lastPrice = lastCandle.Close;
 
           DrawActualPrice(dc, lastCandle, imageHeight);
         }
-        
+
 
         if (TradingBot.Strategy is StrategyViewModel strategyViewModel)
         {
@@ -914,10 +914,8 @@ namespace CTKS_Chart.ViewModels
       var drawnCandles = new List<ChartCandle>();
       long unix_diff = unixDiff;
 
-      if (unixDiff < 604800)
-        unix_diff = (long)(unixDiff * 0.60);
-      else
-        unix_diff = (long)((1 / 2.195) * 2 * unix_diff);
+
+      unix_diff = (long)(0.75 * unix_diff);
 
       if (unix_diff <= 0)
       {
@@ -1576,7 +1574,9 @@ namespace CTKS_Chart.ViewModels
           Width = end_x - start_x
         };
 
-        if (indicatorRect.Width + start_x > 0 && indicatorRect.Height + max > 0)
+        if (indicatorRect.Width + start_x > 0 &&
+          indicatorRect.Height + max > 0 &&
+          indicatorRect.Height + (CanvasHeight - min) > 0)
         {
           if (start_x < 0)
           {

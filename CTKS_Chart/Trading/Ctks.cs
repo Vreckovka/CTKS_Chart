@@ -16,24 +16,20 @@ namespace CTKS_Chart.Trading
     private readonly CtksLayout layout;
     private readonly TimeFrame timeFrame;
 
-    private double canvasHeight;
-    private double canvasWidth;
+    private double canvasHeight = 1000;
+    private double canvasWidth = 1000;
     private readonly Asset asset;
 
     long minUnix;
     long maxUnix;
     long unixDiff;
 
-    public Ctks(CtksLayout layout, TimeFrame timeFrame, double canvasHeight, double canvasWidth, Asset asset)
+    public Ctks(CtksLayout layout, TimeFrame timeFrame, Asset asset)
     {
       this.layout = layout ?? throw new ArgumentNullException(nameof(layout));
       this.timeFrame = timeFrame;
 
-      this.canvasHeight = canvasHeight;
-      this.canvasWidth = canvasWidth;
       this.asset = asset ?? throw new ArgumentNullException(nameof(asset));
-
-
     }
 
     public List<CtksLine> ctksLines = new List<CtksLine>();
@@ -263,7 +259,7 @@ namespace CTKS_Chart.Trading
 
     #region CreateClusters
 
-    private IEnumerable<CtksIntersection> CreateClusters(List<CtksIntersection> intersections)
+    public IEnumerable<CtksIntersection> CreateClusters(List<CtksIntersection> intersections, Tag tag = Tag.None)
     {
       var clusterIntersections = new List<CtksIntersection>();
 
@@ -289,7 +285,7 @@ namespace CTKS_Chart.Trading
       }
 
       var clusters = Dbscan.Dbscan.CalculateClusters(
-                        intersections.Select(x => new SimplePoint(0, x.Value)
+                        intersections.Where(x => x.Cluster == null).Select(x => new SimplePoint(0, x.Value)
                         {
                           Intersection = x
                         }),
@@ -311,10 +307,11 @@ namespace CTKS_Chart.Trading
 
         var ctksIntersection = new CtksIntersection()
         {
-          TimeFrame = timeFrame,
+          TimeFrame = cluster.Objects.Max(x => x.Intersection.TimeFrame),
           Value = value,
           Cluster = newCluster,
-          IntersectionType = IntersectionType.Cluster
+          IntersectionType = IntersectionType.Cluster,
+          Tag = tag
         };
 
         if(newCluster.Intersections.Count() <= 2)

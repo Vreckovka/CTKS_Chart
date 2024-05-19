@@ -14,10 +14,15 @@ namespace CTKS_Chart.Trading
     CoreLine,
     Cluster,
     RangeFilter,
-    RangeFilterH,
-    RangeFilterL
   }
 
+  public enum Tag
+  {
+    None,
+    GlobalCluster,
+    RangeFilterHigh,
+    RangeFilterLow
+  }
 
   public class CtksIntersection
   {
@@ -26,6 +31,8 @@ namespace CTKS_Chart.Trading
     public CtksLine Line { get; set; }
     public CtksCluster Cluster { get; set; }
     public IntersectionType IntersectionType { get; set; }
+
+    public Tag Tag { get; set; }
 
     public bool IsEnabled { get; set; } = true;
 

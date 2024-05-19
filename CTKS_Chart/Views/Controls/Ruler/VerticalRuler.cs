@@ -48,20 +48,27 @@ namespace CTKS_Chart.Views.Controls
 
           if (intersection.Model.IsCluster)
           {
-            text = $"*{text}*";
+            if (intersection.Model.Tag == CTKS_Chart.Trading.Tag.GlobalCluster)
+            {
+              text = $"G* {text} G*";
+            }
+            else
+              text = $"*{text}*";
           }
           else if (intersection.Model.IntersectionType == IntersectionType.RangeFilter)
           {
-            text = $"RF {text}";
+            if (intersection.Model.Tag == CTKS_Chart.Trading.Tag.RangeFilterLow)
+            {
+              text = $"RFL {text}";
+            }
+            else if (intersection.Model.Tag == CTKS_Chart.Trading.Tag.RangeFilterHigh)
+            {
+              text = $"RFH {text}";
+            }
+            else
+              text = $"RF {text}";
           }
-          else if (intersection.Model.IntersectionType == IntersectionType.RangeFilterL)
-          {
-            text = $"RFL {text}";
-          }
-          else if (intersection.Model.IntersectionType == IntersectionType.RangeFilterH)
-          {
-            text = $"RFH {text}";
-          }
+
 
           var formattedText = DrawingHelper.GetFormattedText(text, intersection.Brush, fontSize);
 
@@ -315,7 +322,7 @@ namespace CTKS_Chart.Views.Controls
 
       labelBorder = null;
       priceTextBlock = null;
-    } 
+    }
 
     #endregion
   }

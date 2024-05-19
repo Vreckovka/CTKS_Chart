@@ -674,7 +674,7 @@ namespace CTKS_Chart.ViewModels
 
     protected virtual async Task LoadLayouts(CtksLayout mainLayout)
     {
-      var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, DrawingViewModel.CanvasHeight, DrawingViewModel.CanvasWidth, TradingBot.Asset);
+      var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame,TradingBot.Asset);
 
       DrawingViewModel.ActualCandles = (await
         binanceBroker.GetCandles(TradingBot.Asset.Symbol,
@@ -685,7 +685,6 @@ namespace CTKS_Chart.ViewModels
 
       LoadSecondaryLayouts();
       LoadIndicators();
-      AddRangeFilterIntersections(TimeFrame.D1);
 
       mainLayout.Ctks = mainCtks;
       Layouts.Add(mainLayout);
@@ -705,7 +704,7 @@ namespace CTKS_Chart.ViewModels
     {
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
-        var layout = CreateCtks(layoutData.Key, layoutData.Value, DrawingViewModel.CanvasWidth, DrawingViewModel.CanvasHeight, maxTime, saveData: !IsSimulation);
+        var layout = CreateCtks(layoutData.Key, layoutData.Value, maxTime, saveData: !IsSimulation);
 
         Layouts.Add(layout);
         InnerLayouts.Add(layout);
@@ -751,7 +750,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
     #region IsPaused
 
     private bool isPaused;
@@ -784,7 +782,7 @@ namespace CTKS_Chart.ViewModels
 
         foreach (var candle in candles)
         {
-          var layout = CreateCtks(layoutData.Key, layoutData.Value, DrawingViewModel.CanvasWidth, DrawingViewModel.CanvasHeight, candle.OpenTime);
+          var layout = CreateCtks(layoutData.Key, layoutData.Value, candle.OpenTime);
 
           preloadedLayots.Add(layout);
         }
@@ -898,7 +896,22 @@ namespace CTKS_Chart.ViewModels
           if (ctksIntersections.Count > 0)
             TradingBot.Strategy.UpdateIntersections(ctksIntersections);
 
+          var allCtks = new Ctks(new CtksLayout(), TimeFrame.W1, TradingBot.Asset);
 
+          var clustered = allCtks.CreateClusters(ctksIntersections.ToList(), Tag.GlobalCluster);
+          ctksIntersections.AddRange(clustered);
+
+          var duplicates = ctksIntersections.GroupBy(x => x.Value);
+
+          foreach(var duplicate in duplicates.Where(x => x.Count() > 1))
+          {
+            var list = duplicate.ToList();
+
+            for (int i = 1; i < list.Count; i++)
+            {
+              ctksIntersections.Remove(list[i]);
+            }
+          }
         }
 
         if (ctksIntersections.Count == 0)
@@ -912,6 +925,7 @@ namespace CTKS_Chart.ViewModels
         }
 
         TradingBot.Strategy.Intersections = ctksIntersections;
+        AddRangeFilterIntersections(TimeFrame.D1);
 
         var athPrice = GetAthPrice();
 
@@ -935,7 +949,6 @@ namespace CTKS_Chart.ViewModels
           }
 
           AddRangeFilterIntersections(TimeFrame.D1);
-
           TradingBot.Strategy.ValidatePositions(actual);
           TradingBot.Strategy.CreatePositions(actual);
         }
@@ -960,8 +973,6 @@ namespace CTKS_Chart.ViewModels
     protected CtksLayout CreateCtks(
       string location,
       TimeFrame timeFrame,
-      double canvasWidth,
-      double canvasHeight,
       DateTime? maxTime = null,
       decimal? pmax = null,
       decimal? pmin = null,
@@ -969,7 +980,7 @@ namespace CTKS_Chart.ViewModels
     {
       var layout = CreateLayout<CtksLayout>(location, timeFrame, maxTime, pmax, pmin, saveData: saveData);
 
-      var ctks = new Ctks(layout, timeFrame, canvasHeight, canvasWidth, TradingBot.Asset);
+      var ctks = new Ctks(layout, timeFrame,TradingBot.Asset);
 
       ctks.CrateCtks(layout.AllCandles);
 
@@ -1004,20 +1015,20 @@ namespace CTKS_Chart.ViewModels
 
 
           var existingLow = TradingBot.Strategy.Intersections
-            .SingleOrDefault(x => x.IntersectionType == IntersectionType.RangeFilterL);
+            .SingleOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterLow);
           var existingHigh = TradingBot.Strategy.Intersections
-            .SingleOrDefault(x => x.IntersectionType == IntersectionType.RangeFilterH);
+            .SingleOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterHigh);
           var existingRF = TradingBot.Strategy.Intersections
-            .SingleOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter);
+            .SingleOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.None);
 
           if (equivalentDataCandle != null)
           {
-            var minDiff = 0.025m;
+            var minDiff = 0.05m;
             var low = Math.Round(equivalentDataCandle.IndicatorData.RangeFilterData.LowTarget, TradingBot.Asset.PriceRound);
             var rf = Math.Round(equivalentDataCandle.IndicatorData.RangeFilterData.RangeFilter, TradingBot.Asset.PriceRound);
             var high = Math.Round(equivalentDataCandle.IndicatorData.RangeFilterData.HighTarget, TradingBot.Asset.PriceRound);
 
-            if (existingLow != null)
+            if (existingLow != null && existingLow.Value > 0)
             {
               if (Math.Abs((existingLow.Value - low) / existingLow.Value) > minDiff)
               {
@@ -1029,12 +1040,13 @@ namespace CTKS_Chart.ViewModels
               TradingBot.Strategy.Intersections.Add(new CtksIntersection()
               {
                 Value = low,
-                IntersectionType = IntersectionType.RangeFilterL,
+                IntersectionType = IntersectionType.RangeFilter,
+                Tag = Tag.RangeFilterLow,
                 TimeFrame = TimeFrame.W1
               });
             }
 
-            if (existingRF != null)
+            if (existingRF != null )
             {
               existingRF.Value = rf;
             }
@@ -1043,12 +1055,12 @@ namespace CTKS_Chart.ViewModels
               TradingBot.Strategy.Intersections.Add(new CtksIntersection()
               {
                 Value = rf,
-                IntersectionType = IntersectionType.RangeFilter,
+                IntersectionType = IntersectionType.RangeFilter,          
                 TimeFrame = TimeFrame.W1
               });
             }
 
-            if (existingHigh != null)
+            if (existingHigh != null && existingHigh.Value > 0)
             {
               if (Math.Abs((existingHigh.Value - high) / existingHigh.Value) > minDiff)
               {
@@ -1060,7 +1072,8 @@ namespace CTKS_Chart.ViewModels
               TradingBot.Strategy.Intersections.Add(new CtksIntersection()
               {
                 Value = high,
-                IntersectionType = IntersectionType.RangeFilterH,
+                IntersectionType = IntersectionType.RangeFilter,
+                Tag = Tag.RangeFilterHigh,
                 TimeFrame = TimeFrame.W1
               });
             }
