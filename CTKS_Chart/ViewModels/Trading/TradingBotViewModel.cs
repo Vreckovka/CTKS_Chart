@@ -897,8 +897,9 @@ namespace CTKS_Chart.ViewModels
             TradingBot.Strategy.UpdateIntersections(ctksIntersections);
 
           var allCtks = new Ctks(new CtksLayout(), TimeFrame.W1, TradingBot.Asset);
+          allCtks.Epsilon = 0.005m;
 
-          var clustered = allCtks.CreateClusters(ctksIntersections.ToList(), Tag.GlobalCluster);
+          var clustered = allCtks.CreateClusters(ctksIntersections, Tag.GlobalCluster);
           ctksIntersections.AddRange(clustered);
 
           var duplicates = ctksIntersections.GroupBy(x => x.Value);
