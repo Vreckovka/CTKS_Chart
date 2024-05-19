@@ -616,8 +616,6 @@ namespace CTKS_Chart.ViewModels
 
     public virtual async void Start()
     {
-
-
       stopwatch.Start();
 
       ForexChart_Loaded();
@@ -687,6 +685,7 @@ namespace CTKS_Chart.ViewModels
 
       LoadSecondaryLayouts();
       LoadIndicators();
+      AddRangeFilterIntersections(TimeFrame.D1);
 
       mainLayout.Ctks = mainCtks;
       Layouts.Add(mainLayout);
@@ -752,18 +751,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region RenderLayout
-
-    private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
-
-    private bool shouldUpdate = true;
-    private bool wasLoaded = false;
-    List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
-    DateTime lastFileCheck = DateTime.Now;
-
-    private Candle actual = null;
-
-    public bool IsSimulation { get; set; } = false;
 
     #region IsPaused
 
@@ -805,6 +792,20 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
+
+    #region RenderLayout
+
+    private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+
+    private bool shouldUpdate = true;
+    private bool wasLoaded = false;
+    List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
+    DateTime lastFileCheck = DateTime.Now;
+
+    private Candle actual = null;
+
+    public bool IsSimulation { get; set; } = false;
 
     public async void RenderLayout(List<CtksLayout> secondaryLayouts, Candle actual)
     {
@@ -912,8 +913,6 @@ namespace CTKS_Chart.ViewModels
 
         TradingBot.Strategy.Intersections = ctksIntersections;
 
-
-
         var athPrice = GetAthPrice();
 
         if (DrawChart)
@@ -990,9 +989,18 @@ namespace CTKS_Chart.ViewModels
       {
         if (candles.Count > 1)
         {
-          var equivalentDataCandles = candles
-            .FirstOrDefault(x => x.OpenTime <= actual.OpenTime &&
-                        x.CloseTime > actual.CloseTime);
+          Candle equivalentDataCandle = null;
+          if (actual != null)
+          {
+            equivalentDataCandle = candles
+                              .FirstOrDefault(x => x.OpenTime <= actual.OpenTime &&
+                                          x.CloseTime > actual.CloseTime);
+          }
+          else
+          {
+            equivalentDataCandle = candles.Last();
+          }
+
 
 
           var existingLow = TradingBot.Strategy.Intersections
@@ -1002,12 +1010,12 @@ namespace CTKS_Chart.ViewModels
           var existingRF = TradingBot.Strategy.Intersections
             .SingleOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter);
 
-          if (equivalentDataCandles != null)
+          if (equivalentDataCandle != null)
           {
             var minDiff = 0.025m;
-            var low = Math.Round(equivalentDataCandles.IndicatorData.RangeFilterData.LowTarget, TradingBot.Asset.PriceRound);
-            var rf = Math.Round(equivalentDataCandles.IndicatorData.RangeFilterData.RangeFilter, TradingBot.Asset.PriceRound);
-            var high = Math.Round(equivalentDataCandles.IndicatorData.RangeFilterData.HighTarget, TradingBot.Asset.PriceRound);
+            var low = Math.Round(equivalentDataCandle.IndicatorData.RangeFilterData.LowTarget, TradingBot.Asset.PriceRound);
+            var rf = Math.Round(equivalentDataCandle.IndicatorData.RangeFilterData.RangeFilter, TradingBot.Asset.PriceRound);
+            var high = Math.Round(equivalentDataCandle.IndicatorData.RangeFilterData.HighTarget, TradingBot.Asset.PriceRound);
 
             if (existingLow != null)
             {
