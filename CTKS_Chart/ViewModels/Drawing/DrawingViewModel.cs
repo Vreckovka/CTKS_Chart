@@ -453,9 +453,14 @@ namespace CTKS_Chart.ViewModels
 
       if (viewCandles.Any())
       {
+        var max = viewCandles.Max(x => x.UnixTime);
+        var min = viewCandles.Min(x => x.UnixTime);
+        var diff = (max - min) / (double)max;
 
-        maxUnix = viewCandles.Max(x => x.UnixTime) + (unixDiff * 30);
-        minUnix = viewCandles.Min(x => x.UnixTime) + (unixDiff * 30);
+        var padding = (long)(diff * 0.30 * max);
+
+        maxUnix = max + padding;
+        minUnix = min;
 
         RaisePropertyChanged(nameof(MaxUnix));
         RaisePropertyChanged(nameof(MinUnix));
@@ -633,8 +638,8 @@ namespace CTKS_Chart.ViewModels
             var low = lastCandle.Low.Value;
             var high = lastCandle.High.Value;
 
-            var minView = minValue * (1 + actualPriceChartViewDiff * 0.20m);
-            var maxView = maxValue * (1 - (actualPriceChartViewDiff * 0.20m));
+            var minView = minValue * (1 + actualPriceChartViewDiff * 0.12m);
+            var maxView = maxValue * (1 - (actualPriceChartViewDiff * 0.12m));
 
 
             if (low < minView)

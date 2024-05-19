@@ -64,8 +64,9 @@ namespace CTKS_Chart.Views.Controls
 
           if (obj is Chart chart && y.NewValue is Overlay overlay)
           {
-            overlay.MouseMove += chart.Grid_MouseMove;
-            overlay.MouseWheel += chart.Border_MouseWheel;
+            overlay.MouseMove += chart.Overlay_MouseMove;
+            overlay.MouseLeave += chart.Overlay_MouseLeave;
+            overlay.MouseWheel += chart.Overlay_MouseWheel;
           }
         })));
 
@@ -212,21 +213,24 @@ namespace CTKS_Chart.Views.Controls
       SizeChanged += Chart_SizeChanged;
     }
 
+    private void Overlay_MouseLeave(object sender, MouseEventArgs e)
+    {
+      DrawingViewModel.EnableAutoLock = true;
+    }
+
     private void Chart_SizeChanged(object sender, SizeChangedEventArgs e)
     {
       ChartHeight = ActualHeight;
       ChartWidth = ActualWidth;
-
-      MouseMove += Grid_MouseMove;
     }
 
-    #region Grid_MouseMove
+    #region Overlay_MouseMove
 
     double? startY;
     double? startX;
 
     bool wasPressed = false;
-    private void Grid_MouseMove(object sender, MouseEventArgs e)
+    private void Overlay_MouseMove(object sender, MouseEventArgs e)
     {
       base.OnMouseMove(e);
 
@@ -282,7 +286,7 @@ namespace CTKS_Chart.Views.Controls
         DrawingViewModel.Raise(nameof(DrawingViewModel.LockChart));
       }
 
-      if (e.LeftButton != MouseButtonState.Pressed && startY != null)
+      if (e.LeftButton != MouseButtonState.Pressed && (startY != null || startX != null))
       {
         DrawingViewModel.EnableAutoLock = true;
         startY = null;
@@ -292,9 +296,9 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
-    #region Border_MouseWheel
+    #region Overlay_MouseWheel
 
-    private void Border_MouseWheel(object sender, MouseWheelEventArgs e)
+    private void Overlay_MouseWheel(object sender, MouseWheelEventArgs e)
     {
       var delta = (decimal)0.035;
       var diff = (long)((DrawingViewModel.MaxUnix - DrawingViewModel.MinUnix) * delta);

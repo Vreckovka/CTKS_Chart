@@ -1104,7 +1104,7 @@ namespace CTKS_Chart.Strategy
 
     #region CloseBuy
 
-    public async Task CloseBuy(TPosition TPosition, decimal minForcePrice = 0)
+    public virtual async Task CloseBuy(TPosition TPosition, decimal minForcePrice = 0)
     {
       try
       {
@@ -1240,7 +1240,7 @@ namespace CTKS_Chart.Strategy
 
     #region CreateSell
 
-    private async Task CreateSell(TPosition buyPosition, IList<CtksIntersection> ctksIntersections, decimal minForcePrice = 0)
+    protected virtual async Task CreateSell(TPosition buyPosition, IList<CtksIntersection> ctksIntersections, decimal minForcePrice = 0)
     {
       try
       {

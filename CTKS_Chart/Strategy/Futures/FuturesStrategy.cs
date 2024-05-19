@@ -51,6 +51,16 @@ namespace CTKS_Chart.Strategy.Futures
 
       }
     }
+
+    public override async Task CloseBuy(FuturesPosition position, decimal minForcePrice = 0)
+    {
+      await CreateSell(position,Intersections);
+    }
+
+    protected override Task CreateSell(FuturesPosition buyPosition, IList<CtksIntersection> ctksIntersections, decimal minForcePrice = 0)
+    {
+      return Task.CompletedTask;
+    }
   }
 }
 
