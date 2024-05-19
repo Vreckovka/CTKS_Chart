@@ -160,10 +160,6 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.LockChart = true;
       DrawingViewModel.DrawingSettings.ShowATH = true;
 
-      //Intersection precision testing
-      TradingBot.Strategy.EnableManualPositions = false;
-
-
       var rangeAdaFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
       var rangeBtcFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\INDEX BTCUSD, 1D.csv";
 
@@ -309,7 +305,9 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    public void Stop()
+    #region Stop
+
+    public override void Stop()
     {
       cts?.Cancel();
       disposable?.Dispose();
@@ -321,6 +319,8 @@ namespace CTKS_Chart.ViewModels
 
       TradingBot.Strategy = simulationStrategy;
     }
+
+    #endregion
 
     private void DownloadCandles(string symbol)
     {

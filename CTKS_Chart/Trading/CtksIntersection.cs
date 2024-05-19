@@ -13,7 +13,9 @@ namespace CTKS_Chart.Trading
   {
     CoreLine,
     Cluster,
-    RangeFilter
+    RangeFilter,
+    RangeFilterH,
+    RangeFilterL
   }
 
 

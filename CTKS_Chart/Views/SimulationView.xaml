@@ -53,6 +53,8 @@
       <TextBox Text="{Binding SelectedBot.Delay, Mode=TwoWay}" />
 
       <Button Focusable="True">X</Button>
+
+      <CheckBox IsChecked="{Binding SelectedBot.TradingBot.Strategy.EnableManualPositions, Mode=TwoWay}">Enable manual positions</CheckBox>
     </StackPanel>
 
     <trading:BotView

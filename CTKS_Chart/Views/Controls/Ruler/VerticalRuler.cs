@@ -54,6 +54,14 @@ namespace CTKS_Chart.Views.Controls
           {
             text = $"RF {text}";
           }
+          else if (intersection.Model.IntersectionType == IntersectionType.RangeFilterL)
+          {
+            text = $"RFL {text}";
+          }
+          else if (intersection.Model.IntersectionType == IntersectionType.RangeFilterH)
+          {
+            text = $"RFH {text}";
+          }
 
           var formattedText = DrawingHelper.GetFormattedText(text, intersection.Brush, fontSize);
 
