@@ -221,7 +221,8 @@ namespace CTKS_Chart.Trading
           {
             Value = value,
             TimeFrame = line.TimeFrame,
-            Line = line
+            Line = line,
+            IntersectionType = IntersectionType.CoreLine
           };
 
           newCtksIntersections.Add(intersection);
@@ -312,7 +313,8 @@ namespace CTKS_Chart.Trading
         {
           TimeFrame = timeFrame,
           Value = value,
-          Cluster = newCluster
+          Cluster = newCluster,
+          IntersectionType = IntersectionType.Cluster
         };
 
         if(newCluster.Intersections.Count() <= 2)
@@ -331,7 +333,7 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
-    //200 165
+ 
     #region GetMedian
 
     public static decimal GetMedian(decimal[] sourceNumbers)

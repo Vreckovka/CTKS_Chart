@@ -33,14 +33,14 @@ namespace CTKS_Chart.ViewModels
     public DateTime Date { get; set; }
   }
 
-  public class BaseSimulationTradingBot<TPosition, TStrategy> : BaseTradingBotViewModel<TPosition, TStrategy> 
+  public class SimulationTradingBot<TPosition, TStrategy> : BaseTradingBotViewModel<TPosition, TStrategy> 
     where TPosition : Position, new()
     where TStrategy : BaseSimulationStrategy<TPosition>, new()
   {
     private readonly BinanceDataProvider binanceDataProvider;
     string results;
 
-    public BaseSimulationTradingBot(
+    public SimulationTradingBot(
       BaseTradingBot<TPosition, TStrategy> tradingBot,
       ILogger logger,
       IWindowManager windowManager,
@@ -161,7 +161,7 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.DrawingSettings.ShowATH = true;
 
       //Intersection precision testing
-      //TradingBot.Strategy.EnableManualPositions = false;
+      TradingBot.Strategy.EnableManualPositions = false;
 
 
       var rangeAdaFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";

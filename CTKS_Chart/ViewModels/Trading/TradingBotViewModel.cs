@@ -817,17 +817,11 @@ namespace CTKS_Chart.ViewModels
       {
         await semaphoreSlim.WaitAsync();
 
-
         for (int i = 0; i < secondaryLayouts.Count; i++)
         {
           var secondaryLayout = secondaryLayouts[i];
 
           var lastCandle = secondaryLayout.Ctks.Candles.Last();
-
-          if (IsSimulation)
-          {
-            continue;
-          }
 
           var isOutDated = false;
 
@@ -876,6 +870,7 @@ namespace CTKS_Chart.ViewModels
               if (secondaryLayout.Ctks.Candles.Count > lastCount)
                 shouldUpdate = true;
             }
+
           }
         }
 
@@ -902,6 +897,7 @@ namespace CTKS_Chart.ViewModels
           if (ctksIntersections.Count > 0)
             TradingBot.Strategy.UpdateIntersections(ctksIntersections);
 
+
         }
 
         if (ctksIntersections.Count == 0)
@@ -915,6 +911,9 @@ namespace CTKS_Chart.ViewModels
         }
 
         TradingBot.Strategy.Intersections = ctksIntersections;
+
+
+
         var athPrice = GetAthPrice();
 
         if (DrawChart)
@@ -936,6 +935,7 @@ namespace CTKS_Chart.ViewModels
               TradingBot.Strategy.UpdateIntersections(ctksIntersections);
           }
 
+          AddRangeFilterIntersections();
           TradingBot.Strategy.ValidatePositions(actual);
           TradingBot.Strategy.CreatePositions(actual);
         }
@@ -978,6 +978,56 @@ namespace CTKS_Chart.ViewModels
       return layout;
     }
 
+
+    #endregion
+
+    #region AddRangeFilterIntersections
+
+    private void AddRangeFilterIntersections()
+    {
+      if (TradingViewHelper.LoadedData.TryGetValue(TimeFrame.D1, out var candles))
+      {
+        if (candles.Count > 1)
+        {
+          var equivalentDataCandles = candles
+            .FirstOrDefault(x => x.OpenTime <= actual.OpenTime &&
+                        x.CloseTime > actual.CloseTime);
+
+          var existing = TradingBot.Strategy.Intersections
+            .Where(x => x.IntersectionType == IntersectionType.RangeFilter)
+            .ToList();
+
+          foreach(var inter in existing)
+          {
+            TradingBot.Strategy.Intersections.Remove(inter);
+          }
+        
+          if (equivalentDataCandles != null)
+          {
+            TradingBot.Strategy.Intersections.Add(new CtksIntersection()
+            {
+              Value = equivalentDataCandles.IndicatorData.RangeFilterData.RangeFilter,
+              IntersectionType = IntersectionType.RangeFilter,
+              TimeFrame = TimeFrame.W1
+            });
+
+            TradingBot.Strategy.Intersections.Add(new CtksIntersection()
+            {
+              Value = equivalentDataCandles.IndicatorData.RangeFilterData.LowTarget ,
+              IntersectionType = IntersectionType.RangeFilter,
+              TimeFrame = TimeFrame.W1
+            });
+
+            TradingBot.Strategy.Intersections.Add(new CtksIntersection()
+            {
+              Value = equivalentDataCandles.IndicatorData.RangeFilterData.HighTarget,
+              IntersectionType = IntersectionType.RangeFilter,
+              TimeFrame = TimeFrame.W1
+            });
+          }
+        }
+      }
+    }
 
     #endregion
 

@@ -50,6 +50,10 @@ namespace CTKS_Chart.Views.Controls
           {
             text = $"*{text}*";
           }
+          else if (intersection.Model.IntersectionType == IntersectionType.RangeFilter)
+          {
+            text = $"RF {text}";
+          }
 
           var formattedText = DrawingHelper.GetFormattedText(text, intersection.Brush, fontSize);
 

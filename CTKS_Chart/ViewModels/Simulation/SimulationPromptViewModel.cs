@@ -141,7 +141,7 @@ namespace CTKS_Chart.ViewModels
       //  TimeFrames = timeFrames,
       //}, new FuturesStrategy()));
 
-      var adaBot = viewModelsFactory.Create<BaseSimulationTradingBot<Position, SimulationStrategy>>(new BaseTradingBot<Position, SimulationStrategy>(new Asset()
+      var adaBot = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(new BaseTradingBot<Position, SimulationStrategy>(new Asset()
       {
         Symbol = "ADAUSDT",
         NativeRound = 1,
@@ -153,7 +153,7 @@ namespace CTKS_Chart.ViewModels
 
       adaBot.DataPath = $"ADAUSDT-240-generated.csv";
 
-      var ltcBot = viewModelsFactory.Create<BaseSimulationTradingBot<Position, SimulationStrategy>>(new BaseTradingBot<Position, SimulationStrategy>(new Asset()
+      var ltcBot = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(new BaseTradingBot<Position, SimulationStrategy>(new Asset()
       {
         Symbol = "LTCUSDT",
         NativeRound = 3,
@@ -163,7 +163,7 @@ namespace CTKS_Chart.ViewModels
         TimeFrames = timeFrames,
       }, new SimulationStrategy()));
 
-      var btcBot = viewModelsFactory.Create<BaseSimulationTradingBot<Position, SimulationStrategy>>(new BaseTradingBot<Position, SimulationStrategy>(new Asset()
+      var btcBot = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(new BaseTradingBot<Position, SimulationStrategy>(new Asset()
       {
         Symbol = "BTCUSDT",
         NativeRound = 5,

@@ -189,7 +189,7 @@
       LabelsToRender="{Binding RenderedLabels}"
       ResetChart="{Binding ResetChartY}"
       ValuesToRender="{Binding RenderedIntersections}">
-      <controls1:VerticalRuler.Style>
+      <!--<controls1:VerticalRuler.Style>
         <Style TargetType="controls1:VerticalRuler">
           <Style.Triggers>
             <DataTrigger Binding="{Binding DataContext.SelectedBot.IsSimulation, RelativeSource={RelativeSource AncestorType=Window}}" Value="true">
@@ -197,7 +197,7 @@
             </DataTrigger>
           </Style.Triggers>
         </Style>
-      </controls1:VerticalRuler.Style>
+      </controls1:VerticalRuler.Style>-->
     </controls1:VerticalRuler>
 
     <controls1:HorizontalRuler
@@ -211,7 +211,7 @@
       ChartContent="{Binding Chart}"
       DrawingViewModel="{Binding}"
       ResetChart="{Binding ResetChartX}">
-      <controls1:HorizontalRuler.Style>
+      <!--<controls1:HorizontalRuler.Style>
         <Style TargetType="controls1:HorizontalRuler">
           <Style.Triggers>
             <DataTrigger Binding="{Binding DataContext.SelectedBot.IsSimulation, RelativeSource={RelativeSource AncestorType=Window}}" Value="true">
@@ -219,7 +219,7 @@
             </DataTrigger>
           </Style.Triggers>
         </Style>
-      </controls1:HorizontalRuler.Style>
+      </controls1:HorizontalRuler.Style>-->
     </controls1:HorizontalRuler>
 
     <Grid
