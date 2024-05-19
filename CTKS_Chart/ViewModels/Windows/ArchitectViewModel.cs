@@ -40,7 +40,7 @@ namespace CTKS_Chart.ViewModels
     }
   }
 
-  public class BaseArchitectViewModel<TPosition, TStrategy> : BaseDrawingViewModel<TPosition, TStrategy>
+  public class BaseArchitectViewModel<TPosition, TStrategy> : DrawingViewModel<TPosition, TStrategy>
     where TPosition : Position, new()
     where TStrategy : BaseSimulationStrategy<TPosition>, new() 
 

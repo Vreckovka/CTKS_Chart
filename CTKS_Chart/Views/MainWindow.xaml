@@ -10,11 +10,12 @@
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:trading="clr-namespace:CTKS_Chart.Views.Trading"
   xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-  Title="MainWindow"
+  Title="{Binding Title}"
   Width="1370"
   Height="1100"
   Background="{StaticResource BackgroudBrush}"
   FontFamily="pack://application:,,,/VCore.WPF;component/Resources/Fonts/Roboto/#Roboto"
+  Icon="{Binding Icon}"
   Style="{StaticResource {x:Type Window}}"
   WindowStartupLocation="CenterScreen"
   mc:Ignorable="d">

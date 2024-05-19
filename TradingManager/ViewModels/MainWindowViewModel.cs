@@ -190,7 +190,7 @@ namespace TradingManager.ViewModels
               }
             };
 
-            var candles = TradingViewHelper.ParseTradingView(file);
+            var candles = TradingViewHelper.ParseTradingView(vm.TimeFrame, file);
 
             vm.IsOutDated = TradingViewHelper.IsOutDated(vm.TimeFrame, candles);
             folderVm.Files.Add(vm);
@@ -217,8 +217,8 @@ namespace TradingManager.ViewModels
         var timeFrame = EnumHelper.Description(outdated.TimeFrame);
         var newFile = await tradingViewDataProvider.DownloadTimeframe(outdated.TradingViewSymbol, timeFrame);
 
-        var newCandles = TradingViewHelper.ParseTradingView(newFile);
-        var oldCandles = TradingViewHelper.ParseTradingView(outdated.Path);
+        var newCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, newFile);
+        var oldCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, outdated.Path);
 
         if (newCandles.Count > oldCandles.Count)
         {

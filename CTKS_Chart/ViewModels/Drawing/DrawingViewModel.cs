@@ -23,13 +23,97 @@ using PositionSide = CTKS_Chart.Strategy.PositionSide;
 
 namespace CTKS_Chart.ViewModels
 {
-  public class BaseDrawingViewModel<TPosition, TStrategy> : ViewModel, IDrawingViewModel 
+  public enum IndicatorType
+  {
+    RangeFilter,
+  }
+
+  public class IndicatorSettings : ViewModel
+  {
+    #region Show
+
+    private bool show = true;
+
+    public bool Show
+    {
+      get { return show; }
+      set
+      {
+        if (value != show)
+        {
+          show = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region TimeFrame
+
+    private TimeFrame timeFrame;
+
+    public TimeFrame TimeFrame
+    {
+      get { return timeFrame; }
+      set
+      {
+        if (value != timeFrame)
+        {
+          timeFrame = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region Name
+
+    private string name;
+
+    public string Name
+    {
+      get { return name; }
+      set
+      {
+        if (value != name)
+        {
+          name = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region IndicatorType
+
+    private IndicatorType indicatorType;
+
+    public IndicatorType IndicatorType
+    {
+      get { return indicatorType; }
+      set
+      {
+        if (value != indicatorType)
+        {
+          indicatorType = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+  }
+
+  public class DrawingViewModel<TPosition, TStrategy> : ViewModel, IDrawingViewModel
     where TPosition : Position, new()
     where TStrategy : BaseStrategy<TPosition>
   {
     DashStyle pricesDashStyle = new DashStyle(new List<double>() { 2 }, 5);
     public decimal chartDiff = 0.01m;
-    public BaseDrawingViewModel(BaseTradingBot<TPosition, TStrategy> tradingBot, Layout layout)
+    public DrawingViewModel(BaseTradingBot<TPosition, TStrategy> tradingBot, Layout layout)
     {
       TradingBot = tradingBot;
       Layout = layout;
@@ -310,23 +394,29 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region IsActualCandleVisible
+
     public bool IsActualCandleVisible
     {
       get
       {
         var lastRendered = drawnChart?.Candles.LastOrDefault();
 
-        if(lastRendered != null)
+        if (lastRendered != null)
         {
-          return lastRendered.Candle.OpenTime == actual?.OpenTime 
+          return lastRendered.Candle.OpenTime == actual?.OpenTime
             && lastRendered.Candle.High > MinValue && lastRendered.Candle.Low < MaxValue;
         }
 
 
         return false;
-         
+
       }
     }
+
+    #endregion
+
+    public RxObservableCollection<IndicatorSettings> IndicatorSettings { get; } = new RxObservableCollection<IndicatorSettings>();
 
     #endregion
 
@@ -419,7 +509,7 @@ namespace CTKS_Chart.ViewModels
 
     private void ResetY(IEnumerable<Candle> viewCandles)
     {
-      if(viewCandles.Count() == 0)
+      if (viewCandles.Count() == 0)
       {
         viewCandles = ActualCandles;
       }
@@ -567,6 +657,8 @@ namespace CTKS_Chart.ViewModels
         })},
       };
 
+
+      IndicatorSettings.ItemUpdated.ObserveOnDispatcher().Subscribe(x => RenderOverlay());
     }
 
     #endregion
@@ -587,7 +679,9 @@ namespace CTKS_Chart.ViewModels
 
     public virtual void RenderOverlay(decimal? athPrice = null, Candle actual = null)
     {
-      this.actual = actual;
+      if (actual != null)
+        this.actual = actual;
+
       Pen shapeOutlinePen = new Pen(Brushes.Transparent, 1);
       shapeOutlinePen.Freeze();
 
@@ -738,6 +832,8 @@ namespace CTKS_Chart.ViewModels
           newChart = DrawChart(dc, candlesToRender, imageHeight, imageWidth);
           var chartCandles = newChart.Candles.ToList();
 
+
+          DrawIndicators(dc);
           DrawClosedPositions(dc, TradingBot.Strategy.AllClosedPositions, chartCandles, imageHeight);
 
           var maxCanvasValue = MaxValue;
@@ -778,7 +874,6 @@ namespace CTKS_Chart.ViewModels
           DrawMaxBuyPrice(dc, TradingBot.Strategy.MaxBuyPrice, imageHeight);
           DrawMinSellPrice(dc, TradingBot.Strategy.MinSellPrice, imageHeight);
 
-          DrawIndicators(dc);
         }
 
         Chart = new DrawingImage(dGroup);
@@ -988,7 +1083,7 @@ namespace CTKS_Chart.ViewModels
 
           if (newCandle.Height > 0 && newCandle.Width > 0)
           {
-            drawingContext.DrawRectangle(selectedBrush, pen, newCandle);
+            drawingContext.DrawRectangle(selectedBrush, null, newCandle);
             rendered = true;
           }
 
@@ -1276,6 +1371,7 @@ namespace CTKS_Chart.ViewModels
           Width = canvasWidth
         };
 
+
         if (canvasHeight < min)
         {
           clusterRect.Height = clusterRect.Height - (min - canvasHeight);
@@ -1289,7 +1385,7 @@ namespace CTKS_Chart.ViewModels
 
 
         selectedBrush.Item2.Opacity = 0.20;
-        drawingContext.DrawRectangle(selectedBrush.Item2, pen, clusterRect);
+        drawingContext.DrawRectangle(selectedBrush.Item2, null, clusterRect);
 
         var rendered = RenderedIntersections.SingleOrDefault(x => x.Model == intersection);
         var clone = selectedBrush.Item2.Clone();
@@ -1297,12 +1393,14 @@ namespace CTKS_Chart.ViewModels
         clone.Opacity = 1;
 
         if (rendered == null)
-          RenderedIntersections.Add(new RenderedIntesection(intersection) { 
+          RenderedIntersections.Add(new RenderedIntesection(intersection)
+          {
             SelectedHex = selectedBrush.Item1,
-            Brush = clone, 
+            Brush = clone,
             Min = minValue,
             Max =
-            maxValue });
+            maxValue
+          });
         else
           rendered.SelectedHex = selectedBrush.Item1;
 
@@ -1408,24 +1506,97 @@ namespace CTKS_Chart.ViewModels
 
     public void DrawIndicators(DrawingContext drawingContext)
     {
-      //var lastCandle = Layout.;
-      //var price = lastCandle.Close;
+      foreach (var indicatorSettings in IndicatorSettings.Where(x => x.Show))
+      {
+        if (TradingViewHelper.LoadedData.TryGetValue(indicatorSettings.TimeFrame, out var candles))
+        {
+          if (candles.Count > 1)
+          {
+            var diff = candles[1].UnixTime - candles[0].UnixTime;
 
-      //if (price > 0 && price > MinValue && price < MaxValue)
-      //{
-      //  var close = TradingHelper.GetCanvasValue(canvasHeight, price.Value, MaxValue, MinValue);
+            var equivalentDataCandles = candles
+              .Where(x => x.UnixTime >= MinUnix - diff &&
+              ((DateTimeOffset)x.CloseTime).ToUnixTimeSeconds() <= MaxUnix + diff).ToList();
 
-      //  var lineY = canvasHeight - close;
-
-      //  var brush = lastCandle.IsGreen ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
-      //  var pen = new Pen(brush, 1);
-      //  pen.DashStyle = DashStyles.Dash;
-
-      //  var text = DrawingHelper.GetFormattedText(price.Value.ToString($"N{TradingBot.Asset.PriceRound}"), brush, 20);
-      //  drawingContext.DrawText(text, new Point(canvasWidth - text.Width - 25, lineY - text.Height - 5));
-      //  drawingContext.DrawLine(pen, new Point(0, lineY), new Point(canvasWidth, lineY));
-      //}
+            if (equivalentDataCandles != null && equivalentDataCandles.Count > 0)
+            {
+              DrawRangeFilter(drawingContext, equivalentDataCandles, diff);
+            }
+          }
+        }
+      }
     }
+
+    #region DrawRangeFilter
+
+    public void DrawRangeFilter(DrawingContext drawingContext, IList<Candle> validCandles, long diff)
+    {
+      var last = validCandles.Last();
+
+      foreach (var candle in validCandles)
+      {
+        var indicatorData = candle.IndicatorData.RangeFilterData;
+
+        var selectedBrush = indicatorData.Upward ? DrawingHelper.GetBrushFromHex("#80eb34") : DrawingHelper.GetBrushFromHex("#eb4034");
+        var max = CanvasHeight - TradingHelper.GetCanvasValue(CanvasHeight, indicatorData.HighTarget, MaxValue, MinValue);
+        var min = CanvasHeight - TradingHelper.GetCanvasValue(CanvasHeight, indicatorData.LowTarget, MaxValue, MinValue);
+        var filterY = CanvasHeight - TradingHelper.GetCanvasValue(CanvasHeight, indicatorData.RangeFilter, MaxValue, MinValue);
+
+        var pen = new Pen(selectedBrush.Clone(), 1);
+        var range_pen = new Pen(selectedBrush.Clone(), 5);
+
+
+        selectedBrush.Opacity = 0.10;
+        var start_x = TradingHelper.GetCanvasValueLinear(canvasWidth, candle.UnixTime , MaxUnix, MinUnix);
+        var end_x = TradingHelper.GetCanvasValueLinear(canvasWidth, candle.UnixTime + diff, MaxUnix, MinUnix);
+
+
+        var indicatorRect = new Rect()
+        {
+          X = start_x,
+          Y = max,
+          Height = min - max,
+          Width = end_x - start_x
+        };
+
+        if (indicatorRect.Width + start_x > 0 && indicatorRect.Height + max > 0)
+        {
+          if (start_x < 0)
+          {
+            indicatorRect.X = 0;
+            indicatorRect.Width += start_x;
+          }
+
+          if (start_x + indicatorRect.Width > canvasWidth)
+          {
+            indicatorRect.Width -= start_x + indicatorRect.Width - canvasWidth;
+          }
+
+          if (CanvasHeight < min)
+          {
+            indicatorRect.Height += (CanvasHeight - min);
+          }
+
+          if (max < 0)
+          {
+            indicatorRect.Y = 0;
+            indicatorRect.Height += max;
+          }
+
+          GeometryGroup ellipses = new GeometryGroup();
+          ellipses.Children.Add(new RectangleGeometry(indicatorRect));
+          ellipses.Children.Add(new LineGeometry());
+
+          if (indicatorData.RangeFilter < MaxValue && indicatorData.RangeFilter > MinValue)
+            drawingContext.DrawLine(range_pen, new Point(indicatorRect.X, filterY), new Point(indicatorRect.X + indicatorRect.Width, filterY));
+
+          drawingContext.DrawRectangle(selectedBrush, null, indicatorRect);
+        }
+
+      }
+    }
+
+    #endregion
 
     public void SetMaxValue(decimal newValue)
     {

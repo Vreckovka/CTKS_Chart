@@ -73,7 +73,7 @@ namespace CTKS_Chart.Trading
       var indicator_dictionary = new Dictionary<string, TimeFrame>();
       var pattern = $"*{Asset.IndicatorDataPath}*.csv";
 
-      var dir = Path.Combine(Settings.DataPath, "Indicator");
+      var dir = Path.Combine(Settings.DataPath, "Indicators");
 
       if(Directory.Exists(dir))
       {

@@ -158,29 +158,6 @@ namespace CTKS_Chart.Views
       dataGrid.Items.Refresh();
     }
 
-    public void ChangeIcon(string symbol)
-    {
-      BitmapSource icon = null;
-      symbol = symbol.ToUpper();
-
-      if(symbol.Contains("BTC"))
-      {
-        icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.bitcoin.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-      }
-      else if(symbol.Contains("LTC"))
-      {
-        icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.litecoin.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-      }
-      else if (symbol.Contains("ADA"))
-      {
-        icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.cardano.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-      }
-      else if (symbol.Contains("BNB"))
-      {
-        icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.binance.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-      }
-
-      this.Icon = icon;
-    }
+  
   }
 }

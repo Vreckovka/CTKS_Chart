@@ -202,7 +202,7 @@ namespace CTKS_Chart.Views.Controls
       DependencyProperty.Register(
         nameof(DrawingViewModel),
         typeof(IDrawingViewModel),
-        typeof(Chart), new PropertyMetadata(new BaseDrawingViewModel<Position,SimulationStrategy>(null,null)));
+        typeof(Chart), new PropertyMetadata(new DrawingViewModel<Position,SimulationStrategy>(null,null)));
 
     #endregion
 

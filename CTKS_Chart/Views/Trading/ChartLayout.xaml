@@ -82,7 +82,6 @@
               IconHoverColor="{StaticResource YellowColor}"
               IconMargin="0" />
 
-
             <Popup
               IsOpen="{Binding ElementName=show_positions_toggle, Path=IsChecked, Mode=TwoWay}"
               Placement="Bottom"
@@ -113,6 +112,45 @@
             </Popup>
 
           </StackPanel>
+
+          <controls:PathButton
+            x:Name="indicators_toggle"
+            Margin="0,15"
+            HorizontalAlignment="Center"
+            Glyph=""
+            GlyphFontSize="20"
+            IconCheckedColor="{StaticResource YellowColor}"
+            IconDefaultColor="{StaticResource YellowColor}"
+            IconHoverColor="{StaticResource YellowColor}"
+            IconMargin="0" />
+
+          <Popup
+            IsOpen="{Binding ElementName=indicators_toggle, Path=IsChecked, Mode=TwoWay}"
+            Placement="Bottom"
+            PlacementTarget="{Binding ElementName=indicators_toggle}"
+            StaysOpen="False">
+            <Border Padding="5" Background="#101010">
+              <ItemsControl ItemsSource="{Binding IndicatorSettings}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="auto" />
+                        <ColumnDefinition Width="100" />
+                        <ColumnDefinition />
+                      </Grid.ColumnDefinitions>
+
+                      <CheckBox IsChecked="{Binding Show, Mode=TwoWay}" />
+                      <TextBlock Grid.Column="1" Text="{Binding Name}" />
+                      <TextBlock Grid.Column="2" Text="{Binding TimeFrame}" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </Border>
+
+          </Popup>
+          <StackPanel />
         </StackPanel>
       </Grid>
     </Border>

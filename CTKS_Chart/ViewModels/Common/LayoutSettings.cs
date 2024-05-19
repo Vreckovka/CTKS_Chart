@@ -14,5 +14,7 @@ namespace CTKS_Chart.ViewModels
     public long StartMaxUnix { get; set; }
     public long StartMinUnix { get; set; }
 
+    public IEnumerable<IndicatorSettings> IndicatorSettings { get; set; }
+
   }
 }

@@ -36,14 +36,14 @@ namespace CTKS_Chart.Strategy
     {
       if (AssetCandles == null)
       {
-        AssetCandles = TradingViewHelper.ParseTradingView(path);
-        BtcCandles = TradingViewHelper.ParseTradingView(btcPath);
+        AssetCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, path);
+        BtcCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1,btcPath);
       }
 
       var actualAssetCandle = AssetCandles.FirstOrDefault(x => x.CloseTime >= newCandle.CloseTime && x.OpenTime <= newCandle.OpenTime);
       var actualBtcCandle = BtcCandles.FirstOrDefault(x => x.CloseTime >= newCandle.CloseTime && x.OpenTime <= newCandle.OpenTime);
 
-      if (actualAssetCandle != null && actualAssetCandle.IndicatorData.RangeFilter > 0 && lastCandle != actualAssetCandle)
+      if (actualAssetCandle != null && actualAssetCandle.IndicatorData.RangeFilterData.RangeFilter > 0 && lastCandle != actualAssetCandle)
       {
         RangeBased(actualAssetCandle, actualBtcCandle);
         //return Skip(actualAssetCandle, actualBtcCandle);
@@ -60,12 +60,12 @@ namespace CTKS_Chart.Strategy
 
       int nStep = 1;
 
-      if(!actualAssetCandle.IndicatorData.Upward)
+      if(!actualAssetCandle.IndicatorData.RangeFilterData.Upward)
       {
         nStep++;
       }
 
-      if (!actualBtcCandle.IndicatorData.Upward)
+      if (!actualBtcCandle.IndicatorData.RangeFilterData.Upward)
       {
         nStep++;
       }
@@ -90,16 +90,16 @@ namespace CTKS_Chart.Strategy
 
       //var bullish = actualAssetCandle.IndicatorData.Upward;
       //var bullish = actualBtcCandle.IndicatorData.Upward;
-      var bullish = actualBtcCandle.IndicatorData.Upward || actualAssetCandle.IndicatorData.Upward;
+      var bullish = actualBtcCandle.IndicatorData.RangeFilterData.Upward || actualAssetCandle.IndicatorData.RangeFilterData.Upward;
       //var bullish = actualBtcCandle.IndicatorData.Upward && actualAssetCandle.IndicatorData.Upward;
 
       var size = 0.025;
 
-      if (actualBtcCandle.IndicatorData.Upward && actualAssetCandle.IndicatorData.Upward)
+      if (actualBtcCandle.IndicatorData.RangeFilterData.Upward && actualAssetCandle.IndicatorData.RangeFilterData.Upward)
       {
         size = 0.2;
       }
-      else if (!actualBtcCandle.IndicatorData.Upward && !actualAssetCandle.IndicatorData.Upward)
+      else if (!actualBtcCandle.IndicatorData.RangeFilterData.Upward && !actualAssetCandle.IndicatorData.RangeFilterData.Upward)
       {
         size = 0.2;
       }

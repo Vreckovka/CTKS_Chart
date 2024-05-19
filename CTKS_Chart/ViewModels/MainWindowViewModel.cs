@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
@@ -115,6 +116,25 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region Icon
+
+    private BitmapSource icon;
+
+    public BitmapSource Icon
+    {
+      get { return icon; }
+      set
+      {
+        if (value != icon)
+        {
+          icon = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     #region Methods
 
     #region Initialize
@@ -138,10 +158,36 @@ namespace CTKS_Chart.ViewModels
 
       Title = selectedBot.Asset.Symbol;
 
+      ChangeIcon(selectedBot.Asset.Symbol);
+    }
 
+    #endregion
 
-      ((MainWindow)Window).ChangeIcon(selectedBot.Asset.Symbol);
+    #region ChangeIcon
 
+    public void ChangeIcon(string symbol)
+    {
+      BitmapSource icon = null;
+      symbol = symbol.ToUpper();
+
+      if (symbol.Contains("BTC"))
+      {
+        icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.bitcoin.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+      }
+      else if (symbol.Contains("LTC"))
+      {
+        icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.litecoin.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+      }
+      else if (symbol.Contains("ADA"))
+      {
+        icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.cardano.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+      }
+      else if (symbol.Contains("BNB"))
+      {
+        icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.binance.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+      }
+
+      this.Icon = icon;
     }
 
     #endregion

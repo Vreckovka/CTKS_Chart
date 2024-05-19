@@ -45,7 +45,7 @@ namespace CTKS_Chart.ViewModels
     public void SaveLayoutSettings();
   }
 
-  public class BaseTradingBotViewModel<TPosition, TStrategy> : ViewModel , ITradingBot
+  public class BaseTradingBotViewModel<TPosition, TStrategy> : ViewModel, ITradingBot
     where TPosition : Position, new()
     where TStrategy : BaseStrategy<TPosition>
   {
@@ -113,9 +113,9 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawingViewModel
 
-    private BaseDrawingViewModel<TPosition, TStrategy> drawingViewModel;
+    private DrawingViewModel<TPosition, TStrategy> drawingViewModel;
 
-    public BaseDrawingViewModel<TPosition, TStrategy> DrawingViewModel
+    public DrawingViewModel<TPosition, TStrategy> DrawingViewModel
     {
       get { return drawingViewModel; }
       set
@@ -310,7 +310,7 @@ namespace CTKS_Chart.ViewModels
         {
           NativeRound = TradingBot.Asset.NativeRound,
           PriceRound = TradingBot.Asset.PriceRound
-        }, new SimulationStrategy()),new Layout());
+        }, new SimulationStrategy()), new Layout());
 
       windowManager.ShowPrompt<ArchitectView>(new ArchitectPromptViewModel(arch), 1000, 1000);
     }
@@ -533,7 +533,7 @@ namespace CTKS_Chart.ViewModels
     {
       base.Initialize();
 
-      DrawingViewModel = viewModelsFactory.Create<BaseDrawingViewModel<TPosition, TStrategy>>(TradingBot, MainLayout);
+      DrawingViewModel = viewModelsFactory.Create<DrawingViewModel<TPosition, TStrategy>>(TradingBot, MainLayout);
 
       foreach (KlineInterval interval in EnumHelper.GetAllValues(KlineInterval.GetType()))
       {
@@ -583,8 +583,8 @@ namespace CTKS_Chart.ViewModels
       LoadLayoutSettings();
       TradingBot.LoadTimeFrames();
       TradingBot.LoadIndicators();
-     
-      if(layoutSettings != null)
+
+      if (layoutSettings != null)
       {
         MainLayout.MaxValue = layoutSettings.StartMaxPrice;
         MainLayout.MinValue = layoutSettings.StartLowPrice;
@@ -602,10 +602,10 @@ namespace CTKS_Chart.ViewModels
 
         KlineInterval = LayoutIntervals.SelectedItem.Model.Interval;
       }
-   
+
       DrawingViewModel.SetLock(true);
 
-    
+
 
       RaisePropertyChanged(nameof(ConsoleCollectionLogger));
     }
@@ -706,7 +706,7 @@ namespace CTKS_Chart.ViewModels
     {
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
-        var layout = CreateCtks(layoutData.Key, layoutData.Value, DrawingViewModel.CanvasWidth, DrawingViewModel.CanvasHeight, maxTime);
+        var layout = CreateCtks(layoutData.Key, layoutData.Value, DrawingViewModel.CanvasWidth, DrawingViewModel.CanvasHeight, maxTime, saveData: !IsSimulation);
 
         Layouts.Add(layout);
         InnerLayouts.Add(layout);
@@ -721,7 +721,12 @@ namespace CTKS_Chart.ViewModels
     {
       foreach (var layoutData in TradingBot.IndicatorTimeFrames)
       {
-        var layout = CreateLayout<Layout>(layoutData.Key, layoutData.Value, maxTime);
+        var layout = CreateLayout<Layout>(
+          layoutData.Key,
+          layoutData.Value,
+          maxTime,
+          saveData: !IsSimulation && layoutData.Key.Contains(TradingBot.Asset.Symbol)
+          );
 
         IndicatorLayouts.Add(layout);
       }
@@ -779,16 +784,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
-    private Dictionary<TimeFrame, bool> stopParsingForNewData = new Dictionary<TimeFrame, bool>()
-    {
-      { TimeFrame.M12,false },
-      { TimeFrame.M6,false },
-      { TimeFrame.M3,false },
-      { TimeFrame.M1,false },
-      { TimeFrame.W2,false },
-      { TimeFrame.W1,false }
-    };
+    #region PreLoadCTks
 
     List<CtksLayout> preloadedLayots = new List<CtksLayout>();
     protected void PreLoadCTks(DateTime startTime)
@@ -797,7 +793,7 @@ namespace CTKS_Chart.ViewModels
 
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
-        var candles = TradingViewHelper.ParseTradingView(layoutData.Key).Where(x => x.CloseTime > startTime);
+        var candles = TradingViewHelper.ParseTradingView(layoutData.Value, layoutData.Key).Where(x => x.CloseTime > startTime);
 
         foreach (var candle in candles)
         {
@@ -807,6 +803,8 @@ namespace CTKS_Chart.ViewModels
         }
       }
     }
+
+    #endregion
 
     public async void RenderLayout(List<CtksLayout> secondaryLayouts, Candle actual)
     {
@@ -826,7 +824,7 @@ namespace CTKS_Chart.ViewModels
 
           var lastCandle = secondaryLayout.Ctks.Candles.Last();
 
-          if (IsSimulation && stopParsingForNewData[secondaryLayout.TimeFrame] || secondaryLayout == null)
+          if (IsSimulation)
           {
             continue;
           }
@@ -867,7 +865,7 @@ namespace CTKS_Chart.ViewModels
               }
               else
               {
-                var innerCandles = TradingViewHelper.ParseTradingView(secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1);
+                var innerCandles = TradingViewHelper.ParseTradingView(secondaryLayout.TimeFrame, secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1, saveData: true);
 
                 VSynchronizationContext.InvokeOnDispatcher(() => secondaryLayout.Ctks.CrateCtks(innerCandles));
 
@@ -966,9 +964,10 @@ namespace CTKS_Chart.ViewModels
       double canvasHeight,
       DateTime? maxTime = null,
       decimal? pmax = null,
-      decimal? pmin = null)
+      decimal? pmin = null,
+      bool saveData = false)
     {
-      var layout = CreateLayout<CtksLayout>(location, timeFrame, maxTime, pmax, pmin);
+      var layout = CreateLayout<CtksLayout>(location, timeFrame, maxTime, pmax, pmin, saveData: saveData);
 
       var ctks = new Ctks(layout, timeFrame, canvasHeight, canvasWidth, TradingBot.Asset);
 
@@ -989,10 +988,11 @@ namespace CTKS_Chart.ViewModels
       TimeFrame timeFrame,
       DateTime? maxTime = null,
       decimal? pmax = null,
-      decimal? pmin = null)
+      decimal? pmin = null,
+      bool saveData = false)
       where T : Layout, new()
     {
-      var candles = TradingViewHelper.ParseTradingView(location, maxTime);
+      var candles = TradingViewHelper.ParseTradingView(timeFrame, location, maxTime, saveData: saveData);
 
       var max = pmax ?? candles.Max(x => x.High.Value);
       var min = pmin ?? candles.Min(x => x.Low.Value);
@@ -1276,7 +1276,7 @@ namespace CTKS_Chart.ViewModels
             klineInterval = savedLayout.Model.Interval;
             var selected = LayoutIntervals.ViewModels.SingleOrDefault(x => x.Model.Interval == klineInterval);
 
-            if(selected != null)
+            if (selected != null)
             {
               selected.IsSelected = true;
             }
@@ -1295,6 +1295,21 @@ namespace CTKS_Chart.ViewModels
           }
 
           DrawingViewModel.DrawingSettings = layoutSettings.DrawingSettings;
+
+          if (layoutSettings.IndicatorSettings != null)
+          {
+            foreach (var indicatorSetting in layoutSettings.IndicatorSettings)
+            {
+              DrawingViewModel.IndicatorSettings.Add(indicatorSetting);
+            }
+          }
+          else
+          {
+            DrawingViewModel.IndicatorSettings.Add(new IndicatorSettings()
+            {
+              TimeFrame = TimeFrame.D1,
+            });
+          }
         }
       }
     }
@@ -1316,6 +1331,7 @@ namespace CTKS_Chart.ViewModels
           StartMaxPrice = DrawingViewModel.MaxValue,
           StartMaxUnix = DrawingViewModel.MaxUnix,
           StartMinUnix = DrawingViewModel.MinUnix,
+          IndicatorSettings = DrawingViewModel.IndicatorSettings
         };
 
         var options = new JsonSerializerOptions()

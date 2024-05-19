@@ -133,7 +133,7 @@ namespace CTKS_Chart.ViewModels
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, DrawingViewModel.CanvasHeight, DrawingViewModel.CanvasWidth, TradingBot.Asset);
 
-      var mainCandles = TradingViewHelper.ParseTradingView(DataPath);
+      var mainCandles = TradingViewHelper.ParseTradingView(TimeFrame.H4, DataPath);
 
       var fromDate = new DateTime(2018, 9, 21);
       //fromDate = new DateTime(2021,8, 30);

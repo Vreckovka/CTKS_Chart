@@ -10,9 +10,19 @@ namespace CTKS_Chart.Trading
 {
   public static class TradingViewHelper
   {
+    public static Dictionary<TimeFrame, List<Candle>> LoadedData { get; } = new Dictionary<TimeFrame, List<Candle>>();
+
     #region ParseTradingView
 
-    public static List<Candle> ParseTradingView(string path, DateTime? maxDate = null, int skip = 0, int cut = 0, bool addNotClosedCandle = false, int? indexCut = null)
+    public static List<Candle> ParseTradingView(
+      TimeFrame timeFrame,
+      string path,
+      DateTime? maxDate = null,
+      int skip = 0,
+      int cut = 0,
+      bool addNotClosedCandle = false,
+      int? indexCut = null,
+      bool saveData = false)
     {
       var list = new List<Candle>();
 
@@ -38,7 +48,7 @@ namespace CTKS_Chart.Trading
         decimal.TryParse(data[2], out var highParsed);
         decimal.TryParse(data[3], out var lowParsed);
         decimal.TryParse(data[4], out var closeParsed);
-      
+
 
         var dateTime = DateTimeHelper.UnixTimeStampToUtcDateTime(unixTimestamp);
 
@@ -75,10 +85,15 @@ namespace CTKS_Chart.Trading
             decimal.TryParse(data[8], out var upward);
             decimal.TryParse(data[9], out var bbwp);
 
-            indicatorData.RangeFilter = rangeFilter;
-            indicatorData.HighTarget = highTarget;
-            indicatorData.LowTarget = lowTarget;
-            indicatorData.Upward = upward != 0;
+
+            var rangeData = new RangeFilterData();
+
+            rangeData.RangeFilter = rangeFilter;
+            rangeData.HighTarget = highTarget;
+            rangeData.LowTarget = lowTarget;
+            rangeData.Upward = upward != 0;
+
+            indicatorData.RangeFilterData = rangeData;
             indicatorData.BBWP = bbwp;
           }
 
@@ -93,7 +108,7 @@ namespace CTKS_Chart.Trading
             IndicatorData = indicatorData
           };
 
-          if(dateDiff != null)
+          if (dateDiff != null)
           {
             newCandle.CloseTime = newCandle.OpenTime.AddMinutes(dateDiff.Value.TotalMinutes);
           }
@@ -106,6 +121,11 @@ namespace CTKS_Chart.Trading
         }
 
         index++;
+      }
+
+      if (saveData)
+      {
+        LoadedData[timeFrame] = list;
       }
 
       return list;
@@ -158,8 +178,5 @@ namespace CTKS_Chart.Trading
     }
 
     #endregion
-
-
-
   }
 }
