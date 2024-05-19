@@ -668,6 +668,7 @@ namespace CTKS_Chart.ViewModels
     {
       RaisePropertyChanged(name);
     }
+
     #region RenderOverlay
 
     private List<CtksIntersection> last = null;
@@ -707,6 +708,8 @@ namespace CTKS_Chart.ViewModels
 
 
       DrawnChart newChart = null;
+      Candle lastCandle = this.actual;
+
       using (DrawingContext dc = dGroup.Open())
       {
         dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(imageWidth, imageHeight));
@@ -716,7 +719,7 @@ namespace CTKS_Chart.ViewModels
 
         if (candlesToRender.Count > 0 && TradingBot.Strategy != null)
         {
-          var lastCandle = ActualCandles.LastOrDefault();
+          lastCandle = ActualCandles.LastOrDefault();
 
           if (actualPriceChartViewDiff == 0)
           {
@@ -785,106 +788,116 @@ namespace CTKS_Chart.ViewModels
             RaisePropertyChanged(nameof(MaxUnix));
             RaisePropertyChanged(nameof(MinUnix));
           }
+        }
 
+        RenderIntersections(dc);
+        DrawIndicators(dc);
 
-          var removed = RenderedIntersections.Where(x => !TradingBot.Strategy.Intersections.Any(y => y == x.Model)).ToList();
-          removed.AddRange(RenderedIntersections.Where(x => x.Model.Cluster == null)
-            .Where(x => x.Model.Value < MinValue || x.Model.Value > MaxValue));
+        newChart = DrawChart(dc, candlesToRender, imageHeight, imageWidth);
+        var chartCandles = newChart.Candles.ToList();
 
-          removed.ForEach(x => RenderedIntersections.Remove(x));
+        DrawClosedPositions(dc, TradingBot.Strategy.AllClosedPositions, chartCandles, imageHeight);
 
-          if (lastFilledPosition != TradingBot.Strategy.AllClosedPositions.Max(x => x.FilledDate))
-          {
-            RenderedIntersections.Clear();
-          }
+        var maxCanvasValue = MaxValue;
+        var minCanvasValue = MinValue;
+        var chartDiff = (MaxValue - MinValue) * 0.03m;
 
-          lastFilledPosition = TradingBot.Strategy.AllClosedPositions.Max(x => x.FilledDate);
+        maxCanvasValue = MaxValue - chartDiff;
+        minCanvasValue = MinValue + chartDiff;
 
-
-          if (DrawingSettings.ShowIntersections)
-          {
-            DrawIntersections(dc, TradingBot.Strategy.Intersections,
-                            imageHeight,
-                            imageWidth,
-                            TradingBot.Strategy.AllOpenedPositions.ToList());
-          }
-          else
-          {
-            RenderedIntersections.Clear();
-          }
-
-          removed.AddRange(RenderedIntersections.Where(x => x.Model.Cluster != null)
-                  .Where(x => !(x.Max > MinValue &&
-                              x.Min < MaxValue)));
-
-          removed.ForEach(x => RenderedIntersections.Remove(x));
-
-          if (DrawingSettings.ShowClusters)
-          {
-
-            DrawClusters(dc, TradingBot.Strategy.Intersections,
-                                imageHeight,
-                                imageWidth,
-                                TradingBot.Strategy.AllOpenedPositions.ToList());
-          }
-
-
-          newChart = DrawChart(dc, candlesToRender, imageHeight, imageWidth);
-          var chartCandles = newChart.Candles.ToList();
-
-
-          DrawIndicators(dc);
-          DrawClosedPositions(dc, TradingBot.Strategy.AllClosedPositions, chartCandles, imageHeight);
-
-          var maxCanvasValue = MaxValue;
-          var minCanvasValue = MinValue;
-          var chartDiff = (MaxValue - MinValue) * 0.03m;
-
-          maxCanvasValue = MaxValue - chartDiff;
-          minCanvasValue = MinValue + chartDiff;
-
+        if(lastCandle != null)
+        {
           var lastPrice = lastCandle.Close;
 
           DrawActualPrice(dc, lastCandle, imageHeight);
+        }
+        
 
-          if (TradingBot.Strategy is StrategyViewModel strategyViewModel)
+        if (TradingBot.Strategy is StrategyViewModel strategyViewModel)
+        {
+          decimal price = strategyViewModel.AvrageBuyPrice;
+
+          if (DrawingSettings.ShowAveragePrice)
           {
-            decimal price = strategyViewModel.AvrageBuyPrice;
-
-            if (DrawingSettings.ShowAveragePrice)
-            {
-              DrawAveragePrice(dc, strategyViewModel.AvrageBuyPrice, imageHeight);
-            }
-            else
-            {
-              RenderedLabels.Remove(RenderedLabels.SingleOrDefault(x => x.Tag == "average_price"));
-            }
-          }
-
-          if (DrawingSettings.ShowATH)
-          {
-            DrawPriceToATH(dc, lastAth, imageHeight);
+            DrawAveragePrice(dc, strategyViewModel.AvrageBuyPrice, imageHeight);
           }
           else
           {
-            RenderedLabels.Remove(RenderedLabels.SingleOrDefault(x => x.Tag == "ath_price"));
+            RenderedLabels.Remove(RenderedLabels.SingleOrDefault(x => x.Tag == "average_price"));
           }
-
-
-          DrawMaxBuyPrice(dc, TradingBot.Strategy.MaxBuyPrice, imageHeight);
-          DrawMinSellPrice(dc, TradingBot.Strategy.MinSellPrice, imageHeight);
-
         }
 
-        Chart = new DrawingImage(dGroup);
-        DrawnChart = newChart;
-
-
-        if (IsActualCandleVisible && EnableAutoLock)
+        if (DrawingSettings.ShowATH)
         {
-          lockChart = true;
-          RaisePropertyChanged(nameof(LockChart));
+          DrawPriceToATH(dc, lastAth, imageHeight);
         }
+        else
+        {
+          RenderedLabels.Remove(RenderedLabels.SingleOrDefault(x => x.Tag == "ath_price"));
+        }
+
+
+        DrawMaxBuyPrice(dc, TradingBot.Strategy.MaxBuyPrice, imageHeight);
+        DrawMinSellPrice(dc, TradingBot.Strategy.MinSellPrice, imageHeight);
+
+      }
+
+      Chart = new DrawingImage(dGroup);
+      DrawnChart = newChart;
+
+
+      if (IsActualCandleVisible && EnableAutoLock)
+      {
+        lockChart = true;
+        RaisePropertyChanged(nameof(LockChart));
+      }
+    }
+
+    #endregion
+
+    #region RenderIntersections
+
+    public void RenderIntersections(DrawingContext dc)
+    {
+      var removed = RenderedIntersections.Where(x => !TradingBot.Strategy.Intersections.Any(y => y == x.Model)).ToList();
+      removed.AddRange(RenderedIntersections.Where(x => x.Model.Cluster == null)
+        .Where(x => x.Model.Value < MinValue || x.Model.Value > MaxValue));
+
+      removed.ForEach(x => RenderedIntersections.Remove(x));
+
+      if (lastFilledPosition != TradingBot.Strategy.AllClosedPositions.Max(x => x.FilledDate))
+      {
+        RenderedIntersections.Clear();
+      }
+
+      lastFilledPosition = TradingBot.Strategy.AllClosedPositions.Max(x => x.FilledDate);
+
+
+      if (DrawingSettings.ShowIntersections)
+      {
+        DrawIntersections(dc, TradingBot.Strategy.Intersections,
+                        CanvasHeight,
+                        CanvasWidth,
+                        TradingBot.Strategy.AllOpenedPositions.ToList());
+      }
+      else
+      {
+        RenderedIntersections.Clear();
+      }
+
+      removed.AddRange(RenderedIntersections.Where(x => x.Model.Cluster != null)
+              .Where(x => !(x.Max > MinValue &&
+                          x.Min < MaxValue)));
+
+      removed.ForEach(x => RenderedIntersections.Remove(x));
+
+      if (DrawingSettings.ShowClusters)
+      {
+
+        DrawClusters(dc, TradingBot.Strategy.Intersections,
+                            CanvasHeight,
+                            CanvasWidth,
+                            TradingBot.Strategy.AllOpenedPositions.ToList());
       }
     }
 
@@ -1504,6 +1517,8 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region DrawIndicators
+
     public void DrawIndicators(DrawingContext drawingContext)
     {
       foreach (var indicatorSettings in IndicatorSettings.Where(x => x.Show))
@@ -1527,6 +1542,8 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
+    #endregion
+
     #region DrawRangeFilter
 
     public void DrawRangeFilter(DrawingContext drawingContext, IList<Candle> validCandles, long diff)
@@ -1547,7 +1564,7 @@ namespace CTKS_Chart.ViewModels
 
 
         selectedBrush.Opacity = 0.10;
-        var start_x = TradingHelper.GetCanvasValueLinear(canvasWidth, candle.UnixTime , MaxUnix, MinUnix);
+        var start_x = TradingHelper.GetCanvasValueLinear(canvasWidth, candle.UnixTime, MaxUnix, MinUnix);
         var end_x = TradingHelper.GetCanvasValueLinear(canvasWidth, candle.UnixTime + diff, MaxUnix, MinUnix);
 
 
@@ -1565,6 +1582,11 @@ namespace CTKS_Chart.ViewModels
           {
             indicatorRect.X = 0;
             indicatorRect.Width += start_x;
+          }
+
+          if (end_x > canvasWidth)
+          {
+            indicatorRect.Width += canvasWidth - end_x;
           }
 
           if (start_x + indicatorRect.Width > canvasWidth)

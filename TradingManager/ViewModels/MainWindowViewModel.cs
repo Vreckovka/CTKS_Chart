@@ -159,44 +159,48 @@ namespace TradingManager.ViewModels
 
         foreach (var path in folders)
         {
-          var files = Directory.GetFiles(path);
-          var folderVm = new TradingViewFolderDataViewModel()
+          if(Directory.Exists(path))
           {
-            Path = path,
-            Name = Directory.GetParent(Directory.GetParent(path).FullName).Name.ToUpper()
-          };
-                   
-
-          foreach (var file in files)
-          {
-            var fileName = Path.GetFileName(file);
-            var nameSplit = fileName.Replace(".csv", null).Split(",");
-
-            var symbolSplit = nameSplit[0].Split(" ");
-            var timeframeText = nameSplit[1].Trim();
-
-            var value = allTimeFrames.FirstOrDefault(x => x.Description == timeframeText);
-            Enum.TryParse(value.Value.ToString(), out TimeFrame timeFrame);
-
-            var vm = new TradingViewDataViewModel()
+            var files = Directory.GetFiles(path);
+            var folderVm = new TradingViewFolderDataViewModel()
             {
-              Path = file,
-              Name = fileName,
-              TimeFrame = timeFrame,
-              TradingViewSymbol = new TradingViewSymbol()
-              {
-                Provider = symbolSplit[0],
-                Symbol = symbolSplit[1]
-              }
+              Path = path,
+              Name = Directory.GetParent(Directory.GetParent(path).FullName).Name.ToUpper()
             };
 
-            var candles = TradingViewHelper.ParseTradingView(vm.TimeFrame, file);
 
-            vm.IsOutDated = TradingViewHelper.IsOutDated(vm.TimeFrame, candles);
-            folderVm.Files.Add(vm);
+            foreach (var file in files)
+            {
+              var fileName = Path.GetFileName(file);
+              var nameSplit = fileName.Replace(".csv", null).Split(",");
+
+              var symbolSplit = nameSplit[0].Split(" ");
+              var timeframeText = nameSplit[1].Trim();
+
+              var value = allTimeFrames.FirstOrDefault(x => x.Description == timeframeText);
+              Enum.TryParse(value.Value.ToString(), out TimeFrame timeFrame);
+
+              var vm = new TradingViewDataViewModel()
+              {
+                Path = file,
+                Name = fileName,
+                TimeFrame = timeFrame,
+                TradingViewSymbol = new TradingViewSymbol()
+                {
+                  Provider = symbolSplit[0],
+                  Symbol = symbolSplit[1]
+                }
+              };
+
+              var candles = TradingViewHelper.ParseTradingView(vm.TimeFrame, file);
+
+              vm.IsOutDated = TradingViewHelper.IsOutDated(vm.TimeFrame, candles);
+              folderVm.Files.Add(vm);
+            }
+
+            Folders.Add(folderVm);
           }
-
-          Folders.Add(folderVm);
+        
         }
       }
       catch (Exception ex)
