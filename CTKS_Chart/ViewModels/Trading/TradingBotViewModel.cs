@@ -791,7 +791,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
     #region RenderLayout
 
     private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
@@ -870,6 +869,25 @@ namespace CTKS_Chart.ViewModels
                 shouldUpdate = true;
             }
 
+          }
+        }
+
+        foreach(var indicator in IndicatorLayouts)
+        {
+          indicator.IsOutDated = TradingViewHelper.IsOutDated(indicator.TimeFrame, indicator.AllCandles);
+          var lastCount = indicator.AllCandles.Count;
+
+          if (indicator.IsOutDated)
+          {
+            var innerCandles = TradingViewHelper.ParseTradingView(indicator.TimeFrame, indicator.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1, saveData: true);
+
+            indicator.IsOutDated = TradingViewHelper.IsOutDated(indicator.TimeFrame, indicator.AllCandles);
+
+            if (innerCandles.Count > lastCount)
+            {
+              indicator.AllCandles = innerCandles;
+              shouldUpdate = true;
+            }
           }
         }
 

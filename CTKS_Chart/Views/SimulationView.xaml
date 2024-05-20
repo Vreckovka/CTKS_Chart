@@ -72,7 +72,7 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate>
             <StackPanel Margin="5,5" Orientation="Vertical">
-              <TextBlock Foreground="#555555" Text="{Binding Date, StringFormat={}{0:dd.MM.yyyy hh:mm}}" />
+              <TextBlock Foreground="#555555" Text="{Binding Date, StringFormat={}{0:dd.MM.yyyy HH:mm}}" />
 
               <TextBlock
                 Margin="0,2"
