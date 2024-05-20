@@ -6,8 +6,6 @@
   xmlns:local="clr-namespace:CTKS_Chart.Views"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   xmlns:trading="clr-namespace:CTKS_Chart.Views.Trading"
-  Width="1000"
-  Height="1000"
   d:DesignHeight="450"
   d:DesignWidth="800"
   mc:Ignorable="d">

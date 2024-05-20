@@ -74,7 +74,7 @@ namespace CTKS_Chart.Strategy
 
     #region Properties
 
-    private Subject<TPosition> onCreatePositionSub = new Subject<TPosition>();
+    protected Subject<TPosition> onCreatePositionSub = new Subject<TPosition>();
     public IObservable<TPosition> OnCreatePosition
     {
       get
@@ -474,28 +474,28 @@ namespace CTKS_Chart.Strategy
 
     #region MinSellProfitMapping
 
-    public Dictionary<TimeFrame, double> MinSellProfitMapping { get; set; } = new Dictionary<TimeFrame, double>()
+    public Dictionary<TimeFrame, decimal> MinSellProfitMapping { get; set; } = new Dictionary<TimeFrame, decimal>()
     {
-      {TimeFrame.M12, 0.005},
-      {TimeFrame.M6,  0.005},
-      {TimeFrame.M3,  0.005},
-      {TimeFrame.M1,  0.005},
-      {TimeFrame.W2,  0.005},
-      {TimeFrame.W1,  0.005},
+      {TimeFrame.M12, 0.005m},
+      {TimeFrame.M6,  0.005m},
+      {TimeFrame.M3,  0.005m},
+      {TimeFrame.M1,  0.005m},
+      {TimeFrame.W2,  0.005m},
+      {TimeFrame.W1,  0.005m},
     };
 
     #endregion
 
     #region MinBuyMapping
 
-    public Dictionary<TimeFrame, double> MinBuyMapping { get; set; } = new Dictionary<TimeFrame, double>()
+    public Dictionary<TimeFrame, decimal> MinBuyMapping { get; set; } = new Dictionary<TimeFrame, decimal>()
     {
-      {TimeFrame.M12, 0.005},
-      {TimeFrame.M6,  0.005},
-      {TimeFrame.M3,  0.005},
-      {TimeFrame.M1,  0.005},
-      {TimeFrame.W2,  0.005},
-      {TimeFrame.W1,  0.005},
+      {TimeFrame.M12, 0.005m},
+      {TimeFrame.M6,  0.005m},
+      {TimeFrame.M3,  0.005m},
+      {TimeFrame.M1,  0.005m},
+      {TimeFrame.W2,  0.005m},
+      {TimeFrame.W1,  0.005m},
     };
 
     #endregion
@@ -804,7 +804,7 @@ namespace CTKS_Chart.Strategy
 
     #region CheckPositions
 
-    public async Task CheckPositions(Candle actualCandle, decimal minBuy, decimal maxBuy)
+    public virtual async Task CheckPositions(Candle actualCandle, decimal minBuy, decimal maxBuy)
     {
       var openedBuy = OpenBuyPositions
         .Where(x => !x.IsAutomatic)
@@ -1157,16 +1157,16 @@ namespace CTKS_Chart.Strategy
 
     #region CloseSell
 
-    protected async void CloseSell(TPosition TPosition)
+    protected async void CloseSell(TPosition position)
     {
       try
       {
         await sellLock.WaitAsync();
 
-        var newTotalNativeAsset = TotalNativeAsset - TPosition.OriginalPositionSizeNative;
+        var newTotalNativeAsset = TotalNativeAsset - position.OriginalPositionSizeNative;
 
         var sum = OpenSellPositions
-          .Where(x => x.Id != TPosition.Id)
+          .Where(x => x.Id != position.Id)
           .Sum(x => x.OriginalPositionSizeNative);
 
 
@@ -1174,45 +1174,45 @@ namespace CTKS_Chart.Strategy
         {
           HandleError($"Native asset value does not mach sell order !! " +
                       $"{Math.Round(sum, Asset.NativeRound)} != {Math.Round(newTotalNativeAsset, Asset.NativeRound)},\n" +
-                      $"TPosition: {TPosition.ShortId}, {TPosition.Price},{TPosition.OriginalPositionSizeNative}\n" +
+                      $"TPosition: {position.ShortId}, {position.Price},{position.OriginalPositionSizeNative}\n" +
                       $"Left size: {LeftSize}");
 
         }
 
-        var finalSize = TPosition.Price * TPosition.OriginalPositionSizeNative;
-        var profit = finalSize - TPosition.OriginalPositionSize; ;
+        var finalSize = position.Price * position.OriginalPositionSizeNative;
+        var profit = finalSize - position.OriginalPositionSize; ;
 
-        TPosition.Profit = profit;
-        TPosition.PositionSize = 0;
-        TPosition.PositionSizeNative = 0;
+        position.Profit = profit;
+        position.PositionSize = 0;
+        position.PositionSizeNative = 0;
 
-        TotalProfit += TPosition.Profit;
+        TotalProfit += position.Profit;
         Budget += finalSize;
         //Dont put sum, this should be real value if there is an error, find it
         TotalNativeAsset = newTotalNativeAsset;
 
-        Budget -= TPosition.Fees ?? 0;
+        Budget -= position.Fees ?? 0;
 
-        if (TPosition.IsAutomatic)
+        if (position.IsAutomatic)
         {
           AutomaticBudget += finalSize;
-          AutomaticBudget -= TPosition.Fees ?? 0;
+          AutomaticBudget -= position.Fees ?? 0;
         }
 
-        Scale(TPosition.Profit);
-        TPosition.State = PositionState.Filled;
+        Scale(position.Profit);
+        position.State = PositionState.Filled;
 
-        ClosedSellPositions.Add(TPosition);
-        OpenSellPositions.Remove(TPosition);
+        ClosedSellPositions.Add(position);
+        OpenSellPositions.Remove(position);
 
-        if (TPosition.OpositPositions.Count > 0)
+        if (position.OpositPositions.Count > 0)
         {
-          var originalBuy = TPosition.OpositPositions.Single();
+          var originalBuy = position.OpositPositions.Single();
 
-          originalBuy.RaiseNotify(nameof(TPosition.TotalProfit));
-          originalBuy.RaiseNotify(nameof(TPosition.TotalFees));
-          originalBuy.RaiseNotify(nameof(TPosition.FinalProfit));
-          originalBuy.RaiseNotify(nameof(TPosition.ExpectedProfit));
+          originalBuy.RaiseNotify(nameof(position.TotalProfit));
+          originalBuy.RaiseNotify(nameof(position.TotalFees));
+          originalBuy.RaiseNotify(nameof(position.FinalProfit));
+          originalBuy.RaiseNotify(nameof(position.ExpectedProfit));
 
           if (originalBuy.OpositPositions.Sum(x => x.PositionSize) == 0)
           {
@@ -1246,7 +1246,7 @@ namespace CTKS_Chart.Strategy
       {
         await sellLock.WaitAsync();
 
-        var minPrice = Math.Max(buyPosition.Price * (decimal)(1.0 + MinSellProfitMapping[buyPosition.TimeFrame]), MinSellPrice ?? 0);
+        var minPrice = Math.Max(buyPosition.Price * (1.0m + MinSellProfitMapping[buyPosition.TimeFrame]), MinSellPrice ?? 0);
 
         if (buyPosition.IsAutomatic)
         {
@@ -1490,7 +1490,7 @@ namespace CTKS_Chart.Strategy
 
     #region CreateBuyPosition
 
-    protected async Task CreateBuyPosition(decimal positionSize, CtksIntersection intersection, bool automatic = false)
+    protected virtual async Task CreateBuyPosition(decimal positionSize, CtksIntersection intersection, bool automatic = false)
     {
       var roundedNativeSize = Math.Round(positionSize / intersection.Value, Asset.NativeRound);
       positionSize = roundedNativeSize * intersection.Value;

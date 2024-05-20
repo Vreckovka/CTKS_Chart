@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using CTKS_Chart.Trading;
 
@@ -28,11 +29,29 @@ namespace CTKS_Chart.Strategy
       return false;
     }
 
+    public bool IsPositionFilled(Candle candle, PositionSide side, decimal price)
+    {
+      if (side == PositionSide.Buy && candle.Low <= price)
+      {
+        return true;
+      }
+      else if (side == PositionSide.Sell && candle.High >= price)
+        return true;
+
+      return false;
+    }
+
     Candle lastCandle = null;
     public override async void ValidatePositions(Candle candle)
     {
+      await ValidateSimulationPosition(candle, AllOpenedPositions);
+      base.ValidatePositions(candle);
+    }
+
+    protected virtual async Task ValidateSimulationPosition(Candle candle, IEnumerable<TPosition> positions)
+    {
       lastCandle = candle;
-      var allPositions = AllOpenedPositions
+      var allPositions = positions
         .Where(x => x.State == PositionState.Open)
         .OrderByDescending(x => x.Price)
         .ToList();
@@ -63,9 +82,7 @@ namespace CTKS_Chart.Strategy
       }
 
 
-      base.ValidatePositions(candle);
     }
-
     protected override Task<bool> PlaceCancelPosition(TPosition position)
     {
       return Task.FromResult(true);

@@ -142,6 +142,7 @@ namespace CTKS_Chart.Views.Controls
       labelsToRender = labelsToRender.Where(x => x.Position.Y > 0).ToList();
 
       notFound.AddRange(Values.Where(y => y.Price > MaxValue || y.Price < MinValue).ToList());
+      notFound.AddRange(Values.Where(y => !labelsToRender.Any(x => x.TextBlock.Text == y.TextBlock.Text)).ToList());
 
       foreach (var label in notFound)
       {

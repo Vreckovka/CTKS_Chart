@@ -808,13 +808,13 @@ namespace CTKS_Chart.ViewModels
         maxCanvasValue = MaxValue - chartDiff;
         minCanvasValue = MinValue + chartDiff;
 
-        if(lastCandle != null)
+        if (lastCandle != null)
         {
           var lastPrice = lastCandle.Close;
 
           DrawActualPrice(dc, lastCandle, imageHeight);
         }
-        
+
 
         if (TradingBot.Strategy is StrategyViewModel strategyViewModel)
         {
@@ -1099,7 +1099,11 @@ namespace CTKS_Chart.ViewModels
 
           if (newCandle.Height > 0 && newCandle.Width > 0)
           {
-            drawingContext.DrawRectangle(selectedBrush, null, newCandle);
+            if (unix_diff > 1)
+              drawingContext.DrawRectangle(selectedBrush, null, newCandle);
+            else
+              drawingContext.DrawRectangle(selectedBrush, pen, newCandle);
+
             rendered = true;
           }
 
@@ -1180,7 +1184,13 @@ namespace CTKS_Chart.ViewModels
         if (rendered == null)
           RenderedIntersections.Add(new RenderedIntesection(intersection) { SelectedHex = selectedBrush.Item1, Brush = selectedBrush.Item2 });
         else
+        {
           rendered.SelectedHex = selectedBrush.Item1;
+          var brush = selectedBrush.Item2.Clone();
+          brush.Opacity = 100;
+
+          rendered.Brush = brush;
+        }
       }
     }
 
@@ -1418,7 +1428,14 @@ namespace CTKS_Chart.ViewModels
             maxValue
           });
         else
+        {
           rendered.SelectedHex = selectedBrush.Item1;
+          var brush = selectedBrush.Item2.Clone();
+          brush.Opacity = 100;
+
+          rendered.Brush = brush;
+        }
+         
 
       }
     }
@@ -1528,6 +1545,8 @@ namespace CTKS_Chart.ViewModels
       {
         if (TradingViewHelper.LoadedData.TryGetValue(indicatorSettings.TimeFrame, out var candles))
         {
+          candles = candles.Where(x => x.IndicatorData.RangeFilterData.RangeFilter > 0).ToList();
+
           if (candles.Count > 1)
           {
             var diff = candles[1].UnixTime - candles[0].UnixTime;
@@ -1579,8 +1598,8 @@ namespace CTKS_Chart.ViewModels
           Width = end_x - start_x
         };
 
-        if (indicatorRect.Width + start_x > 0 && 
-          indicatorRect.Height + max > 0 && 
+        if (indicatorRect.Width + start_x > 0 &&
+          indicatorRect.Height + max > 0 &&
           indicatorRect.Height + (CanvasHeight - min) > 0)
         {
           if (start_x < 0)

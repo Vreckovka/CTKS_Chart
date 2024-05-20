@@ -93,25 +93,25 @@ namespace CTKS_Chart.Strategy
       var bullish = actualBtcCandle.IndicatorData.RangeFilterData.Upward || actualAssetCandle.IndicatorData.RangeFilterData.Upward;
       //var bullish = actualBtcCandle.IndicatorData.Upward && actualAssetCandle.IndicatorData.Upward;
 
-      var size = 0.025;
+      var size = 0.025m;
 
       if (actualBtcCandle.IndicatorData.RangeFilterData.Upward && actualAssetCandle.IndicatorData.RangeFilterData.Upward)
       {
-        size = 0.2;
+        size = 0.2m;
       }
       else if (!actualBtcCandle.IndicatorData.RangeFilterData.Upward && !actualAssetCandle.IndicatorData.RangeFilterData.Upward)
       {
-        size = 0.2;
+        size = 0.2m;
       }
 
-      var minValue = 0.0075;
-      var maxValue = 0.25;
+      var minValue = 0.0075m;
+      var maxValue = 0.25m;
 
       var list = this.strategy.MinBuyMapping.ToList();
 
       foreach (var buy in list)
       {
-        var newValue = buy.Value * (bullish ? 1 - size : 1 + size);
+        var newValue = buy.Value * (bullish ? 1m - size : 1m + size);
 
         if (newValue < minValue)
         {
@@ -130,7 +130,7 @@ namespace CTKS_Chart.Strategy
 
       foreach (var sell in list)
       {
-        var newValue = sell.Value * (bullish ? 1 + size : 1 - size);
+        var newValue = sell.Value * (bullish ? 1m + size : 1m - size);
 
         if (newValue < minValue)
         {

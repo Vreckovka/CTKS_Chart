@@ -270,15 +270,8 @@ namespace CTKS_Chart.ViewModels
 
           if (IsSimulation && drawChart && DrawingViewModel.ActualCandles.Any())
           {
-            var candles = DrawingViewModel.ActualCandles.TakeLast(150).ToList();
-
-            DrawingViewModel.SetMaxValue(candles.Max(x => x.Close.Value) * 1.4m);
-            DrawingViewModel.SetMinValue(candles.Min(x => x.Close.Value) * 0.7m);
-            DrawingViewModel.SetMaxUnix(candles.Max(x => x.UnixTime) + (DrawingViewModel.unixDiff * 20));
-            DrawingViewModel.SetMinUnix(candles.Min(x => x.UnixTime));
-
             DrawingViewModel.OnRestChart();
-            DrawingViewModel.LockChart = true;
+            DrawingViewModel.EnableAutoLock = true;
 
           }
 
@@ -968,6 +961,7 @@ namespace CTKS_Chart.ViewModels
           }
 
           AddRangeFilterIntersections(TimeFrame.D1);
+
           TradingBot.Strategy.ValidatePositions(actual);
           TradingBot.Strategy.CreatePositions(actual);
         }

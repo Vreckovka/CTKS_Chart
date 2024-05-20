@@ -250,6 +250,11 @@ namespace CTKS_Chart.ViewModels
          lastElapsed = DateTime.Now;
        });
 
+      if(DrawChart)
+      {
+        DrawingViewModel.OnRestChart();
+      }
+
       await Task.Run(async () =>
       {
         for (int i = 0; i < cutCandles.Count; i++)
