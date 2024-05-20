@@ -45,7 +45,7 @@ namespace CTKS_Chart.ViewModels
     public void SaveLayoutSettings();
   }
 
-  public class BaseTradingBotViewModel<TPosition, TStrategy> : ViewModel, ITradingBot
+  public class TradingBotViewModel<TPosition, TStrategy> : ViewModel, ITradingBot
     where TPosition : Position, new()
     where TStrategy : BaseStrategy<TPosition>
   {
@@ -57,7 +57,7 @@ namespace CTKS_Chart.ViewModels
     private string layoutPath = Path.Combine(Settings.DataPath, "layout.json");
     public static string stateDataPath = Path.Combine(Settings.DataPath, "state_data.txt");
 
-    public BaseTradingBotViewModel(
+    public TradingBotViewModel(
       BaseTradingBot<TPosition, TStrategy> tradingBot,
       ILogger logger,
       IWindowManager windowManager,
@@ -915,7 +915,7 @@ namespace CTKS_Chart.ViewModels
             TradingBot.Strategy.UpdateIntersections(ctksIntersections);
 
           var allCtks = new Ctks(new CtksLayout(), TimeFrame.W1, TradingBot.Asset);
-          allCtks.Epsilon = 0.005m;
+          allCtks.Epsilon = 0.0025m;
 
           var clustered = allCtks.CreateClusters(ctksIntersections, Tag.GlobalCluster);
           ctksIntersections.AddRange(clustered);

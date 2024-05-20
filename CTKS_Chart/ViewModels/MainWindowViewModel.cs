@@ -150,7 +150,7 @@ namespace CTKS_Chart.ViewModels
 
       var selectedBot = new BaseTradingBot<Position, BinanceStrategy>(asset, ViewModelsFactory.Create<BinanceStrategy>());
 
-      TradingBotViewModel = ViewModelsFactory.Create<BaseTradingBotViewModel<Position, BinanceStrategy>>(selectedBot);
+      TradingBotViewModel = ViewModelsFactory.Create<TradingBotViewModel<Position, BinanceStrategy>>(selectedBot);
 
 
       TradingBotViewModel.MainWindow = (MainWindow)Window;

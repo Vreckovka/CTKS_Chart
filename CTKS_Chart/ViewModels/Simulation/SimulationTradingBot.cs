@@ -33,7 +33,7 @@ namespace CTKS_Chart.ViewModels
     public DateTime Date { get; set; }
   }
 
-  public class SimulationTradingBot<TPosition, TStrategy> : BaseTradingBotViewModel<TPosition, TStrategy> 
+  public class SimulationTradingBot<TPosition, TStrategy> : TradingBotViewModel<TPosition, TStrategy> 
     where TPosition : Position, new()
     where TStrategy : BaseSimulationStrategy<TPosition>, new()
   {
