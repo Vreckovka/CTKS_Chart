@@ -190,7 +190,16 @@ namespace CTKS_Chart.ViewModels
 
     public void OnSetAllLinesVisibility(bool value)
     {
+      serialDisposable.Disposable.Dispose();
+
       Lines.ForEach(x => x.IsVisible = value);
+
+      serialDisposable.Disposable = Lines.ItemUpdated.Subscribe(x =>
+      {
+        VSynchronizationContext.PostOnUIThread(() => RenderOverlay());
+      });
+
+      RenderOverlay();
     }
 
     #endregion
