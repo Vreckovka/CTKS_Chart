@@ -22,8 +22,27 @@ using VCore.WPF.Interfaces.Managers;
 
 namespace CTKS_Chart.ViewModels
 {
+  public class SimulationResultValue
+  {
+    public SimulationResultValue()
+    {
+
+    }
+
+    public SimulationResultValue(decimal value)
+    {
+      Value = value;
+    }
+
+    public decimal Value { get; set; }
+    public Candle Candle { get; set; }
+  }
   public class SimulationResult
   {
+    public SimulationResult()
+    {
+    }
+
     public decimal TotalValue { get; set; }
     public decimal TotalProfit { get; set; }
     public decimal TotalNativeValue { get; set; }
@@ -31,9 +50,24 @@ namespace CTKS_Chart.ViewModels
     public TimeSpan RunTime { get; set; }
     public long RunTimeTicks { get; set; }
     public DateTime Date { get; set; }
+    public string BotName { get; set; }
+
+    public SimulationResultValue MaxValue { get; set; } = new SimulationResultValue();
+    public SimulationResultValue LowAfterMaxValue { get; set; } = new SimulationResultValue(decimal.MaxValue);
+
+    public decimal Drawdawn
+    {
+      get
+      {
+        if (MaxValue.Value > 0)
+          return (MaxValue.Value - LowAfterMaxValue.Value) / MaxValue.Value * 100;
+
+        return 0;
+      }
+    }
   }
 
-  public class SimulationTradingBot<TPosition, TStrategy> : TradingBotViewModel<TPosition, TStrategy> 
+  public class SimulationTradingBot<TPosition, TStrategy> : TradingBotViewModel<TPosition, TStrategy>
     where TPosition : Position, new()
     where TStrategy : BaseSimulationStrategy<TPosition>, new()
   {
@@ -57,15 +91,30 @@ namespace CTKS_Chart.ViewModels
 
       results = $"{TradingBot.Asset.Symbol}_simulation_results.txt";
       LoadSimulationResults();
+      //DownloadCandles(TradingBot.Asset.Symbol, TimeSpan.FromMinutes(15));
+
+      if (string.IsNullOrEmpty(DisplayName))
+      {
+        DisplayName = tradingBot.Asset.Symbol;
+      }
     }
 
     public ObservableCollection<SimulationResult> SimulationResults { get; } = new ObservableCollection<SimulationResult>();
 
+    private string displayName;
     public string DisplayName
     {
       get
       {
-        return TradingBot.Asset.Symbol;
+        return displayName;
+      }
+      set
+      {
+        if (value != displayName)
+        {
+          displayName = value;
+          RaisePropertyChanged();
+        }
       }
     }
 
@@ -250,10 +299,16 @@ namespace CTKS_Chart.ViewModels
          lastElapsed = DateTime.Now;
        });
 
-      if(DrawChart)
+      if (DrawChart)
       {
         DrawingViewModel.OnRestChart();
       }
+
+      var result = new SimulationResult()
+      {
+        BotName = DisplayName
+      };
+
 
       await Task.Run(async () =>
       {
@@ -267,6 +322,23 @@ namespace CTKS_Chart.ViewModels
           SimulateCandle(secondaryLayouts, actual);
 
           await Task.Delay(!IsSimulation || DrawChart ? Delay : 0);
+
+
+          if (TradingBot.Strategy.TotalValue > result.MaxValue.Value)
+          {
+            //Ignore high after last market low
+            if (actual.OpenTime < new DateTime(2023, 5, 1))
+            {
+              result.MaxValue.Value = TradingBot.Strategy.TotalValue;
+              result.MaxValue.Candle = actual;
+              result.LowAfterMaxValue = new SimulationResultValue(decimal.MaxValue);
+            }
+          }
+          else if (TradingBot.Strategy.TotalValue < result.LowAfterMaxValue.Value)
+          {
+            result.LowAfterMaxValue.Value = TradingBot.Strategy.TotalValue;
+            result.MaxValue.Candle = actual;
+          }
         }
 
         disposable?.Dispose();
@@ -278,16 +350,13 @@ namespace CTKS_Chart.ViewModels
         DrawingViewModel.OnRestChart();
         DrawingViewModel.RenderOverlay();
 
-        var result = new SimulationResult()
-        {
-          TotalValue = TradingBot.Strategy.TotalValue,
-          TotalProfit = TradingBot.Strategy.TotalProfit,
-          TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
-          TotalNative = TradingBot.Strategy.TotalNativeAsset,
-          RunTime = RunningTime,
-          RunTimeTicks = RunningTime.Ticks,
-          Date = DateTime.Now
-        };
+        result.TotalValue = TradingBot.Strategy.TotalValue;
+        result.TotalProfit = TradingBot.Strategy.TotalProfit;
+        result.TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue;
+        result.TotalNative = TradingBot.Strategy.TotalNativeAsset;
+        result.RunTime = RunningTime;
+        result.RunTimeTicks = RunningTime.Ticks;
+        result.Date = DateTime.Now;
 
         var json = JsonSerializer.Serialize(result);
 
@@ -327,9 +396,9 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    private void DownloadCandles(string symbol)
+    private void DownloadCandles(string symbol, TimeSpan timeSpan)
     {
-      this.binanceDataProvider.GetKlines(symbol, TimeSpan.FromMinutes(240));
+      this.binanceDataProvider.GetKlines(symbol, timeSpan);
     }
 
   }

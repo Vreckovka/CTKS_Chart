@@ -141,6 +141,9 @@ namespace CTKS_Chart.ViewModels
         TimeFrames = timeFrames,
       }, new FuturesStrategy()));
 
+      adaBotFutures.DisplayName = "ADAUSDT FUTURES";
+      adaBotFutures.DataPath = $"ADAUSDT-15-generated.csv";
+
       var adaBot = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(new BaseTradingBot<Position, SimulationStrategy>(new Asset()
       {
         Symbol = "ADAUSDT",
@@ -151,8 +154,22 @@ namespace CTKS_Chart.ViewModels
         TimeFrames = timeFrames,
       }, new SimulationStrategy()));
 
-      adaBot.DataPath = $"ADAUSDT-240-generated.csv";
-      adaBotFutures.DataPath = $"ADAUSDT-240-generated.csv";
+      adaBot.DisplayName = "ADAUSDT SPOT 15";
+      adaBot.DataPath = $"ADAUSDT-15-generated.csv";
+
+      var adaBot1 = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(new BaseTradingBot<Position, SimulationStrategy>(new Asset()
+      {
+        Symbol = "ADAUSDT",
+        NativeRound = 1,
+        PriceRound = 4,
+        DataPath = path,
+        DataSymbol = "BINANCE ADAUSD",
+        TimeFrames = timeFrames,
+      }, new SimulationStrategy()));
+
+      adaBot1.DisplayName = "ADAUSDT SPOT 240";
+      adaBot1.DataPath = $"ADAUSDT-240-generated.csv";
+
 
       var ltcBot = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(new BaseTradingBot<Position, SimulationStrategy>(new Asset()
       {
@@ -178,6 +195,7 @@ namespace CTKS_Chart.ViewModels
 
       Bots.Add(adaBotFutures);
       Bots.Add(adaBot);
+      Bots.Add(adaBot1);
       Bots.Add(btcBot);
       Bots.Add(ltcBot);
 

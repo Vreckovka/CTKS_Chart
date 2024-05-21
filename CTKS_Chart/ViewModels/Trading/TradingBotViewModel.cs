@@ -872,7 +872,10 @@ namespace CTKS_Chart.ViewModels
 
           if (indicator.IsOutDated)
           {
-            var innerCandles = TradingViewHelper.ParseTradingView(indicator.TimeFrame, indicator.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1, saveData: true);
+            var innerCandles = TradingViewHelper.ParseTradingView
+              (indicator.TimeFrame, indicator.DataLocation,
+              addNotClosedCandle: true, indexCut: lastCount + 1, 
+              saveData: !IsSimulation && indicator.DataLocation.Contains(TradingBot.Asset.Symbol));
 
             indicator.IsOutDated = TradingViewHelper.IsOutDated(indicator.TimeFrame, indicator.AllCandles);
 
@@ -1028,11 +1031,11 @@ namespace CTKS_Chart.ViewModels
 
 
           var existingLow = TradingBot.Strategy.Intersections
-            .SingleOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterLow);
+            .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterLow);
           var existingHigh = TradingBot.Strategy.Intersections
-            .SingleOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterHigh);
+            .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterHigh);
           var existingRF = TradingBot.Strategy.Intersections
-            .SingleOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.None);
+            .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.None);
 
           if (equivalentDataCandle != null)
           {

@@ -13,7 +13,7 @@ namespace CTKS_Chart.Strategy
   }
 
 
-  public class RangeFilterStrategy<TPosition> : InnerStrategy where TPosition : Position, new()  
+  public class RangeFilterStrategy<TPosition> : InnerStrategy where TPosition : Position, new()
   {
     private readonly string path;
     private readonly string btcPath;
@@ -37,7 +37,7 @@ namespace CTKS_Chart.Strategy
       if (AssetCandles == null)
       {
         AssetCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, path);
-        BtcCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1,btcPath);
+        BtcCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, btcPath);
       }
 
       var actualAssetCandle = AssetCandles.FirstOrDefault(x => x.CloseTime >= newCandle.CloseTime && x.OpenTime <= newCandle.OpenTime);
@@ -45,7 +45,8 @@ namespace CTKS_Chart.Strategy
 
       if (actualAssetCandle != null && actualAssetCandle.IndicatorData.RangeFilterData.RangeFilter > 0 && lastCandle != actualAssetCandle)
       {
-        RangeBased(actualAssetCandle, actualBtcCandle);
+        if (actualAssetCandle != null && actualBtcCandle != null)
+          RangeBased(actualAssetCandle, actualBtcCandle);
         //return Skip(actualAssetCandle, actualBtcCandle);
       }
 
@@ -60,7 +61,7 @@ namespace CTKS_Chart.Strategy
 
       int nStep = 1;
 
-      if(!actualAssetCandle.IndicatorData.RangeFilterData.Upward)
+      if (!actualAssetCandle.IndicatorData.RangeFilterData.Upward)
       {
         nStep++;
       }
@@ -201,8 +202,8 @@ namespace CTKS_Chart.Strategy
 
 
       strategy.StrategyPosition = bullish ? StrategyPosition.Bullish : StrategyPosition.Bearish;
-    } 
-    
+    }
+
     #endregion
   }
 }

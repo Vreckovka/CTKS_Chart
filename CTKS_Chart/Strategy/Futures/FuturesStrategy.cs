@@ -61,21 +61,7 @@ namespace CTKS_Chart.Strategy.Futures
         }
       }
 
-      if (TradingViewHelper.LoadedData.TryGetValue(TimeFrame.D1, out var candles))
-      {
-        candles = candles.Where(x => x.IndicatorData.RangeFilterData.RangeFilter > 0).ToList();
-
-    
-          var equivalentDataCandle = candles
-         .Where(x => x.UnixTime <= actualCandle.UnixTime &&
-         ((DateTimeOffset)x.CloseTime).ToUnixTimeSeconds() >= actualCandle.UnixTime).FirstOrDefault();
-
-        if(equivalentDataCandle != null )
-        {
-          RangeFilterData = equivalentDataCandle.IndicatorData.RangeFilterData;
-        }
-        
-      }
+      RangeFilterData = TradingHelper.GetActualEqivalentCandle(TimeFrame.D1, actualCandle);
 
       //if (RangeFilterData == null || RangeFilterData.Upward)
       {

@@ -150,5 +150,26 @@ namespace CTKS_Chart.Trading
     }
 
     #endregion
+
+    public static RangeFilterData GetActualEqivalentCandle(TimeFrame timeFrame, Candle actualCandle)
+    {
+      if (TradingViewHelper.LoadedData.TryGetValue(timeFrame, out var candles))
+      {
+        candles = candles.Where(x => x.IndicatorData.RangeFilterData.RangeFilter > 0).ToList();
+
+
+        var equivalentDataCandle = candles
+       .Where(x => x.UnixTime <= actualCandle.UnixTime &&
+       ((DateTimeOffset)x.CloseTime).ToUnixTimeSeconds() >= actualCandle.UnixTime).FirstOrDefault();
+
+        if (equivalentDataCandle != null)
+        {
+          return equivalentDataCandle.IndicatorData.RangeFilterData;
+        }
+
+      }
+
+      return null;
+    }
   }
 }

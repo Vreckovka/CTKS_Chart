@@ -70,6 +70,8 @@
         <ItemsControl.ItemTemplate>
           <DataTemplate>
             <StackPanel Margin="5,5" Orientation="Vertical">
+              <TextBlock Foreground="#757575" Text="{Binding BotName}" />
+
               <TextBlock Foreground="#555555" Text="{Binding Date, StringFormat={}{0:dd.MM.yyyy HH:mm}}" />
 
               <TextBlock
@@ -94,6 +96,22 @@
                 Foreground="{StaticResource MagentaBrush}"
                 Text="{Binding TotalNativeValue, StringFormat={}{0:N2} $}"
                 ToolTip="Native asset value $" />
+
+              <TextBlock
+                Foreground="{StaticResource GreenBrush}"
+                Text="{Binding MaxValue.Value, StringFormat={}{0:N2} $}"
+                ToolTip="Max value $" />
+
+              <TextBlock
+                Foreground="{StaticResource DefaultRedBrush}"
+                Text="{Binding LowAfterMaxValue.Value, StringFormat={}{0:N2} $}"
+                ToolTip="Min Value $" />
+
+              <TextBlock
+                Foreground="{StaticResource DefaultRedBrush}"
+                Text="{Binding Drawdawn, StringFormat={}-{0:N2} %}"
+                ToolTip="Drawdawn %" />
+
               <TextBlock Foreground="#555555" Text="{Binding RunTime, StringFormat={}{0:mm\\:ss}}" />
             </StackPanel>
           </DataTemplate>
