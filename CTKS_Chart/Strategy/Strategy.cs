@@ -850,8 +850,8 @@ namespace CTKS_Chart.Strategy
       {
         var openedAutoSell = OpenSellPositions
         .Where(x => x.IsAutomatic)
-        .Where(x => x.Price != x.Intersection.Value 
-        || x.Intersection.IsEnabled == false 
+        .Where(x => x.Price != x.Intersection.Value
+        || x.Intersection.IsEnabled == false
         )
         .ToList();
 
@@ -871,6 +871,16 @@ namespace CTKS_Chart.Strategy
       if (ClosedSellPositions.Any() && ActualPositions.Any())
       {
         lastSell = ClosedSellPositions.Last().Price;
+      }
+      else
+      {
+
+        var data = TradingHelper.GetActualEqivalentCandle(TimeFrame.D1, actualCandle);
+
+        if (data != null)
+        {
+          lastSell = data.HighTarget;
+        }
       }
 
       var minBuy = actualCandle.Close.Value * (1 - MinBuyPrice);

@@ -923,6 +923,18 @@ namespace CTKS_Chart.ViewModels
 
       var width = TradingHelper.GetCanvasValueLinear(canvasWidth, MinUnix + unix_diff, MaxUnix, MinUnix);
 
+      var greenBrush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush);
+      var redBrush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
+
+      greenBrush.Freeze();
+      redBrush.Freeze();
+
+      Pen greenPen = new Pen(greenBrush, 0.5);
+      Pen redPen = new Pen(redBrush, 0.5);
+
+      greenPen.Freeze();
+      redPen.Freeze();
+
       if (candles.Any() && width > 0)
       {
         foreach (var candle in candles)
@@ -933,9 +945,9 @@ namespace CTKS_Chart.ViewModels
           var high = TradingHelper.GetCanvasValue(canvasHeight, candle.High.Value, MaxValue, MinValue);
           var low = TradingHelper.GetCanvasValue(canvasHeight, candle.Low.Value, MaxValue, MinValue);
 
-          var selectedBrush = candle.IsGreen ? DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.GREEN].Brush) : DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.RED].Brush);
+          var selectedBrush = candle.IsGreen ? greenBrush : redBrush;
+          var pen = candle.IsGreen ? greenPen : redPen;
 
-          Pen pen = new Pen(selectedBrush, 0.5);
 
           var newCandle = new Rect()
           {
