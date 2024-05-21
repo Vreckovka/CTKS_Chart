@@ -25,24 +25,17 @@ namespace CTKS_Chart.Views.Controls
   {
     #region ChartContent
 
-    public DrawingImage ChartContent
+    public ImageSource ChartContent
     {
-      get { return (DrawingImage)GetValue(ChartContentProperty); }
+      get { return (ImageSource)GetValue(ChartContentProperty); }
       set { SetValue(ChartContentProperty, value); }
     }
 
     public static readonly DependencyProperty ChartContentProperty =
       DependencyProperty.Register(
         nameof(ChartContent),
-        typeof(DrawingImage),
-        typeof(Chart), new PropertyMetadata(null, new PropertyChangedCallback((obj, y) =>
-        {
-
-          if (obj is Chart chart && y.NewValue is DrawingImage frameworkElement)
-          {
-           
-          }
-        })));
+        typeof(ImageSource),
+        typeof(Chart));
 
 
     #endregion

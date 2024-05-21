@@ -33,7 +33,6 @@ namespace CTKS_Chart
       Kernel.Bind<BinanceBroker>()
         .To<BinanceBroker>()
         .InSingletonScope();
-
     }
   }
 

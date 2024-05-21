@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
@@ -24,9 +26,9 @@ namespace CTKS_Chart.ViewModels
 {
   public class ArchitectViewModel : BaseArchitectViewModel<Position, SimulationStrategy>
   {
-    public ArchitectViewModel(IList<CtksLayout> layouts, 
-      ColorSchemeViewModel colorSchemeViewModel, 
-      IViewModelsFactory viewModelsFactory, 
+    public ArchitectViewModel(IList<CtksLayout> layouts,
+      ColorSchemeViewModel colorSchemeViewModel,
+      IViewModelsFactory viewModelsFactory,
       BaseTradingBot<Position, SimulationStrategy> tradingBot, Layout layout) : base(layouts, colorSchemeViewModel, viewModelsFactory, tradingBot, layout)
     {
     }
@@ -42,7 +44,7 @@ namespace CTKS_Chart.ViewModels
 
   public class BaseArchitectViewModel<TPosition, TStrategy> : DrawingViewModel<TPosition, TStrategy>
     where TPosition : Position, new()
-    where TStrategy : BaseSimulationStrategy<TPosition>, new() 
+    where TStrategy : BaseSimulationStrategy<TPosition>, new()
 
   {
     private readonly IViewModelsFactory viewModelsFactory;
@@ -61,10 +63,13 @@ namespace CTKS_Chart.ViewModels
 
       SelectedLayout = layouts[5];
 
+
       serialDisposable.Disposable = Lines.ItemUpdated.Subscribe(x =>
       {
         VSynchronizationContext.PostOnUIThread(() => RenderOverlay());
       });
+
+      Observable.Timer(TimeSpan.FromSeconds(0.25)).ObserveOnDispatcher().Subscribe(x => OnLayoutChanged());
     }
 
     #region Properties
@@ -87,7 +92,7 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-    
+
     #endregion
 
     #region SelectedLayout
@@ -102,9 +107,6 @@ namespace CTKS_Chart.ViewModels
         if (value != selectedLayout)
         {
           selectedLayout = value;
-
-          SetMaxValue(selectedLayout.MaxValue);
-          SetMinValue(selectedLayout.MinValue);
 
           OnLayoutChanged();
           RaisePropertyChanged();
@@ -173,7 +175,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
     #region SetAllLinesVisibility
 
     protected ActionCommand<bool> setAllLinesVisibility;
@@ -196,8 +197,14 @@ namespace CTKS_Chart.ViewModels
 
     #region Methods
 
-    #region OnLayoutChanged
+    public override void Initialize()
+    {
+      base.Initialize();
 
+
+    }
+
+    #region OnLayoutChanged
 
     private void OnLayoutChanged()
     {
@@ -211,9 +218,13 @@ namespace CTKS_Chart.ViewModels
 
       SetMinUnix(candles.First().UnixTime - (unixDiff * 2));
       SetMaxUnix(candles.Last().UnixTime + (unixDiff * 2));
+      SetMaxValue(candles.Max(x => x.High.Value));
+      SetMinValue(candles.Min(x => x.Low.Value));
 
       RaisePropertyChanged(nameof(MaxUnix));
       RaisePropertyChanged(nameof(MinUnix));
+      RaisePropertyChanged(nameof(MaxValue));
+      RaisePropertyChanged(nameof(MinValue));
 
       RenderOverlay();
     }
@@ -231,37 +242,24 @@ namespace CTKS_Chart.ViewModels
 
       var candles = SelectedLayout.Ctks.Candles.ToList();
 
-      using (DrawingContext dc = dGroup.Open())
+      WriteableBitmap writeableBmp = BitmapFactory.New((int)CanvasWidth, (int)CanvasHeight);
+
+      using (writeableBmp.GetBitmapContext())
       {
-        dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(CanvasWidth, CanvasHeight));
-        candles = candles.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
-
-        var drawnChart = DrawChart(dc, candles, CanvasHeight, CanvasWidth);
-        var renderedLines = RenderLines(dc, CanvasHeight, CanvasWidth);
-
-        if (DrawingSettings.ShowIntersections)
+        using (DrawingContext dc = dGroup.Open())
         {
-          DrawIntersections(
-                dc,
-                SelectedLayout.Ctks.Intersections,
-                CanvasHeight,
-                CanvasWidth
-           );
-        }
+          dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(CanvasWidth, CanvasHeight));
+          candles = candles.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
 
-        if (DrawingSettings.ShowClusters)
-        {
-          DrawClusters(
-               dc,
-               SelectedLayout.Ctks.Intersections,
-               CanvasHeight,
-               CanvasWidth
-          );
-        }
+          RenderIntersections(dc, SelectedLayout.Ctks.Intersections, SelectedLayout.TimeFrame);
 
-        DrawingImage dImageSource = new DrawingImage(dGroup);
-        DrawnChart = drawnChart;
-        Chart = dImageSource;
+          var drawnChart = DrawChart(writeableBmp, candles, CanvasHeight, CanvasWidth);
+          var renderedLines = RenderLines(writeableBmp, CanvasHeight, CanvasWidth);
+
+          DrawnChart = drawnChart;
+          Overlay = new DrawingImage(dGroup);
+          Chart = writeableBmp;
+        }
       }
     }
 
@@ -270,7 +268,7 @@ namespace CTKS_Chart.ViewModels
     #region RenderLines
 
     public IEnumerable<CtksLine> RenderLines(
-      DrawingContext drawingContext,
+      WriteableBitmap drawingContext,
       double canvasHeight,
       double canvasWidth)
     {
@@ -285,13 +283,13 @@ namespace CTKS_Chart.ViewModels
       {
         var line = vm.Model;
 
-        Brush selectedBrush = Brushes.Yellow;
+        Color selectedBrush = Colors.Yellow;
 
         if (vm.IsSelected)
         {
-          selectedBrush = Brushes.Red;
+          selectedBrush = Colors.Red;
         }
-        Pen pen = new Pen(selectedBrush, 1);
+        //Pen pen = new Pen(selectedBrush, 1);
 
         var x3 = canvasWidth;
         var ctksLine = CreateLine(canvasHeight, canvasWidth, line);
@@ -344,7 +342,7 @@ namespace CTKS_Chart.ViewModels
 
         var finalPoint = new Point(x3, y3);
 
-        drawingContext.DrawLine(pen, startPoint, finalPoint);
+        drawingContext.DrawLine((int)startPoint.X, (int)startPoint.Y, (int)finalPoint.X, (int)finalPoint.Y, selectedBrush);
 
         var firstPoint = new Point(
             TradingHelper.GetCanvasValueLinear(canvasWidth, line.FirstPoint.UnixTime, MaxUnix, MinUnix),
@@ -358,7 +356,16 @@ namespace CTKS_Chart.ViewModels
 
         if (intersectionPoint < CanvasHeight && intersectionPoint > 0 && actualLeft < canvasWidth && actualLeft > 0)
         {
-          drawingContext.DrawEllipse(Brushes.Orange, pen, new Point(actualLeft, canvasHeight - intersectionPoint), 4, 4);
+          int size = 3;
+          drawingContext.DrawEllipse((int)actualLeft - size,
+            (int)canvasHeight - (int)intersectionPoint - size,
+            (int)actualLeft + size, (int)canvasHeight - (int)intersectionPoint + size,
+            Colors.Orange);
+
+          drawingContext.FillEllipse((int)actualLeft - size,
+            (int)canvasHeight - (int)intersectionPoint - size,
+            (int)actualLeft + size, (int)canvasHeight - (int)intersectionPoint + size,
+            Colors.Orange);
         }
 
         list.Add(ctksLine);
@@ -368,7 +375,7 @@ namespace CTKS_Chart.ViewModels
       actualPen.DashStyle = new DashStyle(new List<double>() { 15 }, 5);
 
       if (actualLeft < canvasWidth && actualLeft > 0)
-        drawingContext.DrawLine(actualPen, new Point(actualLeft, 0), new Point(actualLeft, canvasHeight));
+        drawingContext.DrawLine((int)actualLeft, 0, (int)actualLeft, (int)canvasHeight, Colors.White);
 
       return list;
     }

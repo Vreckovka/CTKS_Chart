@@ -27,6 +27,11 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
+    public static Color GetColorFromHex(string hex)
+    {
+      return (Color)ColorConverter.ConvertFromString(hex);
+    }
+
     #region GetPositionThickness
 
     public static double GetPositionThickness(TimeFrame timeFrame)

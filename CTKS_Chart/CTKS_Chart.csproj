@@ -20,6 +20,7 @@
   <ItemGroup>
 	  <PackageReference Include="Binance.Net" Version="9.1.7" />
 	  <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	  <PackageReference Include="WriteableBitmapEx" Version="1.6.8" />
 	  <!--<PackageReference Include="Websocket.Client" Version="4.3.21" />
 	  <PackageReference Include="WebSocketSharp-netstandard" Version="1.0.1" />-->
   </ItemGroup>

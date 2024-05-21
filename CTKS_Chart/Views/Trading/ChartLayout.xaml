@@ -170,7 +170,6 @@
       x:Name="Overlay"
       Grid.RowSpan="2"
       Grid.Column="1"
-      Grid.ColumnSpan="2"
       Chart="{Binding ElementName=Chart}"
       HorizontalRuler="{Binding ElementName=HorizontalRuler}"
       VerticalRuler="{Binding ElementName=VerticalRuler}" />
