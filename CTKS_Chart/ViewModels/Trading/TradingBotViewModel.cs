@@ -618,6 +618,8 @@ namespace CTKS_Chart.ViewModels
 
     public virtual async void Start()
     {
+      TradingBot.Strategy.SubscribeToChanges();
+
       stopwatch.Start();
 
       ForexChart_Loaded();

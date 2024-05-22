@@ -1699,6 +1699,7 @@ namespace CTKS_Chart.Strategy
     public abstract void LoadState();
     public abstract Task RefreshState();
     public abstract bool IsPositionFilled(Candle candle, TPosition TPosition);
+    public abstract void SubscribeToChanges();
 
     #region Reset
 

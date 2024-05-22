@@ -36,11 +36,13 @@ namespace CTKS_Chart.Strategy
       Logger = this.logger;
 
 
+    }
 
+    public override async void SubscribeToChanges()
+    {
 #if RELEASE
-      Subscribe();
+      await binanceBroker.SubscribeUserStream(OnOrderUpdate);
 #endif
-
     }
 
     public override bool IsPositionFilled(Candle candle, TPosition position)
@@ -48,11 +50,6 @@ namespace CTKS_Chart.Strategy
       return false;
     }
 
-
-    private async void Subscribe()
-    {
-      await binanceBroker.SubscribeUserStream(OnOrderUpdate);
-    }
 
     #region OnOrderUpdate
 

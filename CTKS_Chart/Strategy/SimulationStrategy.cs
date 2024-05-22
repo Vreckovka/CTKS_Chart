@@ -17,6 +17,10 @@ namespace CTKS_Chart.Strategy
       return Task.CompletedTask;
     }
 
+    public override void SubscribeToChanges()
+    {
+    }
+
     public override bool IsPositionFilled(Candle candle, TPosition position)
     {
       if (position.Side == PositionSide.Buy && candle.Low <= position.Price)

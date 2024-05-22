@@ -73,6 +73,43 @@ namespace CTKS_Chart.ViewModels
 
     #region Properties
 
+    #region TradingBotType
+
+    private TradingBotType? botType;
+
+    public TradingBotType? BotType
+    {
+      get { return botType; }
+      set
+      {
+        if (value != botType)
+        {
+          botType = value;
+
+          ITradingBotViewModel selectedBot = null;
+          
+          switch (botType.Value)
+          {
+            case TradingBotType.Spot:
+              var spot = new TradingBot<Position, BinanceSpotStrategy>(asset, ViewModelsFactory.Create<BinanceSpotStrategy>(), TradingBotType.Spot);
+
+              selectedBot = ViewModelsFactory.Create<TradingBotViewModel<Position, BinanceSpotStrategy>>(spot);
+             
+              break;
+            case TradingBotType.Futures:
+              var futures = new TradingBot<FuturesPosition, BinanceFuturesStrategy>(asset, ViewModelsFactory.Create<BinanceFuturesStrategy>(), TradingBotType.Futures);
+              selectedBot = ViewModelsFactory.Create<TradingBotViewModel<FuturesPosition, BinanceFuturesStrategy>>(futures);
+              break;
+          }
+
+          TradingBotViewModel = selectedBot;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     #region TradingBotViewModel
 
     private ITradingBotViewModel tradingBotViewModel;
@@ -139,6 +176,25 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region Asset
+
+    private Asset asset;
+
+    public Asset Asset
+    {
+      get { return asset; }
+      set
+      {
+        if (value != asset)
+        {
+          asset = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     #endregion
 
     #region Methods
@@ -149,20 +205,10 @@ namespace CTKS_Chart.ViewModels
     {
       base.Initialize();
 
-      var asset = JsonSerializer.Deserialize<Asset>(File.ReadAllText(Path.Combine(Settings.DataPath, "asset.json")));
-
-      asset.RunTime = TimeSpan.FromTicks(asset.RunTimeTicks);
+      Asset = JsonSerializer.Deserialize<Asset>(File.ReadAllText(Path.Combine(Settings.DataPath, "asset.json")));
+      Asset.RunTime = TimeSpan.FromTicks(Asset.RunTimeTicks);
       
-      var spot = new TradingBot<Position, BinanceSpotStrategy>(asset, ViewModelsFactory.Create<BinanceSpotStrategy>(), TradingBotType.Spot);
-      var futures = new TradingBot<FuturesPosition, BinanceFuturesStrategy>(asset, ViewModelsFactory.Create<BinanceFuturesStrategy>(), TradingBotType.Futures);
-
-      var spotVm = ViewModelsFactory.Create<TradingBotViewModel<Position, BinanceSpotStrategy>>(spot);
-      var futuresVm = ViewModelsFactory.Create<TradingBotViewModel<FuturesPosition, BinanceFuturesStrategy>>(futures);
-
-      TradingBots.Add(spotVm);
-      TradingBots.Add(futuresVm);
-
-      TradingBotViewModel = spotVm;
+      BotType = TradingBotType.Spot;
     }
 
     #endregion

@@ -82,13 +82,11 @@
                     </CheckBox>
                   </StackPanel>
 
-
                   <ComboBox
                     Margin="10,0,10,0"
                     DataContext="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Window}}"
-                    DisplayMemberPath="TradingBot.Type"
-                    ItemsSource="{Binding TradingBots}"
-                    SelectedItem="{Binding TradingBotViewModel}" />
+                    ItemsSource="{Binding BotType, Converter={converters:EnumValueToCollectionConverter}, Mode=OneTime}"
+                    SelectedItem="{Binding BotType}" />
 
                   <StackPanel Margin="5" Orientation="Horizontal">
                     <Button
