@@ -249,6 +249,7 @@
                       <RowDefinition Height="auto" />
                       <RowDefinition Height="auto" />
                       <RowDefinition Height="auto" />
+                      <RowDefinition Height="auto" />
                     </Grid.RowDefinitions>
 
                     <ItemsControl Margin="0,5" ItemsSource="{Binding PositionSizeMapping}">
@@ -391,6 +392,13 @@
                       Margin="0,0,0,10"
                       IsChecked="{Binding EnableAutoPositions}">
                       Enable auto positions
+                    </CheckBox>
+
+                    <CheckBox
+                      Grid.Row="8"
+                      Margin="0,0,0,10"
+                      IsChecked="{Binding EnableRangeFilterStrategy}">
+                      Enable Range Filter Strategy
                     </CheckBox>
                   </Grid>
 

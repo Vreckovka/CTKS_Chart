@@ -43,7 +43,7 @@ namespace CTKS_Chart.Strategy
       var multi = 1;
       var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
-      StartingBudget = 100000;
+      StartingBudget = 10000;
       StartingBudget *= multi;
       Budget = StartingBudget;
 
@@ -82,6 +82,12 @@ namespace CTKS_Chart.Strategy
         return onCreatePositionSub.AsObservable();
       }
     }
+
+
+
+  
+
+
 
     public Asset Asset { get; set; }
     public decimal MinPositionValue { get; set; } = 6;
@@ -166,6 +172,7 @@ namespace CTKS_Chart.Strategy
           RaisePropertyChanged(nameof(AutomaticPositionSizeValue));
           RaisePropertyChanged(nameof(EnableManualPositions));
           RaisePropertyChanged(nameof(EnableAutoPositions));
+          RaisePropertyChanged(nameof(EnableRangeFilterStrategy));
         }
       }
     }
@@ -717,6 +724,24 @@ namespace CTKS_Chart.Strategy
 
     #endregion
 
+    #region EnableRangeFilterStrategy
+
+    public bool EnableRangeFilterStrategy
+    {
+      get { return StrategyData.EnableRangeFilterStrategy; }
+      set
+      {
+        if (value != StrategyData.EnableRangeFilterStrategy)
+        {
+          StrategyData.EnableRangeFilterStrategy = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
     #region Methods
 
     #region GetMaxBuy
@@ -749,6 +774,17 @@ namespace CTKS_Chart.Strategy
 
         await CheckPositions(actualCandle, minBuy, maxBuy);
         var validIntersections = Intersections;
+
+        if(EnableRangeFilterStrategy)
+        {
+          var range = TradingHelper.GetActualEqivalentCandle(TimeFrame.D1, actualCandle);
+
+          if (range != null)
+          {
+            MaxBuyPrice = range.IndicatorData.RangeFilterData.RangeFilter;
+            maxBuy = range.IndicatorData.RangeFilterData.RangeFilter;
+          }
+        }
 
 #if DEBUG
         foreach (var innerStrategy in InnerStrategies)
@@ -879,7 +915,7 @@ namespace CTKS_Chart.Strategy
 
         if (data != null)
         {
-          lastSell = data.HighTarget;
+          lastSell = data.IndicatorData.RangeFilterData.HighTarget;
         }
       }
 

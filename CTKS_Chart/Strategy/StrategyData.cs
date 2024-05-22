@@ -19,5 +19,6 @@ namespace CTKS_Chart.Strategy
     public decimal AutomaticPositionSize { get; set; } = (decimal)0.5;
     public bool EnableManualPositions { get; set; } = true;
     public bool EnableAutoPositions { get; set; } = true;
+    public bool EnableRangeFilterStrategy { get; set; }
   }
 }

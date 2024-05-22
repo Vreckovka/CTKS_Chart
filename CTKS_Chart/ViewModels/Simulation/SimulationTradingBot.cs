@@ -224,6 +224,7 @@ namespace CTKS_Chart.ViewModels
 
       IsSimulation = true;
 
+      TradingBot.Strategy.EnableRangeFilterStrategy = true;
       DrawChart = false;
 
       results = $"{TradingBot.Asset.Symbol}_simulation_results.txt";
@@ -339,12 +340,8 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.MaxUnix = candles.Max(x => x.UnixTime) + (unixDiff * 20);
       DrawingViewModel.MinUnix = DrawingViewModel.MaxUnix - (unixDiff * 100);
 
-      DrawingViewModel.DrawingSettings.ShowAveragePrice = false;
-      DrawingViewModel.DrawingSettings.ShowAutoPositions = false;
-      DrawingViewModel.DrawingSettings.ShowManualPositions = false;
-
       DrawingViewModel.LockChart = true;
-      DrawingViewModel.DrawingSettings.ShowATH = true;
+
 
       var rangeAdaFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
       var rangeBtcFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\INDEX BTCUSD, 1D.csv";
@@ -539,6 +536,7 @@ namespace CTKS_Chart.ViewModels
       disposable?.Dispose();
       var simulationStrategy = new TStrategy();
 
+      simulationStrategy.EnableRangeFilterStrategy = true;
       simulationStrategy.Asset = TradingBot.Asset;
       Layouts.Clear();
       InnerLayouts.Clear();

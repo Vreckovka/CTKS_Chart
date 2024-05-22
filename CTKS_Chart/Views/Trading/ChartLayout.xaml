@@ -129,20 +129,33 @@
             Placement="Bottom"
             PlacementTarget="{Binding ElementName=indicators_toggle}"
             StaysOpen="False">
-            <Border Padding="5" Background="#101010">
+            <Border Padding="5,7,5,5" Background="#101010">
               <ItemsControl ItemsSource="{Binding IndicatorSettings}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
                     <Grid>
                       <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="auto" />
-                        <ColumnDefinition Width="100" />
                         <ColumnDefinition />
                       </Grid.ColumnDefinitions>
 
-                      <CheckBox IsChecked="{Binding Show, Mode=TwoWay}" />
-                      <TextBlock Grid.Column="1" Text="{Binding Name}" />
-                      <TextBlock Grid.Column="2" Text="{Binding TimeFrame}" />
+                      <CheckBox Margin="0,5" IsChecked="{Binding Show, Mode=TwoWay}">
+                        <StackPanel Orientation="Horizontal">
+                          <TextBlock
+                            Grid.Column="1"
+                            Foreground="White"
+                            Text="{Binding Name}" />
+                          <TextBlock
+                            Grid.Column="2"
+                            Margin="20,0,10,0"
+                            Text="{Binding TimeFrame}" />
+                        </StackPanel>
+                      </CheckBox>
+
+                      <Grid
+                        Height="1"
+                        VerticalAlignment="Bottom"
+                        Background="#303030" />
                     </Grid>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>

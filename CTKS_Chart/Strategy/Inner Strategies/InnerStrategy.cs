@@ -18,7 +18,6 @@ namespace CTKS_Chart.Strategy
     private readonly string path;
     private readonly string btcPath;
     private readonly BaseStrategy<TPosition> strategy;
-    private List<Candle> AssetCandles;
     private List<Candle> BtcCandles;
 
     private IEnumerable<KeyValuePair<TimeFrame, decimal>> originalMapping;
@@ -34,13 +33,12 @@ namespace CTKS_Chart.Strategy
 
     public override IEnumerable<CtksIntersection> Calculate(Candle newCandle)
     {
-      if (AssetCandles == null)
+      if (BtcCandles == null)
       {
-        AssetCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, path);
         BtcCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, btcPath);
       }
 
-      var actualAssetCandle = AssetCandles.FirstOrDefault(x => x.CloseTime >= newCandle.CloseTime && x.OpenTime <= newCandle.OpenTime);
+      var actualAssetCandle = TradingHelper.GetActualEqivalentCandle(TimeFrame.D1, newCandle);
       var actualBtcCandle = BtcCandles.FirstOrDefault(x => x.CloseTime >= newCandle.CloseTime && x.OpenTime <= newCandle.OpenTime);
 
       if (actualAssetCandle != null && actualAssetCandle.IndicatorData.RangeFilterData.RangeFilter > 0 && lastCandle != actualAssetCandle)

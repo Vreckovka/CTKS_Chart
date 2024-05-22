@@ -151,7 +151,7 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
-    public static RangeFilterData GetActualEqivalentCandle(TimeFrame timeFrame, Candle actualCandle)
+    public static Candle GetActualEqivalentCandle(TimeFrame timeFrame, Candle actualCandle)
     {
       if (TradingViewHelper.LoadedData.TryGetValue(timeFrame, out var candles))
       {
@@ -164,7 +164,7 @@ namespace CTKS_Chart.Trading
 
         if (equivalentDataCandle != null)
         {
-          return equivalentDataCandle.IndicatorData.RangeFilterData;
+          return equivalentDataCandle;
         }
 
       }

@@ -87,8 +87,7 @@
           Title="Total Native"
           DisableAnimations="True"
           Foreground="{StaticResource LightRedBrush}"
-          LabelFormatter="{Binding NativeFormatter}"
-          Position="RightTop">
+          LabelFormatter="{Binding NativeFormatter}">
           <wpf:Axis.Separator>
             <wpf:Separator StrokeDashArray="0" StrokeThickness="0" />
           </wpf:Axis.Separator>
@@ -98,8 +97,7 @@
           Title="Total Native Value"
           DisableAnimations="True"
           Foreground="{StaticResource GreenBrush}"
-          LabelFormatter="{Binding ValueFormatter}"
-          Position="RightTop">
+          LabelFormatter="{Binding ValueFormatter}">
           <wpf:Axis.Separator>
             <wpf:Separator StrokeDashArray="0" StrokeThickness="0" />
           </wpf:Axis.Separator>
