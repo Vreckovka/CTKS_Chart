@@ -318,12 +318,15 @@ namespace CTKS_Chart.Views.Controls
 
         if (delta < 1)
         {
-          MaxValue *= delta;
+          if (Mode == RulerMode.Vertical)
+            MaxValue *= delta;
+
           MinValue *= (1 - delta) + 1;
         }
         else
         {
-          MaxValue *= delta;
+          if (Mode == RulerMode.Vertical)
+            MaxValue *= delta;
           MinValue *= 1 - (delta - 1);
         }
 

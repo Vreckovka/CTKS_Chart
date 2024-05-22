@@ -831,7 +831,7 @@ namespace CTKS_Chart.ViewModels
 
           newChart = DrawChart(writeableBmp, candlesToRender, imageHeight, imageWidth); var chartCandles = newChart.Candles.ToList();
 
-          DrawClosedPositions(dc, TradingBot.Strategy.AllClosedPositions, chartCandles, imageHeight);
+          DrawClosedPositions(writeableBmp, TradingBot.Strategy.AllClosedPositions, chartCandles, imageHeight);
 
           var maxCanvasValue = MaxValue;
           var minCanvasValue = MinValue;
@@ -894,9 +894,9 @@ namespace CTKS_Chart.ViewModels
 
     #region RenderIntersections
 
-    public void RenderIntersections(DrawingContext dc,IEnumerable<CtksIntersection> intersections, TimeFrame? timeFrame = null)
+    public void RenderIntersections(DrawingContext dc, IEnumerable<CtksIntersection> intersections, TimeFrame? timeFrame = null)
     {
-      if(timeFrame != null)
+      if (timeFrame != null)
       {
         intersections = intersections.Where(x => x.TimeFrame == timeFrame);
       }
@@ -1272,7 +1272,7 @@ namespace CTKS_Chart.ViewModels
     #region DrawClosedPositions
 
     public void DrawClosedPositions(
-      DrawingContext drawingContext,
+      WriteableBitmap drawingContext,
       IEnumerable<Position> positions,
       IList<ChartCandle> candles,
       double canvasHeight)
@@ -1296,23 +1296,23 @@ namespace CTKS_Chart.ViewModels
       foreach (var position in positions)
       {
         var isActiveBuy = position.Side == PositionSide.Buy && position.State == PositionState.Filled;
-        Brush selectedBrush = Brushes.Orange;
+        string selectedBrush = "#ffffff";
 
         if (position.Side == PositionSide.Buy)
         {
           if (position.IsAutomatic)
           {
-            selectedBrush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_BUY].Brush);
+            selectedBrush = ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_BUY].Brush;
           }
           else
           {
             if (position.State == PositionState.Filled)
             {
-              selectedBrush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.ACTIVE_BUY].Brush);
+              selectedBrush = ColorScheme.ColorSettings[ColorPurpose.ACTIVE_BUY].Brush;
             }
             else
             {
-              selectedBrush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_BUY].Brush);
+              selectedBrush = ColorScheme.ColorSettings[ColorPurpose.FILLED_BUY].Brush;
             }
           }
         }
@@ -1320,23 +1320,24 @@ namespace CTKS_Chart.ViewModels
         {
           if (position.IsAutomatic)
           {
-            selectedBrush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_SELL].Brush);
+            selectedBrush = ColorScheme.ColorSettings[ColorPurpose.AUTOMATIC_SELL].Brush;
           }
           else
           {
-            selectedBrush = DrawingHelper.GetBrushFromHex(ColorScheme.ColorSettings[ColorPurpose.FILLED_SELL].Brush);
+            selectedBrush = ColorScheme.ColorSettings[ColorPurpose.FILLED_SELL].Brush;
           }
         }
 
 
-        Pen pen = new Pen(selectedBrush, 1);
-        pen.DashStyle = DashStyles.Dash;
+        var selectedColor = DrawingHelper.GetColorFromHex(selectedBrush);
+        //Pen pen = new Pen(selectedBrush, 1);
+        // pen.DashStyle = DashStyles.Dash;
 
         var actual = TradingHelper.GetCanvasValue(canvasHeight, position.Price, MaxValue, MinValue);
 
         var frame = position.Intersection.TimeFrame;
 
-        pen.Thickness = DrawingHelper.GetPositionThickness(frame);
+        //pen.Thickness = DrawingHelper.GetPositionThickness(frame);
 
         var positionY = canvasHeight - actual;
         var candle = candles.FirstOrDefault(x => x.Candle.OpenTime <= position.FilledDate && x.Candle.CloseTime >= position.FilledDate);
@@ -1344,20 +1345,65 @@ namespace CTKS_Chart.ViewModels
         if (candle != null)
         {
           var text = position.Side == PositionSide.Buy ? "B" : "S";
-          var fontSize = isActiveBuy ? 16 : 8;
-          FormattedText formattedText = DrawingHelper.GetFormattedText(text, selectedBrush, fontSize);
+          var fontSize = isActiveBuy ? 10 : 5;
+          //FormattedText formattedText = DrawingHelper.GetFormattedText(text, selectedBrush, fontSize);
 
           if (position.IsAutomatic)
           {
             fontSize = (int)(fontSize / 1.33);
           }
 
-          var positionX = candle.Body.X - (formattedText.Width / 2);
+          var positionX = candle.Body.X;
 
-          var point = new Point(positionX, positionY - formattedText.Height / 2);
+          var point = new Point(positionX, positionY);
 
           if (point.X > 0 && point.X < CanvasWidth && point.Y > 0 && point.Y < CanvasHeight)
-            drawingContext.DrawText(formattedText, point);
+          {
+            int size = fontSize;
+
+            if (position.Side == PositionSide.Buy)
+            {
+              drawingContext.DrawTriangle(
+             (int)positionX - size,
+             (int)positionY + size,
+             (int)positionX + size,
+             (int)positionY + size,
+             (int)positionX,
+             (int)positionY,
+             selectedColor
+             );
+
+              drawingContext.FillTriangle(
+              (int)positionX - size,
+              (int)positionY + size,
+              (int)positionX + size,
+              (int)positionY + size,
+              (int)positionX,
+              (int)positionY,
+              selectedColor);
+            }
+            else
+            {
+              drawingContext.DrawTriangle(
+              (int)positionX - size,
+              (int)positionY - size,
+              (int)positionX + size,
+              (int)positionY - size,
+              (int)positionX,
+              (int)positionY,
+              selectedColor
+              );
+
+              drawingContext.FillTriangle(
+              (int)positionX - size,
+              (int)positionY - size,
+              (int)positionX + size,
+              (int)positionY - size,
+              (int)positionX,
+              (int)positionY,
+              selectedColor);
+              }
+          }
         }
       }
     }
