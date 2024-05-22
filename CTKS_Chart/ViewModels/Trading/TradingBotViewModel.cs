@@ -51,9 +51,9 @@ namespace CTKS_Chart.ViewModels
     where TPosition : Position, new()
     where TStrategy : BaseStrategy<TPosition>
   {
-    private readonly IWindowManager windowManager;
+    protected readonly IWindowManager windowManager;
     private readonly BinanceBroker binanceBroker;
-    private readonly IViewModelsFactory viewModelsFactory;
+    protected readonly IViewModelsFactory viewModelsFactory;
     private Stopwatch stopwatch = new Stopwatch();
     private TimeSpan lastElapsed;
     private string layoutPath = Path.Combine(Settings.DataPath, "layout.json");

@@ -61,6 +61,9 @@ namespace CTKS_Chart.Binance.Data
 
         var lastValues = (await binanceBroker.GetCandles(symbol, klineInterval, endTime: firstDate)).OrderByDescending(x => x.CloseTime);
 
+        if (lastValues.Max(x => x.CloseTime) < firstDate)
+          break;
+
         candles.AddRange(lastValues);
 
         lastCloseTime = firstDate;

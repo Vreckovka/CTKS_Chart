@@ -255,6 +255,7 @@
 
           </wpf:Axis>
         </wpf:CartesianChart.AxisX>
+        
         <wpf:CartesianChart.DataTooltip>
           <wpf:DefaultTooltip
             Background="#252525"
@@ -331,7 +332,6 @@
             Values="{Binding ActualAutoValue}" />
         </wpf:CartesianChart.Series>
       </wpf:CartesianChart>
-
 
     </UniformGrid>
 

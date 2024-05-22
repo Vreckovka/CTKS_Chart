@@ -50,7 +50,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region TotalValue
+    #region AthPrice
 
     private IChartValues athPrice;
 

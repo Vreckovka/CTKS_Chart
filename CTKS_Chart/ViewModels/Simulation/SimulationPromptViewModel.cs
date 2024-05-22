@@ -48,9 +48,9 @@ namespace CTKS_Chart.ViewModels
 
     #region SelectedBot
 
-    private ITradingBotViewModel selectedBot;
+    private ISimulationTradingBot selectedBot;
 
-    public ITradingBotViewModel SelectedBot
+    public ISimulationTradingBot SelectedBot
     {
       get { return selectedBot; }
       set
@@ -60,6 +60,7 @@ namespace CTKS_Chart.ViewModels
           SelectedBot?.Stop();
           selectedBot = value;
 
+          selectedBot.LoadSimulationResults();
           RaisePropertyChanged();
         }
       }

@@ -9,65 +9,202 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using CTKS_Chart.Binance;
 using CTKS_Chart.Binance.Data;
 using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using CTKS_Chart.Views;
+using CTKS_Chart.Views.Simulation;
+using LiveCharts;
+using LiveCharts.Configurations;
+using LiveCharts.Defaults;
 using Logger;
+using Microsoft.Expression.Interactivity.Core;
 using VCore.Standard.Factories.ViewModels;
 using VCore.Standard.Helpers;
 using VCore.WPF;
 using VCore.WPF.Interfaces.Managers;
+using VCore.WPF.Misc;
+using VCore.WPF.Prompts;
 
 namespace CTKS_Chart.ViewModels
 {
-  public class SimulationResultValue
+  public class SimulationStatisticsViewModel : BasePromptViewModel
   {
-    public SimulationResultValue()
-    {
+    private readonly Asset asset;
 
+    public SimulationStatisticsViewModel(Asset asset)
+    {
+      this.asset = asset ?? throw new ArgumentNullException(nameof(asset));
+      Title = "Simulation result statistics";
     }
 
-    public SimulationResultValue(decimal value)
+    #region ValueFormatter
+
+    private Func<double, string> valueFormatter;
+
+    public Func<double, string> ValueFormatter
     {
-      Value = value;
-    }
-
-    public decimal Value { get; set; }
-    public Candle Candle { get; set; }
-  }
-  public class SimulationResult
-  {
-    public SimulationResult()
-    {
-    }
-
-    public decimal TotalValue { get; set; }
-    public decimal TotalProfit { get; set; }
-    public decimal TotalNativeValue { get; set; }
-    public decimal TotalNative { get; set; }
-    public TimeSpan RunTime { get; set; }
-    public long RunTimeTicks { get; set; }
-    public DateTime Date { get; set; }
-    public string BotName { get; set; }
-
-    public SimulationResultValue MaxValue { get; set; } = new SimulationResultValue();
-    public SimulationResultValue LowAfterMaxValue { get; set; } = new SimulationResultValue(decimal.MaxValue);
-
-    public decimal Drawdawn
-    {
-      get
+      get { return valueFormatter; }
+      set
       {
-        if (MaxValue.Value > 0)
-          return (MaxValue.Value - LowAfterMaxValue.Value) / MaxValue.Value * 100;
-
-        return 0;
+        if (value != valueFormatter)
+        {
+          valueFormatter = value;
+          RaisePropertyChanged();
+        }
       }
     }
+
+    #endregion
+
+    #region NativeFormatter
+
+    private Func<double, string> nativeFormatter;
+
+    public Func<double, string> NativeFormatter
+    {
+      get { return nativeFormatter; }
+      set
+      {
+        if (value != nativeFormatter)
+        {
+          nativeFormatter = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region TotalValue
+
+    private IChartValues totalValue;
+
+    public IChartValues TotalValue
+    {
+      get { return totalValue; }
+      set
+      {
+        if (value != totalValue)
+        {
+          totalValue = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region TotalNative
+
+    private IChartValues totalNative;
+
+    public IChartValues TotalNative
+    {
+      get { return totalNative; }
+      set
+      {
+        if (value != totalNative)
+        {
+          totalNative = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region TotalNativeValue
+
+    private IChartValues totalNativeValue;
+
+    public IChartValues TotalNativeValue
+    {
+      get { return totalNativeValue; }
+      set
+      {
+        if (value != totalNativeValue)
+        {
+          totalNativeValue = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region Price
+
+    private IChartValues price;
+
+    public IChartValues Price
+    {
+      get { return price; }
+      set
+      {
+        if (value != price)
+        {
+          price = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region Labels
+
+    private IList<string[]> labels;
+  
+
+    public IList<string[]> Labels
+    {
+      get { return labels; }
+      set
+      {
+        if (value != labels)
+        {
+          labels = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    public override void Initialize()
+    {
+      base.Initialize();
+
+
+      LoadChart();
+    }
+
+    public IList<SimulationResultDataPoint> DataPoints { get; set; } = new List<SimulationResultDataPoint>();
+
+    private void LoadChart()
+    {
+      var mapper = Mappers.Xy<ObservablePoint>()
+    .X(point => Math.Log(point.X, 10)) //a 10 base log scale in the X axis
+    .Y(point => point.Y);
+
+      TotalValue = new ChartValues<decimal>(DataPoints.Select(x => x.TotalValue));
+      TotalNative = new ChartValues<decimal>(DataPoints.Select(x => x.TotalNative));
+      TotalNativeValue = new ChartValues<decimal>(DataPoints.Select(x => x.TotalNativeValue));
+      Price = new ChartValues<decimal>(DataPoints.Select(x => x.Close));
+
+      Labels = new List<string[]>();
+
+      Labels.Add(DataPoints.Select(x => x.Date.ToShortDateString()).ToArray());
+
+      ValueFormatter = value => value.ToString("N2");
+      NativeFormatter = value => value.ToString($"N{asset.NativeRound}");
+    }
   }
 
-  public class SimulationTradingBot<TPosition, TStrategy> : TradingBotViewModel<TPosition, TStrategy>
+  public class SimulationTradingBot<TPosition, TStrategy> : TradingBotViewModel<TPosition, TStrategy>, ISimulationTradingBot
     where TPosition : Position, new()
     where TStrategy : BaseSimulationStrategy<TPosition>, new()
   {
@@ -90,7 +227,7 @@ namespace CTKS_Chart.ViewModels
       DrawChart = false;
 
       results = $"{TradingBot.Asset.Symbol}_simulation_results.txt";
-      LoadSimulationResults();
+
       //DownloadCandles(TradingBot.Asset.Symbol, TimeSpan.FromMinutes(15));
 
       if (string.IsNullOrEmpty(DisplayName))
@@ -250,8 +387,10 @@ namespace CTKS_Chart.ViewModels
 
     #region LoadSimulationResults
 
-    private void LoadSimulationResults()
+    public void LoadSimulationResults()
     {
+      SimulationResults.Clear();
+
       if (File.Exists(results))
       {
         var content = File.ReadAllLines(results);
@@ -312,6 +451,7 @@ namespace CTKS_Chart.ViewModels
 
       await Task.Run(async () =>
       {
+        DateTime lastDay = DateTime.MinValue;
         for (int i = 0; i < cutCandles.Count; i++)
         {
           var actual = cutCandles[i];
@@ -323,6 +463,18 @@ namespace CTKS_Chart.ViewModels
 
           await Task.Delay(!IsSimulation || DrawChart ? Delay : 0);
 
+          if (lastDay < actual.OpenTime.Date)
+          {
+            lastDay = actual.OpenTime.Date;
+            result.DataPoints.Add(new SimulationResultDataPoint()
+            {
+              Date = lastDay,
+              TotalNative = TradingBot.Strategy.TotalNativeAsset,
+              TotalValue = TradingBot.Strategy.TotalValue,
+              TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
+              Close = actual.Close.Value
+            });
+          }
 
           if (TradingBot.Strategy.TotalValue > result.MaxValue.Value)
           {
@@ -392,6 +544,28 @@ namespace CTKS_Chart.ViewModels
       InnerLayouts.Clear();
 
       TradingBot.Strategy = simulationStrategy;
+    }
+
+    #endregion
+
+    #region ShowStatistics
+
+    private ActionCommand<SimulationResult> showStatistics;
+
+    public ICommand ShowStatistics
+    {
+      get
+      {
+        return showStatistics ??= new ActionCommand<SimulationResult>(OnShowStatistics);
+      }
+    }
+
+    protected virtual void OnShowStatistics(SimulationResult simulationResult)
+    {
+      windowManager.ShowPrompt<SimulationStatisticsView>(new SimulationStatisticsViewModel(TradingBot.Asset)
+      {
+        DataPoints = simulationResult.DataPoints
+      }, 1000, 1000);
     }
 
     #endregion
