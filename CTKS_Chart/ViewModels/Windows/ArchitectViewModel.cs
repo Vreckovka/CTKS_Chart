@@ -29,7 +29,7 @@ namespace CTKS_Chart.ViewModels
     public ArchitectViewModel(IList<CtksLayout> layouts,
       ColorSchemeViewModel colorSchemeViewModel,
       IViewModelsFactory viewModelsFactory,
-      BaseTradingBot<Position, SimulationStrategy> tradingBot, Layout layout) : base(layouts, colorSchemeViewModel, viewModelsFactory, tradingBot, layout)
+      TradingBot<Position, SimulationStrategy> tradingBot, Layout layout) : base(layouts, colorSchemeViewModel, viewModelsFactory, tradingBot, layout)
     {
     }
   }
@@ -53,7 +53,7 @@ namespace CTKS_Chart.ViewModels
 
     public BaseArchitectViewModel(IList<CtksLayout> layouts,
       ColorSchemeViewModel colorSchemeViewModel,
-      IViewModelsFactory viewModelsFactory, BaseTradingBot<TPosition, TStrategy> tradingBot, Layout layout) : base(tradingBot, layout)
+      IViewModelsFactory viewModelsFactory, TradingBot<TPosition, TStrategy> tradingBot, Layout layout) : base(tradingBot, layout)
     {
       this.viewModelsFactory = viewModelsFactory ?? throw new ArgumentNullException(nameof(viewModelsFactory));
       Layouts = layouts ?? throw new ArgumentNullException(nameof(layouts));

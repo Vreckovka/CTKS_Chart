@@ -34,7 +34,7 @@ using Path = System.IO.Path;
 
 namespace CTKS_Chart.ViewModels
 {
-  public interface ITradingBot
+  public interface ITradingBotViewModel
   {
     public void Start();
     public void Stop();
@@ -43,9 +43,11 @@ namespace CTKS_Chart.ViewModels
 
     public void SaveAsset();
     public void SaveLayoutSettings();
+
+    public Asset Asset { get; }
   }
 
-  public class TradingBotViewModel<TPosition, TStrategy> : ViewModel, ITradingBot
+  public class TradingBotViewModel<TPosition, TStrategy> : ViewModel, ITradingBotViewModel
     where TPosition : Position, new()
     where TStrategy : BaseStrategy<TPosition>
   {
@@ -58,7 +60,7 @@ namespace CTKS_Chart.ViewModels
     public static string stateDataPath = Path.Combine(Settings.DataPath, "state_data.txt");
 
     public TradingBotViewModel(
-      BaseTradingBot<TPosition, TStrategy> tradingBot,
+      TradingBot<TPosition, TStrategy> tradingBot,
       ILogger logger,
       IWindowManager windowManager,
       BinanceBroker binanceBroker,
@@ -76,8 +78,15 @@ namespace CTKS_Chart.ViewModels
 
     //TODO: Replace by TradingBotView
     public MainWindow MainWindow { get; set; }
-    public BaseTradingBot<TPosition, TStrategy> TradingBot { get; }
+    public TradingBot<TPosition, TStrategy> TradingBot { get; }
 
+    public Asset Asset
+    {
+      get
+      {
+        return TradingBot.Asset;
+      }
+    }
 
     #region  ConsoleCollectionLogger
 
@@ -298,7 +307,7 @@ namespace CTKS_Chart.ViewModels
 
     protected virtual void OnOpenArchitectView()
     {
-      var arch = new ArchitectViewModel(Layouts, DrawingViewModel.ColorScheme, viewModelsFactory, new BaseTradingBot<Position, SimulationStrategy>(
+      var arch = new ArchitectViewModel(Layouts, DrawingViewModel.ColorScheme, viewModelsFactory, new TradingBot<Position, SimulationStrategy>(
         new Asset()
         {
           NativeRound = TradingBot.Asset.NativeRound,
@@ -348,7 +357,7 @@ namespace CTKS_Chart.ViewModels
 
     protected virtual async void OnFetchMissingInfo()
     {
-      if (TradingBot.Strategy is BinanceStrategy binanceStrategy)
+      if (TradingBot.Strategy is BinanceSpotStrategy binanceStrategy)
         await binanceStrategy.FetchMissingInfo();
 
 
@@ -667,7 +676,7 @@ namespace CTKS_Chart.ViewModels
 
     protected virtual async Task LoadLayouts(CtksLayout mainLayout)
     {
-      var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame,TradingBot.Asset);
+      var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, TradingBot.Asset);
 
       DrawingViewModel.ActualCandles = (await
         binanceBroker.GetCandles(TradingBot.Asset.Symbol,
@@ -865,7 +874,7 @@ namespace CTKS_Chart.ViewModels
           }
         }
 
-        foreach(var indicator in IndicatorLayouts)
+        foreach (var indicator in IndicatorLayouts)
         {
           indicator.IsOutDated = TradingViewHelper.IsOutDated(indicator.TimeFrame, indicator.AllCandles);
           var lastCount = indicator.AllCandles.Count;
@@ -874,7 +883,7 @@ namespace CTKS_Chart.ViewModels
           {
             var innerCandles = TradingViewHelper.ParseTradingView
               (indicator.TimeFrame, indicator.DataLocation,
-              addNotClosedCandle: true, indexCut: lastCount + 1, 
+              addNotClosedCandle: true, indexCut: lastCount + 1,
               saveData: !IsSimulation && indicator.DataLocation.Contains(TradingBot.Asset.Symbol));
 
             indicator.IsOutDated = TradingViewHelper.IsOutDated(indicator.TimeFrame, indicator.AllCandles);
@@ -918,7 +927,7 @@ namespace CTKS_Chart.ViewModels
 
           var duplicates = ctksIntersections.GroupBy(x => x.Value);
 
-          foreach(var duplicate in duplicates.Where(x => x.Count() > 1))
+          foreach (var duplicate in duplicates.Where(x => x.Count() > 1))
           {
             var list = duplicate.ToList();
 
@@ -996,7 +1005,7 @@ namespace CTKS_Chart.ViewModels
     {
       var layout = CreateLayout<CtksLayout>(location, timeFrame, maxTime, pmax, pmin, saveData: saveData);
 
-      var ctks = new Ctks(layout, timeFrame,TradingBot.Asset);
+      var ctks = new Ctks(layout, timeFrame, TradingBot.Asset);
 
       ctks.CrateCtks(layout.AllCandles);
 
@@ -1062,7 +1071,7 @@ namespace CTKS_Chart.ViewModels
               });
             }
 
-            if (existingRF != null )
+            if (existingRF != null)
             {
               existingRF.Value = rf;
             }
@@ -1071,7 +1080,7 @@ namespace CTKS_Chart.ViewModels
               TradingBot.Strategy.Intersections.Add(new CtksIntersection()
               {
                 Value = rf,
-                IntersectionType = IntersectionType.RangeFilter,          
+                IntersectionType = IntersectionType.RangeFilter,
                 TimeFrame = TimeFrame.W1
               });
             }
@@ -1338,7 +1347,6 @@ namespace CTKS_Chart.ViewModels
 
     #region FetchAdditionalCandles
 
-    int maxCandlesToFetch = 15000;
     private async Task FetchAdditionalCandles()
     {
       var startDate = DateTimeHelper.UnixTimeStampToUtcDateTime(DrawingViewModel.MinUnix);
@@ -1347,7 +1355,7 @@ namespace CTKS_Chart.ViewModels
       DateTime? firstDate = candles.First().OpenTime;
       DateTime? lastCloseTime = null;
 
-      while (DrawingViewModel.MinUnix < candles.Min(x => x.UnixTime) && candles.Count < maxCandlesToFetch)
+      while (DrawingViewModel.MinUnix < candles.Min(x => x.UnixTime))
       {
         //was added to the end
         var lastValues =

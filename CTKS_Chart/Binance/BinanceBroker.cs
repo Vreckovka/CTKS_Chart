@@ -19,6 +19,7 @@ using Binance.Net.Objects.Options;
 using CryptoExchange.Net.Authentication;
 using CryptoExchange.Net.CommonObjects;
 using CryptoExchange.Net.Sockets;
+using CTKS_Chart.Strategy.Futures;
 using CTKS_Chart.Trading;
 using Logger;
 using Position = CTKS_Chart.Strategy.Position;
@@ -254,6 +255,40 @@ namespace CTKS_Chart.Binance
     }
 
     #endregion
+
+    public async Task<long> PlaceLong(string symbol, FuturesPosition futuresPosition)
+    {
+      try
+      {
+        await createPositionLock.WaitAsync();
+        using (var client = new BinanceRestClient())
+        {
+
+          var result = await client.UsdFuturesApi.Trading.PlaceOrderAsync(symbol,
+            OrderSide.Buy,
+            FuturesOrderType.Limit,
+            futuresPosition.PositionSize,
+            price: futuresPosition.Price,
+            stopPrice: futuresPosition.StopLoss.Price,
+            timeInForce: TimeInForce.GoodTillCanceled);
+
+          if (result.Success)
+          {
+            futuresPosition.CreatedDate = result.Data.UpdateTime;
+            futuresPosition.Id = result.Data.Id;
+            return result.Data.Id;
+          }
+          else
+            LogError(result.Error?.Message);
+        }
+      }
+      finally
+      {
+        createPositionLock.Release();
+      }
+
+      return 0;
+    }
 
     #region SubscribeToKlineInterval
 

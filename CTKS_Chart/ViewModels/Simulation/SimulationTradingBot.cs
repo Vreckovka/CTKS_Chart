@@ -75,7 +75,7 @@ namespace CTKS_Chart.ViewModels
     string results;
 
     public SimulationTradingBot(
-      BaseTradingBot<TPosition, TStrategy> tradingBot,
+      TradingBot<TPosition, TStrategy> tradingBot,
       ILogger logger,
       IWindowManager windowManager,
       BinanceBroker binanceBroker,

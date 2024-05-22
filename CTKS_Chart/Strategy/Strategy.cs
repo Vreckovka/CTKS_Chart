@@ -154,8 +154,8 @@ namespace CTKS_Chart.Strategy
           RaisePropertyChanged(nameof(MinBuyPrice));
           RaisePropertyChanged(nameof(Budget));
           RaisePropertyChanged(nameof(TotalNativeAsset));
-          RaisePropertyChanged(nameof(StrategyViewModel.TotalBuy));
-          RaisePropertyChanged(nameof(StrategyViewModel.TotalSell));
+          RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.TotalBuy));
+          RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.TotalSell));
           RaisePropertyChanged(nameof(PositionSizeMapping));
           RaisePropertyChanged(nameof(ScaleSize));
           RaisePropertyChanged(nameof(MaxBuyPrice));
@@ -792,7 +792,7 @@ namespace CTKS_Chart.Strategy
         }
 
 
-        RaisePropertyChanged(nameof(StrategyViewModel.TotalExpectedProfit));
+        RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.TotalExpectedProfit));
       }
       finally
       {
@@ -1088,7 +1088,7 @@ namespace CTKS_Chart.Strategy
         MaxTotalValue = TotalValue;
       }
 
-      RaisePropertyChanged(nameof(StrategyViewModel.AvrageBuyPrice));
+      RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.AvrageBuyPrice));
       RaisePropertyChanged(nameof(AllClosedPositions));
     }
 
@@ -1143,7 +1143,7 @@ namespace CTKS_Chart.Strategy
           if (TPosition.IsAutomatic)
             AutomaticBudget -= TPosition.Fees ?? 0;
 
-          RaisePropertyChanged(nameof(StrategyViewModel.TotalBuy));
+          RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.TotalBuy));
 
           if (DisableOnBuy)
           {
@@ -1153,7 +1153,7 @@ namespace CTKS_Chart.Strategy
 
           ActualPositions.Add(TPosition);
           RaisePropertyChanged(nameof(AllCompletedPositions));
-          RaisePropertyChanged(nameof(StrategyViewModel.TotalExpectedProfit));
+          RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.TotalExpectedProfit));
           SaveState();
         }
       }
@@ -1231,11 +1231,11 @@ namespace CTKS_Chart.Strategy
             ActualPositions.Remove((TPosition)originalBuy);
 
             RaisePropertyChanged(nameof(AllCompletedPositions));
-            RaisePropertyChanged(nameof(StrategyViewModel.TotalExpectedProfit));
+            RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.TotalExpectedProfit));
           }
         }
 
-        RaisePropertyChanged(nameof(StrategyViewModel.TotalSell));
+        RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.TotalSell));
 
         SaveState();
       }

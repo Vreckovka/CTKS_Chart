@@ -114,7 +114,7 @@ namespace CTKS_Chart.ViewModels
   {
     DashStyle pricesDashStyle = new DashStyle(new List<double>() { 2 }, 5);
     public decimal chartDiff = 0.01m;
-    public DrawingViewModel(BaseTradingBot<TPosition, TStrategy> tradingBot, Layout layout)
+    public DrawingViewModel(TradingBot<TPosition, TStrategy> tradingBot, Layout layout)
     {
       TradingBot = tradingBot;
       Layout = layout;
@@ -126,7 +126,7 @@ namespace CTKS_Chart.ViewModels
     #region Properties
 
     public Layout Layout { get; }
-    public BaseTradingBot<TPosition, TStrategy> TradingBot { get; }
+    public TradingBot<TPosition, TStrategy> TradingBot { get; }
     public RxObservableCollection<RenderedIntesection> RenderedIntersections { get; } = new RxObservableCollection<RenderedIntesection>();
     public RxObservableCollection<DrawingRenderedLabel> RenderedLabels { get; } = new RxObservableCollection<DrawingRenderedLabel>();
 
@@ -248,6 +248,12 @@ namespace CTKS_Chart.ViewModels
         if (value != minValue && value < maxValue)
         {
           minValue = value;
+
+          if (minValue < 0)
+          {
+            minValue = 0.0001m;
+          }
+
           LockChart = false;
           Layout.MinValue = MinValue;
 
@@ -268,9 +274,14 @@ namespace CTKS_Chart.ViewModels
       get { return maxUnix; }
       set
       {
-        if (value != maxUnix)
+        if (value != maxUnix && value > minUnix)
         {
           maxUnix = value;
+
+          if (maxUnix < 0)
+          {
+            maxUnix = (long)1;
+          }
 
           LockChart = false;
           Layout.MaxUnix = MaxUnix;
@@ -292,10 +303,14 @@ namespace CTKS_Chart.ViewModels
       get { return minUnix; }
       set
       {
-        if (value != minUnix)
+        if (value != minUnix && value < maxUnix)
         {
-
           minUnix = value;
+
+          if (minUnix < 0)
+          {
+            minUnix = (long)1;
+          }
 
           LockChart = false;
           Layout.MinUnix = MinUnix;
@@ -450,7 +465,7 @@ namespace CTKS_Chart.ViewModels
       get
       {
 
-        return 200;
+        return 100;
       }
     }
 
@@ -783,7 +798,7 @@ namespace CTKS_Chart.ViewModels
             {
               if (MaxUnix < lastCandle?.UnixTime)
               {
-                var viewCandles = ActualCandles.TakeLast(100);
+                var viewCandles = ActualCandles.TakeLast(InitialCandleCount);
 
                 maxUnix = viewCandles.Max(x => x.UnixTime) + (unixDiff * 30);
                 minUnix = viewCandles.Min(x => x.UnixTime) + (unixDiff * 30);
@@ -833,7 +848,7 @@ namespace CTKS_Chart.ViewModels
           }
 
 
-          if (TradingBot.Strategy is StrategyViewModel strategyViewModel)
+          if (TradingBot.Strategy is StrategyViewModel<TPosition> strategyViewModel)
           {
             decimal price = strategyViewModel.AvrageBuyPrice;
 

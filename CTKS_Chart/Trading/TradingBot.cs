@@ -8,14 +8,28 @@ using VCore.Standard.Helpers;
 
 namespace CTKS_Chart.Trading
 {
-  public class BaseTradingBot<TPosition,TStrategy> : ViewModel 
+  public interface ITradingBot
+  {
+    public Asset Asset { get; }
+    public Dictionary<string, TimeFrame> TimeFrames { get; } 
+    public Dictionary<string, TimeFrame> IndicatorTimeFrames { get;  } 
+  }
+
+  public enum TradingBotType
+  {
+    Spot,
+    Futures
+  }
+
+  public class TradingBot<TPosition,TStrategy> : ViewModel, ITradingBot
     where TPosition : Position, new()
     where TStrategy : BaseStrategy<TPosition>
   {
-    public BaseTradingBot(Asset asset, TStrategy strategy)
+    public TradingBot(Asset asset, TStrategy strategy, TradingBotType tradingBotType = TradingBotType.Spot)
     {
       Strategy = strategy;
       Asset = asset;
+      Type = tradingBotType;
 
       if (strategy != null)
         strategy.Asset = asset;
@@ -40,10 +54,11 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
-
     public Asset Asset { get; }
     public Dictionary<string, TimeFrame> TimeFrames { get; private set; } = new Dictionary<string, TimeFrame>();
     public Dictionary<string, TimeFrame> IndicatorTimeFrames { get; private set; } = new Dictionary<string, TimeFrame>();
+
+    public TradingBotType Type { get; }
 
     #region LoadTimeFrames
 

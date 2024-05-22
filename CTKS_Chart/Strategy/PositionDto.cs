@@ -4,14 +4,15 @@ using CTKS_Chart.Trading;
 
 namespace CTKS_Chart.Strategy
 {
-  public class PositionDto
+  public class PositionDto<TPosition>
+    where TPosition : Position, new()
   {
     public PositionDto()
     {
 
     }
 
-    public PositionDto(Position position)
+    public PositionDto(TPosition position)
     {
       PositionSize = position.PositionSize;
       PositionSizeNative = position.PositionSizeNative;
@@ -31,9 +32,9 @@ namespace CTKS_Chart.Strategy
       IsAutomatic = position.IsAutomatic;
     }
 
-    public Position GetPosition()
+    public TPosition GetPosition()
     {
-      return new Position()
+      return new TPosition()
       {
         PositionSize = PositionSize,
         PositionSizeNative = PositionSizeNative,

@@ -24,6 +24,7 @@ using Binance.Net.Interfaces;
 using CTKS_Chart.Binance;
 using CTKS_Chart.Binance.Data;
 using CTKS_Chart.Strategy;
+using CTKS_Chart.Strategy.Futures;
 using CTKS_Chart.Trading;
 using CTKS_Chart.Views;
 using CTKS_Chart.Views.Prompts;
@@ -65,6 +66,7 @@ namespace CTKS_Chart.ViewModels
     {
       this.windowManager = windowManager ?? throw new ArgumentNullException(nameof(windowManager));
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
+
     }
 
     #endregion
@@ -73,9 +75,9 @@ namespace CTKS_Chart.ViewModels
 
     #region TradingBotViewModel
 
-    private ITradingBot tradingBotViewModel;
+    private ITradingBotViewModel tradingBotViewModel;
 
-    public ITradingBot TradingBotViewModel
+    public ITradingBotViewModel TradingBotViewModel
     {
       get { return tradingBotViewModel; }
       set
@@ -83,6 +85,8 @@ namespace CTKS_Chart.ViewModels
         if (value != tradingBotViewModel)
         {
           tradingBotViewModel = value;
+
+          SetTradingBot(tradingBotViewModel);
           RaisePropertyChanged();
         }
       }
@@ -90,7 +94,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #endregion
+    public ObservableCollection<ITradingBotViewModel> TradingBots { get; } = new ObservableCollection<ITradingBotViewModel>();
 
     #region OpenTesting
 
@@ -108,8 +112,8 @@ namespace CTKS_Chart.ViewModels
     {
       var prompt = ViewModelsFactory.Create<SimulationPromptViewModel>();
       TradingBotViewModel.IsPaused = true;
-        
-      windowManager.ShowPrompt<SimulationView>(prompt,1000,1000);
+
+      windowManager.ShowPrompt<SimulationView>(prompt, 1000, 1000);
 
       TradingBotViewModel.IsPaused = false;
     }
@@ -135,6 +139,8 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #endregion
+
     #region Methods
 
     #region Initialize
@@ -146,19 +152,31 @@ namespace CTKS_Chart.ViewModels
       var asset = JsonSerializer.Deserialize<Asset>(File.ReadAllText(Path.Combine(Settings.DataPath, "asset.json")));
 
       asset.RunTime = TimeSpan.FromTicks(asset.RunTimeTicks);
+      
+      var spot = new TradingBot<Position, BinanceSpotStrategy>(asset, ViewModelsFactory.Create<BinanceSpotStrategy>(), TradingBotType.Spot);
+      var futures = new TradingBot<FuturesPosition, BinanceFuturesStrategy>(asset, ViewModelsFactory.Create<BinanceFuturesStrategy>(), TradingBotType.Futures);
 
+      var spotVm = ViewModelsFactory.Create<TradingBotViewModel<Position, BinanceSpotStrategy>>(spot);
+      var futuresVm = ViewModelsFactory.Create<TradingBotViewModel<FuturesPosition, BinanceFuturesStrategy>>(futures);
 
-      var selectedBot = new BaseTradingBot<Position, BinanceStrategy>(asset, ViewModelsFactory.Create<BinanceStrategy>());
+      TradingBots.Add(spotVm);
+      TradingBots.Add(futuresVm);
 
-      TradingBotViewModel = ViewModelsFactory.Create<TradingBotViewModel<Position, BinanceStrategy>>(selectedBot);
+      TradingBotViewModel = spotVm;
+    }
 
+    #endregion
 
+    #region SetTradingBot
+
+    private void SetTradingBot(ITradingBotViewModel tradingBot)
+    {
       TradingBotViewModel.MainWindow = (MainWindow)Window;
       TradingBotViewModel.Start();
 
-      Title = selectedBot.Asset.Symbol;
+      Title = tradingBot.Asset.Symbol;
 
-      ChangeIcon(selectedBot.Asset.Symbol);
+      ChangeIcon(tradingBot.Asset.Symbol);
     }
 
     #endregion

@@ -10,6 +10,7 @@ using Binance.Net.Enums;
 using Binance.Net.Objects.Models.Spot.Socket;
 using CryptoExchange.Net.Sockets;
 using CTKS_Chart.Binance;
+using CTKS_Chart.Strategy.Futures;
 using CTKS_Chart.Trading;
 using CTKS_Chart.ViewModels;
 using Logger;
@@ -19,10 +20,10 @@ using VCore.WPF;
 
 namespace CTKS_Chart.Strategy
 {
-
-  public class BinanceStrategy : StrategyViewModel
+  public abstract class BinanceStrategy<TPosition> : StrategyViewModel<TPosition>
+      where TPosition : Position, new()
   {
-    private readonly BinanceBroker binanceBroker;
+    protected readonly BinanceBroker binanceBroker;
     private readonly ILogger logger;
 
     string path = Path.Combine(Settings.DataPath, "State");
@@ -34,17 +35,19 @@ namespace CTKS_Chart.Strategy
       this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
       Logger = this.logger;
 
+
+
 #if RELEASE
       Subscribe();
 #endif
+
     }
 
-
-
-    public override bool IsPositionFilled(Candle candle, Position position)
+    public override bool IsPositionFilled(Candle candle, TPosition position)
     {
       return false;
     }
+
 
     private async void Subscribe()
     {
@@ -70,19 +73,19 @@ namespace CTKS_Chart.Strategy
           if (orderUpdate.Status == OrderStatus.Filled)
           {
             if (orderUpdate.Side == OrderSide.Buy)
-              logger.Log(MessageType.Success, message, simpleMessage: true);
+              Logger.Log(MessageType.Success, message, simpleMessage: true);
             else
-              logger.Log(MessageType.Success2, message, simpleMessage: true);
+              Logger.Log(MessageType.Success2, message, simpleMessage: true);
           }
           else
           {
-            logger.Log(MessageType.Inform, message, simpleMessage: true);
+            Logger.Log(MessageType.Inform, message, simpleMessage: true);
           }
 
 
           if (orderUpdate.RejectReason != OrderRejectReason.None)
           {
-            logger.Log(MessageType.Error, $"Order update REJECTED {orderUpdate.Id} {orderUpdate.Status} {orderUpdate.UpdateTime} {orderUpdate.RejectReason}", simpleMessage: true);
+            Logger.Log(MessageType.Error, $"Order update REJECTED {orderUpdate.Id} {orderUpdate.Status} {orderUpdate.UpdateTime} {orderUpdate.RejectReason}", simpleMessage: true);
           }
 
 
@@ -226,39 +229,6 @@ namespace CTKS_Chart.Strategy
 
     #endregion
 
-    #region CancelPosition
-
-    protected override async Task<bool> PlaceCancelPosition(Position position)
-    {
-
-#if RELEASE
-      return await binanceBroker.Cancel(Asset.Symbol, position.Id);
-#else
-      return await Task.FromResult(true);
-#endif
-    }
-
-    #endregion
-
-    #region CreatePosition
-
-    private static int FakeId = 1;
-    protected override async Task<long> PlaceCreatePosition(Position position)
-    {
-
-#if RELEASE
-      if (position.Side == PositionSide.Buy)
-        return await binanceBroker.Buy(Asset.Symbol, position);
-      else
-        return await binanceBroker.Sell(Asset.Symbol, position);
-#else
-      return await Task.FromResult(FakeId++);
-#endif
-
-    }
-
-    #endregion
-
     #region SaveState
 
     private object saveLock = new object();
@@ -271,10 +241,10 @@ namespace CTKS_Chart.Strategy
           WriteIndented = true
         };
 
-        var openBuy = JsonSerializer.Serialize(OpenBuyPositions.Select(x => new PositionDto(x)), options);
-        var openSell = JsonSerializer.Serialize(OpenSellPositions.Select(x => new PositionDto(x)), options);
-        var cloedSell = JsonSerializer.Serialize(ClosedSellPositions.Select(x => new PositionDto(x)), options);
-        var closedBuy = JsonSerializer.Serialize(ClosedBuyPositions.Select(x => new PositionDto(x)), options);
+        var openBuy = JsonSerializer.Serialize(OpenBuyPositions.Select(x => new PositionDto<TPosition>(x)), options);
+        var openSell = JsonSerializer.Serialize(OpenSellPositions.Select(x => new PositionDto<TPosition>(x)), options);
+        var cloedSell = JsonSerializer.Serialize(ClosedSellPositions.Select(x => new PositionDto<TPosition>(x)), options);
+        var closedBuy = JsonSerializer.Serialize(ClosedBuyPositions.Select(x => new PositionDto<TPosition>(x)), options);
 
         Path.Combine(path, "openBuy.json").EnsureDirectoryExists();
 
@@ -311,10 +281,10 @@ namespace CTKS_Chart.Strategy
     {
       if (File.Exists(Path.Combine(path, "openBuy.json")))
       {
-        var openBuys = JsonSerializer.Deserialize<IEnumerable<PositionDto>>(File.ReadAllText(Path.Combine(path, "openBuy.json")));
-        var openSells = JsonSerializer.Deserialize<IEnumerable<PositionDto>>(File.ReadAllText(Path.Combine(path, "openSell.json")));
-        var closedSells = JsonSerializer.Deserialize<IEnumerable<PositionDto>>(File.ReadAllText(Path.Combine(path, "cloedSell.json")));
-        var closedBuys = JsonSerializer.Deserialize<IEnumerable<PositionDto>>(File.ReadAllText(Path.Combine(path, "closedBuy.json")));
+        var openBuys = JsonSerializer.Deserialize<IEnumerable<PositionDto<TPosition>>>(File.ReadAllText(Path.Combine(path, "openBuy.json")));
+        var openSells = JsonSerializer.Deserialize<IEnumerable<PositionDto<TPosition>>>(File.ReadAllText(Path.Combine(path, "openSell.json")));
+        var closedSells = JsonSerializer.Deserialize<IEnumerable<PositionDto<TPosition>>>(File.ReadAllText(Path.Combine(path, "cloedSell.json")));
+        var closedBuys = JsonSerializer.Deserialize<IEnumerable<PositionDto<TPosition>>>(File.ReadAllText(Path.Combine(path, "closedBuy.json")));
 
         foreach (var position in openBuys)
         {
@@ -360,7 +330,7 @@ namespace CTKS_Chart.Strategy
             }
           }
 
-          ClosedBuyPositions.Add(normalPos);
+          ClosedBuyPositions.Add((TPosition)normalPos);
         }
       }
 
@@ -369,8 +339,8 @@ namespace CTKS_Chart.Strategy
         StrategyData = JsonSerializer.Deserialize<StrategyData>(File.ReadAllText(Path.Combine(path, "data.json")));
         wasStrategyDataLoaded = true;
       }
-     
-      ActualPositions = new ObservableCollection<Position>(ClosedBuyPositions.Where(x => x.State == PositionState.Filled));
+
+      ActualPositions = new ObservableCollection<TPosition>(ClosedBuyPositions.Where(x => x.State == PositionState.Filled));
 
       RaisePropertyChanged(nameof(TotalBuy));
       RaisePropertyChanged(nameof(TotalSell));
@@ -382,7 +352,7 @@ namespace CTKS_Chart.Strategy
 
     #region GetFees
 
-    private async Task<decimal?> GetFees(decimal fee, string feeAsset)
+    protected async Task<decimal?> GetFees(decimal fee, string feeAsset)
     {
       try
       {
@@ -399,5 +369,77 @@ namespace CTKS_Chart.Strategy
     }
 
     #endregion
+  }
+
+  public class BinanceFuturesStrategy : BinanceStrategy<FuturesPosition>
+  {
+    public BinanceFuturesStrategy(BinanceBroker binanceBroker, ILogger logger) : base(binanceBroker, logger)
+    {
+    }
+
+    #region CancelPosition
+
+    protected override async Task<bool> PlaceCancelPosition(FuturesPosition position)
+    {
+      return await binanceBroker.Cancel(Asset.Symbol, position.Id);
+    }
+
+    #endregion
+
+    #region CreatePosition
+
+    protected override async Task<long> PlaceCreatePosition(FuturesPosition position)
+    {
+      if (position.Side == PositionSide.Buy)
+        return await binanceBroker.Buy(Asset.Symbol, position);
+      else
+        return await binanceBroker.Sell(Asset.Symbol, position);
+    }
+
+    #endregion
+  }
+
+
+
+
+  public class BinanceSpotStrategy : BinanceStrategy<Position>
+  {
+    public BinanceSpotStrategy(BinanceBroker binanceBroker, ILogger logger) : base(binanceBroker, logger)
+    {
+    }
+
+    #region CancelPosition
+
+    protected override async Task<bool> PlaceCancelPosition(Position position)
+    {
+
+#if RELEASE
+      return await binanceBroker.Cancel(Asset.Symbol, position.Id);
+#else
+      return await Task.FromResult(true);
+#endif
+    }
+
+    #endregion
+
+    #region CreatePosition
+
+    private static int FakeId = 1;
+    protected override async Task<long> PlaceCreatePosition(Position position)
+    {
+
+#if RELEASE
+      if (position.Side == PositionSide.Buy)
+        return await binanceBroker.Buy(Asset.Symbol, position);
+      else
+        return await binanceBroker.Sell(Asset.Symbol, position);
+#else
+      return await Task.FromResult(FakeId++);
+#endif
+
+    }
+
+    #endregion
+
   }
 }

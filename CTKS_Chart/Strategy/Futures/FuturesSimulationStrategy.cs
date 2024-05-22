@@ -1,4 +1,5 @@
-﻿using CTKS_Chart.Trading;
+﻿using CTKS_Chart.Binance;
+using CTKS_Chart.Trading;
 using Logger;
 using System;
 using System.Collections.Generic;
@@ -27,11 +28,10 @@ namespace CTKS_Chart.Strategy.Futures
         return Margin * OriginalPositionSize;
       }
     }
-
   }
 
-
-  public class FuturesStrategy : BaseSimulationStrategy<FuturesPosition>
+ 
+  public class FuturesSimulationStrategy : BaseSimulationStrategy<FuturesPosition>
   {
     public RangeFilterData RangeFilterData { get; set; }
 
@@ -54,7 +54,7 @@ namespace CTKS_Chart.Strategy.Futures
       {
         var diff = Math.Abs(((intersection.Value - fistBuy.Intersection.Value) / intersection.Value));
 
-          if (diff > 0.05m)
+        if (diff > 0.05m)
         {
           OpenBuyPositions.Remove(fistBuy);
           Budget += fistBuy.PositionSize;
@@ -68,7 +68,7 @@ namespace CTKS_Chart.Strategy.Futures
         if (OpenBuyPositions.Count == 0 && intersection != null && ActualPositions.Count == 0)
           await CreateBuyPositionFromIntersection(intersection);
       }
-    
+
     }
 
     protected async override Task CreateBuyPositionFromIntersection(CtksIntersection intersection, bool automatic = false)
@@ -267,7 +267,7 @@ namespace CTKS_Chart.Strategy.Futures
         MaxTotalValue = TotalValue;
       }
 
-      RaisePropertyChanged(nameof(StrategyViewModel.AvrageBuyPrice));
+      RaisePropertyChanged(nameof(StrategyViewModel<FuturesPosition>.AvrageBuyPrice));
       RaisePropertyChanged(nameof(AllClosedPositions));
 
       var position = ActualPositions.FirstOrDefault();
@@ -301,7 +301,7 @@ namespace CTKS_Chart.Strategy.Futures
           OpenSellPositions.Remove(position.TakeProfit);
 
           RaisePropertyChanged(nameof(AllCompletedPositions));
-          RaisePropertyChanged(nameof(StrategyViewModel.TotalExpectedProfit));
+          RaisePropertyChanged(nameof(StrategyViewModel<FuturesPosition>.TotalExpectedProfit));
         }
       }
     }

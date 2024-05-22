@@ -8,19 +8,20 @@ using VCore.Standard.Helpers;
 
 namespace CTKS_Chart.Strategy
 {
-  public abstract class StrategyViewModel : BaseStrategy<Position>
+  public abstract class StrategyViewModel<TPosition> : BaseStrategy<TPosition>
+    where TPosition : Position, new()
   {
-    public override IList<Position> ClosedBuyPositions { get; set; } = new ObservableCollection<Position>();
-    public override IList<Position> ClosedSellPositions { get; set; } = new ObservableCollection<Position>();
+    public override IList<TPosition> ClosedBuyPositions { get; set; } = new ObservableCollection<TPosition>();
+    public override IList<TPosition> ClosedSellPositions { get; set; } = new ObservableCollection<TPosition>();
 
-    public override IList<Position> OpenSellPositions { get; set; } = new ObservableCollection<Position>();
-    public override IList<Position> OpenBuyPositions { get; set; } = new ObservableCollection<Position>();
+    public override IList<TPosition> OpenSellPositions { get; set; } = new ObservableCollection<TPosition>();
+    public override IList<TPosition> OpenBuyPositions { get; set; } = new ObservableCollection<TPosition>();
 
     #region ActualPositions
 
-    private IList<Position> actualPositions = new ObservableCollection<Position>();
+    private IList<TPosition> actualPositions = new ObservableCollection<TPosition>();
 
-    public override IList<Position> ActualPositions
+    public override IList<TPosition> ActualPositions
     {
       get { return actualPositions; }
       set
