@@ -137,7 +137,15 @@ namespace CTKS_Chart.Strategy
             {
               if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Filled)
               {
-                postion.FilledDate = closed.Timestamp;
+                var trade = (await binanceBroker.GetClosedTrades(closed.Id, Asset.Symbol))?.FirstOrDefault();
+
+                if (trade != null)
+                {
+                  postion.Fees = await GetFees(trade.Fee, trade.FeeAsset);
+                  postion.FilledDate = trade.Timestamp;
+                }
+                else
+                  postion.FilledDate = closed.Timestamp;
 
                 if (postion.Side == PositionSide.Buy)
                   await CloseBuy(postion);
@@ -161,6 +169,10 @@ namespace CTKS_Chart.Strategy
           valid.State = PositionState.Filled;
           ActualPositions.Remove(valid);
         }
+      }
+      catch (Exception ex)
+      {
+        logger.Log(ex);
       }
       finally
       {
@@ -327,7 +339,7 @@ namespace CTKS_Chart.Strategy
             }
           }
 
-          ClosedBuyPositions.Add((TPosition)normalPos);
+          ClosedBuyPositions.Add(normalPos);
         }
       }
 
@@ -349,7 +361,7 @@ namespace CTKS_Chart.Strategy
 
     #region GetFees
 
-    protected async Task<decimal?> GetFees(decimal fee, string feeAsset)
+    protected async Task<decimal?> GetFees(decimal? fee, string feeAsset)
     {
       try
       {

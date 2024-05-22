@@ -122,6 +122,18 @@ namespace CTKS_Chart.Binance
 
     #endregion
 
+    #region GetClosedTrades
+
+    public async Task<IEnumerable<UserTrade>> GetClosedTrades(string orderId, string symbol)
+    {
+      using (var client = new BinanceRestClient())
+      {
+        return (await client.SpotApi.CommonSpotClient.GetOrderTradesAsync(orderId, symbol)).Data;
+      }
+    }
+
+    #endregion
+
     #region GetOpenOrders
 
     public async Task<IEnumerable<Order>> GetOpenOrders(string symbol)
@@ -343,7 +355,7 @@ namespace CTKS_Chart.Binance
         onUpdate = data;
 
         var subOkay = await socketClient.SpotApi.Account.SubscribeToUserDataUpdatesAsync(key, data, null, null, null);
-        
+
         if (!subOkay.Success)
         {
           LogError(subOkay.Error?.Message);
@@ -452,7 +464,7 @@ namespace CTKS_Chart.Binance
       var logToFile = message.Contains("1000ms ahead of the server's time.") ? false : true;
 
       logger.Log(MessageType.Error, message, logToFile);
-    } 
+    }
 
     #endregion
   }
