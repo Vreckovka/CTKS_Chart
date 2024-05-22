@@ -1330,23 +1330,15 @@ namespace CTKS_Chart.ViewModels
 
 
         var selectedColor = DrawingHelper.GetColorFromHex(selectedBrush);
-        //Pen pen = new Pen(selectedBrush, 1);
-        // pen.DashStyle = DashStyles.Dash;
-
         var actual = TradingHelper.GetCanvasValue(canvasHeight, position.Price, MaxValue, MinValue);
-
         var frame = position.Intersection.TimeFrame;
-
-        //pen.Thickness = DrawingHelper.GetPositionThickness(frame);
 
         var positionY = canvasHeight - actual;
         var candle = candles.FirstOrDefault(x => x.Candle.OpenTime <= position.FilledDate && x.Candle.CloseTime >= position.FilledDate);
 
         if (candle != null)
         {
-          var text = position.Side == PositionSide.Buy ? "B" : "S";
-          var fontSize = isActiveBuy ? 10 : 5;
-          //FormattedText formattedText = DrawingHelper.GetFormattedText(text, selectedBrush, fontSize);
+           var fontSize = isActiveBuy ? 16 : 7;
 
           if (position.IsAutomatic)
           {
@@ -1364,45 +1356,47 @@ namespace CTKS_Chart.ViewModels
             if (position.Side == PositionSide.Buy)
             {
               drawingContext.DrawTriangle(
-             (int)positionX - size,
-             (int)positionY + size,
-             (int)positionX + size,
-             (int)positionY + size,
-             (int)positionX,
-             (int)positionY,
-             selectedColor
+               (int)positionX - size,
+               (int)positionY + size,
+               (int)positionX + size,
+               (int)positionY + size,
+               (int)positionX,
+               (int)positionY,
+               selectedColor
              );
 
               drawingContext.FillTriangle(
-              (int)positionX - size,
-              (int)positionY + size,
-              (int)positionX + size,
-              (int)positionY + size,
-              (int)positionX,
-              (int)positionY,
-              selectedColor);
+                (int)positionX - size,
+                (int)positionY + size,
+                (int)positionX + size,
+                (int)positionY + size,
+                (int)positionX,
+                (int)positionY,
+                selectedColor
+             );
             }
             else
             {
-              drawingContext.DrawTriangle(
-              (int)positionX - size,
-              (int)positionY - size,
-              (int)positionX + size,
-              (int)positionY - size,
-              (int)positionX,
-              (int)positionY,
-              selectedColor
+                drawingContext.DrawTriangle(
+                (int)positionX - size,
+                (int)positionY - size,
+                (int)positionX + size,
+                (int)positionY - size,
+                (int)positionX,
+                (int)positionY,
+                selectedColor
               );
 
               drawingContext.FillTriangle(
-              (int)positionX - size,
-              (int)positionY - size,
-              (int)positionX + size,
-              (int)positionY - size,
-              (int)positionX,
-              (int)positionY,
-              selectedColor);
-              }
+                (int)positionX - size,
+                (int)positionY - size,
+                (int)positionX + size,
+                (int)positionY - size,
+                (int)positionX,
+                (int)positionY,
+                selectedColor
+              );
+             }
           }
         }
       }
