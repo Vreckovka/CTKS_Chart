@@ -43,7 +43,7 @@ namespace CTKS_Chart.Strategy
       var multi = 1;
       var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
-      StartingBudget = 10000;
+      StartingBudget = 100000;
       StartingBudget *= multi;
       Budget = StartingBudget;
 
@@ -775,10 +775,10 @@ namespace CTKS_Chart.Strategy
         await CheckPositions(actualCandle, minBuy, maxBuy);
         var validIntersections = Intersections;
 
-        if(EnableRangeFilterStrategy)
-        {
-          var range = TradingHelper.GetActualEqivalentCandle(TimeFrame.D1, actualCandle);
+        var range = TradingHelper.GetActualEqivalentCandle(TimeFrame.D1, actualCandle);
 
+        if (EnableRangeFilterStrategy)
+        {
           if (range != null)
           {
             MaxBuyPrice = range.IndicatorData.RangeFilterData.RangeFilter;
@@ -789,7 +789,7 @@ namespace CTKS_Chart.Strategy
 #if DEBUG
         foreach (var innerStrategy in InnerStrategies)
         {
-          validIntersections = innerStrategy.Calculate(actualCandle).ToList();
+          //validIntersections = innerStrategy.Calculate(actualCandle).ToList();
         }
 #endif
 
@@ -819,7 +819,13 @@ namespace CTKS_Chart.Strategy
 
         if (StrategyData.MaxAutomaticBudget > 0 && EnableAutoPositions)
         {
+         
           var autoIntersections = inter.Where(x => x.Value < lastSell * 0.995m && x.Value < actualCandle.Close.Value * 0.995m);
+
+          if (range != null)
+          {
+            autoIntersections = autoIntersections.Where(x => x.Value < range.IndicatorData.RangeFilterData.HighTarget);
+          }
 
           foreach (var intersection in autoIntersections)
           {

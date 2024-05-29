@@ -599,7 +599,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    public bool EnableAutoLock { get; set; }
+    public bool EnableAutoLock { get; set; } = true;
 
     #region Methods
 
