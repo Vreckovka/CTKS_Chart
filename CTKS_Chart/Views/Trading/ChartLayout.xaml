@@ -114,9 +114,6 @@
                 </StackPanel>
               </Border>
             </Popup>
-
-            <Grid Height="1" Background="#252525" />
-
           </StackPanel>
         </Grid>
       </Grid>

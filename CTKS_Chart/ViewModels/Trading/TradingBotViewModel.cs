@@ -975,6 +975,7 @@ namespace CTKS_Chart.ViewModels
           }
 
           AddRangeFilterIntersections(TimeFrame.D1);
+          AddRangeFilterIntersections(TimeFrame.W1);
 
           TradingBot.Strategy.ValidatePositions(actual);
           TradingBot.Strategy.CreatePositions(actual);
