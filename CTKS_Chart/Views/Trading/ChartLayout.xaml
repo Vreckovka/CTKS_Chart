@@ -29,58 +29,63 @@
       HorizontalAlignment="Left"
       Panel.ZIndex="100"
       Background="#45000000">
-      <Grid Margin="0,90,0,0">
-        <StackPanel Orientation="Vertical">
-          <controls:PathButton
-            Margin="0,0,0,10"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"
-            Glyph=""
-            GlyphFontSize="25"
-            IconCheckedColor="{StaticResource YellowColor}"
-            IconHeight="auto"
-            IconMargin="0"
-            IconWidth="auto"
-            IsChecked="{Binding ElementName=Overlay, Path=MeasureTool.IsEnabled, Mode=TwoWay}"
-            ToolTip="Measure" />
+      <Grid Margin="0,80,0,0">
+        <Grid.Resources>
+          <Style BasedOn="{StaticResource {x:Type controls:PathButton}}" TargetType="controls:PathButton">
+            <Setter Property="IconCheckedColor" Value="{StaticResource YellowColor}" />
+            <Setter Property="GlyphFontSize" Value="22" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="IconMargin" Value="0" />
+            <Setter Property="Margin" Value="0,5,0,13" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="IconHeight" Value="auto" />
+            <Setter Property="IconWidth" Value="auto" />
+          </Style>
+        </Grid.Resources>
 
-          <StackPanel DataContext="{Binding DrawingSettings}" Orientation="Vertical">
+        <Grid>
+          <StackPanel Orientation="Vertical">
             <controls:PathButton
-              Margin="0,10"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Top"
+              Glyph=""
+              IsChecked="{Binding ElementName=Overlay, Path=MeasureTool.IsEnabled, Mode=TwoWay}"
+              ToolTip="Measure" />
+
+            <controls:PathButton
+              Glyph=""
+              IsChecked="{Binding ElementName=Overlay, Path=MagnifyingGlass.IsEnabled, Mode=TwoWay}"
+              ToolTip="Zoom In" />
+
+            <controls:PathButton
+              Command="{Binding ElementName=Overlay, Path=ZoomOut}"
+              Glyph=""
+              IsReadOnly="True"
+              ToolTip="Zoom Out" />
+
+          </StackPanel>
+
+
+          <StackPanel
+            Margin="0,20,0,10"
+            VerticalAlignment="Bottom"
+            DataContext="{Binding DrawingSettings}"
+            Orientation="Vertical">
+            <Grid Height="1" Background="#252525" />
+
+            <controls:PathButton
               Glyph=""
-              GlyphFontSize="25"
-              IconCheckedColor="{StaticResource YellowColor}"
-              IconHeight="auto"
-              IconMargin="0"
-              IconWidth="auto"
               IsChecked="{Binding ShowIntersections, Mode=TwoWay}"
               ToolTip="Show intersections" />
 
             <controls:PathButton
-              Margin="0,10"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Top"
               Glyph=""
-              GlyphFontSize="25"
-              IconCheckedColor="{StaticResource YellowColor}"
-              IconHeight="auto"
-              IconMargin="0"
-              IconWidth="auto"
               IsChecked="{Binding ShowClusters, Mode=TwoWay}"
               ToolTip="Show clusters" />
 
             <controls:PathButton
               x:Name="show_positions_toggle"
-              Margin="0,15"
-              HorizontalAlignment="Center"
               Glyph="{StaticResource square-poll-horizontal}"
-              GlyphFontSize="25"
-              IconCheckedColor="{StaticResource YellowColor}"
               IconDefaultColor="{StaticResource YellowColor}"
-              IconHoverColor="{StaticResource YellowColor}"
-              IconMargin="0" />
+              IconHoverColor="{StaticResource YellowColor}" />
 
             <Popup
               IsOpen="{Binding ElementName=show_positions_toggle, Path=IsChecked, Mode=TwoWay}"
@@ -108,65 +113,15 @@
 
                 </StackPanel>
               </Border>
-
             </Popup>
 
+            <Grid Height="1" Background="#252525" />
+
           </StackPanel>
-
-          <controls:PathButton
-            x:Name="indicators_toggle"
-            Margin="0,15"
-            HorizontalAlignment="Center"
-            Glyph=""
-            GlyphFontSize="20"
-            IconCheckedColor="{StaticResource YellowColor}"
-            IconDefaultColor="{StaticResource YellowColor}"
-            IconHoverColor="{StaticResource YellowColor}"
-            IconMargin="0" />
-
-          <Popup
-            IsOpen="{Binding ElementName=indicators_toggle, Path=IsChecked, Mode=TwoWay}"
-            Placement="Bottom"
-            PlacementTarget="{Binding ElementName=indicators_toggle}"
-            StaysOpen="False">
-            <Border Padding="5,7,5,5" Background="#101010">
-              <ItemsControl ItemsSource="{Binding IndicatorSettings}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <Grid>
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="auto" />
-                        <ColumnDefinition />
-                      </Grid.ColumnDefinitions>
-
-                      <CheckBox Margin="0,5" IsChecked="{Binding Show, Mode=TwoWay}">
-                        <StackPanel Orientation="Horizontal">
-                          <TextBlock
-                            Grid.Column="1"
-                            Foreground="White"
-                            Text="{Binding Name}" />
-                          <TextBlock
-                            Grid.Column="2"
-                            Margin="20,0,10,0"
-                            Text="{Binding TimeFrame}" />
-                        </StackPanel>
-                      </CheckBox>
-
-                      <Grid
-                        Height="1"
-                        VerticalAlignment="Bottom"
-                        Background="#303030" />
-                    </Grid>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </Border>
-
-          </Popup>
-          <StackPanel />
-        </StackPanel>
+        </Grid>
       </Grid>
     </Border>
+
 
     <controls1:Chart
       x:Name="Chart"
@@ -214,6 +169,31 @@
       DrawingViewModel="{Binding}"
       ResetChart="{Binding ResetChartX}" />
 
+
+    <Border
+      Grid.Column="1"
+      Margin="0,80,0,0"
+      Padding="5,7,5,5">
+      <ItemsControl ItemsSource="{Binding IndicatorSettings}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto" />
+                <ColumnDefinition />
+              </Grid.ColumnDefinitions>
+
+              <CheckBox Margin="0,5" IsChecked="{Binding Show, Mode=TwoWay}">
+                <TextBlock Grid.Column="2" Margin="0,0,10,0">
+                  <Run Text="{Binding Name}" />
+                  <Run Text="{Binding TimeFrame}" />
+                </TextBlock>
+              </CheckBox>
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Border>
 
     <Grid
       Grid.Row="1"

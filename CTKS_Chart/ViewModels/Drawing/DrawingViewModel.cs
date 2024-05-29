@@ -1328,8 +1328,14 @@ namespace CTKS_Chart.ViewModels
           }
         }
 
+        //Alpha channel present
+        if(selectedBrush.Length == 9)
+        {
+          selectedBrush = $"#aa{selectedBrush.Substring(3, selectedBrush.Length - 3)}";
+        }
 
         var selectedColor = DrawingHelper.GetColorFromHex(selectedBrush);
+
         var actual = TradingHelper.GetCanvasValue(canvasHeight, position.Price, MaxValue, MinValue);
         var frame = position.Intersection.TimeFrame;
 
@@ -1352,13 +1358,14 @@ namespace CTKS_Chart.ViewModels
           if (point.X > 0 && point.X < CanvasWidth && point.Y > 0 && point.Y < CanvasHeight)
           {
             int size = fontSize;
+            int width = fontSize / 2;
 
             if (position.Side == PositionSide.Buy)
             {
               drawingContext.DrawTriangle(
-               (int)positionX - size,
+               (int)positionX - width,
                (int)positionY + size,
-               (int)positionX + size,
+               (int)positionX + width,
                (int)positionY + size,
                (int)positionX,
                (int)positionY,
@@ -1366,9 +1373,9 @@ namespace CTKS_Chart.ViewModels
              );
 
               drawingContext.FillTriangle(
-                (int)positionX - size,
+                (int)positionX - width,
                 (int)positionY + size,
-                (int)positionX + size,
+                (int)positionX + width,
                 (int)positionY + size,
                 (int)positionX,
                 (int)positionY,
@@ -1378,9 +1385,9 @@ namespace CTKS_Chart.ViewModels
             else
             {
                 drawingContext.DrawTriangle(
-                (int)positionX - size,
+                (int)positionX - width,
                 (int)positionY - size,
-                (int)positionX + size,
+                (int)positionX + width,
                 (int)positionY - size,
                 (int)positionX,
                 (int)positionY,

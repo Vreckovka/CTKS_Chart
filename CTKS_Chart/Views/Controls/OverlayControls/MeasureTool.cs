@@ -9,15 +9,10 @@ using CTKS_Chart.Trading;
 namespace CTKS_Chart.Views.Controls
 {
 
-  public class MeasureTool : OverlayControl
+  public class MeasureTool : SelectableTool
   {
-    public Point? StartPoint { get; set; }
-    public Point? EndPoint { get; set; }
     public Brush Background { get; set; }
     public Border Tooltip { get; set; }
-
-    public decimal StartPrice { get; set; }
-    public DateTime StartDate { get; set; }
 
     public override void Render(Point mousePoint, decimal representedPrice, DateTime represnetedDate, int assetPriceRound)
     {
@@ -26,11 +21,6 @@ namespace CTKS_Chart.Views.Controls
 
       if (UIElement == null)
       {
-        StartPoint = mousePoint;
-        StartPrice = representedPrice;
-        StartDate = represnetedDate;
-
-        UIElement = new Border();
         Tooltip = new Border() { Padding = new Thickness(5) };
 
         StackPanel stackPanel = new StackPanel() { Orientation = Orientation.Vertical };
@@ -48,12 +38,10 @@ namespace CTKS_Chart.Views.Controls
 
         Tooltip.Child = stackPanel;
 
-        Canvas.SetLeft(UIElement, mousePoint.X);
-        Canvas.SetTop(UIElement, mousePoint.Y);
-
-        Overlay.Children.Add(UIElement);
-        Overlay.Children.Add(Tooltip);
+        overlay.Children.Add(Tooltip);
       }
+
+      base.Render(mousePoint, representedPrice, represnetedDate, assetPriceRound);
 
       if (StartPoint != null && EndPoint == null)
       {
@@ -105,11 +93,9 @@ namespace CTKS_Chart.Views.Controls
     public override void Clear()
     {
       base.Clear();
-      Overlay.Children.Remove(Tooltip);
+      overlay.Children.Remove(Tooltip);
 
-      StartPoint = null;
-      EndPoint = null;
       Tooltip = null;
-    }
+    }  
   }
 }

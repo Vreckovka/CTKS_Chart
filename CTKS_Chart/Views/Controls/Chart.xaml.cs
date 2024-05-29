@@ -132,7 +132,7 @@ namespace CTKS_Chart.Views.Controls
           if (ChartContent == null || DrawingViewModel == null)
             return;
 
-          ActualMousePositionX = DateTimeHelper.UnixTimeStampToUtcDateTime((long)TradingHelper.GetValueFromCanvasLinear(ChartContent.Width, actualMousePosition.X, DrawingViewModel.MaxUnix, DrawingViewModel.MinUnix));
+          ActualMousePositionX = DateTimeHelper.UnixTimeStampToUtcDateTime(TradingHelper.GetValueFromCanvasLinear(ChartContent.Width, actualMousePosition.X, DrawingViewModel.MaxUnix, DrawingViewModel.MinUnix));
           ActualMousePositionY = TradingHelper.GetValueFromCanvas(ChartContent.Height, ChartContent.Height - actualMousePosition.Y, DrawingViewModel.MaxValue, DrawingViewModel.MinValue);
 
           if (AssetPriceRound > 0)
@@ -199,6 +199,28 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
+    #region EnableChartMove
+
+    private bool enableChartMove = true;
+
+    public bool EnableChartMove
+    {
+      get { return enableChartMove; }
+      set
+      {
+        if (value != enableChartMove)
+        {
+          enableChartMove = value;
+          OnPropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
+
+
     public Chart()
     {
       InitializeComponent();
@@ -228,6 +250,11 @@ namespace CTKS_Chart.Views.Controls
       base.OnMouseMove(e);
 
       ActualMousePosition = e.GetPosition(Image);
+
+      if(!EnableChartMove)
+      {
+        return;
+      }
 
       if (wasPressed)
       {

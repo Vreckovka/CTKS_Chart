@@ -14,6 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using VCore.WPF.Misc;
 
 namespace CTKS_Chart.Views.Controls
 {
@@ -72,6 +73,35 @@ namespace CTKS_Chart.Views.Controls
 
     #endregion
 
+    #region ZoomOut
+
+    protected ActionCommand zoomOut;
+
+    public ICommand ZoomOut
+    {
+      get
+      {
+        return zoomOut ??= new ActionCommand(OnZoomOut);
+      }
+    }
+
+    protected virtual void OnZoomOut()
+    {
+      var delta = 0.025m;
+
+      Chart.DrawingViewModel.SetMaxValue(Chart.DrawingViewModel.MaxValue * (1 + delta));
+      Chart.DrawingViewModel.SetMinValue(Chart.DrawingViewModel.MinValue * (1 - delta));
+
+      var diff = Chart.DrawingViewModel.MaxUnix - Chart.DrawingViewModel.MinUnix;
+
+      //Chart.DrawingViewModel.SetMaxUnix((long)(Chart.DrawingViewModel.MaxUnix + (diff  * (1 + (delta / 10)))));
+      Chart.DrawingViewModel.SetMinUnix((long)(Chart.DrawingViewModel.MinUnix - (diff * (1 - delta))));
+
+      Chart.DrawingViewModel.RenderOverlay();
+    }
+
+    #endregion
+
     public Overlay()
     {
       InitializeComponent();
@@ -81,20 +111,24 @@ namespace CTKS_Chart.Views.Controls
       OverlayCanvas.MouseEnter += Overlay_MouseEnter;
       OverlayCanvas.MouseLeftButtonDown += Overlay_MouseLeftButtonDown;
 
-
-      MeasureTool.Overlay = OverlayCanvas;
-      VerticalCrosshair.Overlay = OverlayCanvas;
-      HorizontalCrosshair.Overlay = OverlayCanvas;
-
       OverlayControls.Add(MeasureTool);
+      OverlayControls.Add(MagnifyingGlass);
       OverlayControls.Add(VerticalCrosshair);
       OverlayControls.Add(HorizontalCrosshair);
+
+     
+
+      foreach (var control in OverlayControls)
+      {
+        control.SetOverlay(OverlayCanvas);
+      }
     }
 
     #region Properties
 
     List<OverlayControl> OverlayControls = new List<OverlayControl>();
     public MeasureTool MeasureTool { get; } = new MeasureTool();
+    public MagnifyingGlass MagnifyingGlass { get; } = new MagnifyingGlass();
     public VerticalCrosshair VerticalCrosshair { get; } = new VerticalCrosshair();
     public HorizontalCrosshair HorizontalCrosshair { get; } = new HorizontalCrosshair();
 
@@ -143,23 +177,20 @@ namespace CTKS_Chart.Views.Controls
 
     private void Overlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-      if (MeasureTool.IsEnabled)
+      var point = e.GetPosition(OverlayCanvas);
+
+      foreach (var tool in OverlayControls)
       {
-        if (MeasureTool.IsVisible)
-        {
-          if (MeasureTool.StartPoint != null && MeasureTool.EndPoint == null)
-          {
-            MeasureTool.EndPoint = e.GetPosition(OverlayCanvas);
-          }
-          else if (MeasureTool.StartPoint != null && MeasureTool.EndPoint != null)
-          {
-            MeasureTool.IsEnabled = false;
-          }
-        }
-        else
-        {
-          MeasureTool.IsVisible = true;
-        }
+        tool.OnMouseLeftClick(point, Chart.ActualMousePositionY, Chart.ActualMousePositionX);
+      }
+
+      if(MeasureTool.IsVisible || MagnifyingGlass.IsVisible)
+      {
+        Chart.EnableChartMove = false;
+      }
+      else
+      {
+        Chart.EnableChartMove = true;
       }
     }
 
@@ -187,11 +218,11 @@ namespace CTKS_Chart.Views.Controls
 
     #region RenderControls
 
-    private void RenderControls(Point mousePoint, decimal representedPrice, DateTime represnetedDate, int assetPriceRound)
+    private void RenderControls(Point mousePoint, decimal representedPrice, DateTime representedDate, int assetPriceRound)
     {
       foreach (var control in OverlayControls.Where(x => x.IsVisible))
       {
-        control.Render(mousePoint, representedPrice, represnetedDate,assetPriceRound );
+        control.Render(mousePoint, representedPrice, representedDate, assetPriceRound);
       }
     }
 
@@ -201,6 +232,7 @@ namespace CTKS_Chart.Views.Controls
 
     private void DrawOveralay()
     {
+      MagnifyingGlass.Chart = Chart;
       VerticalCrosshair.IsVisible = true;
       HorizontalCrosshair.IsVisible = true;
 

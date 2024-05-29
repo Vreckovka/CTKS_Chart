@@ -7,13 +7,7 @@ namespace CTKS_Chart.Views.Controls
 {
   public abstract class OverlayControl : ViewModel
   {
-    public Canvas Overlay { get; set; }
-    public Border UIElement { get; set; }
-    public abstract void Render(
-      Point mousePoint, 
-      decimal representedPrice, 
-      DateTime represnetedDate,
-      int assetPriceRound);
+    protected Canvas overlay;
 
     #region IsVisible
 
@@ -67,11 +61,28 @@ namespace CTKS_Chart.Views.Controls
 
     public virtual void Clear()
     {
-      Overlay.Children.Remove(UIElement);
+      overlay.Children.Remove(UIElement);
       UIElement = null;
       IsVisible = false;
-    } 
+    }
 
     #endregion
+
+    public Border UIElement { get; set; }
+
+    public abstract void Render(
+      Point mousePoint,
+      decimal representedPrice,
+      DateTime representedDate,
+      int assetPriceRound);
+
+    public virtual void OnMouseLeftClick(Point point, decimal representedPrice, DateTime representedDate)
+    {
+    }
+
+    public void SetOverlay(Canvas overlay)
+    {
+      this.overlay = overlay;
+    }
   }
 }

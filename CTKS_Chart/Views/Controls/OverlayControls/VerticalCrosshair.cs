@@ -12,7 +12,7 @@ namespace CTKS_Chart.Views.Controls
     public override void Render(
       Point mousePoint,
       decimal representedPrice,
-      DateTime represnetedDate,
+      DateTime representedDate,
       int assetPriceRound)
     {
 
@@ -28,7 +28,7 @@ namespace CTKS_Chart.Views.Controls
         UIElement.Child = new Line()
         {
           X1 = 0,
-          X2 = Overlay.ActualWidth,
+          X2 = overlay.ActualWidth,
           Y1 = 0,
           Y2 = 0,
           Stroke = gray,
@@ -38,7 +38,7 @@ namespace CTKS_Chart.Views.Controls
         };
 
         Canvas.SetTop(UIElement, mousePoint.Y);
-        Overlay.Children.Add(UIElement);
+        overlay.Children.Add(UIElement);
       };
     }
   }

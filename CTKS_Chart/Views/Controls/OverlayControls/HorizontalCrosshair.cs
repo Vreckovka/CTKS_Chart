@@ -11,7 +11,7 @@ namespace CTKS_Chart.Views.Controls
   {
     #region Render
 
-    public override void Render(Point mousePoint, decimal representedPrice, DateTime represnetedDate, int assetPriceRound)
+    public override void Render(Point mousePoint, decimal representedPrice, DateTime representedDate, int assetPriceRound)
     {
       if (UIElement == null)
       {
@@ -23,7 +23,7 @@ namespace CTKS_Chart.Views.Controls
           X1 = 0,
           X2 = 0,
           Y1 = 0,
-          Y2 = Overlay.ActualHeight,
+          Y2 = overlay.ActualHeight,
           Stroke = gray,
           StrokeThickness = 1,
           StrokeDashArray = new DoubleCollection() { 5 },
@@ -32,7 +32,7 @@ namespace CTKS_Chart.Views.Controls
 
         Canvas.SetLeft(UIElement, mousePoint.X);
 
-        Overlay.Children.Add(UIElement);
+        overlay.Children.Add(UIElement);
       }
       else
       {
