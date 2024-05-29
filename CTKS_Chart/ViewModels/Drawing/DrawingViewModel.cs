@@ -718,176 +718,181 @@ namespace CTKS_Chart.ViewModels
 
     public virtual void RenderOverlay(decimal? athPrice = null, Candle actual = null)
     {
-      if (actual != null)
-        this.actual = actual;
-
-      Pen shapeOutlinePen = new Pen(Brushes.Transparent, 1);
-      shapeOutlinePen.Freeze();
-
-      DrawingGroup dGroup = new DrawingGroup();
-
-      double imageHeight = CanvasHeight;
-      double imageWidth = CanvasWidth;
-
-      if (unixDiff == 0 && ActualCandles.Count > 1)
+      try
       {
-        unixDiff = ActualCandles[1].UnixTime - ActualCandles[0].UnixTime;
-      }
 
-      if (lastLockedCandle == null && ActualCandles.Count > 0)
-      {
-        lastLockedCandle = ActualCandles.Last();
-      }
+        if (actual != null)
+          this.actual = actual;
 
-      if (athPrice != null)
-      {
-        lastAth = athPrice;
-      }
+        Pen shapeOutlinePen = new Pen(Brushes.Transparent, 1);
+        shapeOutlinePen.Freeze();
 
+        DrawingGroup dGroup = new DrawingGroup();
 
-      DrawnChart newChart = null;
-      Candle lastCandle = this.actual;
-      WriteableBitmap writeableBmp = BitmapFactory.New((int)imageWidth, (int)imageHeight);
+        double imageHeight = CanvasHeight;
+        double imageWidth = CanvasWidth;
 
-      using (writeableBmp.GetBitmapContext())
-      {
-        using (DrawingContext dc = dGroup.Open())
+        if (unixDiff == 0 && ActualCandles.Count > 1)
         {
-          dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(imageWidth, imageHeight));
-          var candlesToRender = ActualCandles.ToList();
+          unixDiff = ActualCandles[1].UnixTime - ActualCandles[0].UnixTime;
+        }
 
-          candlesToRender = candlesToRender.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
+        if (lastLockedCandle == null && ActualCandles.Count > 0)
+        {
+          lastLockedCandle = ActualCandles.Last();
+        }
 
-          if (candlesToRender.Count > 0 && TradingBot.Strategy != null)
+        if (athPrice != null)
+        {
+          lastAth = athPrice;
+        }
+
+
+        DrawnChart newChart = null;
+        Candle lastCandle = this.actual;
+        WriteableBitmap writeableBmp = BitmapFactory.New((int)imageWidth, (int)imageHeight);
+
+        using (writeableBmp.GetBitmapContext())
+        {
+          using (DrawingContext dc = dGroup.Open())
           {
-            lastCandle = ActualCandles.LastOrDefault();
+            dc.DrawLine(shapeOutlinePen, new Point(0, 0), new Point(imageWidth, imageHeight));
+            var candlesToRender = ActualCandles.ToList();
 
-            actualPriceChartViewDiff = (maxValue - minValue) / maxValue;
+            candlesToRender = candlesToRender.Where(x => x.UnixTime + unixDiff >= MinUnix && x.UnixTime - unixDiff <= MaxUnix).ToList();
 
-
-            if (candlesToRender.Count > 1 && LockChart)
+            if (candlesToRender.Count > 0 && TradingBot.Strategy != null)
             {
-              var low = lastCandle.Low.Value;
-              var high = lastCandle.High.Value;
+              lastCandle = ActualCandles.LastOrDefault();
 
-              var minView = minValue * (1 + (actualPriceChartViewDiff * 0.12m));
-              var maxView = maxValue * (1 - (actualPriceChartViewDiff * 0.12m));
+              actualPriceChartViewDiff = (maxValue - minValue) / maxValue;
 
 
-              if (low < minView)
+              if (candlesToRender.Count > 1 && LockChart)
               {
-                var diff = 1 - ((Math.Abs((minView - low) / minView)));
+                var low = lastCandle.Low.Value;
+                var high = lastCandle.High.Value;
 
-                maxValue = maxValue * diff;
-                minValue = minValue * diff;
-              }
-              else if (high > maxView)
-              {
-                var diff = (Math.Abs((maxView - high) / maxView)) + 1;
-
-                maxValue = maxValue * diff;
-                minValue = minValue * diff;
-              }
+                var minView = minValue * (1 + (actualPriceChartViewDiff * 0.12m));
+                var maxView = maxValue * (1 - (actualPriceChartViewDiff * 0.12m));
 
 
-              RaisePropertyChanged(nameof(MaxValue));
-              RaisePropertyChanged(nameof(MinValue));
-            }
-
-            if (LockChart)
-            {
-              if (MaxUnix < lastCandle?.UnixTime)
-              {
-                var viewCandles = ActualCandles.TakeLast(InitialCandleCount);
-
-                maxUnix = viewCandles.Max(x => x.UnixTime) + (unixDiff * 30);
-                minUnix = viewCandles.Min(x => x.UnixTime) + (unixDiff * 30);
-              }
-              else if (lastLockedCandle?.OpenTime != lastCandle?.OpenTime)
-              {
-                maxUnix += unixDiff;
-                minUnix += unixDiff;
-
-                var lastCandleUnix = actualCandles.Last().UnixTime;
-
-                if (lastCandleUnix > maxUnix)
+                if (low < minView)
                 {
-                  var diffX = maxUnix - minUnix;
-                  maxUnix = lastCandleUnix + (long)(diffX * 0.3);
-                  minUnix = maxUnix - diffX;
+                  var diff = 1 - ((Math.Abs((minView - low) / minView)));
+
+                  maxValue = maxValue * diff;
+                  minValue = minValue * diff;
+                }
+                else if (high > maxView)
+                {
+                  var diff = (Math.Abs((maxView - high) / maxView)) + 1;
+
+                  maxValue = maxValue * diff;
+                  minValue = minValue * diff;
                 }
 
-                lastLockedCandle = lastCandle;
+
+                RaisePropertyChanged(nameof(MaxValue));
+                RaisePropertyChanged(nameof(MinValue));
               }
 
-              RaisePropertyChanged(nameof(MaxUnix));
-              RaisePropertyChanged(nameof(MinUnix));
+              if (LockChart)
+              {
+                if (MaxUnix < lastCandle?.UnixTime)
+                {
+                  var viewCandles = ActualCandles.TakeLast(InitialCandleCount);
+
+                  maxUnix = viewCandles.Max(x => x.UnixTime) + (unixDiff * 30);
+                  minUnix = viewCandles.Min(x => x.UnixTime) + (unixDiff * 30);
+                }
+                else if (lastLockedCandle?.OpenTime != lastCandle?.OpenTime)
+                {
+                  maxUnix += unixDiff;
+                  minUnix += unixDiff;
+
+                  var lastCandleUnix = actualCandles.Last().UnixTime;
+
+                  if (lastCandleUnix > maxUnix)
+                  {
+                    var diffX = maxUnix - minUnix;
+                    maxUnix = lastCandleUnix + (long)(diffX * 0.3);
+                    minUnix = maxUnix - diffX;
+                  }
+
+                  lastLockedCandle = lastCandle;
+                }
+
+                RaisePropertyChanged(nameof(MaxUnix));
+                RaisePropertyChanged(nameof(MinUnix));
+              }
             }
-          }
 
-          DrawIndicators(dc);
-          RenderIntersections(dc, TradingBot.Strategy.Intersections);
-
-
-          newChart = DrawChart(writeableBmp, candlesToRender, imageHeight, imageWidth); var chartCandles = newChart.Candles.ToList();
-
-          DrawClosedPositions(writeableBmp, TradingBot.Strategy.AllClosedPositions, chartCandles, imageHeight);
-
-          var maxCanvasValue = MaxValue;
-          var minCanvasValue = MinValue;
-          var chartDiff = (MaxValue - MinValue) * 0.03m;
-
-          maxCanvasValue = MaxValue - chartDiff;
-          minCanvasValue = MinValue + chartDiff;
-
-          if (lastCandle != null)
-          {
-            var lastPrice = lastCandle.Close;
-
-            DrawActualPrice(dc, lastCandle, imageHeight);
-          }
+            DrawIndicators(dc);
+            RenderIntersections(dc, TradingBot.Strategy.Intersections);
 
 
-          if (TradingBot.Strategy is StrategyViewModel<TPosition> strategyViewModel)
-          {
-            decimal price = strategyViewModel.AvrageBuyPrice;
+            newChart = DrawChart(writeableBmp, candlesToRender, imageHeight, imageWidth); var chartCandles = newChart.Candles.ToList();
 
-            if (DrawingSettings.ShowAveragePrice)
+            DrawClosedPositions(writeableBmp, TradingBot.Strategy.AllClosedPositions, chartCandles, imageHeight);
+
+            var maxCanvasValue = MaxValue;
+            var minCanvasValue = MinValue;
+            var chartDiff = (MaxValue - MinValue) * 0.03m;
+
+            maxCanvasValue = MaxValue - chartDiff;
+            minCanvasValue = MinValue + chartDiff;
+
+            if (lastCandle != null)
             {
-              DrawAveragePrice(dc, strategyViewModel.AvrageBuyPrice, imageHeight);
+              var lastPrice = lastCandle.Close;
+
+              DrawActualPrice(dc, lastCandle, imageHeight);
+            }
+
+
+            if (TradingBot.Strategy is StrategyViewModel<TPosition> strategyViewModel)
+            {
+              decimal price = strategyViewModel.AvrageBuyPrice;
+
+              if (DrawingSettings.ShowAveragePrice)
+              {
+                DrawAveragePrice(dc, strategyViewModel.AvrageBuyPrice, imageHeight);
+              }
+              else
+              {
+                RenderedLabels.Remove(RenderedLabels.SingleOrDefault(x => x.Tag == "average_price"));
+              }
+            }
+
+            if (DrawingSettings.ShowATH)
+            {
+              DrawPriceToATH(dc, lastAth, imageHeight);
             }
             else
             {
-              RenderedLabels.Remove(RenderedLabels.SingleOrDefault(x => x.Tag == "average_price"));
+              RenderedLabels.Remove(RenderedLabels.SingleOrDefault(x => x.Tag == "ath_price"));
             }
+
+
+            DrawMaxBuyPrice(dc, TradingBot.Strategy.MaxBuyPrice, imageHeight);
+            DrawMinSellPrice(dc, TradingBot.Strategy.MinSellPrice, imageHeight);
+
           }
+        }
 
-          if (DrawingSettings.ShowATH)
-          {
-            DrawPriceToATH(dc, lastAth, imageHeight);
-          }
-          else
-          {
-            RenderedLabels.Remove(RenderedLabels.SingleOrDefault(x => x.Tag == "ath_price"));
-          }
+        Chart = writeableBmp;
+        Overlay = new DrawingImage(dGroup);
+        DrawnChart = newChart;
 
 
-          DrawMaxBuyPrice(dc, TradingBot.Strategy.MaxBuyPrice, imageHeight);
-          DrawMinSellPrice(dc, TradingBot.Strategy.MinSellPrice, imageHeight);
-
+        if (IsActualCandleVisible && EnableAutoLock)
+        {
+          lockChart = true;
+          RaisePropertyChanged(nameof(LockChart));
         }
       }
-
-      Chart = writeableBmp;
-      Overlay = new DrawingImage(dGroup);
-      DrawnChart = newChart;
-
-
-      if (IsActualCandleVisible && EnableAutoLock)
-      {
-        lockChart = true;
-        RaisePropertyChanged(nameof(LockChart));
-      }
+      catch (Exception ex) { }
     }
 
     #endregion
@@ -1329,7 +1334,7 @@ namespace CTKS_Chart.ViewModels
         }
 
         //Alpha channel present
-        if(selectedBrush.Length == 9)
+        if (selectedBrush.Length == 9)
         {
           selectedBrush = $"#aa{selectedBrush.Substring(3, selectedBrush.Length - 3)}";
         }
@@ -1344,7 +1349,7 @@ namespace CTKS_Chart.ViewModels
 
         if (candle != null)
         {
-           var fontSize = isActiveBuy ? 16 : 7;
+          var fontSize = isActiveBuy ? 16 : 7;
 
           if (position.IsAutomatic)
           {
@@ -1384,15 +1389,15 @@ namespace CTKS_Chart.ViewModels
             }
             else
             {
-                drawingContext.DrawTriangle(
-                (int)positionX - width,
-                (int)positionY - size,
-                (int)positionX + width,
-                (int)positionY - size,
-                (int)positionX,
-                (int)positionY,
-                selectedColor
-              );
+              drawingContext.DrawTriangle(
+              (int)positionX - width,
+              (int)positionY - size,
+              (int)positionX + width,
+              (int)positionY - size,
+              (int)positionX,
+              (int)positionY,
+              selectedColor
+            );
 
               drawingContext.FillTriangle(
                 (int)positionX - size,
@@ -1403,7 +1408,7 @@ namespace CTKS_Chart.ViewModels
                 (int)positionY,
                 selectedColor
               );
-             }
+            }
           }
         }
       }

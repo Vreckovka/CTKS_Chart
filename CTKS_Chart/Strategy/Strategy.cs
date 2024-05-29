@@ -777,14 +777,14 @@ namespace CTKS_Chart.Strategy
         await CheckPositions(actualCandle, minBuy, maxBuy);
         var validIntersections = Intersections;
 
-        var range = TradingHelper.GetActualEqivalentCandle(TimeFrame.D1, actualCandle);
+        var dailyCandle = TradingHelper.GetActualEqivalentCandle(TimeFrame.D1, actualCandle);
 
         if (EnableRangeFilterStrategy)
         {
-          if (range != null)
+          if (dailyCandle != null)
           {
-            MaxBuyPrice = range.IndicatorData.RangeFilterData.RangeFilter;
-            maxBuy = range.IndicatorData.RangeFilterData.RangeFilter;
+            MaxBuyPrice = dailyCandle.IndicatorData.RangeFilterData.RangeFilter;
+            maxBuy = dailyCandle.IndicatorData.RangeFilterData.RangeFilter;
           }
         }
 
@@ -821,12 +821,28 @@ namespace CTKS_Chart.Strategy
 
         if (StrategyData.MaxAutomaticBudget > 0 && EnableAutoPositions)
         {
+          var maxAutoBuy = decimal.MaxValue;
 
-          var autoIntersections = inter.Where(x => x.Value < lastSell * 0.995m && x.Value < actualCandle.Close.Value * 0.995m);
-
-          if (range != null)
+          if (dailyCandle != null)
           {
-            autoIntersections = autoIntersections.Where(x => x.Value < range.IndicatorData.RangeFilterData.HighTarget);
+            maxAutoBuy = dailyCandle.Open.Value;
+          }
+
+          var autoIntersections = inter.Where(
+            x => x.Value < lastSell * 0.995m &&
+            x.Value < actualCandle.Close.Value * 0.995m &&
+            x.Value < maxAutoBuy);
+
+          if (dailyCandle != null)
+          {
+            autoIntersections = autoIntersections.Where(x => x.Value < dailyCandle.IndicatorData.RangeFilterData.HighTarget);
+          }
+
+       
+
+          if (dailyCandle != null)
+          {
+            autoIntersections = autoIntersections.Where(x => x.Value < dailyCandle.IndicatorData.RangeFilterData.HighTarget);
           }
 
           foreach (var intersection in autoIntersections)
@@ -1700,8 +1716,10 @@ namespace CTKS_Chart.Strategy
 
     #region UpdateIntersections
 
-    public void UpdateIntersections(List<CtksIntersection> ctksIntersections)
+    public void UpdateIntersections(IEnumerable<CtksIntersection> ctksIntersections)
     {
+      ctksIntersections = ctksIntersections.Where(x => x.IntersectionType != IntersectionType.RangeFilter);
+
       foreach (var postion in AllOpenedPositions)
       {
         var inter = postion.Intersection;
@@ -1715,7 +1733,7 @@ namespace CTKS_Chart.Strategy
           postion.Intersection = found;
         }
         else
-          ;
+          postion.Intersection = new CtksIntersection();
       }
 
 
@@ -1730,7 +1748,7 @@ namespace CTKS_Chart.Strategy
           postion.Intersection = found;
         }
         else
-          ;
+          postion.Intersection = new CtksIntersection();
       }
     }
 
