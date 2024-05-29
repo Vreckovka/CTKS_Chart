@@ -204,7 +204,7 @@ namespace CTKS_Chart.ViewModels
       adaBotFutures.DrawingViewModel.EnableAutoLock = true;
       adaBotFutures.Delay = 100;
 
-      SelectedBot = adaBotFutures;
+      SelectedBot = adaBot1;
     }
   }
 }

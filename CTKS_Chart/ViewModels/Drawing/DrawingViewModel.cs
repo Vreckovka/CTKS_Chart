@@ -1221,7 +1221,7 @@ namespace CTKS_Chart.ViewModels
       double canvasHeight,
       double canvasWidth,
       IList<TPosition> allPositions = null,
-      TimeFrame minTimeframe = TimeFrame.W1
+      TimeFrame minTimeframe = 0
       )
     {
       var diff = (MaxValue - MinValue) * chartDiff;
@@ -1466,7 +1466,7 @@ namespace CTKS_Chart.ViewModels
       double canvasHeight,
       double canvasWidth,
       IList<TPosition> allPositions = null,
-      TimeFrame minTimeframe = TimeFrame.W1)
+      TimeFrame minTimeframe = 0)
     {
       var diff = (MaxValue - MinValue) * chartDiff;
 

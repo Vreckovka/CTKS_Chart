@@ -951,7 +951,9 @@ namespace CTKS_Chart.ViewModels
         }
 
         TradingBot.Strategy.Intersections = ctksIntersections;
+
         AddRangeFilterIntersections(TimeFrame.D1);
+        AddRangeFilterIntersections(TimeFrame.W1);
 
         var athPrice = GetAthPrice();
 
@@ -962,6 +964,8 @@ namespace CTKS_Chart.ViewModels
 
         if (ctksIntersections.Count > 0)
         {
+
+
           if (!wasLoaded)
           {
             wasLoaded = true;
@@ -973,9 +977,6 @@ namespace CTKS_Chart.ViewModels
             if (ctksIntersections.Count > 0)
               TradingBot.Strategy.UpdateIntersections(ctksIntersections);
           }
-
-          AddRangeFilterIntersections(TimeFrame.D1);
-          AddRangeFilterIntersections(TimeFrame.W1);
 
           TradingBot.Strategy.ValidatePositions(actual);
           TradingBot.Strategy.CreatePositions(actual);
@@ -1024,90 +1025,75 @@ namespace CTKS_Chart.ViewModels
 
     private void AddRangeFilterIntersections(TimeFrame timeFrame)
     {
-      if (TradingViewHelper.LoadedData.TryGetValue(timeFrame, out var candles))
+
+      var actualCandle = actual;
+      var equivalentDataCandle = TradingHelper.GetActualEqivalentCandle(timeFrame, actualCandle);
+
+      var existingLow = TradingBot.Strategy.Intersections
+        .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterLow && x.TimeFrame == timeFrame);
+      var existingHigh = TradingBot.Strategy.Intersections
+        .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterHigh && x.TimeFrame == timeFrame);
+      var existingRF = TradingBot.Strategy.Intersections
+        .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.None && x.TimeFrame == timeFrame);
+
+      if (equivalentDataCandle != null)
       {
-        if (candles.Count > 1)
+        var minDiff = 0.05m;
+        var low = Math.Round(equivalentDataCandle.IndicatorData.RangeFilterData.LowTarget, TradingBot.Asset.PriceRound);
+        var rf = Math.Round(equivalentDataCandle.IndicatorData.RangeFilterData.RangeFilter, TradingBot.Asset.PriceRound);
+        var high = Math.Round(equivalentDataCandle.IndicatorData.RangeFilterData.HighTarget, TradingBot.Asset.PriceRound);
+
+        if (existingLow != null && existingLow.Value > 0)
         {
-          Candle equivalentDataCandle = null;
-          if (actual != null)
+          if (Math.Abs((existingLow.Value - low) / existingLow.Value) > minDiff)
           {
-            equivalentDataCandle = candles
-                              .FirstOrDefault(x => x.OpenTime <= actual.OpenTime &&
-                                          x.CloseTime > actual.CloseTime);
-          }
-          else
-          {
-            equivalentDataCandle = candles.Last();
-          }
-
-
-
-          var existingLow = TradingBot.Strategy.Intersections
-            .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterLow);
-          var existingHigh = TradingBot.Strategy.Intersections
-            .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterHigh);
-          var existingRF = TradingBot.Strategy.Intersections
-            .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.None);
-
-          if (equivalentDataCandle != null)
-          {
-            var minDiff = 0.05m;
-            var low = Math.Round(equivalentDataCandle.IndicatorData.RangeFilterData.LowTarget, TradingBot.Asset.PriceRound);
-            var rf = Math.Round(equivalentDataCandle.IndicatorData.RangeFilterData.RangeFilter, TradingBot.Asset.PriceRound);
-            var high = Math.Round(equivalentDataCandle.IndicatorData.RangeFilterData.HighTarget, TradingBot.Asset.PriceRound);
-
-            if (existingLow != null && existingLow.Value > 0)
-            {
-              if (Math.Abs((existingLow.Value - low) / existingLow.Value) > minDiff)
-              {
-                existingLow.Value = low;
-              }
-            }
-            else if (low > 0)
-            {
-              TradingBot.Strategy.Intersections.Add(new CtksIntersection()
-              {
-                Value = low,
-                IntersectionType = IntersectionType.RangeFilter,
-                Tag = Tag.RangeFilterLow,
-                TimeFrame = TimeFrame.W1
-              });
-            }
-
-            if (existingRF != null)
-            {
-              existingRF.Value = rf;
-            }
-            else if (rf > 0)
-            {
-              TradingBot.Strategy.Intersections.Add(new CtksIntersection()
-              {
-                Value = rf,
-                IntersectionType = IntersectionType.RangeFilter,
-                TimeFrame = TimeFrame.W1
-              });
-            }
-
-            if (existingHigh != null && existingHigh.Value > 0)
-            {
-              if (Math.Abs((existingHigh.Value - high) / existingHigh.Value) > minDiff)
-              {
-                existingHigh.Value = high;
-              }
-            }
-            else if (high > 0)
-            {
-              TradingBot.Strategy.Intersections.Add(new CtksIntersection()
-              {
-                Value = high,
-                IntersectionType = IntersectionType.RangeFilter,
-                Tag = Tag.RangeFilterHigh,
-                TimeFrame = TimeFrame.W1
-              });
-            }
+            existingLow.Value = low;
           }
         }
+        else if (low > 0)
+        {
+          TradingBot.Strategy.Intersections.Add(new CtksIntersection()
+          {
+            Value = low,
+            IntersectionType = IntersectionType.RangeFilter,
+            Tag = Tag.RangeFilterLow,
+            TimeFrame = timeFrame
+          });
+        }
+
+        if (existingRF != null)
+        {
+          existingRF.Value = rf;
+        }
+        else if (rf > 0)
+        {
+          TradingBot.Strategy.Intersections.Add(new CtksIntersection()
+          {
+            Value = rf,
+            IntersectionType = IntersectionType.RangeFilter,
+            TimeFrame = timeFrame
+          });
+        }
+
+        if (existingHigh != null && existingHigh.Value > 0)
+        {
+          if (Math.Abs((existingHigh.Value - high) / existingHigh.Value) > minDiff)
+          {
+            existingHigh.Value = high;
+          }
+        }
+        else if (high > 0)
+        {
+          TradingBot.Strategy.Intersections.Add(new CtksIntersection()
+          {
+            Value = high,
+            IntersectionType = IntersectionType.RangeFilter,
+            Tag = Tag.RangeFilterHigh,
+            TimeFrame = timeFrame
+          });
+        }
       }
+
     }
 
     #endregion

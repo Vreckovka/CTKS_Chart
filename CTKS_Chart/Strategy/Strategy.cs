@@ -85,7 +85,7 @@ namespace CTKS_Chart.Strategy
 
 
 
-  
+
 
 
 
@@ -489,6 +489,7 @@ namespace CTKS_Chart.Strategy
       {TimeFrame.M1,  0.005m},
       {TimeFrame.W2,  0.005m},
       {TimeFrame.W1,  0.005m},
+      {TimeFrame.D1,  0.005m},
     };
 
     #endregion
@@ -503,6 +504,7 @@ namespace CTKS_Chart.Strategy
       {TimeFrame.M1,  0.005m},
       {TimeFrame.W2,  0.005m},
       {TimeFrame.W1,  0.005m},
+      {TimeFrame.D1,  0.005m},
     };
 
     #endregion
@@ -819,7 +821,7 @@ namespace CTKS_Chart.Strategy
 
         if (StrategyData.MaxAutomaticBudget > 0 && EnableAutoPositions)
         {
-         
+
           var autoIntersections = inter.Where(x => x.Value < lastSell * 0.995m && x.Value < actualCandle.Close.Value * 0.995m);
 
           if (range != null)
@@ -1088,6 +1090,11 @@ namespace CTKS_Chart.Strategy
     protected decimal GetPositionSize(TimeFrame timeFrame, bool automatic = false, PositionSide positionSide = PositionSide.Neutral)
     {
       decimal positionSize = 0;
+
+      if(timeFrame == TimeFrame.D1)
+      {
+        timeFrame = TimeFrame.W1;
+      }
 
       if (automatic)
       {
