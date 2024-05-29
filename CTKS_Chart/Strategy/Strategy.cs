@@ -1596,41 +1596,13 @@ namespace CTKS_Chart.Strategy
 
     #region OnCancelPosition
 
-    public async Task<bool> CancelPosition(TPosition TPosition, HashSet<TPosition> removed = null, bool force = false)
+    public async Task<bool> CancelPosition(TPosition position, HashSet<TPosition> removed = null, bool force = false)
     {
-      var cancled = await PlaceCancelPosition(TPosition);
+      var cancled = await PlaceCancelPosition(position);
 
       if (cancled || force)
       {
-        if (TPosition.Side == PositionSide.Buy)
-        {
-          OpenBuyPositions.Remove(TPosition);
-          Budget += TPosition.PositionSize;
-
-          if (TPosition.IsAutomatic)
-          {
-            AutomaticBudget += TPosition.PositionSize;
-          }
-
-          TPosition.RaiseNotify(nameof(TPosition.ExpectedProfit));
-        }
-        else
-        {
-          if (TPosition.OpositPositions.Count > 0)
-          {
-            var buy = TPosition.OpositPositions[0];
-            buy.OpositPositions.Remove(TPosition);
-            buy.PositionSize += TPosition.OriginalPositionSize;
-            buy.PositionSizeNative += TPosition.OriginalPositionSizeNative;
-
-            if (removed != null)
-              removed.Add((TPosition)buy);
-          }
-
-          LeftSize += TPosition.OriginalPositionSizeNative;
-
-          OpenSellPositions.Remove(TPosition);
-        }
+        RemovePosition(position, removed);
       }
 
       SaveState();
@@ -1639,6 +1611,39 @@ namespace CTKS_Chart.Strategy
     }
 
     #endregion
+
+    public void RemovePosition(TPosition position, HashSet<TPosition> removed = null)
+    {
+      if (position.Side == PositionSide.Buy)
+      {
+        OpenBuyPositions.Remove(position);
+        Budget += position.PositionSize;
+
+        if (position.IsAutomatic)
+        {
+          AutomaticBudget += position.PositionSize;
+        }
+
+        position.RaiseNotify(nameof(position.ExpectedProfit));
+      }
+      else
+      {
+        if (position.OpositPositions.Count > 0)
+        {
+          var buy = position.OpositPositions[0];
+          buy.OpositPositions.Remove(position);
+          buy.PositionSize += position.OriginalPositionSize;
+          buy.PositionSizeNative += position.OriginalPositionSizeNative;
+
+          if (removed != null)
+            removed.Add((TPosition)buy);
+        }
+
+        LeftSize += position.OriginalPositionSizeNative;
+
+        OpenSellPositions.Remove(position);
+      }
+    }
 
     #region Scale
 
@@ -1710,7 +1715,7 @@ namespace CTKS_Chart.Strategy
           postion.Intersection = found;
         }
         else
-          postion.Intersection = new CtksIntersection();
+          ;
       }
 
 
@@ -1725,7 +1730,7 @@ namespace CTKS_Chart.Strategy
           postion.Intersection = found;
         }
         else
-          postion.Intersection = new CtksIntersection();
+          ;
       }
     }
 

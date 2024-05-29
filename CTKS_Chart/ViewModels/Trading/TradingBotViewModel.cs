@@ -964,8 +964,6 @@ namespace CTKS_Chart.ViewModels
 
         if (ctksIntersections.Count > 0)
         {
-
-
           if (!wasLoaded)
           {
             wasLoaded = true;
@@ -977,6 +975,9 @@ namespace CTKS_Chart.ViewModels
             if (ctksIntersections.Count > 0)
               TradingBot.Strategy.UpdateIntersections(ctksIntersections);
           }
+
+          AddRangeFilterIntersections(TimeFrame.D1);
+          AddRangeFilterIntersections(TimeFrame.W1);
 
           TradingBot.Strategy.ValidatePositions(actual);
           TradingBot.Strategy.CreatePositions(actual);
@@ -1240,7 +1241,7 @@ namespace CTKS_Chart.ViewModels
             TotalValue = TradingBot.Strategy.TotalValue,
             TotalNative = TradingBot.Strategy.TotalNativeAsset,
             TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
-            AthPrice = athPrice,
+            AthPrice = athPrice != 0 ? athPrice : actual.Close,
             ClosePrice = actual.Close ?? 0,
             ActualAutoValue = actualAutoValue,
             ActualValue = actualValue,

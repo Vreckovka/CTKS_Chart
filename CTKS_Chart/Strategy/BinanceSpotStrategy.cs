@@ -243,6 +243,9 @@ namespace CTKS_Chart.Strategy
     private object saveLock = new object();
     public override void SaveState()
     {
+#if DEBUG
+      return;
+#endif
       lock (saveLock)
       {
         var options = new JsonSerializerOptions()
@@ -310,6 +313,12 @@ namespace CTKS_Chart.Strategy
           ClosedSellPositions.Add(position.GetPosition());
         }
 
+        //DEBUG
+        foreach(var invalidPos in AllOpenedPositions.Where(x => x.Id < 15).ToList())
+        {
+          RemovePosition(invalidPos);
+        }
+
         var sells = OpenSellPositions.Concat(ClosedSellPositions).ToArray();
 
         foreach (var closedBuy in closedBuys)
@@ -320,16 +329,7 @@ namespace CTKS_Chart.Strategy
           {
             Position pos = null;
 
-            //Is Debug
-            if (op == 1)
-            {
-              pos = sells.FirstOrDefault(x => x.Id == op);
-            }
-            else
-            {
-              pos = sells.SingleOrDefault(x => x.Id == op);
-            }
-
+            pos = sells.SingleOrDefault(x => x.Id == op);
 
             if (pos != null)
             {

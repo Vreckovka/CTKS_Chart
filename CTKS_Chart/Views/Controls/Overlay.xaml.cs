@@ -110,13 +110,14 @@ namespace CTKS_Chart.Views.Controls
       OverlayCanvas.MouseLeave += Overlay_MouseLeave;
       OverlayCanvas.MouseEnter += Overlay_MouseEnter;
       OverlayCanvas.MouseLeftButtonDown += Overlay_MouseLeftButtonDown;
+      OverlayCanvas.MouseLeftButtonUp += Overlay_MouseLeftButtonUp;
 
       OverlayControls.Add(MeasureTool);
       OverlayControls.Add(MagnifyingGlass);
       OverlayControls.Add(VerticalCrosshair);
       OverlayControls.Add(HorizontalCrosshair);
 
-     
+
 
       foreach (var control in OverlayControls)
       {
@@ -184,7 +185,7 @@ namespace CTKS_Chart.Views.Controls
         tool.OnMouseLeftClick(point, Chart.ActualMousePositionY, Chart.ActualMousePositionX);
       }
 
-      if(MeasureTool.IsVisible || MagnifyingGlass.IsVisible)
+      if (MeasureTool.IsVisible || MagnifyingGlass.IsVisible)
       {
         Chart.EnableChartMove = false;
       }
@@ -192,6 +193,18 @@ namespace CTKS_Chart.Views.Controls
       {
         Chart.EnableChartMove = true;
       }
+    }
+
+    #endregion
+
+    #region Overlay_MouseLeftButtonUp
+
+    private void Overlay_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+      var point = e.GetPosition(OverlayCanvas);
+
+
+      MagnifyingGlass.OnMouseLeftClick(point, Chart.ActualMousePositionY, Chart.ActualMousePositionX);
     }
 
     #endregion
