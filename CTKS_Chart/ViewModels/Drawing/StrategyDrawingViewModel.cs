@@ -117,11 +117,6 @@ namespace CTKS_Chart.ViewModels
         DrawMaxBuyPrice(dc, TradingBot.Strategy.MaxBuyPrice, CanvasHeight);
         DrawMinSellPrice(dc, TradingBot.Strategy.MinSellPrice, CanvasHeight);
 
-        Chart = writeableBmp;
-        Overlay = new DrawingImage(dGroup);
-        DrawnChart = newChart;
-
-
         if (IsActualCandleVisible && EnableAutoLock)
         {
           lockChart = true;

@@ -201,7 +201,7 @@ namespace TradingManager.ViewModels
                   Provider = symbolSplit[0],
                   Symbol = symbolSplit[1]
                 },
-                Candles = TradingViewHelper.ParseTradingView(timeFrame, file)
+                Candles = TradingViewHelper.ParseTradingView(timeFrame, file, saveData: true)
               };
 
               vm.IsOutDated = TradingViewHelper.IsOutDated(vm.TimeFrame, vm.Candles);
@@ -224,34 +224,68 @@ namespace TradingManager.ViewModels
 
     public async void UpdateTimeframes()
     {
-      var outdatedFiles = Folders.SelectMany(x => x.Files).Where(x => x.IsOutDated).ToList();
-
-      foreach (var outdated in outdatedFiles)
+      try
       {
-        var timeFrame = EnumHelper.Description(outdated.TimeFrame);
-        var newFilePath = await tradingViewDataProvider.DownloadTimeframe(outdated.TradingViewSymbol, timeFrame);
-        chromeDriverProvider.Dispose();
+        LastUpdated = DateTime.Now;
+        var outdatedFiles = Folders.SelectMany(x => x.Files).Where(x => x.IsOutDated).ToList();
 
-        var newCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, newFilePath);
-        var oldCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, outdated.Path);
-
-        var addedCandles = newCandles
-          .Where(x => !oldCandles.Any(y => y.OpenTime == x.OpenTime))
-          .OrderBy(x => x.OpenTime)
-          .ToList();
-
-        string[] lines = File.ReadAllLines(newFilePath);
-
-        foreach (var newCandle in addedCandles)
+        foreach (var outdated in outdatedFiles)
         {
-          using (StreamWriter w = File.AppendText(outdated.Path))
-          {
-            w.WriteLine(lines[newCandle.FileLineIndex]);
-          }
-        }
-      }
+          var timeFrame = EnumHelper.Description(outdated.TimeFrame);
+          var newFilePath = await tradingViewDataProvider.DownloadTimeframe(outdated.TradingViewSymbol, timeFrame);
+          chromeDriverProvider.Dispose();
 
-      VSynchronizationContext.InvokeOnDispatcher(CheckFiles);
+          var newCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, newFilePath);
+          var oldCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, outdated.Path);
+
+          var allCandles = newCandles
+            .Concat(oldCandles)
+            .DistinctBy(x => x.OpenTime)
+            .OrderBy(x => x.OpenTime).ToList();
+
+          string[] lines = File.ReadAllLines(newFilePath);
+
+          var dir = Path.GetDirectoryName(newFilePath);
+          var tempFilePath = Path.Combine(dir, "temp.csv");
+          var tempFile = File.Create(tempFilePath);
+          tempFile.Close();
+
+          var oldLines = File.ReadAllLines(outdated.Path);
+          var newLines = File.ReadAllLines(newFilePath);
+
+          var header = newLines[0];
+
+          using (StreamWriter w = File.AppendText(tempFilePath))
+          {
+            w.WriteLine(header);
+
+            for (int i = 0; i < allCandles.Count; i++)
+            {
+              var candle = allCandles[i];
+              var line = "";
+
+              if (candle.FilePath == newFilePath)
+              {
+                line = newLines[candle.FileLineIndex];
+              }
+              else
+              {
+                line = oldLines[candle.FileLineIndex];
+              }
+
+              w.WriteLine(line);
+            }
+          }
+
+
+          File.Copy(tempFilePath, outdated.Path, true);
+        }
+
+        VSynchronizationContext.InvokeOnDispatcher(CheckFiles);
+      }
+      catch (Exception ex)
+      {
+      }
     }
 
     #endregion

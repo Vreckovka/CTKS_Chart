@@ -107,7 +107,8 @@ namespace CTKS_Chart.Trading
             OpenTime = dateTime,
             UnixTime = unixTimestamp,
             IndicatorData = indicatorData,
-            FileLineIndex = i
+            FileLineIndex = i,
+            FilePath = path
           };
 
           if (dateDiff != null)

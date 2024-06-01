@@ -117,16 +117,27 @@ namespace TradingManager.ViewModels
 
     private void OnOpenChart()
     {
-      this.windowManager.ShowPrompt<ChartView>(null);
+      var vm = new FileDetailViewViewModel();
+      vm.DrawingViewModel.ActualCandles = Candles;
+
+      vm.DrawingViewModel.Initialize();
+      vm.DrawingViewModel.OnRestChart();
+      vm.DrawingViewModel.Render();
+
+      vm.DrawingViewModel.IndicatorSettings.Add(new IndicatorSettings()
+      {
+        TimeFrame = TimeFrame,
+        Name = "Range Filter"
+      });
+
+      this.windowManager.ShowPrompt<FileDetailView>(vm,1000,1000);
     }
 
     #endregion
   }
 
-  public class ChartViewModel : BasePromptViewModel
+  public class FileDetailViewViewModel : BasePromptViewModel
   {
-    public IList<Candle> Candles { get; set; }
-
-   // public DrawingViewModel DrawingViewModel { get; set; }
+    public DrawingViewModel DrawingViewModel { get; set; } = new DrawingViewModel();
   }
 }

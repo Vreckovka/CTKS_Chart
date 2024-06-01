@@ -36,6 +36,20 @@ namespace CTKS_Chart.Views.Controls
       List<RenderedLabel> notFound = new List<RenderedLabel>();
       List<RenderedLabel> labelsToRender = new List<RenderedLabel>();
 
+      if (Values.Any())
+      {
+        var max = Values.OrderByDescending(x => x.TextBlock.Text.Length).FirstOrDefault();
+
+        if (max != null)
+        {
+          var text = DrawingHelper.GetFormattedText(max.TextBlock.Text, Brushes.White, fontSize);
+
+          Width = text.Width * 1.15;
+        }
+         
+      }
+
+
       if (ValuesToRender.Count > 0 && ValuesToRender.Count < maxIntersections)
       {
         foreach (var intersection in ValuesToRender)

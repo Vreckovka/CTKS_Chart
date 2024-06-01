@@ -17,9 +17,9 @@ namespace TradingManager.Views
   /// <summary>
   /// Interaction logic for ChartView.xaml
   /// </summary>
-  public partial class ChartView : UserControl, IView
+  public partial class FileDetailView : UserControl, IView
   {
-    public ChartView()
+    public FileDetailView()
     {
       InitializeComponent();
     }

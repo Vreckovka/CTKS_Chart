@@ -18,6 +18,7 @@ namespace CTKS_Chart.Trading
     public decimal? Low { get; set; }
 
     public int FileLineIndex { get; set; }
+    public string FilePath { get; set; }
 
     public bool IsGreen
     {

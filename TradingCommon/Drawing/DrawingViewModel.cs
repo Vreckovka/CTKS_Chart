@@ -19,9 +19,9 @@ namespace CTKS_Chart.ViewModels
 
     #region ActualCandles
 
-    private List<Candle> actualCandles = new List<Candle>();
+    private IList<Candle> actualCandles = new List<Candle>();
 
-    public List<Candle> ActualCandles
+    public IList<Candle> ActualCandles
     {
       get { return actualCandles; }
       set
@@ -709,6 +709,10 @@ namespace CTKS_Chart.ViewModels
             OnRender(newChart, dc, dGroup, writeableBmp);
           }
         }
+
+        Chart = writeableBmp;
+        Overlay = new DrawingImage(dGroup);
+        DrawnChart = newChart;
       }
       catch (Exception ex) { }
     }

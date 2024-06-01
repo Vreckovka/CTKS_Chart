@@ -82,7 +82,6 @@ namespace CTKS_Chart.Views.Controls
           TextAlignment = TextAlignment.Center
         };
 
-
         x = x - (formattedText.Width / 2);
         var y = Overlay.ActualHeight - ((Overlay.ActualHeight / 2) + 5);
 
@@ -92,6 +91,7 @@ namespace CTKS_Chart.Views.Controls
         if (existingLabel == null)
         {
           var border = new Border();
+          
           border.Child = dateText;
           border.Height = ActualHeight;
 
