@@ -46,7 +46,7 @@ namespace CTKS_Chart.Views.Controls
 
           Width = text.Width * 1.10;
         }
-         
+
       }
 
 
@@ -60,32 +60,6 @@ namespace CTKS_Chart.Views.Controls
 
           var text = Math.Round(intersection.Model.Value, AssetPriceRound).ToString();
 
-          if (intersection.Model.IsCluster)
-          {
-            if (intersection.Model.Tag == CTKS_Chart.Trading.Tag.GlobalCluster)
-            {
-              text = $"G* {text} G*";
-            }
-            else
-              text = $"*{text}*";
-          }
-          else if (intersection.Model.IntersectionType == IntersectionType.RangeFilter)
-          {
-            if (intersection.Model.Tag == CTKS_Chart.Trading.Tag.RangeFilterLow)
-            {
-              text = $"RFL {text}";
-            }
-            else if (intersection.Model.Tag == CTKS_Chart.Trading.Tag.RangeFilterHigh)
-            {
-              text = $"RFH {text}";
-            }
-            else
-              text = $"RF {text}";
-          }
-
-
-          var formattedText = DrawingHelper.GetFormattedText(text, intersection.Brush, fontSize);
-
           var price = new TextBlock()
           {
             Text = text,
@@ -96,8 +70,34 @@ namespace CTKS_Chart.Views.Controls
             Width = ActualWidth
           };
 
-          pricePositionY = pricePositionY + (formattedText.Height / 2);
+          if (intersection.Model.IsCluster)
+          {
+            if (intersection.Model.Tag == CTKS_Chart.Trading.Tag.GlobalCluster)
+            {
+              price.TextDecorations = TextDecorations.Underline;
+            }
 
+            text = $"*{text}*";
+          }
+          else if (intersection.Model.IntersectionType == IntersectionType.RangeFilter)
+          {
+            if (intersection.Model.Tag == Trading.Tag.RangeFilterLow)
+            {
+              text = $"RFL {text}";
+            }
+            else if (intersection.Model.Tag == Trading.Tag.RangeFilterHigh)
+            {
+              text = $"RFH {text}";
+            }
+            else
+              text = $"RF {text}";
+          }
+
+
+          var formattedText = DrawingHelper.GetFormattedText(text, intersection.Brush, fontSize);
+          price.Text = text;
+
+          pricePositionY = pricePositionY + (formattedText.Height / 2);
 
           var newff = new RenderedLabel()
           {
