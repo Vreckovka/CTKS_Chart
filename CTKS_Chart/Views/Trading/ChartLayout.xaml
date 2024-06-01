@@ -33,7 +33,7 @@
       <RowDefinition Height="auto" />
     </Grid.RowDefinitions>
 
-    <Border Grid.ColumnSpan="2" VerticalAlignment="Top">
+    <Border Grid.ColumnSpan="3" VerticalAlignment="Top">
       <Grid DataContext="{Binding TradingBot.Strategy}">
         <Grid.RowDefinitions>
           <RowDefinition Height="auto" />
