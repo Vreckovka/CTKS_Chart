@@ -218,7 +218,7 @@
 
           <TextBlock
             Grid.Column="1"
-            Margin="5 0"
+            Margin="5,0"
             VerticalAlignment="Center"
             FontSize="10"
             Foreground="#25ffffff"
@@ -659,72 +659,142 @@
 
                   <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <UniformGrid
-                      Width="280"
+                      Width="210"
                       HorizontalAlignment="Left"
                       Columns="2">
                       <TextBlock Text="Total time" />
                       <TextBlock Text="{Binding DataContext.TradingBotViewModel.TotalRunTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
-                      <TextBlock Text="Active time" />
-                      <TextBlock Text="{Binding DataContext.TradingBotViewModel.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
-                      <TextBlock Text="Starting Budget" />
-                      <TextBlock Text="{Binding StartingBudget, StringFormat={}{0:N2} $}" />
-                      <TextBlock FontWeight="Bold" Text="Total Value" />
+                      <TextBlock Foreground="#55ffffff" Text="Active time" />
+                      <TextBlock Foreground="#55ffffff" Text="{Binding DataContext.TradingBotViewModel.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" />
+
+                      <TextBlock
+                        FontWeight="Bold"
+                        Foreground="{StaticResource BlueBrush}"
+                        Text="Starting Budget" />
+                      <TextBlock
+                        FontWeight="Bold"
+                        Foreground="{StaticResource BlueBrush}"
+                        Text="{Binding StartingBudget, StringFormat={}{0:N2} $}" />
+
+
+                      <TextBlock
+                        FontWeight="Bold"
+                        Foreground="{StaticResource YellowBrush}"
+                        Text="Total Value" />
                       <TextBlock
                         FontSize="14"
                         FontWeight="Bold"
+                        Foreground="{StaticResource YellowBrush}"
                         Text="{Binding TotalValue, StringFormat={}{0:N2} $}" />
 
-                      <TextBlock FontWeight="Bold" Text="Total Profit " />
+                      <TextBlock
+                        FontWeight="Bold"
+                        Foreground="{StaticResource GreenBrush3}"
+                        Text="Total Profit " />
                       <TextBlock
                         FontSize="14"
                         FontWeight="Bold"
+                        Foreground="{StaticResource GreenBrush3}"
                         Text="{Binding TotalProfit, StringFormat={}{0:N2} $}" />
-                      <TextBlock FontWeight="Bold" Text="Budget" />
+
+
+
+                      <TextBlock FontWeight="Bold" Text="Absolute Gain $">
+                        <TextBlock.Style>
+                          <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
+
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding AbosoluteGainValue, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
+                                <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </TextBlock.Style>
+                      </TextBlock>
                       <TextBlock
                         FontSize="14"
                         FontWeight="Bold"
-                        Text="{Binding Budget, StringFormat={}{0:N2} $}" />
-                      <TextBlock Text="Avrage Buy Price " />
-                      <TextBlock Text="{Binding AvrageBuyPrice}" />
+                        Text="{Binding AbosoluteGainValue, StringFormat={}{0:N2} $}">
+                        <TextBlock.Style>
+                          <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
 
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding AbosoluteGainValue, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
+                                <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </TextBlock.Style>
+                      </TextBlock>
+
+                      <TextBlock FontWeight="Bold" Text="Absolute Gain">
+                        <TextBlock.Style>
+                          <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
+
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding AbosoluteGain, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
+                                <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </TextBlock.Style>
+                      </TextBlock>
+                      <TextBlock
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Text="{Binding AbosoluteGain, StringFormat={}{0:N2} %}">
+                        <TextBlock.Style>
+                          <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{StaticResource GreenBrush}" />
+
+                            <Style.Triggers>
+                              <DataTrigger Binding="{Binding AbosoluteGain, Converter={converters:IsLesserConverter}, ConverterParameter=0}" Value="true">
+                                <Setter Property="Foreground" Value="{StaticResource DefaultRedBrush}" />
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </TextBlock.Style>
+                      </TextBlock>
+
+                      <TextBlock
+                        FontWeight="Bold"
+                        Foreground="{StaticResource BlueBrush}"
+                        Text="Budget" />
+                      <TextBlock
+                        FontSize="14"
+                        FontWeight="Bold"
+                        Foreground="{StaticResource BlueBrush}"
+                        Text="{Binding Budget, StringFormat={}{0:N2} $}" />
 
                       <TextBlock Text="Total Native" />
                       <TextBlock Text="{Binding TotalNativeAsset}" />
-                      <TextBlock Text="Total Native Value" />
+                      <TextBlock Text="Total Native $" />
                       <TextBlock Text="{Binding TotalNativeAssetValue, StringFormat={}{0:N2} $}" />
 
-                      <TextBlock Text="Closed buy trades" />
+                      <TextBlock Text="BUYS" />
                       <TextBlock Text="{Binding ClosedBuyPositions.Count, StringFormat={}{0}}" />
-                      <TextBlock Text="Closed sell trades" />
+                      <TextBlock Text="SELLS" />
                       <TextBlock Text="{Binding ClosedSellPositions.Count, StringFormat={}{0}}" />
 
-                      <TextBlock Text="Total Sell" />
-                      <TextBlock Text="{Binding TotalSell}" />
-                      <TextBlock Text="Total Buy" />
-                      <TextBlock Text="{Binding TotalBuy}" />
+                      <TextBlock Foreground="{StaticResource DefaultRedBrush}" Text="Total Sell" />
+                      <TextBlock Foreground="{StaticResource DefaultRedBrush}" Text="{Binding TotalSell}" />
+                      <TextBlock Foreground="{StaticResource GreenBrush}" Text="Total Buy" />
+                      <TextBlock Foreground="{StaticResource GreenBrush}" Text="{Binding TotalBuy}" />
+
+                      <TextBlock Foreground="{StaticResource DefaultRedBrush}" Text="Total Fees" />
+                      <TextBlock Foreground="{StaticResource DefaultRedBrush}" Text="{Binding TotalFees, StringFormat={}{0:N2} $}" />
+
+                      <TextBlock Foreground="{StaticResource YellowBrush3}" Text="Turnover" />
+                      <TextBlock Foreground="{StaticResource YellowBrush3}" Text="{Binding Turnover, StringFormat={}{0:N2} $}" />
 
                       <TextBlock Text="Scale" />
                       <TextBlock Text="{Binding ScaleSize}" />
                     </UniformGrid>
                   </ScrollViewer>
 
-                  <ItemsControl
-                    Grid.Row="1"
-                    Margin="0,5"
-                    ItemsSource="{Binding PositionSizeMapping}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                          <TextBlock Style="{StaticResource {x:Type TextBlock}}" Text="{Binding Key}" />
-                          <TextBlock
-                            Margin="10,0,0,0"
-                            Style="{StaticResource {x:Type TextBlock}}"
-                            Text="{Binding Value, StringFormat={}{0:N2}}" />
-                        </StackPanel>
-
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
 
                   <StackPanel Grid.Row="2" Orientation="Vertical">
                     <TextBlock Foreground="#36ffffff" Text="{Binding DataContext.TradingBotViewModel.BuildVersion, RelativeSource={RelativeSource AncestorType=Window}}" />

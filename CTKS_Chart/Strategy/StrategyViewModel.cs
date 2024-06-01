@@ -72,11 +72,47 @@ namespace CTKS_Chart.Strategy
 
     #endregion
 
+    #region TotalFees
+
+    public decimal TotalFees
+    {
+      get { return AllClosedPositions.Sum(x => x.Fees ?? 0); }
+    }
+
+    #endregion
+
     #region TotalSell
 
     public decimal TotalSell
     {
       get { return AllClosedPositions.Where(x => x.Side == PositionSide.Sell).Sum(x => x.OriginalPositionSize + x.Profit); }
+    }
+
+    #endregion
+
+    #region Turnover
+
+    public decimal Turnover
+    {
+      get { return TotalBuy + TotalSell; }
+    }
+
+    #endregion
+
+    #region AbosoluteGainValue
+
+    public decimal AbosoluteGainValue
+    {
+      get { return TotalValue - StartingBudget; }
+    }
+
+    #endregion
+
+    #region AbosoluteGain
+
+    public decimal AbosoluteGain
+    {
+      get { return TotalValue > 0 ? AbosoluteGainValue / TotalValue * 100 : 0; }
     }
 
     #endregion

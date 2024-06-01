@@ -353,6 +353,8 @@ namespace CTKS_Chart.Strategy
 
       RaisePropertyChanged(nameof(TotalBuy));
       RaisePropertyChanged(nameof(TotalSell));
+      RaisePropertyChanged(nameof(Turnover));
+
       RaisePropertyChanged(nameof(AllCompletedPositions));
       RaisePropertyChanged(nameof(TotalExpectedProfit));
     }

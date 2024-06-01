@@ -161,7 +161,9 @@ namespace CTKS_Chart.Strategy
           RaisePropertyChanged(nameof(Budget));
           RaisePropertyChanged(nameof(TotalNativeAsset));
           RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.TotalBuy));
+          RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.TotalFees));
           RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.TotalSell));
+          RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.Turnover));
           RaisePropertyChanged(nameof(PositionSizeMapping));
           RaisePropertyChanged(nameof(ScaleSize));
           RaisePropertyChanged(nameof(MaxBuyPrice));
@@ -542,6 +544,9 @@ namespace CTKS_Chart.Strategy
         if (value != totalValue)
         {
           totalValue = value;
+
+          RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.AbosoluteGain));
+          RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.AbosoluteGainValue));
           RaisePropertyChanged();
         }
       }
@@ -768,6 +773,8 @@ namespace CTKS_Chart.Strategy
         await buyLock.WaitAsync();
         lastCandle = actualCandle;
 
+
+
         var limits = GetMaxAndMinBuy(actualCandle);
 
         var lastSell = limits.Item1;
@@ -832,13 +839,6 @@ namespace CTKS_Chart.Strategy
             x => x.Value < lastSell * 0.995m &&
             x.Value < actualCandle.Close.Value * 0.995m &&
             x.Value < maxAutoBuy);
-
-          if (dailyCandle != null)
-          {
-            autoIntersections = autoIntersections.Where(x => x.Value < dailyCandle.IndicatorData.RangeFilterData.HighTarget);
-          }
-
-
 
           if (dailyCandle != null)
           {
@@ -1233,8 +1233,6 @@ namespace CTKS_Chart.Strategy
 
           if (TPosition.IsAutomatic)
             AutomaticBudget -= TPosition.Fees ?? 0;
-
-          RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.TotalBuy));
 
           if (DisableOnBuy)
           {
