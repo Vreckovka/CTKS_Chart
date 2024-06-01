@@ -56,7 +56,7 @@ namespace CTKS_Chart.Binance
       //});
 
       socketClient = new BinanceSocketClient();
-    }
+      }
 
     #region GetCandles
 
@@ -268,6 +268,8 @@ namespace CTKS_Chart.Binance
 
     #endregion
 
+    #region PlaceLong
+
     public async Task<long> PlaceLong(string symbol, FuturesPosition futuresPosition)
     {
       try
@@ -301,6 +303,8 @@ namespace CTKS_Chart.Binance
 
       return 0;
     }
+
+    #endregion
 
     #region SubscribeToKlineInterval
 

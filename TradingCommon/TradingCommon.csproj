@@ -4,6 +4,11 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+
+  <ItemGroup>
+    <PackageReference Include="Binance.Net" Version="9.1.7" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\..\CustomLibraries\VCore.Standard\VCore.Standard.csproj" />
   </ItemGroup>

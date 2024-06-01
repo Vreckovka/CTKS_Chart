@@ -9,28 +9,8 @@ using System.Threading.Tasks;
 
 namespace CTKS_Chart.Strategy.Futures
 {
-  public class FuncionalPosition : FuturesPosition
-  {
-    public FuturesPosition OriginalPosition { get; set; }
-  }
 
-  public class FuturesPosition : Position
-  {
-    public FuncionalPosition TakeProfit { get; set; }
-    public FuncionalPosition StopLoss { get; set; }
-    public decimal PnL { get; set; }
-    public decimal Margin { get; set; } = 10;
 
-    public decimal MarginSize
-    {
-      get
-      {
-        return Margin * OriginalPositionSize;
-      }
-    }
-  }
-
- 
   public class FuturesSimulationStrategy : BaseSimulationStrategy<FuturesPosition>
   {
     public RangeFilterData RangeFilterData { get; set; }

@@ -1,7 +1,18 @@
-﻿using System.Windows;
+﻿
 
 namespace CTKS_Chart.Trading
 {
+  public struct PositionPoint
+  {
+    public PositionPoint(double x, double y)
+    {
+      X = x;
+      Y = y;
+    }
+
+    public double X { get; set; }
+    public double Y { get; set; }
+  }
   public class CtksLinePoint
   {
     public decimal Price { get; set; }
@@ -9,8 +20,8 @@ namespace CTKS_Chart.Trading
   }
   public class CtksLine
   {
-    public Point StartPoint { get; set; }
-    public Point EndPoint { get; set; }
+    public PositionPoint StartPoint { get; set; }
+    public PositionPoint EndPoint { get; set; }
 
     public TimeFrame TimeFrame { get; set; }
 

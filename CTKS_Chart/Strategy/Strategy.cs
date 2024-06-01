@@ -791,7 +791,7 @@ namespace CTKS_Chart.Strategy
 #if DEBUG
         foreach (var innerStrategy in InnerStrategies)
         {
-          //validIntersections = innerStrategy.Calculate(actualCandle).ToList();
+//          validIntersections = innerStrategy.Calculate(actualCandle,PositionSide.Buy).ToList();
         }
 #endif
 
@@ -838,7 +838,7 @@ namespace CTKS_Chart.Strategy
             autoIntersections = autoIntersections.Where(x => x.Value < dailyCandle.IndicatorData.RangeFilterData.HighTarget);
           }
 
-       
+
 
           if (dailyCandle != null)
           {
@@ -1093,13 +1093,30 @@ namespace CTKS_Chart.Strategy
 
       foreach (var opened in removedBu)
       {
-        await CreateSellPositionForBuy(opened,
-          Intersections.OrderBy(x => x.Value)
-          .Where(x => x.Value > actualCandle.Close.Value));
+        await CreateSellPositionForBuy(opened);
       }
     }
 
     #endregion
+
+    private IEnumerable<CtksIntersection> GetIntersectionsForSell(Candle actualCandle)
+    {
+      var intersections = Intersections;
+
+      foreach (var innerStrategy in InnerStrategies)
+      {
+        var validIntersections = innerStrategy.Calculate(actualCandle,PositionSide.Sell)
+           .Where(x => x.Value > actualCandle.Close.Value).ToList();
+
+        if(validIntersections.Any())
+        {
+          intersections = validIntersections;
+        }
+      }
+
+      return intersections.OrderBy(x => x.Value)
+           .Where(x => x.Value > actualCandle.Close.Value);
+    }
 
     #region GetPositionSize
 
@@ -1107,7 +1124,7 @@ namespace CTKS_Chart.Strategy
     {
       decimal positionSize = 0;
 
-      if(timeFrame == TimeFrame.D1)
+      if (timeFrame == TimeFrame.D1)
       {
         timeFrame = TimeFrame.W1;
       }
@@ -1161,11 +1178,13 @@ namespace CTKS_Chart.Strategy
 
     #region CreateSellPositionForBuy
 
-    protected async Task CreateSellPositionForBuy(TPosition TPosition, IEnumerable<CtksIntersection> ctksIntersections, decimal minForcePrice = 0)
+    protected async Task CreateSellPositionForBuy(TPosition TPosition,  decimal minForcePrice = 0)
     {
       if (TPosition.PositionSize > 0)
       {
-        await CreateSell(TPosition, ctksIntersections.ToList(), minForcePrice);
+        var ctksIntersections = GetIntersectionsForSell(lastCandle);
+
+         await CreateSell(TPosition, ctksIntersections.ToList(), minForcePrice);
 
         var sumOposite = TPosition.OpositPositions.Sum(x => x.OriginalPositionSizeNative);
         if (sumOposite != TPosition.OriginalPositionSizeNative)
@@ -1187,9 +1206,7 @@ namespace CTKS_Chart.Strategy
 
         if (TPosition.State != PositionState.Filled)
         {
-          var ordered = Intersections.OrderBy(x => x.Value).ToList();
-
-          //var inter = Intersections.SingleOrDefault(x => x.IsSame(buyPosition.Intersection));
+            //var inter = Intersections.SingleOrDefault(x => x.IsSame(buyPosition.Intersection));
 
           //if (inter != null)
           //  inter.IsEnabled = false;
@@ -1197,7 +1214,7 @@ namespace CTKS_Chart.Strategy
           TotalNativeAsset += TPosition.PositionSizeNative;
           LeftSize += TPosition.PositionSizeNative;
 
-          await CreateSellPositionForBuy(TPosition, ordered, minForcePrice);
+          await CreateSellPositionForBuy(TPosition, minForcePrice);
 
           TPosition.State = PositionState.Filled;
 
@@ -1320,6 +1337,9 @@ namespace CTKS_Chart.Strategy
       try
       {
         await sellLock.WaitAsync();
+
+
+        var result = false;
 
         var minPrice = Math.Max(buyPosition.Price * (1.0m + MinSellProfitMapping[buyPosition.TimeFrame]), MinSellPrice ?? 0);
 
@@ -1495,6 +1515,12 @@ namespace CTKS_Chart.Strategy
           else
           {
             var positionSize = buyPosition.PositionSize;
+
+            if(!nextLines.Any())
+            {
+             
+            }
+
             var ctksIntersection = nextLines.Last();
             var roundedNativeSize = Math.Round(positionSize / buyPosition.Price, Asset.NativeRound);
 
@@ -1534,7 +1560,7 @@ namespace CTKS_Chart.Strategy
             if (id > 0)
             {
               sell.Id = id;
-
+              result = true;
               onCreatePositionSub.OnNext(sell);
               OpenSellPositions.Add(sell);
 
@@ -1718,9 +1744,9 @@ namespace CTKS_Chart.Strategy
 
     public void UpdateIntersections(IEnumerable<CtksIntersection> ctksIntersections)
     {
-      ctksIntersections = ctksIntersections.Where(x => x.IntersectionType != IntersectionType.RangeFilter);
+      var positions = AllOpenedPositions.Where(x => x.Intersection.IntersectionType != IntersectionType.RangeFilter);
 
-      foreach (var postion in AllOpenedPositions)
+      foreach (var postion in positions)
       {
         var inter = postion.Intersection;
 
@@ -1737,7 +1763,7 @@ namespace CTKS_Chart.Strategy
       }
 
 
-      foreach (var postion in ActualPositions)
+      foreach (var postion in positions)
       {
         var inter = postion.Intersection;
         var found = ctksIntersections.SingleOrDefault(y => y.IsSame(inter));
@@ -1831,7 +1857,7 @@ namespace CTKS_Chart.Strategy
 
           if (LeftSize > 0)
           {
-            await CreateSellPositionForBuy(opened, Intersections.OrderBy(x => x.Value).Where(x => x.Value > actualCandle.Close * (decimal)1.01));
+            await CreateSellPositionForBuy(opened);
           }
           else
             ClosedBuyPositions.Remove(opened);

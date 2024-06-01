@@ -309,23 +309,23 @@ namespace CTKS_Chart.ViewModels
         }
 
         var y3 = TradingHelper.GetPointOnLine(ctksLine.StartPoint.X, ctksLine.StartPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, x3);
-        Point startPoint = ctksLine.StartPoint;
+        PositionPoint startPoint = ctksLine.StartPoint;
 
         if (startPoint.X < 0)
         {
           var newY = TradingHelper.GetPointOnLine(startPoint.X, startPoint.Y, ctksLine.EndPoint.X, ctksLine.EndPoint.Y, 0);
-          startPoint = new Point(0, newY);
+          startPoint = new PositionPoint(0, newY);
         }
 
         if (startPoint.Y > canvasHeight)
         {
           var newX = TradingHelper.GetPointOnLine(startPoint.Y, startPoint.X, ctksLine.EndPoint.Y, ctksLine.EndPoint.X, canvasHeight);
-          startPoint = new Point(newX, canvasHeight);
+          startPoint = new PositionPoint(newX, canvasHeight);
         }
         else if (startPoint.Y < 0)
         {
           var newX = TradingHelper.GetPointOnLine(startPoint.Y, startPoint.X, ctksLine.EndPoint.Y, ctksLine.EndPoint.X, 0);
-          startPoint = new Point(newX, 0);
+          startPoint = new PositionPoint(newX, 0);
         }
 
         if (y3 < 0)
@@ -404,8 +404,8 @@ namespace CTKS_Chart.ViewModels
       var x1 = TradingHelper.GetCanvasValueLinear(canvasWidth, ctksLine.FirstPoint.UnixTime, MaxUnix, MinUnix);
       var x2 = TradingHelper.GetCanvasValueLinear(canvasWidth, ctksLine.SecondPoint.UnixTime, MaxUnix, MinUnix);
 
-      var startPoint = new Point(x1, y1);
-      var endPoint = new Point(x2, y2);
+      var startPoint = new PositionPoint(x1, y1);
+      var endPoint = new PositionPoint(x2, y2);
 
       return new CtksLine()
       {

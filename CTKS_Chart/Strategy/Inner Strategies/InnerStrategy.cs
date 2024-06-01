@@ -9,7 +9,7 @@ namespace CTKS_Chart.Strategy
 {
   public abstract class InnerStrategy
   {
-    public abstract IEnumerable<CtksIntersection> Calculate(Candle actual);
+    public abstract IEnumerable<CtksIntersection> Calculate(Candle actual, PositionSide positionSide);
   }
 
 
@@ -31,52 +31,58 @@ namespace CTKS_Chart.Strategy
 
     Candle lastCandle;
 
-    public override IEnumerable<CtksIntersection> Calculate(Candle newCandle)
+    public override IEnumerable<CtksIntersection> Calculate(Candle newCandle, PositionSide positionSide)
     {
-      if (BtcCandles == null)
-      {
-        BtcCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, btcPath);
-      }
+      //if (BtcCandles == null)
+      //{
+      //  BtcCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, btcPath);
+      //}
 
       var actualAssetCandle = TradingHelper.GetActualEqivalentCandle(TimeFrame.D1, newCandle);
-      var actualBtcCandle = BtcCandles.FirstOrDefault(x => x.CloseTime >= newCandle.CloseTime && x.OpenTime <= newCandle.OpenTime);
+      //var actualBtcCandle = BtcCandles.FirstOrDefault(x => x.CloseTime >= newCandle.CloseTime && x.OpenTime <= newCandle.OpenTime);
 
-      if (actualAssetCandle != null && actualAssetCandle.IndicatorData.RangeFilterData.RangeFilter > 0 && lastCandle != actualAssetCandle)
-      {
-        if (actualAssetCandle != null && actualBtcCandle != null)
-          RangeBased(actualAssetCandle, actualBtcCandle);
-        //return Skip(actualAssetCandle, actualBtcCandle);
-      }
+      //if (actualAssetCandle != null && actualAssetCandle.IndicatorData.RangeFilterData.RangeFilter > 0 && lastCandle != actualAssetCandle)
+      //{
+      //  if (actualAssetCandle != null && actualBtcCandle != null)
+      //    //RangeBased(actualAssetCandle, actualBtcCandle);
+      //  return Skip(actualAssetCandle, actualBtcCandle);
+      //}
+
+      if (actualAssetCandle != null)
+        return Skip(actualAssetCandle, newCandle, positionSide);
 
       return strategy.Intersections;
     }
 
 
-    private IEnumerable<CtksIntersection> Skip(Candle actualAssetCandle, Candle actualBtcCandle)
+    private IEnumerable<CtksIntersection> Skip(
+      Candle actualAssetCandle, 
+      Candle actualCandle,
+      PositionSide positionSide)
     {
-      var intersections = strategy.Intersections.ToList();
+      var intersections = strategy.Intersections;
       intersections.ForEach(x => x.IsEnabled = true);
-
       int nStep = 1;
 
-      if (!actualAssetCandle.IndicatorData.RangeFilterData.Upward)
+      if (positionSide == PositionSide.Buy)
       {
-        nStep++;
+        if (!actualAssetCandle.IndicatorData.RangeFilterData.Upward)
+        {
+          nStep++;
+        }
       }
-
-      if (!actualBtcCandle.IndicatorData.RangeFilterData.Upward)
+      else if (positionSide == PositionSide.Sell)
       {
-        nStep++;
+        if (actualAssetCandle.IndicatorData.RangeFilterData.Upward)
+        {
+          nStep++;
+        }
       }
-
-      //var bullish = actualBtcCandle.IndicatorData.Upward || ;
 
       var valid = intersections.Where((x, i) => i % nStep == 0);
       var removed = intersections.Where(y => !valid.Contains(y)).ToList();
 
       removed.ForEach(x => x.IsEnabled = false);
-
-      //strategy.UpdateIntersections(removed);
 
       return valid;
     }

@@ -7,7 +7,6 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using VCore.Standard.Helpers;
 using Dbscan;
-using Point = System.Windows.Point;
 
 namespace CTKS_Chart.Trading
 {
@@ -164,8 +163,8 @@ namespace CTKS_Chart.Trading
       var x1 = TradingHelper.GetCanvasValueLinear(canvasWidth, unix1, maxUnix, minUnix);
       var x2 = TradingHelper.GetCanvasValueLinear(canvasWidth, unix2, maxUnix, minUnix);
 
-      var startPoint = new Point(x1, y1);
-      var endPoint = new Point(x2, y2);
+      var startPoint = new PositionPoint(x1, y1);
+      var endPoint = new PositionPoint(x2, y2);
 
       var line = new CtksLine()
       {
