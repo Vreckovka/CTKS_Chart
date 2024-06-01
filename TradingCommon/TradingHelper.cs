@@ -26,16 +26,17 @@ namespace CTKS_Chart.Trading
     {
       var list = new List<Candle>();
 
-      var file = File.ReadAllText(path);
+      var lines = File.ReadAllLines(path);
 
-      var lines = file.Split("\n").Skip(1 + skip).ToArray();
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
       int index = 0;
 
       TimeSpan? dateDiff = null;
 
-      foreach (var line in lines.TakeLast(lines.Length - cut))
+      for (int i = 1; i < lines.Length - cut; i++) 
       {
+        var line = lines[i];
+
         var data = line.Split(",");
 
         if (data.Length < 4)
@@ -105,7 +106,8 @@ namespace CTKS_Chart.Trading
             Low = lowParsed,
             OpenTime = dateTime,
             UnixTime = unixTimestamp,
-            IndicatorData = indicatorData
+            IndicatorData = indicatorData,
+            FileLineIndex = i
           };
 
           if (dateDiff != null)
@@ -155,6 +157,16 @@ namespace CTKS_Chart.Trading
           return date.AddDays(7);
         case TimeFrame.D1:
           return date.AddDays(1);
+        case TimeFrame.H4:
+          return date.AddHours(4);
+        case TimeFrame.H12:
+          return date.AddHours(12);
+        case TimeFrame.m15:
+          return date.AddMinutes(15);
+        case TimeFrame.m1:
+          return date.AddMinutes(1);
+        default:
+          throw new ArgumentOutOfRangeException($"{timeFrame} was not found in the GetNextTime() method");
       }
 
       return DateTime.MinValue;
@@ -167,7 +179,7 @@ namespace CTKS_Chart.Trading
     public static bool IsOutDated(TimeFrame timeFrame, IList<Candle> innerCandles)
     {
       var last = innerCandles.Last();
-      if (DateTime.UtcNow > TradingViewHelper.GetNextTime(last.OpenTime, timeFrame))
+      if (DateTime.UtcNow >= GetNextTime(last.OpenTime, timeFrame))
       {
         return true;
       }

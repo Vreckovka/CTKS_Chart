@@ -97,7 +97,7 @@ namespace CTKS_Chart.Views.Controls
       //Chart.DrawingViewModel.SetMaxUnix((long)(Chart.DrawingViewModel.MaxUnix + (diff  * (1 + (delta / 10)))));
       Chart.DrawingViewModel.SetMinUnix((long)(Chart.DrawingViewModel.MinUnix - (diff * (1 - delta))));
 
-      Chart.DrawingViewModel.RenderOverlay();
+      Chart.DrawingViewModel.Render();
     }
 
     #endregion

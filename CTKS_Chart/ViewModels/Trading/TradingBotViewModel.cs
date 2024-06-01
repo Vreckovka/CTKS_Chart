@@ -122,9 +122,9 @@ namespace CTKS_Chart.ViewModels
 
     #region DrawingViewModel
 
-    private DrawingViewModel<TPosition, TStrategy> drawingViewModel;
+    private StrategyDrawingViewModel<TPosition, TStrategy> drawingViewModel;
 
-    public DrawingViewModel<TPosition, TStrategy> DrawingViewModel
+    public StrategyDrawingViewModel<TPosition, TStrategy> DrawingViewModel
     {
       get { return drawingViewModel; }
       set
@@ -535,7 +535,7 @@ namespace CTKS_Chart.ViewModels
     {
       base.Initialize();
 
-      DrawingViewModel = viewModelsFactory.Create<DrawingViewModel<TPosition, TStrategy>>(TradingBot, MainLayout);
+      DrawingViewModel = viewModelsFactory.Create<StrategyDrawingViewModel<TPosition, TStrategy>>(TradingBot, MainLayout);
 
       foreach (KlineInterval interval in EnumHelper.GetAllValues(KlineInterval.GetType()))
       {

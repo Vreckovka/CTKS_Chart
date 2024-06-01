@@ -2,7 +2,7 @@
 
 namespace CTKS_Chart.Trading
 {
-    public enum TimeFrame
+  public enum TimeFrame
   {
     [Description("Null")]
     Null = 8,
@@ -25,5 +25,11 @@ namespace CTKS_Chart.Trading
     H4 = 240,
     [Description("12H")]
     H12 = 720,
+
+    [Description("15")]
+    m15 = 15,
+    //Change to 1
+    [Description("1")]
+    m1 = 100,
   }
 }

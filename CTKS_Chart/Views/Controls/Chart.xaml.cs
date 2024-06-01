@@ -195,7 +195,7 @@ namespace CTKS_Chart.Views.Controls
       DependencyProperty.Register(
         nameof(DrawingViewModel),
         typeof(IDrawingViewModel),
-        typeof(Chart), new PropertyMetadata(new DrawingViewModel<Position,SimulationStrategy>(null,null)));
+        typeof(Chart), new PropertyMetadata(new StrategyDrawingViewModel<Position,SimulationStrategy>(null,null)));
 
     #endregion
 
@@ -300,7 +300,7 @@ namespace CTKS_Chart.Views.Controls
 
         DrawingViewModel.EnableAutoLock = false;
         DrawingViewModel.SetLock(false);
-        DrawingViewModel.RenderOverlay();
+        DrawingViewModel.Render();
 
 
         DrawingViewModel.Raise(nameof(DrawingViewModel.LockChart));

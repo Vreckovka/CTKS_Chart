@@ -13,7 +13,7 @@ namespace CTKS_Chart.ViewModels
     public double CanvasHeight { get; set; }
     public double CanvasWidth { get; set; }
 
-    public void RenderOverlay(decimal? athPrice = null, Candle actual = null);
+    public void Render(Candle actual = null);
     public void Raise(string name);
 
     public bool LockChart { get; set; }

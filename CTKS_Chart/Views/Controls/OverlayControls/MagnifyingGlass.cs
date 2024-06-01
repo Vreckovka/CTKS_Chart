@@ -60,7 +60,7 @@ namespace CTKS_Chart.Views.Controls
       Chart.DrawingViewModel.SetMaxUnix(Math.Max(StartDate.DateTimeToUnixSeconds(), EndDate.DateTimeToUnixSeconds()));
       Chart.DrawingViewModel.SetMinUnix(Math.Min(StartDate.DateTimeToUnixSeconds(), EndDate.DateTimeToUnixSeconds()));
 
-      Chart.DrawingViewModel.RenderOverlay();
+      Chart.DrawingViewModel.Render();
 
       IsEnabled = false;
       Chart.DrawingViewModel.EnableAutoLock = true;

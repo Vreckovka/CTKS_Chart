@@ -497,7 +497,7 @@ namespace CTKS_Chart.ViewModels
       if (!cts.IsCancellationRequested)
       {
         DrawingViewModel.OnRestChart();
-        DrawingViewModel.RenderOverlay();
+        DrawingViewModel.Render();
 
         result.TotalValue = TradingBot.Strategy.TotalValue;
         result.TotalProfit = TradingBot.Strategy.TotalProfit;

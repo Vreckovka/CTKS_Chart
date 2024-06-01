@@ -17,6 +17,8 @@ namespace CTKS_Chart.Trading
     public decimal? High { get; set; }
     public decimal? Low { get; set; }
 
+    public int FileLineIndex { get; set; }
+
     public bool IsGreen
     {
       get { return Close >= Open; }

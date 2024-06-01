@@ -1,16 +1,19 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
 
   <ItemGroup>
     <PackageReference Include="Binance.Net" Version="9.1.7" />
+    <PackageReference Include="WriteableBitmapEx" Version="1.6.8" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\CustomLibraries\VCore.Standard\VCore.Standard.csproj" />
+    <ProjectReference Include="..\..\..\CustomLibraries\VCore\VCore.WPF.csproj" />
   </ItemGroup>
 
 </Project>

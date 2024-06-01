@@ -19,237 +19,34 @@ using VCore.Standard.Helpers;
 using VCore.WPF;
 using VCore.WPF.Misc;
 using VCore.WPF.ViewModels;
+using VCore.WPF.ViewModels.Navigation;
 
 namespace TradingManager.ViewModels
 {
+  public static class RegionNames
+  {
+    public const string Content = "Content";
+  }
 
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
-    private readonly IChromeDriverProvider chromeDriverProvider;
-    private readonly ILogger logger;
-    private readonly TradingViewDataProvider tradingViewDataProvider;
+    private readonly IViewModelsFactory viewModelsFactory;
 
-    public MainWindowViewModel(
-      IViewModelsFactory viewModelsFactory,
-      IChromeDriverProvider chromeDriverProvider,
-      ILogger logger,
-      BinanceBroker binanceBroker) : base(viewModelsFactory)
+    public MainWindowViewModel(IViewModelsFactory viewModelsFactory) : base(viewModelsFactory)
     {
-      this.chromeDriverProvider = chromeDriverProvider ?? throw new ArgumentNullException(nameof(chromeDriverProvider));
-      this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-      tradingViewDataProvider = new TradingViewDataProvider(chromeDriverProvider);
-
       Title = "Trading Manager";
 
-      binanceBroker.GetSymbols();
+      this.viewModelsFactory = viewModelsFactory ?? throw new ArgumentNullException(nameof(viewModelsFactory));
     }
-
-    public ObservableCollection<TradingViewFolderDataViewModel> Folders { get; set; } = new ObservableCollection<TradingViewFolderDataViewModel>();
-
-    #region LastChecked
-
-    private DateTime lastChecked;
-
-    public DateTime LastChecked
-    {
-      get { return lastChecked; }
-      set
-      {
-        if (value != lastChecked)
-        {
-          lastChecked = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region LastUpdated
-
-    private DateTime lastUpdated;
-
-    public DateTime LastUpdated
-    {
-      get { return lastUpdated; }
-      set
-      {
-        if (value != lastUpdated)
-        {
-          lastUpdated = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region UpdateTimeFramesCommand
-
-    protected ActionCommand updateTimeFramesCommand;
-
-    public ICommand UpdateTimeFramesCommand
-    {
-      get
-      {
-        return updateTimeFramesCommand ??= new ActionCommand(UpdateTimeframes).DisposeWith(this);
-      }
-    }
-
-
-    #endregion
-
-    #region CheckFilesCommand
-
-    protected ActionCommand checkFilesCommand;
-
-    public ICommand CheckFilesCommand
-    {
-      get
-      {
-        return checkFilesCommand ??= new ActionCommand(CheckFiles).DisposeWith(this);
-      }
-    }
-
-    #endregion
-
-    #region Methods
-
-    #region Initialize
 
     public override void Initialize()
     {
       base.Initialize();
-      CheckData();
 
-      Observable.Interval(TimeSpan.FromMinutes(0.1)).Subscribe((x) =>
-      {
-        DateTime lastUtc = TimeZoneInfo.ConvertTimeToUtc(LastChecked, TimeZoneInfo.Local);
+      var filesManager = viewModelsFactory.Create<FilesManagerViewModel>();
+      NavigationViewModel.Items.Add(new NavigationItem(filesManager));
 
-        if (DateTime.UtcNow.Date > lastUtc.Date && DateTime.UtcNow.TimeOfDay > TimeSpan.FromMinutes(1))
-        {
-          CheckData();
-        }     
-      });
+      filesManager.IsActive = true;
     }
-
-    #endregion
-
-    #region CheckData
-
-    private void CheckData()
-    {
-      VSynchronizationContext.InvokeOnDispatcher(CheckFiles);
-
-      if (Folders.SelectMany(x => x.Files).Any(x => x.IsOutDated))
-      {
-        UpdateTimeframes();
-      }
-    }
-
-    #endregion
-
-    #region CheckFiles
-
-    public void CheckFiles()
-    {
-      try
-      {
-        LastChecked = DateTime.Now;
-        Folders.Clear();
-        var folders = File.ReadAllLines("folders_to_check.txt");
-
-        var allTimeFrames = EnumHelper.GetAllValuesAndDescriptions(typeof(TimeFrame));
-
-        foreach (var path in folders)
-        {
-          if(Directory.Exists(path))
-          {
-            var files = Directory.GetFiles(path);
-            var folderVm = new TradingViewFolderDataViewModel()
-            {
-              Path = path,
-              Name = Directory.GetParent(Directory.GetParent(path).FullName).Name.ToUpper()
-            };
-
-
-            foreach (var file in files)
-            {
-              var fileName = Path.GetFileName(file);
-              var nameSplit = fileName.Replace(".csv", null).Split(",");
-
-              var symbolSplit = nameSplit[0].Split(" ");
-              var timeframeText = nameSplit[1].Trim();
-
-              var value = allTimeFrames.FirstOrDefault(x => x.Description == timeframeText);
-              Enum.TryParse(value.Value.ToString(), out TimeFrame timeFrame);
-
-              var vm = new TradingViewDataViewModel()
-              {
-                Path = file,
-                Name = fileName,
-                TimeFrame = timeFrame,
-                TradingViewSymbol = new TradingViewSymbol()
-                {
-                  Provider = symbolSplit[0],
-                  Symbol = symbolSplit[1]
-                }
-              };
-
-              var candles = TradingViewHelper.ParseTradingView(vm.TimeFrame, file);
-
-              vm.IsOutDated = TradingViewHelper.IsOutDated(vm.TimeFrame, candles);
-              folderVm.Files.Add(vm);
-            }
-
-            Folders.Add(folderVm);
-          }
-        
-        }
-      }
-      catch (Exception ex)
-      {
-        logger.Log(ex);
-      }
-    }
-    #endregion
-
-    #region UpdateTimeframes
-
-    public async void UpdateTimeframes()
-    {
-      var outdatedFiles = Folders.SelectMany(x => x.Files).Where(x => x.IsOutDated);
-
-      foreach (var outdated in outdatedFiles)
-      {
-        var timeFrame = EnumHelper.Description(outdated.TimeFrame);
-        var newFile = await tradingViewDataProvider.DownloadTimeframe(outdated.TradingViewSymbol, timeFrame);
-
-        var newCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, newFile);
-        var oldCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, outdated.Path);
-
-        if (newCandles.Count > oldCandles.Count)
-        {
-          VSynchronizationContext.InvokeOnDispatcher(() => LastUpdated = DateTime.Now);
-          File.Copy(newFile, outdated.Path, true);
-        }
-        else
-        {
-          //var addedCandles = newCandles.Where(x => !oldCandles.Any(y => y.Open == x.Open));
-
-          //foreach(var addedCandle in addedCandles)
-          //{
-          //  File.AppendAllText(outdated.Path, "text content" + Environment.NewLine);
-          //}
-        }
-      }
-
-      VSynchronizationContext.InvokeOnDispatcher(CheckFiles);
-      chromeDriverProvider.Dispose();
-    }
-
-    #endregion
-
-    #endregion
   }
 }

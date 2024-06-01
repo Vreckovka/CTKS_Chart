@@ -42,7 +42,7 @@ namespace CTKS_Chart.ViewModels
     }
   }
 
-  public class BaseArchitectViewModel<TPosition, TStrategy> : DrawingViewModel<TPosition, TStrategy>
+  public class BaseArchitectViewModel<TPosition, TStrategy> : StrategyDrawingViewModel<TPosition, TStrategy>
     where TPosition : Position, new()
     where TStrategy : BaseSimulationStrategy<TPosition>, new()
 
@@ -66,7 +66,7 @@ namespace CTKS_Chart.ViewModels
 
       serialDisposable.Disposable = Lines.ItemUpdated.Subscribe(x =>
       {
-        VSynchronizationContext.PostOnUIThread(() => RenderOverlay());
+        VSynchronizationContext.PostOnUIThread(() => Render());
       });
 
       Observable.Timer(TimeSpan.FromSeconds(0.25)).ObserveOnDispatcher().Subscribe(x => OnLayoutChanged());
@@ -129,7 +129,7 @@ namespace CTKS_Chart.ViewModels
           SelectedLayout.Ctks.Epsilon = value;
           SelectedLayout.Ctks.AddIntersections();
 
-          RenderOverlay();
+          Render();
           RaisePropertyChanged();
         }
       }
@@ -196,10 +196,10 @@ namespace CTKS_Chart.ViewModels
 
       serialDisposable.Disposable = Lines.ItemUpdated.Subscribe(x =>
       {
-        VSynchronizationContext.PostOnUIThread(() => RenderOverlay());
+        VSynchronizationContext.PostOnUIThread(() => Render());
       });
 
-      RenderOverlay();
+      Render();
     }
 
     #endregion
@@ -235,14 +235,14 @@ namespace CTKS_Chart.ViewModels
       RaisePropertyChanged(nameof(MaxValue));
       RaisePropertyChanged(nameof(MinValue));
 
-      RenderOverlay();
+      Render();
     }
 
     #endregion
 
     #region RenderOverlay
 
-    public override void RenderOverlay(decimal? athPrice = null, Candle actual = null)
+    public override void Render(Candle actual = null)
     {
       Pen shapeOutlinePen = new Pen(Brushes.Transparent, 1);
       shapeOutlinePen.Freeze();
