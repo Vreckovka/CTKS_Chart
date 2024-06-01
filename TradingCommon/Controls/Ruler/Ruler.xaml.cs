@@ -17,7 +17,6 @@ using CTKS_Chart.Strategy;
 using CTKS_Chart.Trading;
 using CTKS_Chart.ViewModels;
 using VCore.WPF.Controls;
-using DecimalMath;
 using VCore.ItemsCollections;
 using System.Linq;
 using System.Windows.Media;
@@ -64,7 +63,7 @@ namespace CTKS_Chart.Views.Controls
       DependencyProperty.Register(
         nameof(DrawingViewModel),
         typeof(IDrawingViewModel),
-        typeof(Ruler), new PropertyMetadata(new StrategyDrawingViewModel<Position, SimulationStrategy>(null, null)));
+        typeof(Ruler), new PropertyMetadata(new DrawingViewModel()));
 
     #endregion
 

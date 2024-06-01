@@ -122,7 +122,6 @@ namespace TradingManager.ViewModels
 
     public override void Initialize()
     {
-      return;
       base.Initialize();
       CheckData();
 
