@@ -16,15 +16,17 @@ namespace CTKS_Chart.Strategy
   public class RangeFilterStrategy<TPosition> : InnerStrategy where TPosition : Position, new()
   {
     private readonly string path;
+    private readonly string symbol;
     private readonly string btcPath;
     private readonly BaseStrategy<TPosition> strategy;
     private List<Candle> BtcCandles;
 
     private IEnumerable<KeyValuePair<TimeFrame, decimal>> originalMapping;
 
-    public RangeFilterStrategy(string path, string btcPath, BaseStrategy<TPosition> strategy)
+    public RangeFilterStrategy(string path, string symbol, string btcPath, BaseStrategy<TPosition> strategy)
     {
       this.path = path ?? throw new ArgumentNullException(nameof(path));
+      this.symbol = symbol ?? throw new ArgumentNullException(nameof(symbol));
       this.btcPath = btcPath ?? throw new ArgumentNullException(nameof(btcPath));
       this.strategy = strategy ?? throw new ArgumentNullException(nameof(strategy));
     }
@@ -38,7 +40,7 @@ namespace CTKS_Chart.Strategy
       //  BtcCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, btcPath);
       //}
 
-      var actualAssetCandle = TradingHelper.GetActualEqivalentCandle(TimeFrame.D1, newCandle);
+      var actualAssetCandle = TradingHelper.GetActualEqivalentCandle(symbol,TimeFrame.D1, newCandle);
       //var actualBtcCandle = BtcCandles.FirstOrDefault(x => x.CloseTime >= newCandle.CloseTime && x.OpenTime <= newCandle.OpenTime);
 
       //if (actualAssetCandle != null && actualAssetCandle.IndicatorData.RangeFilterData.RangeFilter > 0 && lastCandle != actualAssetCandle)

@@ -10,13 +10,14 @@ namespace CTKS_Chart.Trading
 {
   public static class TradingViewHelper
   {
-    public static Dictionary<TimeFrame, List<Candle>> LoadedData { get; } = new Dictionary<TimeFrame, List<Candle>>();
+    public static Dictionary<string, Dictionary<TimeFrame, List<Candle>>> LoadedData { get; } = new Dictionary<string, Dictionary<TimeFrame, List<Candle>>>();
 
     #region ParseTradingView
 
     public static List<Candle> ParseTradingView(
       TimeFrame timeFrame,
       string path,
+      string symbol,
       DateTime? maxDate = null,
       int skip = 0,
       int cut = 0,
@@ -128,7 +129,16 @@ namespace CTKS_Chart.Trading
 
       if (saveData)
       {
-        LoadedData[timeFrame] = list;
+        if(LoadedData.TryGetValue(symbol, out var symbolData))
+          LoadedData[symbol][timeFrame] = list;
+        else
+        {
+          var data = new Dictionary<TimeFrame, List<Candle>>();
+          data.Add(timeFrame, list);
+
+          LoadedData.Add(symbol, data);
+        }
+        
       }
 
       return list;

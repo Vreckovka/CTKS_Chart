@@ -157,7 +157,7 @@ namespace CTKS_Chart.ViewModels
     #region Labels
 
     private IList<string[]> labels;
-  
+
 
     public IList<string[]> Labels
     {
@@ -189,6 +189,8 @@ namespace CTKS_Chart.ViewModels
       var mapper = Mappers.Xy<ObservablePoint>()
     .X(point => Math.Log(point.X, 10)) //a 10 base log scale in the X axis
     .Y(point => point.Y);
+
+      DataPoints = DataPoints.Where((x, i) => i % 3 == 0).ToList();
 
       TotalValue = new ChartValues<decimal>(DataPoints.Select(x => x.TotalValue));
       TotalNative = new ChartValues<decimal>(DataPoints.Select(x => x.TotalNative));
@@ -320,7 +322,8 @@ namespace CTKS_Chart.ViewModels
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, TradingBot.Asset);
 
-      var mainCandles = TradingViewHelper.ParseTradingView(TimeFrame.H4, DataPath);
+      var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1,$"Data\\Indicators\\{Asset.DataSymbol}T, 1D.csv" , Asset.Symbol, saveData: true);
+      var mainCandles = TradingViewHelper.ParseTradingView(TimeFrame.H4, DataPath, Asset.Symbol, saveData: true);
 
       var fromDate = new DateTime(2018, 9, 21);
       //fromDate = new DateTime(2021,8, 30);
@@ -346,7 +349,7 @@ namespace CTKS_Chart.ViewModels
       var rangeAdaFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
       var rangeBtcFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\INDEX BTCUSD, 1D.csv";
 
-      TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy<TPosition>(rangeAdaFilterData, rangeBtcFilterData, TradingBot.Strategy));
+      TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy<TPosition>(rangeAdaFilterData, Asset.Symbol, rangeBtcFilterData, TradingBot.Strategy));
 
       LoadSecondaryLayouts(fromDate);
       PreLoadCTks(fromDate);

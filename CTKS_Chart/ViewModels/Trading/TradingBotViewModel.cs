@@ -536,6 +536,7 @@ namespace CTKS_Chart.ViewModels
       base.Initialize();
 
       DrawingViewModel = viewModelsFactory.Create<StrategyDrawingViewModel<TPosition, TStrategy>>(TradingBot, MainLayout);
+      DrawingViewModel.Symbol = Asset.Symbol;
 
       foreach (KlineInterval interval in EnumHelper.GetAllValues(KlineInterval.GetType()))
       {
@@ -782,7 +783,7 @@ namespace CTKS_Chart.ViewModels
 
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
-        var candles = TradingViewHelper.ParseTradingView(layoutData.Value, layoutData.Key).Where(x => x.CloseTime > startTime);
+        var candles = TradingViewHelper.ParseTradingView(layoutData.Value, layoutData.Key, Asset.Symbol).Where(x => x.CloseTime > startTime);
 
         foreach (var candle in candles)
         {
@@ -861,7 +862,7 @@ namespace CTKS_Chart.ViewModels
               }
               else
               {
-                var innerCandles = TradingViewHelper.ParseTradingView(secondaryLayout.TimeFrame, secondaryLayout.DataLocation, addNotClosedCandle: true, indexCut: lastCount + 1, saveData: true);
+                var innerCandles = TradingViewHelper.ParseTradingView(secondaryLayout.TimeFrame, secondaryLayout.DataLocation, Asset.Symbol, addNotClosedCandle: true, indexCut: lastCount + 1, saveData: true);
 
                 VSynchronizationContext.InvokeOnDispatcher(() => secondaryLayout.Ctks.CrateCtks(innerCandles));
 
@@ -884,7 +885,7 @@ namespace CTKS_Chart.ViewModels
           if (indicator.IsOutDated)
           {
             var innerCandles = TradingViewHelper.ParseTradingView
-              (indicator.TimeFrame, indicator.DataLocation,
+              (indicator.TimeFrame, indicator.DataLocation, Asset.Symbol,
               addNotClosedCandle: true, indexCut: lastCount + 1,
               saveData: !IsSimulation && indicator.DataLocation.Contains(TradingBot.Asset.Symbol));
 
@@ -1028,7 +1029,7 @@ namespace CTKS_Chart.ViewModels
     {
 
       var actualCandle = actual;
-      var equivalentDataCandle = TradingHelper.GetActualEqivalentCandle(timeFrame, actualCandle);
+      var equivalentDataCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol,timeFrame, actualCandle);
 
       var existingLow = TradingBot.Strategy.Intersections
         .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterLow && x.TimeFrame == timeFrame);
@@ -1110,7 +1111,7 @@ namespace CTKS_Chart.ViewModels
       bool saveData = false)
       where T : Layout, new()
     {
-      var candles = TradingViewHelper.ParseTradingView(timeFrame, location, maxTime, saveData: saveData);
+      var candles = TradingViewHelper.ParseTradingView(timeFrame, location,TradingBot.Asset.Symbol, maxTime, saveData: saveData);
 
       var max = pmax ?? candles.Max(x => x.High.Value);
       var min = pmin ?? candles.Min(x => x.Low.Value);

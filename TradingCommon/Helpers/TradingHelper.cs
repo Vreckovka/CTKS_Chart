@@ -151,14 +151,14 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
-    public static Candle GetActualEqivalentCandle(TimeFrame timeFrame, Candle actualCandle)
+    public static Candle GetActualEqivalentCandle(string symbol, TimeFrame timeFrame, Candle actualCandle)
     {
       if (actualCandle == null)
         return null;
 
-      if (TradingViewHelper.LoadedData.TryGetValue(timeFrame, out var candles))
+      if (TradingViewHelper.LoadedData[symbol].TryGetValue(timeFrame, out var candles))
       {
-        candles = candles.Where(x => x.IndicatorData.RangeFilterData.RangeFilter > 0).ToList();
+        candles = candles.Where(x => x.IndicatorData?.RangeFilterData?.RangeFilter > 0).ToList();
 
 
         var equivalentDataCandle = candles

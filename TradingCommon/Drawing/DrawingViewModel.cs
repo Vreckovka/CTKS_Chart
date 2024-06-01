@@ -17,11 +17,13 @@ namespace CTKS_Chart.ViewModels
   {
     #region Properties
 
+    public string Symbol { get; set; }
+
     #region ActualCandles
 
-    private IList<Candle> actualCandles = new List<Candle>();
+    private List<Candle> actualCandles = new List<Candle>();
 
-    public IList<Candle> ActualCandles
+    public List<Candle> ActualCandles
     {
       get { return actualCandles; }
       set
@@ -999,9 +1001,9 @@ namespace CTKS_Chart.ViewModels
     {
       foreach (var indicatorSettings in IndicatorSettings.Where(x => x.Show))
       {
-        if (TradingViewHelper.LoadedData.TryGetValue(indicatorSettings.TimeFrame, out var candles))
+        if (TradingViewHelper.LoadedData[Symbol].TryGetValue(indicatorSettings.TimeFrame, out var candles))
         {
-          candles = candles.Where(x => x.IndicatorData.RangeFilterData.RangeFilter > 0).ToList();
+          candles = candles.Where(x => x.IndicatorData?.RangeFilterData?.RangeFilter > 0).ToList();
 
           if (candles.Count > 1)
           {

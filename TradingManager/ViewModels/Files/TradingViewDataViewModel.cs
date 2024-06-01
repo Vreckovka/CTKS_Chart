@@ -100,7 +100,7 @@ namespace TradingManager.ViewModels
 
     public TradingViewSymbol TradingViewSymbol { get; set; }
 
-    public IList<Candle> Candles { get; set; }
+    public List<Candle> Candles { get; set; }
 
     #region OpenChart
 
@@ -129,6 +129,7 @@ namespace TradingManager.ViewModels
         TimeFrame = TimeFrame,
         Name = "Range Filter"
       });
+      vm.DrawingViewModel.Symbol = TradingViewSymbol.ToString();
 
       this.windowManager.ShowPrompt<FileDetailView>(vm,1000,1000);
     }

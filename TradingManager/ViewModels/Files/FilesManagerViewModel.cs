@@ -191,17 +191,19 @@ namespace TradingManager.ViewModels
               var value = allTimeFrames.FirstOrDefault(x => x.Description == timeframeText);
               Enum.TryParse(value.Value.ToString(), out TimeFrame timeFrame);
 
+              var symbol = new TradingViewSymbol()
+              {
+                Provider = symbolSplit[0],
+                Symbol = symbolSplit[1]
+              };
+
               var vm = new TradingViewDataViewModel(windowsManager)
               {
                 Path = file,
                 Name = fileName,
                 TimeFrame = timeFrame,
-                TradingViewSymbol = new TradingViewSymbol()
-                {
-                  Provider = symbolSplit[0],
-                  Symbol = symbolSplit[1]
-                },
-                Candles = TradingViewHelper.ParseTradingView(timeFrame, file, saveData: true)
+                TradingViewSymbol = symbol,
+                Candles = TradingViewHelper.ParseTradingView(timeFrame, file, symbol.ToString(), saveData: true)
               };
 
               vm.IsOutDated = TradingViewHelper.IsOutDated(vm.TimeFrame, vm.Candles);
@@ -235,8 +237,8 @@ namespace TradingManager.ViewModels
           var newFilePath = await tradingViewDataProvider.DownloadTimeframe(outdated.TradingViewSymbol, timeFrame);
           chromeDriverProvider.Dispose();
 
-          var newCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, newFilePath);
-          var oldCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, outdated.Path);
+          var newCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, newFilePath, outdated.TradingViewSymbol.ToString());
+          var oldCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, outdated.Path, outdated.TradingViewSymbol.ToString());
 
           var allCandles = newCandles
             .Concat(oldCandles)
