@@ -692,7 +692,7 @@ namespace CTKS_Chart.ViewModels
       LoadIndicators();
 
       mainLayout.Ctks = mainCtks;
-      Layouts.Add(mainLayout);
+      //Layouts.Add(mainLayout);
       SelectedLayout = mainLayout;
 
       if (DrawingViewModel.ActualCandles.Count > 0)

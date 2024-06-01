@@ -50,7 +50,7 @@
               </Style>
             </StackPanel.Resources>
 
-            <TextBlock Text="{Binding DataContext.TradingBotViewModel.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}" ToolTip="Active time" />
+           
             <TextBlock
               Foreground="{StaticResource YellowBrush}"
               Text="{Binding TotalValue, StringFormat={}{0:N2} $}"

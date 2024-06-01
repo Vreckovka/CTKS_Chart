@@ -355,7 +355,7 @@ namespace CTKS_Chart.ViewModels
       PreLoadCTks(fromDate);
 
       mainLayout.Ctks = mainCtks;
-      Layouts.Add(mainLayout);
+      //Layouts.Add(mainLayout);
       SelectedLayout = mainLayout;
 
       Simulate(cutCandles, InnerLayouts);

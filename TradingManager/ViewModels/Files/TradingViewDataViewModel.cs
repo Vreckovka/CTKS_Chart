@@ -140,5 +140,7 @@ namespace TradingManager.ViewModels
   public class FileDetailViewViewModel : BasePromptViewModel
   {
     public DrawingViewModel DrawingViewModel { get; set; } = new DrawingViewModel();
+
+    public override string Title { get ; set; } = "File Detail";
   }
 }

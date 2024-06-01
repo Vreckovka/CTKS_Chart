@@ -47,10 +47,11 @@
 
     <Border Background="{StaticResource BackgroudGradientBrush}">
       <Grid>
-        <Grid.RowDefinitions>
-          <RowDefinition Height="auto" />
-          <RowDefinition />
-        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="auto" />
+
+          <ColumnDefinition />
+        </Grid.ColumnDefinitions>
 
         <Menu
           HorizontalAlignment="Stretch"
@@ -204,8 +205,30 @@
 
         </Menu>
 
-        <Grid Grid.Row="1" Margin="5">
-          <ItemsControl ItemsSource="{Binding Layouts}">
+        <Grid
+          Grid.Column="1"
+          Margin="5,0,0,0"
+          HorizontalAlignment="Right"
+          VerticalAlignment="Center">
+
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="auto" />
+            <ColumnDefinition />
+          </Grid.ColumnDefinitions>
+
+          <TextBlock
+            Grid.Column="1"
+            Margin="5 0"
+            VerticalAlignment="Center"
+            FontSize="10"
+            Foreground="#25ffffff"
+            Text="{Binding DataContext.TradingBotViewModel.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}"
+            ToolTip="Active time" />
+
+          <ItemsControl
+            Margin="5,0"
+            VerticalAlignment="Center"
+            ItemsSource="{Binding Layouts}">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
                 <StackPanel Orientation="Horizontal" />
@@ -214,46 +237,23 @@
             <ItemsControl.ItemTemplate>
               <DataTemplate>
                 <Border>
-                  <Button Command="{Binding DataContext.TradingBotViewModel.ShowCanvas, RelativeSource={RelativeSource AncestorType=Window}}" CommandParameter="{Binding}">
-                    <TextBlock FontSize="15" Text="{Binding Title}" />
+                  <TextBlock
+                    Margin="0,0,5,0"
+                    FontSize="10"
+                    Text="{Binding Title}">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
 
-                    <Button.Style>
-                      <Style TargetType="Button">
-                        <Setter Property="Template">
-                          <Setter.Value>
-                            <ControlTemplate TargetType="{x:Type Button}">
-                              <Border
-                                Margin="{TemplateBinding Margin}"
-                                Padding="{TemplateBinding Padding}"
-                                Background="{TemplateBinding Background}">
-                                <ContentPresenter />
-                              </Border>
-                            </ControlTemplate>
-                          </Setter.Value>
-                        </Setter>
-
-                        <Setter Property="Background" Value="#15ffffff" />
-
-                        <Setter Property="Padding" Value="15,5" />
-                        <Setter Property="Margin" Value="0,0,5,0" />
                         <Setter Property="FontWeight" Value="SemiBold" />
-                        <Setter Property="BorderThickness" Value="0" />
-                        <Setter Property="Foreground" Value="{StaticResource DefaultWhiteBrush}" />
-
+                        <Setter Property="Foreground" Value="#10ffffff" />
                         <Style.Triggers>
                           <DataTrigger Binding="{Binding IsOutDated}" Value="True">
-                            <Setter Property="Background" Value="#f25e5e" />
+                            <Setter Property="Foreground" Value="#f25e5e" />
                           </DataTrigger>
-
-                          <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#35ffffff" />
-                          </Trigger>
                         </Style.Triggers>
-
-
                       </Style>
-                    </Button.Style>
-                  </Button>
+                    </TextBlock.Style>
+                  </TextBlock>
                 </Border>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
