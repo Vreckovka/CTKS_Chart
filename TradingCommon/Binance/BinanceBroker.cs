@@ -56,7 +56,7 @@ namespace CTKS_Chart.Binance
       //});
 
       socketClient = new BinanceSocketClient();
-      }
+    }
 
     #region GetCandles
 
@@ -460,6 +460,14 @@ namespace CTKS_Chart.Binance
     }
 
     #endregion
+
+    public async void GetSymbols()
+    {
+      using (var client = new BinanceRestClient())
+      {
+        var asd = await client.SpotApi.ExchangeData.GetAssetDetailsAsync();
+      }
+    }
 
     #region LogError
 

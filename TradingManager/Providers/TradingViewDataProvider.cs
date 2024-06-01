@@ -48,19 +48,18 @@ namespace TradingManager.Providers
         {
           $"--user-data-dir={chromePath}",
            "--disable-gpu",
-              "--no-sandbox",
-              "--start-maximized",
-              "--disable-infobars",
-              "--disable-extensions",
-              "--log-level=3",
-              "--disable-cookie-encryption=false",
-              "--block-new-web-contents",
-              "--enable-precise-memory-info",
-              "--ignore-certificate-errors",
-              "--window-size=1920,1080"
-
+           "--no-sandbox",
+           "--disable-infobars",
+           "--disable-extensions",
+           "--log-level=3",
+           "--disable-cookie-encryption=false",
+           "--block-new-web-contents",
+           "--enable-precise-memory-info",
+           "--ignore-certificate-errors",
         }, downloadDirectory: downloadDir);
 
+
+        this.chromeDriverProvider.ChromeDriver?.Manage()?.Window?.Minimize();
         this.chromeDriverProvider.SafeNavigate($"https://www.tradingview.com/chart/p9TLSOTV/?symbol={symbol.Provider}%3A{symbol.Symbol}&interval={timeFrame}", out var red);
 
 

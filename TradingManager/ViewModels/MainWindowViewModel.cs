@@ -1,4 +1,5 @@
 ﻿using ChromeDriverScrapper;
+using CTKS_Chart.Binance;
 using CTKS_Chart.Trading;
 using Logger;
 using System;
@@ -31,13 +32,16 @@ namespace TradingManager.ViewModels
     public MainWindowViewModel(
       IViewModelsFactory viewModelsFactory,
       IChromeDriverProvider chromeDriverProvider,
-      ILogger logger) : base(viewModelsFactory)
+      ILogger logger,
+      BinanceBroker binanceBroker) : base(viewModelsFactory)
     {
       this.chromeDriverProvider = chromeDriverProvider ?? throw new ArgumentNullException(nameof(chromeDriverProvider));
       this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
       tradingViewDataProvider = new TradingViewDataProvider(chromeDriverProvider);
 
       Title = "Trading Manager";
+
+      binanceBroker.GetSymbols();
     }
 
     public ObservableCollection<TradingViewFolderDataViewModel> Folders { get; set; } = new ObservableCollection<TradingViewFolderDataViewModel>();
@@ -228,6 +232,15 @@ namespace TradingManager.ViewModels
         {
           VSynchronizationContext.InvokeOnDispatcher(() => LastUpdated = DateTime.Now);
           File.Copy(newFile, outdated.Path, true);
+        }
+        else
+        {
+          //var addedCandles = newCandles.Where(x => !oldCandles.Any(y => y.Open == x.Open));
+
+          //foreach(var addedCandle in addedCandles)
+          //{
+          //  File.AppendAllText(outdated.Path, "text content" + Environment.NewLine);
+          //}
         }
       }
 
