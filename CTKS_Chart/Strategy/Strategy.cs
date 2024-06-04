@@ -801,7 +801,7 @@ namespace CTKS_Chart.Strategy
 #if DEBUG
         foreach (var innerStrategy in InnerStrategies)
         {
-          validIntersections = innerStrategy.Calculate(actualCandle,dailyCandle, PositionSide.Buy).ToList();
+          validIntersections = innerStrategy.Calculate(actualCandle, dailyCandle, PositionSide.Buy).ToList();
         }
 #endif
 
@@ -835,9 +835,12 @@ namespace CTKS_Chart.Strategy
                                    x => x.Value < lastSell * 0.995m &&
                                    x.Value < actualCandle.Close.Value * 0.995m);
 
-          if (lastDailyCandle != null && !lastDailyCandle.IndicatorData.RangeFilterData.Upward)
+          if (lastDailyCandle != null)
           {
-            autoIntersections = autoIntersections.Where(x => x.Value < lastDailyCandle.Open.Value);
+            if (!lastDailyCandle.IndicatorData.RangeFilterData.Upward)
+              autoIntersections = autoIntersections.Where(x => x.Value < lastDailyCandle.Open.Value);
+
+            autoIntersections = autoIntersections.Where(x => x.Value < lastDailyCandle.IndicatorData.RangeFilterData.HighTarget);
           }
 
           foreach (var intersection in autoIntersections)
