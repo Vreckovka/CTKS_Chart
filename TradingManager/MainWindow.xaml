@@ -32,7 +32,7 @@
       WindowChrome.IsHitTestVisibleInChrome="True">
       <ListView.ItemsPanel>
         <ItemsPanelTemplate>
-          <StackPanel Orientation="Horizontal" />
+          <StackPanel Orientation="Vertical" />
         </ItemsPanelTemplate>
       </ListView.ItemsPanel>
 

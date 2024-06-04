@@ -32,15 +32,12 @@ namespace TradingManager.ViewModels
       IChromeDriverProvider chromeDriverProvider,
       IRegionProvider regionProvider,
       IWindowManager windowsManager,
-      ILogger logger,
-      BinanceBroker binanceBroker) : base(regionProvider)
+      ILogger logger) : base(regionProvider)
     {
       this.chromeDriverProvider = chromeDriverProvider ?? throw new ArgumentNullException(nameof(chromeDriverProvider));
       this.windowsManager = windowsManager ?? throw new ArgumentNullException(nameof(windowsManager));
       this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
       tradingViewDataProvider = new TradingViewDataProvider(chromeDriverProvider);
-
-      binanceBroker.GetSymbols();
     }
 
     public ObservableCollection<TradingViewFolderDataViewModel> Folders { get; set; } = new ObservableCollection<TradingViewFolderDataViewModel>();

@@ -15,7 +15,7 @@ namespace CTKS_Chart.Strategy.Futures
   {
     public RangeFilterData RangeFilterData { get; set; }
 
-    public async override void CreatePositions(Candle actualCandle)
+    public async override void CreatePositions(Candle actualCandle, Candle dailyCandle)
     {
       await CheckPositions(actualCandle, 0, decimal.MaxValue);
       CalculatePositions(actualCandle);

@@ -65,6 +65,7 @@ namespace CTKS_Chart.Strategy
       var intersections = strategy.Intersections;
       intersections.ForEach(x => x.IsEnabled = true);
       int nStep = 1;
+      var bullish = actualAssetCandle.IndicatorData.RangeFilterData.Upward;
 
       if (positionSide == PositionSide.Buy)
       {
@@ -85,6 +86,7 @@ namespace CTKS_Chart.Strategy
       var removed = intersections.Where(y => !valid.Contains(y)).ToList();
 
       removed.ForEach(x => x.IsEnabled = false);
+
 
       return valid;
     }

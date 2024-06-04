@@ -93,6 +93,16 @@ namespace CTKS_Chart {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
+        internal static System.Drawing.Icon ethereum {
+            get {
+                object obj = ResourceManager.GetObject("ethereum", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
+        /// </summary>
         internal static System.Drawing.Icon litecoin {
             get {
                 object obj = ResourceManager.GetObject("litecoin", resourceCulture);

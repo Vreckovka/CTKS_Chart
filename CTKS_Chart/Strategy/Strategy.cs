@@ -765,15 +765,16 @@ namespace CTKS_Chart.Strategy
     #region CreatePositions
 
     Candle lastCandle = null;
+    Candle lastDailyCandle = null;
 
-    public virtual async void CreatePositions(Candle actualCandle)
+    public virtual async void CreatePositions(Candle actualCandle, Candle dailyCandle)
     {
       try
       {
         await buyLock.WaitAsync();
+
+        lastDailyCandle = dailyCandle;
         lastCandle = actualCandle;
-
-
 
         var limits = GetMaxAndMinBuy(actualCandle);
 
@@ -784,21 +785,23 @@ namespace CTKS_Chart.Strategy
         await CheckPositions(actualCandle, minBuy, maxBuy);
         var validIntersections = Intersections;
 
-        var dailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, actualCandle);
+
 
         if (EnableRangeFilterStrategy)
         {
-          if (dailyCandle != null)
+          if (lastDailyCandle != null)
           {
-            MaxBuyPrice = dailyCandle.IndicatorData.RangeFilterData.RangeFilter;
-            maxBuy = dailyCandle.IndicatorData.RangeFilterData.RangeFilter;
+            MaxBuyPrice = lastDailyCandle.IndicatorData.RangeFilterData.RangeFilter;
+            maxBuy = lastDailyCandle.IndicatorData.RangeFilterData.RangeFilter;
+
+            StrategyPosition = lastDailyCandle.IndicatorData.RangeFilterData.Upward ? StrategyPosition.Bullish : StrategyPosition.Bearish;
           }
         }
 
 #if DEBUG
         foreach (var innerStrategy in InnerStrategies)
         {
-             validIntersections = innerStrategy.Calculate(actualCandle,PositionSide.Buy).ToList();
+          validIntersections = innerStrategy.Calculate(actualCandle, PositionSide.Buy).ToList();
         }
 #endif
 
@@ -828,21 +831,15 @@ namespace CTKS_Chart.Strategy
 
         if (StrategyData.MaxAutomaticBudget > 0 && EnableAutoPositions)
         {
-          var maxAutoBuy = decimal.MaxValue;
-
-          if (dailyCandle != null)
-          {
-            maxAutoBuy = dailyCandle.Open.Value;
-          }
-
           var autoIntersections = inter.Where(
-            x => x.Value < lastSell * 0.995m &&
-            x.Value < actualCandle.Close.Value * 0.995m &&
-            x.Value < maxAutoBuy);
+                                   x => x.Value < lastSell * 0.995m &&
+                                   x.Value < actualCandle.Close.Value * 0.995m);
 
-          if (dailyCandle != null)
+          if (lastDailyCandle != null && !lastDailyCandle.IndicatorData.RangeFilterData.Upward)
           {
-            autoIntersections = autoIntersections.Where(x => x.Value < dailyCandle.IndicatorData.RangeFilterData.HighTarget);
+            autoIntersections = autoIntersections
+              .Where(x => x.Value < lastDailyCandle.IndicatorData.RangeFilterData.HighTarget)
+              .Where(x => x.Value < lastDailyCandle.Open.Value);
           }
 
           foreach (var intersection in autoIntersections)
@@ -1522,11 +1519,6 @@ namespace CTKS_Chart.Strategy
           else
           {
             var positionSize = buyPosition.PositionSize;
-
-            if (!nextLines.Any())
-            {
-
-            }
 
             var ctksIntersection = nextLines.Last();
             var roundedNativeSize = Math.Round(positionSize / buyPosition.Price, Asset.NativeRound);

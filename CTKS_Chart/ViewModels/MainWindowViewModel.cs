@@ -250,6 +250,10 @@ namespace CTKS_Chart.ViewModels
       {
         icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.binance.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
       }
+      else if (symbol.Contains("ETH"))
+      {
+        icon = System.Windows.Interop.Imaging.CreateBitmapSourceFromHIcon(Resource.ethereum.Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+      }
 
       this.Icon = icon;
     }

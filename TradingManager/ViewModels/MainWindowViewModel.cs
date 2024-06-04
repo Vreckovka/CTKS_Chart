@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using TradingManager.Providers;
+using TradingManager.ViewModels.Screener;
 using VCore.Standard.Factories.ViewModels;
 using VCore.Standard.Helpers;
 using VCore.WPF;
@@ -45,6 +46,9 @@ namespace TradingManager.ViewModels
 
       var filesManager = viewModelsFactory.Create<FilesManagerViewModel>();
       NavigationViewModel.Items.Add(new NavigationItem(filesManager));
+
+      var screener = viewModelsFactory.Create<ScreenerViewModel>();
+      NavigationViewModel.Items.Add(new NavigationItem(screener));
 
       filesManager.IsActive = true;
     }

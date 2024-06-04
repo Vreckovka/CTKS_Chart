@@ -461,11 +461,11 @@ namespace CTKS_Chart.Binance
 
     #endregion
 
-    public async void GetSymbols()
+    public async Task<BinanceExchangeInfo> GetSymbols()
     {
       using (var client = new BinanceRestClient())
       {
-        var asd = await client.SpotApi.ExchangeData.GetAssetDetailsAsync();
+        return (await client.SpotApi.ExchangeData.GetExchangeInfoAsync()).Data;
       }
     }
 
