@@ -776,7 +776,7 @@ namespace CTKS_Chart.Strategy
         lastDailyCandle = dailyCandle;
         lastCandle = actualCandle;
 
-        var limits = GetMaxAndMinBuy(actualCandle);
+        var limits = GetMaxAndMinBuy(actualCandle, dailyCandle);
 
         var lastSell = limits.Item1;
         var minBuy = limits.Item2;
@@ -801,7 +801,7 @@ namespace CTKS_Chart.Strategy
 #if DEBUG
         foreach (var innerStrategy in InnerStrategies)
         {
-          validIntersections = innerStrategy.Calculate(actualCandle, PositionSide.Buy).ToList();
+          validIntersections = innerStrategy.Calculate(actualCandle,dailyCandle, PositionSide.Buy).ToList();
         }
 #endif
 
@@ -837,9 +837,7 @@ namespace CTKS_Chart.Strategy
 
           if (lastDailyCandle != null && !lastDailyCandle.IndicatorData.RangeFilterData.Upward)
           {
-            autoIntersections = autoIntersections
-              .Where(x => x.Value < lastDailyCandle.IndicatorData.RangeFilterData.HighTarget)
-              .Where(x => x.Value < lastDailyCandle.Open.Value);
+            autoIntersections = autoIntersections.Where(x => x.Value < lastDailyCandle.Open.Value);
           }
 
           foreach (var intersection in autoIntersections)
@@ -921,7 +919,7 @@ namespace CTKS_Chart.Strategy
 
     #region GetMaxAndMinBuy
 
-    private Tuple<decimal, decimal, decimal> GetMaxAndMinBuy(Candle actualCandle)
+    private Tuple<decimal, decimal, decimal> GetMaxAndMinBuy(Candle actualCandle, Candle actualDailyCandle)
     {
       decimal lastSell = decimal.MaxValue;
 
@@ -931,8 +929,7 @@ namespace CTKS_Chart.Strategy
       }
       else
       {
-
-        var data = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, actualCandle);
+        var data = actualDailyCandle;
 
         if (data != null)
         {
@@ -1105,13 +1102,13 @@ namespace CTKS_Chart.Strategy
 
     #endregion
 
-    private IEnumerable<CtksIntersection> GetIntersectionsForSell(Candle actualCandle)
+    private IEnumerable<CtksIntersection> GetIntersectionsForSell(Candle actualCandle, Candle dailyCandle)
     {
       var intersections = Intersections;
 
       foreach (var innerStrategy in InnerStrategies)
       {
-        var validIntersections = innerStrategy.Calculate(actualCandle, PositionSide.Sell)
+        var validIntersections = innerStrategy.Calculate(actualCandle, dailyCandle, PositionSide.Sell)
            .Where(x => x.Value > actualCandle.Close.Value).ToList();
 
         if (validIntersections.Any())
@@ -1188,7 +1185,7 @@ namespace CTKS_Chart.Strategy
     {
       if (TPosition.PositionSize > 0)
       {
-        var ctksIntersections = GetIntersectionsForSell(lastCandle);
+        var ctksIntersections = GetIntersectionsForSell(lastCandle, lastDailyCandle);
 
         await CreateSell(TPosition, ctksIntersections.ToList(), minForcePrice);
 

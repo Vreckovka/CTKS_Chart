@@ -9,7 +9,7 @@ namespace CTKS_Chart.Strategy
 {
   public abstract class InnerStrategy
   {
-    public abstract IEnumerable<CtksIntersection> Calculate(Candle actual, PositionSide positionSide);
+    public abstract IEnumerable<CtksIntersection> Calculate(Candle actual, Candle dailyCandle, PositionSide positionSide);
   }
 
 
@@ -33,14 +33,13 @@ namespace CTKS_Chart.Strategy
 
     Candle lastCandle;
 
-    public override IEnumerable<CtksIntersection> Calculate(Candle newCandle, PositionSide positionSide)
+    public override IEnumerable<CtksIntersection> Calculate(Candle newCandle, Candle dailyCandle, PositionSide positionSide)
     {
       //if (BtcCandles == null)
       //{
       //  BtcCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, btcPath);
       //}
 
-      var actualAssetCandle = TradingHelper.GetActualEqivalentCandle(symbol,TimeFrame.D1, newCandle);
       //var actualBtcCandle = BtcCandles.FirstOrDefault(x => x.CloseTime >= newCandle.CloseTime && x.OpenTime <= newCandle.OpenTime);
 
       //if (actualAssetCandle != null && actualAssetCandle.IndicatorData.RangeFilterData.RangeFilter > 0 && lastCandle != actualAssetCandle)
@@ -50,8 +49,8 @@ namespace CTKS_Chart.Strategy
       //  return Skip(actualAssetCandle, actualBtcCandle);
       //}
 
-      if (actualAssetCandle != null)
-        return Skip(actualAssetCandle, newCandle, positionSide);
+      if (dailyCandle != null)
+        return Skip(dailyCandle, newCandle, positionSide);
 
       return strategy.Intersections;
     }
