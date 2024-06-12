@@ -16,7 +16,6 @@
   Background="{StaticResource BackgroudBrush}"
   FontFamily="pack://application:,,,/VCore.WPF;component/Resources/Fonts/Roboto/#Roboto"
   Icon="{Binding Icon}"
-  Style="{StaticResource {x:Type Window}}"
   WindowStartupLocation="CenterScreen"
   mc:Ignorable="d">
 
@@ -35,9 +34,11 @@
       </ResourceDictionary.MergedDictionaries>
 
     </ResourceDictionary>
-
-
   </Window.Resources>
+
+  <Window.Style>
+    <Style BasedOn="{StaticResource {x:Type Window}}" TargetType="Window" />
+  </Window.Style>
 
   <Grid Margin="0" DataContext="{Binding TradingBotViewModel}">
     <Grid.RowDefinitions>
@@ -54,10 +55,16 @@
         </Grid.ColumnDefinitions>
 
         <Menu
+          Margin="105,-50,0,0"
           HorizontalAlignment="Stretch"
           VerticalAlignment="Center"
-          Background="Transparent">
-          <MenuItem Header="Settings">
+          Background="Transparent"
+          WindowChrome.IsHitTestVisibleInChrome="True">
+          <MenuItem
+            Cursor="Hand"
+            FontFamily="{StaticResource FontAwesome6Pro_Regular}"
+            FontSize="19"
+            Header="">
 
             <MenuItem Header="Default">
               <Border Padding="10">
@@ -166,7 +173,11 @@
             </MenuItem>
           </MenuItem>
 
-          <MenuItem Header="Actions">
+          <MenuItem
+            Cursor="Hand"
+            FontFamily="{StaticResource FontAwesome6Pro_Regular}"
+            FontSize="19"
+            Header="">
             <MenuItem Command="{Binding FetchMissingInfo}" Header="Fetch missing info" />
           </MenuItem>
 
@@ -206,9 +217,9 @@
         </Menu>
 
         <Grid
-          Grid.Column="1"
-          Margin="5,0,0,0"
-          HorizontalAlignment="Right"
+          Grid.Column="0"
+          Margin="5,5,0,0"
+          HorizontalAlignment="Left"
           VerticalAlignment="Center">
 
           <Grid.ColumnDefinitions>
@@ -266,9 +277,9 @@
 
     <Grid Grid.Row="1">
       <Grid.RowDefinitions>
-        <RowDefinition Height="2*" />
+        <RowDefinition Height="3*" />
         <RowDefinition Height="auto" />
-        <RowDefinition Height="*" MinHeight="50" />
+        <RowDefinition Height="*" />
       </Grid.RowDefinitions>
 
 

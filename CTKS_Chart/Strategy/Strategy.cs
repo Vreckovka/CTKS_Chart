@@ -801,7 +801,7 @@ namespace CTKS_Chart.Strategy
 #if DEBUG
         foreach (var innerStrategy in InnerStrategies)
         {
-          validIntersections = innerStrategy.Calculate(actualCandle, dailyCandle, PositionSide.Buy).ToList();
+          //validIntersections = innerStrategy.Calculate(actualCandle, dailyCandle, PositionSide.Buy).ToList();
         }
 #endif
 

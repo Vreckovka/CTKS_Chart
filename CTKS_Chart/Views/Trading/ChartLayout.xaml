@@ -50,7 +50,7 @@
               </Style>
             </StackPanel.Resources>
 
-           
+
             <TextBlock
               Foreground="{StaticResource YellowBrush}"
               Text="{Binding TotalValue, StringFormat={}{0:N2} $}"
@@ -326,8 +326,8 @@
       x:Name="VerticalRuler"
       Grid.Row="1"
       Grid.Column="2"
-      Width="55"
       Height="{Binding CanvasHeight}"
+      MinWidth="45"
       HorizontalAlignment="Right"
       VerticalAlignment="Center"
       AssetPriceRound="{Binding TradingBot.Asset.PriceRound}"
