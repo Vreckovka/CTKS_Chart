@@ -764,8 +764,8 @@ namespace CTKS_Chart.Strategy
 
     #region CreatePositions
 
-    Candle lastCandle = null;
-    Candle lastDailyCandle = null;
+    public Candle lastCandle = null;
+    public Candle lastDailyCandle = null;
 
     public virtual async void CreatePositions(Candle actualCandle, Candle dailyCandle)
     {

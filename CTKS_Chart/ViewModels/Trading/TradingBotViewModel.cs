@@ -971,6 +971,9 @@ namespace CTKS_Chart.ViewModels
           {
             wasLoaded = true;
 
+            TradingBot.Strategy.lastCandle = actual;
+            TradingBot.Strategy.lastDailyCandle = lastDailyClose;
+
             TradingBot.Strategy.LoadState();
             await TradingBot.Strategy.RefreshState();
             VSynchronizationContext.InvokeOnDispatcher(() => MainWindow?.SortActualPositions());
