@@ -30,6 +30,7 @@
     <ProjectReference Include="..\..\..\CustomLibraries\VCore\VCore.WPF.csproj" />
     <ProjectReference Include="..\..\..\VPlayer\VPlayer.DarkTheme\VPlayer.DarkTheme.csproj" />
     <ProjectReference Include="..\TradingCommon\TradingCommon.csproj" />
+    <ProjectReference Include="C:\Users\Roman Pecho\source\repos\MoonLanding_NeuralNetwork\VNeuralNetwork\VNeuralNetwork.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -69,6 +70,7 @@
 
   <ItemGroup>
     <Folder Include="Resources\" />
+    <Folder Include="Strategy\AIStrategy\" />
   </ItemGroup>
 
 </Project>

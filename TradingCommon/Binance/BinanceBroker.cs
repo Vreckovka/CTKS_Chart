@@ -469,6 +469,23 @@ namespace CTKS_Chart.Binance
       }
     }
 
+    private async Task<long> Ping()
+    {
+      using (var client = new BinanceRestClient())
+      {
+        var result = (await client.SpotApi.ExchangeData.PingAsync());
+
+        if (result.Error != null)
+        {
+          logger.Log(MessageType.Error, result.Error.Message, false);
+        }
+        else
+          return result.Data;
+      }
+
+      return -1;
+    }
+
     #region LogError
 
     private void LogError(string message)

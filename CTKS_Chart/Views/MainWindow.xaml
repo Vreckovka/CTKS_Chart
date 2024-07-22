@@ -233,7 +233,7 @@
             FontSize="10"
             Foreground="#25ffffff"
             Text="{Binding DataContext.TradingBotViewModel.ActiveTime, StringFormat={}{0:dd\\:hh\\:mm\\:ss}, RelativeSource={RelativeSource AncestorType=Window, Mode=FindAncestor}}"
-            ToolTip="Active time" />
+            ToolTip="{Binding Text, RelativeSource={RelativeSource Mode=Self}}" />
 
           <ItemsControl
             Margin="5,0"

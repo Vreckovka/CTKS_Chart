@@ -36,8 +36,8 @@ namespace CTKS_Chart.Trading
     public bool IsSame(CtksLine other)
     {
       return
-        FirstPoint.Price == other.FirstPoint.Price &&
-         SecondPoint.Price == other.SecondPoint.Price &&
+        FirstPoint?.Price == other.FirstPoint?.Price &&
+         SecondPoint?.Price == other.SecondPoint?.Price &&
         LineType == other.LineType &&
         TimeFrame == other.TimeFrame;
     }

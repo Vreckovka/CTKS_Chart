@@ -45,7 +45,6 @@ namespace CTKS_Chart.Strategy
       return false;
     }
 
-    Candle lastCandle = null;
     public override async void ValidatePositions(Candle candle)
     {
       await ValidateSimulationPosition(candle, AllOpenedPositions);

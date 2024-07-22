@@ -678,10 +678,9 @@ namespace CTKS_Chart.ViewModels
               {
                 if (MaxUnix < lastCandle?.UnixTime)
                 {
-                  var viewCandles = ActualCandles.TakeLast(InitialCandleCount);
-
-                  maxUnix = viewCandles.Max(x => x.UnixTime) + (unixDiff * 30);
-                  minUnix = viewCandles.Min(x => x.UnixTime) + (unixDiff * 30);
+                  var diffX = maxUnix - minUnix;
+                  maxUnix = lastCandle.UnixTime + (long)(diffX * 0.1);
+                  minUnix = maxUnix - diffX;
                 }
                 else if (lastLockedCandle?.OpenTime != lastCandle?.OpenTime)
                 {
