@@ -345,12 +345,9 @@ namespace CTKS_Chart.ViewModels
 
     public int InitialCandleCount
     {
-      get
-      {
-
-        return 100;
-      }
-    }
+      get;
+      set;
+    } = 150;
 
 
     #endregion

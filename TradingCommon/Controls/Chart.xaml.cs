@@ -230,7 +230,8 @@ namespace CTKS_Chart.Views.Controls
 
     private void Overlay_MouseLeave(object sender, MouseEventArgs e)
     {
-      DrawingViewModel.EnableAutoLock = true;
+      if (DrawingViewModel != null)
+        DrawingViewModel.EnableAutoLock = true;
     }
 
     private void Chart_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -251,7 +252,7 @@ namespace CTKS_Chart.Views.Controls
 
       ActualMousePosition = e.GetPosition(Image);
 
-      if(!EnableChartMove)
+      if (!EnableChartMove)
       {
         return;
       }
@@ -288,7 +289,7 @@ namespace CTKS_Chart.Views.Controls
 
           var deltaY = (startPrice * 100 / nextPrice) / 100.0;
 
-          if(deltaY != 0)
+          if (deltaY != 0)
           {
             DrawingViewModel.SetMaxUnix((long)(DrawingViewModel.MaxUnix * deltaY));
             DrawingViewModel.SetMinUnix((long)(DrawingViewModel.MinUnix * deltaY));

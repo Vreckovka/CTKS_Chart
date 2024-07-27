@@ -10,6 +10,7 @@ namespace CTKS_Chart.Trading
 {
   public static class TradingViewHelper
   {
+    public static object batton = new object();
     public static Dictionary<string, Dictionary<TimeFrame, List<Candle>>> LoadedData { get; } = new Dictionary<string, Dictionary<TimeFrame, List<Candle>>>();
 
     #region ParseTradingView
@@ -25,126 +26,152 @@ namespace CTKS_Chart.Trading
       int? indexCut = null,
       bool saveData = false)
     {
-      var list = new List<Candle>();
 
-      var lines = File.ReadAllLines(path);
-
-      CultureInfo.CurrentCulture = new CultureInfo("en-US");
-      int index = 0;
-
-      TimeSpan? dateDiff = null;
-
-      for (int i = 1; i < lines.Length - cut; i++) 
+      lock (batton)
       {
-        var line = lines[i];
+        var existingData = GetExistingData(symbol, timeFrame);
 
-        var data = line.Split(",");
-
-        if (data.Length < 4)
+        if (existingData != null)
         {
-          continue;
+          if (maxDate != null)
+            return existingData.Where(x => x.OpenTime <= maxDate).ToList();
+
+          return existingData;
         }
 
-        long.TryParse(data[0], out var unixTimestamp);
-        decimal.TryParse(data[1], out var openParsed);
-        decimal.TryParse(data[2], out var highParsed);
-        decimal.TryParse(data[3], out var lowParsed);
-        decimal.TryParse(data[4], out var closeParsed);
+        var list = new List<Candle>();
 
+        var lines = File.ReadAllLines(path);
 
-        var dateTime = DateTimeHelper.UnixTimeStampToUtcDateTime(unixTimestamp);
+        CultureInfo.CurrentCulture = new CultureInfo("en-US");
+        int index = 0;
 
-        var isOverDate = dateTime > maxDate;
+        TimeSpan? dateDiff = null;
 
-        if (isOverDate && addNotClosedCandle)
+        for (int i = 1; i < lines.Length - cut; i++)
         {
-          isOverDate = false;
-          addNotClosedCandle = false;
-        }
+          var line = lines[i];
 
-        if (indexCut == index)
-        {
-          isOverDate = true;
-        }
+          var data = line.Split(",");
 
-        if (dateDiff == null && list.Count > 1)
-        {
-          dateDiff = list[1].OpenTime - list[0].OpenTime;
-
-          list[0].CloseTime = list[0].OpenTime.AddMinutes(dateDiff.Value.TotalMinutes);
-          list[1].CloseTime = list[1].OpenTime.AddMinutes(dateDiff.Value.TotalMinutes);
-        }
-
-        if (!isOverDate)
-        {
-          IndicatorData indicatorData = new IndicatorData();
-
-          if (data.Length > 8)
+          if (data.Length < 4)
           {
-            decimal.TryParse(data[5], out var rangeFilter);
-            decimal.TryParse(data[6], out var highTarget);
-            decimal.TryParse(data[7], out var lowTarget);
-            decimal.TryParse(data[8], out var upward);
-            decimal.TryParse(data[9], out var bbwp);
-
-
-            var rangeData = new RangeFilterData();
-
-            rangeData.RangeFilter = rangeFilter;
-            rangeData.HighTarget = highTarget;
-            rangeData.LowTarget = lowTarget;
-            rangeData.Upward = upward != 0;
-
-            indicatorData.RangeFilterData = rangeData;
-            indicatorData.BBWP = bbwp;
+            continue;
           }
 
-          var newCandle = new Candle()
-          {
-            Close = closeParsed,
-            Open = openParsed,
-            High = highParsed,
-            Low = lowParsed,
-            OpenTime = dateTime,
-            UnixTime = unixTimestamp,
-            IndicatorData = indicatorData,
-            FileLineIndex = i,
-            FilePath = path
-          };
+          long.TryParse(data[0], out var unixTimestamp);
+          decimal.TryParse(data[1], out var openParsed);
+          decimal.TryParse(data[2], out var highParsed);
+          decimal.TryParse(data[3], out var lowParsed);
+          decimal.TryParse(data[4], out var closeParsed);
 
-          if (dateDiff != null)
+
+          var dateTime = DateTimeHelper.UnixTimeStampToUtcDateTime(unixTimestamp);
+
+          var isOverDate = dateTime > maxDate;
+
+          if (isOverDate && addNotClosedCandle)
           {
-            newCandle.CloseTime = newCandle.OpenTime.AddMinutes(dateDiff.Value.TotalMinutes);
+            isOverDate = false;
+            addNotClosedCandle = false;
           }
 
-          list.Add(newCandle);
+          if (indexCut == index)
+          {
+            isOverDate = true;
+          }
+
+          if (dateDiff == null && list.Count > 1)
+          {
+            dateDiff = list[1].OpenTime - list[0].OpenTime;
+
+            list[0].CloseTime = list[0].OpenTime.AddMinutes(dateDiff.Value.TotalMinutes);
+            list[1].CloseTime = list[1].OpenTime.AddMinutes(dateDiff.Value.TotalMinutes);
+          }
+
+          if (!isOverDate)
+          {
+            IndicatorData indicatorData = new IndicatorData();
+
+            if (data.Length > 8)
+            {
+              decimal.TryParse(data[5], out var rangeFilter);
+              decimal.TryParse(data[6], out var highTarget);
+              decimal.TryParse(data[7], out var lowTarget);
+              decimal.TryParse(data[8], out var upward);
+              decimal.TryParse(data[9], out var bbwp);
+
+
+              var rangeData = new RangeFilterData();
+
+              rangeData.RangeFilter = rangeFilter;
+              rangeData.HighTarget = highTarget;
+              rangeData.LowTarget = lowTarget;
+              rangeData.Upward = upward != 0;
+
+              indicatorData.RangeFilterData = rangeData;
+              indicatorData.BBWP = bbwp;
+            }
+
+            var newCandle = new Candle()
+            {
+              Close = closeParsed,
+              Open = openParsed,
+              High = highParsed,
+              Low = lowParsed,
+              OpenTime = dateTime,
+              UnixTime = unixTimestamp,
+              IndicatorData = indicatorData,
+              FileLineIndex = i,
+              FilePath = path
+            };
+
+            if (dateDiff != null)
+            {
+              newCandle.CloseTime = newCandle.OpenTime.AddMinutes(dateDiff.Value.TotalMinutes);
+            }
+
+            list.Add(newCandle);
+          }
+          else
+          {
+            break;
+          }
+
+          index++;
         }
-        else
+
+        if (saveData)
         {
-          break;
+          if (LoadedData.TryGetValue(symbol, out var symbolData))
+            LoadedData[symbol][timeFrame] = list;
+          else
+          {
+            var data = new Dictionary<TimeFrame, List<Candle>>();
+            data.Add(timeFrame, list);
+
+            LoadedData.Add(symbol, data);
+          }
+
         }
 
-        index++;
+        return list; 
       }
-
-      if (saveData)
-      {
-        if(LoadedData.TryGetValue(symbol, out var symbolData))
-          LoadedData[symbol][timeFrame] = list;
-        else
-        {
-          var data = new Dictionary<TimeFrame, List<Candle>>();
-          data.Add(timeFrame, list);
-
-          LoadedData.Add(symbol, data);
-        }
-        
-      }
-
-      return list;
     }
 
     #endregion
+
+    private static List<Candle> GetExistingData(string symbol, TimeFrame timeFrame)
+    {
+      if (LoadedData.TryGetValue(symbol, out var symbolData))
+      {
+        symbolData.TryGetValue(timeFrame, out var candles);
+
+        return candles;
+      }
+
+      return null;
+    }
 
     #region GetNextTime
 

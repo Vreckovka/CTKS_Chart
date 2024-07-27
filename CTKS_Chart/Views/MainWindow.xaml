@@ -119,10 +119,6 @@
                         Text="{Binding TradingBot.Strategy.MinBuyPrice}" />
 
                     </StackPanel>
-
-
-
-
                   </StackPanel>
                 </UniformGrid>
               </Border>
@@ -211,7 +207,40 @@
             FontFamily="{StaticResource FontAwesome6Pro_Regular}"
             FontSize="19"
             Header=""
-            ToolTip="Testing" />
+            ToolTip="Testing">
+            <MenuItem.Style>
+              <Style BasedOn="{StaticResource {x:Type MenuItem}}" TargetType="MenuItem">
+                <Setter Property="Visibility" Value="Collapsed" />
+
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding IsDebug}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </MenuItem.Style>
+          </MenuItem>
+
+          <MenuItem
+            Command="{Binding OpenAiTesting}"
+            Cursor="Hand"
+            DataContext="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext}"
+            FontFamily="{StaticResource FontAwesome6Pro_Regular}"
+            FontSize="19"
+            Header="AI "
+            ToolTip="Open Ai Testing">
+            <MenuItem.Style>
+              <Style BasedOn="{StaticResource {x:Type MenuItem}}" TargetType="MenuItem">
+                <Setter Property="Visibility" Value="Collapsed" />
+
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding IsDebug}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </MenuItem.Style>
+          </MenuItem>
 
         </Menu>
 

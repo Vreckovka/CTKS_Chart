@@ -28,6 +28,7 @@ using CTKS_Chart.Strategy.Futures;
 using CTKS_Chart.Trading;
 using CTKS_Chart.Views;
 using CTKS_Chart.Views.Prompts;
+using CTKS_Chart.Views.Simulation;
 using Logger;
 using VCore.ItemsCollections;
 using VCore.Standard.Factories.ViewModels;
@@ -67,11 +68,16 @@ namespace CTKS_Chart.ViewModels
       this.windowManager = windowManager ?? throw new ArgumentNullException(nameof(windowManager));
       CultureInfo.CurrentCulture = new CultureInfo("en-US");
 
+#if DEBUG
+      IsDebug = true;
+#endif
     }
 
     #endregion
 
     #region Properties
+
+    public bool IsDebug { get; set; }
 
     #region TradingBotType
 
@@ -157,6 +163,30 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region OpenAiTesting
+
+    protected ActionCommand openAiTesting;
+
+    public ICommand OpenAiTesting
+    {
+      get
+      {
+        return openAiTesting ??= new ActionCommand(OnOpenAiTesting);
+      }
+    }
+
+    public void OnOpenAiTesting()
+    {
+      var prompt = ViewModelsFactory.Create<SimulationAIPromptViewModel>();
+      TradingBotViewModel.IsPaused = true;
+
+      windowManager.ShowPrompt<AiSimulationView>(prompt, 1000, 1000);
+
+      TradingBotViewModel.IsPaused = false;
+    }
+
+    #endregion
+
     #region Icon
 
     private BitmapSource icon;
@@ -218,8 +248,10 @@ namespace CTKS_Chart.ViewModels
     private void SetTradingBot(ITradingBotViewModel tradingBot)
     {
       TradingBotViewModel.MainWindow = (MainWindow)Window;
-      TradingBotViewModel.Start();
 
+#if !DEBUG
+      TradingBotViewModel.Start();
+#endif
       Title = tradingBot.Asset.Symbol;
 
       ChangeIcon(tradingBot.Asset.Symbol);

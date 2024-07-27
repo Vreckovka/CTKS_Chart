@@ -33,6 +33,7 @@ namespace CTKS_Chart.ViewModels
   public class SimulationStatisticsViewModel : BasePromptViewModel
   {
     private readonly Asset asset;
+   
 
     public SimulationStatisticsViewModel(Asset asset)
     {
@@ -212,6 +213,7 @@ namespace CTKS_Chart.ViewModels
   {
     private readonly BinanceDataProvider binanceDataProvider;
     string results;
+    public event EventHandler Finished;
 
     public SimulationTradingBot(
       TradingBot<TPosition, TStrategy> tradingBot,
@@ -315,6 +317,11 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    public DateTime FromDate { get; set; } = new DateTime(2018, 9, 21);
+
+    public TimeFrame DataTimeFrame { get; set; } = TimeFrame.Null;
+    public int Take { get; set; }
+
     #region LoadLayouts
 
     private List<Candle> cutCandles = new List<Candle>();
@@ -322,14 +329,13 @@ namespace CTKS_Chart.ViewModels
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, TradingBot.Asset);
 
-      var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1,$"Data\\Indicators\\{Asset.DataSymbol}T, 1D.csv" , Asset.Symbol, saveData: true);
-      var mainCandles = TradingViewHelper.ParseTradingView(TimeFrame.H4, DataPath, Asset.Symbol, saveData: true);
+      var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{Asset.DataSymbol}T, 1D.csv", Asset.Symbol, saveData: true);
+      var mainCandles = TradingViewHelper.ParseTradingView(DataTimeFrame, DataPath, Asset.Symbol, saveData: true);
 
-      var fromDate = new DateTime(2018, 9, 21);
       //fromDate = new DateTime(2021,8, 30);
 
-      cutCandles = mainCandles.Where(x => x.CloseTime > fromDate).ToList();
-      var candles = mainCandles.Where(x => x.CloseTime < fromDate).ToList();
+      cutCandles = mainCandles.Where(x => x.CloseTime > FromDate).ToList();
+      var candles = mainCandles.Where(x => x.CloseTime < FromDate).ToList();
 
       DrawingViewModel.ActualCandles = candles;
 
@@ -338,8 +344,12 @@ namespace CTKS_Chart.ViewModels
       MainLayout.MaxValue = candles.Max(x => x.High.Value);
       MainLayout.MinValue = candles.Where(x => x.Low.Value > 0).Min(x => x.Low.Value);
 
-      DrawingViewModel.MaxValue = MainLayout.MaxValue;
-      DrawingViewModel.MinValue = MainLayout.MinValue;
+      if (DrawingViewModel.MaxValue == 0)
+      {
+        DrawingViewModel.MaxValue = MainLayout.MaxValue;
+        DrawingViewModel.MinValue = MainLayout.MinValue;
+      }
+
       DrawingViewModel.MaxUnix = candles.Max(x => x.UnixTime) + (unixDiff * 20);
       DrawingViewModel.MinUnix = DrawingViewModel.MaxUnix - (unixDiff * 100);
 
@@ -351,14 +361,23 @@ namespace CTKS_Chart.ViewModels
 
       TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy<TPosition>(rangeAdaFilterData, Asset.Symbol, rangeBtcFilterData, TradingBot.Strategy));
 
-      LoadSecondaryLayouts(fromDate);
-      PreLoadCTks(fromDate);
+      LoadSecondaryLayouts(FromDate);
+      PreLoadCTks(FromDate);
 
       mainLayout.Ctks = mainCtks;
       //Layouts.Add(mainLayout);
       SelectedLayout = mainLayout;
 
-      Simulate(cutCandles, InnerLayouts);
+      if (Take != 0)
+      {
+        Simulate(cutCandles.Take(Take).ToList(), InnerLayouts);
+      }
+      else
+      {
+        Simulate(cutCandles.ToList(), InnerLayouts);
+      }
+
+    
     }
 
     #endregion
@@ -440,7 +459,12 @@ namespace CTKS_Chart.ViewModels
 
       if (DrawChart)
       {
-        DrawingViewModel.OnRestChart();
+        if(DrawingViewModel.MaxValue == 0)
+        {
+          DrawingViewModel.OnRestChart();
+        }
+
+        DrawingViewModel.OnRestChartX();
       }
 
       var result = new SimulationResult()
@@ -499,34 +523,36 @@ namespace CTKS_Chart.ViewModels
 
       if (!cts.IsCancellationRequested)
       {
-        DrawingViewModel.OnRestChart();
-        DrawingViewModel.Render();
+        //DrawingViewModel.OnRestChart();
+        //DrawingViewModel.Render();
 
-        result.TotalValue = TradingBot.Strategy.TotalValue;
-        result.TotalProfit = TradingBot.Strategy.TotalProfit;
-        result.TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue;
-        result.TotalNative = TradingBot.Strategy.TotalNativeAsset;
-        result.RunTime = RunningTime;
-        result.RunTimeTicks = RunningTime.Ticks;
-        result.Date = DateTime.Now;
+        //result.TotalValue = TradingBot.Strategy.TotalValue;
+        //result.TotalProfit = TradingBot.Strategy.TotalProfit;
+        //result.TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue;
+        //result.TotalNative = TradingBot.Strategy.TotalNativeAsset;
+        //result.RunTime = RunningTime;
+        //result.RunTimeTicks = RunningTime.Ticks;
+        //result.Date = DateTime.Now;
 
-        var json = JsonSerializer.Serialize(result);
+        //var json = JsonSerializer.Serialize(result);
 
-        if (File.Exists(results))
-        {
-          using (StreamWriter w = File.AppendText(results))
-          {
-            w.WriteLine(JsonSerializer.Serialize(result));
-          }
-        }
-        else
-        {
-          File.WriteAllText(results, json);
-        }
+        //if (File.Exists(results))
+        //{
+        //  using (StreamWriter w = File.AppendText(results))
+        //  {
+        //    w.WriteLine(JsonSerializer.Serialize(result));
+        //  }
+        //}
+        //else
+        //{
+        //  File.WriteAllText(results, json);
+        //}
 
-        SimulationResults.Add(result);
-        SimulationResults.LinqSortDescending(x => x.Date);
+        //SimulationResults.Add(result);
+        //SimulationResults.LinqSortDescending(x => x.Date);
       }
+
+      Finished.Invoke(this, null);
     }
 
     #endregion

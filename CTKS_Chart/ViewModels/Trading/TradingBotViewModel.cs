@@ -783,7 +783,8 @@ namespace CTKS_Chart.ViewModels
 
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
-        var candles = TradingViewHelper.ParseTradingView(layoutData.Value, layoutData.Key, Asset.Symbol).Where(x => x.CloseTime > startTime);
+        var candles = TradingViewHelper.ParseTradingView(layoutData.Value, layoutData.Key, Asset.Symbol,saveData: true)
+          .Where(x => x.CloseTime > startTime);
 
         foreach (var candle in candles)
         {

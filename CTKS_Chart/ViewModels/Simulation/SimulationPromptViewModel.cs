@@ -1,4 +1,5 @@
 ﻿using CTKS_Chart.Strategy;
+using CTKS_Chart.Strategy.AIStrategy;
 using CTKS_Chart.Strategy.Futures;
 using CTKS_Chart.Trading;
 using System;
@@ -123,6 +124,8 @@ namespace CTKS_Chart.ViewModels
     {
       var path = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data";
 
+      
+
       var timeFrames = new TimeFrame[] {
         TimeFrame.W1,
         TimeFrame.W2,
@@ -194,11 +197,14 @@ namespace CTKS_Chart.ViewModels
 
       btcBot.DataPath = $"BTCUSDT-240-generated.csv";
 
+
+   
       Bots.Add(adaBotFutures);
       Bots.Add(adaBot);
       Bots.Add(adaBot1);
       Bots.Add(btcBot);
       Bots.Add(ltcBot);
+      
 
       adaBotFutures.DrawChart = true;
       adaBotFutures.DrawingViewModel.EnableAutoLock = true;

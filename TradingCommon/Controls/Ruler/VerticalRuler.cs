@@ -44,7 +44,7 @@ namespace CTKS_Chart.Views.Controls
         {
           var text = DrawingHelper.GetFormattedText(max.TextBlock.Text, Brushes.White, fontSize);
 
-          Width = text.Width * 1.10;
+          Width = text.Width + 16;
         }
 
       }
