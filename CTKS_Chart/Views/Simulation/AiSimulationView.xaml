@@ -16,15 +16,49 @@
       <ColumnDefinition />
       <ColumnDefinition Width="auto" />
     </Grid.ColumnDefinitions>
+
+
     <trading:BotView DataContext="{Binding SelectedBot}" />
 
+    <TextBlock
+      Margin="450,0,0,0"
+      VerticalAlignment="Top"
+      Text="{Binding SelectedBot.TradingBot.Strategy.DrawdawnFromMaxTotalValue, StringFormat={}{0:N2}%}" />
+    <TextBlock
+      Margin="500,0,0,0"
+      VerticalAlignment="Top"
+      Text="{Binding SelectedBot.TradingBot.Strategy.MaxDrawdawnFromMaxTotalValue, StringFormat={}{0:N2}%}" />
 
-    <StackPanel Grid.Column="2">
-      <CheckBox IsChecked="{Binding SelectedBot.DrawChart}">Draw chart</CheckBox>
-      <CheckBox IsChecked="{Binding ShowTestBot}">Show Test Bot</CheckBox>
-      <TextBlock Text="{Binding FinishedCount}" />
-      <TextBlock Text="{Binding GenerationCount}" />
-      <TextBlock Text="{Binding BestFitness}" />
+
+    <StackPanel
+      Grid.Column="2"
+      MinWidth="130"
+      Margin="5,5">
+      <StackPanel Margin="0,0,0,10">
+        <CheckBox Margin="0,5" IsChecked="{Binding SelectedBot.DrawChart}">Draw chart</CheckBox>
+        <CheckBox Margin="0,5" IsChecked="{Binding ShowTestBot}">Show Test Bot</CheckBox>
+      </StackPanel>
+
+      <TextBlock>
+        <Run Foreground="#bbb" Text="Current Done:" />
+        <Run FontWeight="Bold" Text="{Binding FinishedCount}" />
+      </TextBlock>
+
+      <TextBlock>
+        <Run Foreground="#80fec827" Text="Generation:" />
+        <Run
+          FontWeight="Bold"
+          Foreground="{StaticResource YellowBrush}"
+          Text="{Binding GenerationCount}" />
+      </TextBlock>
+
+      <TextBlock>
+        <Run Foreground="#804278ff" Text="Best Fitness:" />
+        <Run
+          FontWeight="Bold"
+          Foreground="#4278ff"
+          Text="{Binding BestFitness}" />
+      </TextBlock>
     </StackPanel>
 
 

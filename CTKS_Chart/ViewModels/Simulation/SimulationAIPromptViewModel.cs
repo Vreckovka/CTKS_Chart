@@ -18,7 +18,7 @@ namespace CTKS_Chart.ViewModels
   public class SimulationAIPromptViewModel : BasePromptViewModel
   {
 
-    public const int inputNumber = 35;
+    public const int inputNumber = 34;
     private readonly IViewModelsFactory viewModelsFactory;
     string session;
 
@@ -349,12 +349,7 @@ namespace CTKS_Chart.ViewModels
             {
               fullRun = true;
 
-              VSynchronizationContext.InvokeOnDispatcher(() =>
-              {
-                UpdateGeneration();
-              });
-
-              //CreateBotsFullRun();
+             CreateBotsFullRun();
             }
             else
             {
@@ -363,11 +358,7 @@ namespace CTKS_Chart.ViewModels
                 UpdateGeneration();
               });
             }
-
-
-
           }
-
         }
       }
     }
@@ -381,18 +372,17 @@ namespace CTKS_Chart.ViewModels
       fullRun = false;
       var best = Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First();
 
+      FitnessData.Add(BestFitness);
+      ChartData.Add(Bots.Average(x => x.TradingBot.Strategy.TotalValue));
+      BestData.Add(Bots.Max(x => x.TradingBot.Strategy.TotalValue));
+      Labels.Add(GenerationCount);
+
       await RunTest(best.TradingBot.Strategy);
 
       BestFitness = best.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness;
 
       GenerationCount++;
       FinishedCount = 0;
-
-      FitnessData.Add(BestFitness);
-      ChartData.Add(Bots.Average(x => x.TradingBot.Strategy.TotalValue));
-      BestData.Add(Bots.Max(x => x.TradingBot.Strategy.TotalValue));
-
-      Labels.Add(GenerationCount);
 
       SaveProgress();
       BuyBotManager.UpdateGeneration();

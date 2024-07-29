@@ -14,6 +14,15 @@ namespace CTKS_Chart.Strategy.AIStrategy
     public AIBuyBot BuyAIBot { get; set; }
     public AIBuyBot SellAIBot { get; set; }
 
+    decimal Coeficient
+    {
+      get
+      {
+        return TotalValue / StartingBudget;
+      }
+    }
+
+
     private decimal PositionSize
     {
       get
@@ -45,8 +54,9 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
         var maxBuy = actualCandle.Close.Value * 0.995m;
 
-        var coeficient = MaxTotalValue / StartingBudget;
-        var fitness = TotalNativeAssetValue / TotalValue * 10 * coeficient;
+        //var fitness = TotalNativeAssetValue / TotalValue * 10 * Coeficient;
+
+        var fitness = Math.Pow((double)DrawdawnFromMaxTotalValue / 10,2);
 
         BuyAIBot.NeuralNetwork.AddFitness((float)fitness * -1);
         SellAIBot.NeuralNetwork.AddFitness((float)fitness * -1);
@@ -56,11 +66,11 @@ namespace CTKS_Chart.Strategy.AIStrategy
           BuyAIBot.NeuralNetwork.AddFitness(-50);
         }
 
-        if(MaxTotalValue * 0.7m > TotalValue)
-        {
-          BuyAIBot.NeuralNetwork.AddFitness((float)(TotalValue - MaxTotalValue));
-          SellAIBot.NeuralNetwork.AddFitness((float)(TotalValue - MaxTotalValue));
-        }
+        //if (MaxTotalValue * 0.7m > TotalValue)
+        //{
+        //  BuyAIBot.NeuralNetwork.AddFitness((float)(TotalValue - MaxTotalValue));
+        //  SellAIBot.NeuralNetwork.AddFitness((float)(TotalValue - MaxTotalValue));
+        //}
 
         await CheckPositions(actualCandle, 0, maxBuy);
 
@@ -202,8 +212,11 @@ namespace CTKS_Chart.Strategy.AIStrategy
       }
     }
 
+   
     public override Task CloseBuy(AIPosition TPosition, decimal minForcePrice = 0)
     {
+      BuyAIBot.NeuralNetwork.AddFitness(10 * (float)Coeficient * 10);
+
       return base.CloseBuy(TPosition, minForcePrice);
     }
 
@@ -215,13 +228,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       if (profit < 0)
         throw new Exception("Negative profit!");
 
-      BuyAIBot.NeuralNetwork.AddFitness((float)profit);
-      SellAIBot.NeuralNetwork.AddFitness((float)profit);
-
-      var coeficient = TotalValue / StartingBudget;
-
-      BuyAIBot.NeuralNetwork.AddFitness(1 * (float)coeficient);
-      SellAIBot.NeuralNetwork.AddFitness(1 * (float)coeficient);
+      SellAIBot.NeuralNetwork.AddFitness((float)profit * (float)Coeficient * 10);
 
       base.CloseSell(position);
     }

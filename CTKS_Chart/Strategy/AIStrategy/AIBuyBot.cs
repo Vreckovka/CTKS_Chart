@@ -43,9 +43,13 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
       int index = 0;
 
+      var openSize = (float)strategy.OpenBuyPositions.Sum(x => x.PositionSize);
+      var openCount = (float)strategy.OpenBuyPositions.Count;
+
       AddInput((float)strategy.TotalValue, ref index, ref inputs);
       AddInput((float)strategy.Budget, ref index, ref inputs);
-      AddInput((float)strategy.OpenBuyPositions.Sum(x => x.PositionSize), ref index, ref inputs);
+      AddInput(openSize > 0 ? openSize : -1 , ref index, ref inputs);
+      AddInput(openCount > 0 ? openCount : -1, ref index, ref inputs);
 
       AddInput((float)strategy.TotalActualProfit, ref index, ref inputs);
 
@@ -68,19 +72,19 @@ namespace CTKS_Chart.Strategy.AIStrategy
       AddInput(LogTransform(dailyCandle.Low), ref index, ref inputs);
 
 
-      AddIntersectionInputs(intersections, 20, ref inputs);
+      AddIntersectionInputs(intersections, ref index, ref inputs);
 
       return inputs;
     }
 
     private void AddIntersectionInputs(
       IList<CtksIntersection> intersections,
-      int starterIndex,
+      ref int index,
       ref float[] inputs)
     {
-      for (int i = starterIndex; i < starterIndex + intersections.Count; i++)
+      for (int i = 0; i < intersections.Count; i++)
       {
-        inputs[i] = LogTransform(intersections[i - starterIndex].Value);
+        AddInput(LogTransform(intersections[i].Value), ref index, ref inputs);
       }
     }
 

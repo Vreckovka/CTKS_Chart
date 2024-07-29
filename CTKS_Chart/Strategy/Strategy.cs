@@ -1215,7 +1215,7 @@ namespace CTKS_Chart.Strategy
         MaxTotalValue = TotalValue;
       }
 
-      DrawdawnFromMaxTotalValue = (TotalValue - MaxTotalValue) / MaxTotalValue;
+      DrawdawnFromMaxTotalValue = ((TotalValue - MaxTotalValue) / MaxTotalValue) * 100;
 
       if (DrawdawnFromMaxTotalValue < MaxDrawdawnFromMaxTotalValue)
       {
