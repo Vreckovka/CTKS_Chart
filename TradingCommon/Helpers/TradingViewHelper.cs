@@ -29,6 +29,7 @@ namespace CTKS_Chart.Trading
 
       lock (batton)
       {
+#if DEBUG
         var existingData = GetExistingData(symbol, timeFrame);
 
         if (existingData != null)
@@ -38,6 +39,7 @@ namespace CTKS_Chart.Trading
 
           return existingData;
         }
+#endif
 
         var list = new List<Candle>();
 

@@ -18,18 +18,36 @@ namespace CTKS_Chart.ViewModels
   public class SimulationAIPromptViewModel : BasePromptViewModel
   {
 
-    const int inputNumber = 20;
+    public const int inputNumber = 35;
     private readonly IViewModelsFactory viewModelsFactory;
     string session;
+
+
+    string path = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data";
+
+    TimeFrame[] timeFrames = new TimeFrame[] {
+        TimeFrame.W1,
+        TimeFrame.W2,
+        TimeFrame.M1,
+        TimeFrame.M3,
+        TimeFrame.M6,
+        TimeFrame.M12
+        };
 
     public SimulationAIPromptViewModel(IViewModelsFactory viewModelsFactory)
     {
       this.viewModelsFactory = viewModelsFactory ?? throw new ArgumentNullException(nameof(viewModelsFactory));
 
-      BotManager = new AIManager<AIBot>(viewModelsFactory);
+      BuyBotManager = new AIManager<AIBuyBot>(viewModelsFactory);
+      SellBotManager = new AIManager<AIBuyBot>(viewModelsFactory);
+
+      Title = "AI Training";
+
       session = DateTime.Now.ToString("dd_MM_yyyy_hh_mm_ss");
       CreateBots();
     }
+
+    #region Properties
 
     #region Bots
 
@@ -50,14 +68,21 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    AIManager<AIBot> BotManager { get; set; }
+    AIManager<AIBuyBot> BuyBotManager { get; set; }
+    AIManager<AIBuyBot> SellBotManager { get; set; }
 
     public ChartValues<decimal> ChartData { get; set; } = new ChartValues<decimal>();
 
     public ChartValues<decimal> FullData { get; set; } = new ChartValues<decimal>();
     public ChartValues<decimal> BestData { get; set; } = new ChartValues<decimal>();
+    public ChartValues<decimal> DrawdawnData { get; set; } = new ChartValues<decimal>();
+    public ChartValues<float> FitnessData { get; set; } = new ChartValues<float>();
 
     public ObservableCollection<int> Labels { get; set; } = new ObservableCollection<int>();
+
+    public Func<double, string> PercFormatter { get; set; } = value => value.ToString("N2");
+
+    public Func<double, string> YFormatter { get; set; } = value => value.ToString("N0");
 
     #region GenerationCount
 
@@ -71,6 +96,25 @@ namespace CTKS_Chart.ViewModels
         if (value != generationCount)
         {
           generationCount = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region BestFitness
+
+    private float bestFitness;
+
+    public float BestFitness
+    {
+      get { return bestFitness; }
+      set
+      {
+        if (value != bestFitness)
+        {
+          bestFitness = value;
           RaisePropertyChanged();
         }
       }
@@ -97,88 +141,112 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    //#region SelectedBot
+    #region ShowTestBot
 
-    //private SimulationTradingBot<AIPosition, AIStrategy> selectedBot;
+    private bool showTestBot;
 
-    //public SimulationTradingBot<AIPosition, AIStrategy> SelectedBot
-    //{
-    //  get { return selectedBot; }
-    //  set
-    //  {
-    //    if (value != selectedBot)
-    //    {
-    //      SelectedBot?.Stop();
-    //      selectedBot = value;
+    public bool ShowTestBot
+    {
+      get { return showTestBot; }
+      set
+      {
+        if (value != showTestBot)
+        {
+          showTestBot = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
 
-    //      selectedBot.LoadSimulationResults();
-    //      RaisePropertyChanged();
-    //    }
-    //  }
-    //}
+    #endregion
 
-    //#endregion
+    #region SelectedBot
+
+    private SimulationTradingBot<AIPosition, AIStrategy> selectedBot;
+
+    public SimulationTradingBot<AIPosition, AIStrategy> SelectedBot
+    {
+      get { return selectedBot; }
+      set
+      {
+        if (value != selectedBot)
+        {
+          selectedBot = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Methods
+
+    #region CreateBots
 
     public void CreateBots()
     {
+      BuyBotManager.Initilize(new int[] {
+        inputNumber,
+        inputNumber * 2,
+        inputNumber * 2,
+        30 }, 60);
 
-
-      BotManager.Initilize(new int[] { inputNumber, inputNumber * 2, inputNumber * 2, 2 }, 60);
+      SellBotManager.Initilize(new int[] {
+        inputNumber,
+        inputNumber * 2,
+        inputNumber * 2,
+        15 }, 60);
 
       CreateStrategies();
-
-
     }
-    string path = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data";
-    TimeFrame[] timeFrames = new TimeFrame[] {
-        TimeFrame.W1,
-        TimeFrame.W2,
-        TimeFrame.M1,
-        TimeFrame.M3,
-        TimeFrame.M6,
-        TimeFrame.M12
-        };
 
+    #endregion
+
+    #region CreateStrategies
 
     Random random = new Random();
-    List<List<SimulationTradingBot<AIPosition, AIStrategy>>> spliited = new List<List<SimulationTradingBot<AIPosition, AIStrategy>>>();
+
     private void CreateStrategies()
     {
       Bots.Clear();
 
-      BotManager.CreateAgents();
+      List<List<SimulationTradingBot<AIPosition, AIStrategy>>> spliited = new List<List<SimulationTradingBot<AIPosition, AIStrategy>>>();
 
-      foreach (var agent in BotManager.Agents)
+      BuyBotManager.CreateAgents();
+      SellBotManager.CreateAgents();
+
+      for (int i = 0; i < BuyBotManager.Agents.Count; i++)
       {
         var adaAi = viewModelsFactory.Create<SimulationTradingBot<AIPosition, AIStrategy>>(
-     new TradingBot<AIPosition, AIStrategy>(new Asset()
-     {
-       Symbol = "ADAUSDT",
-       NativeRound = 1,
-       PriceRound = 4,
-       DataPath = path,
-       DataSymbol = "BINANCE ADAUSD",
-       TimeFrames = timeFrames,
-     }, new AIStrategy(agent)));
+                   new TradingBot<AIPosition, AIStrategy>(new Asset()
+                   {
+                     Symbol = "ADAUSDT",
+                     NativeRound = 1,
+                     PriceRound = 4,
+                     DataPath = path,
+                     DataSymbol = "BINANCE ADAUSD",
+                     TimeFrames = timeFrames,
+                   }, new AIStrategy(BuyBotManager.Agents[i], SellBotManager.Agents[i])));
 
         adaAi.DisplayName = "ADAUSDT SPOT AI 15";
         adaAi.DataPath = $"ADAUSDT-240-generated.csv";
-        adaAi.FromDate = new DateTime(random.Next(2019, 2023), random.Next(1, 13), random.Next(1, 25));
-        //adaAi.FromDate = new DateTime(2019, 1, 1);
-        adaAi.Take = 1000;
+        var year = random.Next(2019, 2023);
+
+        adaAi.FromDate = new DateTime(2019, 1, 1);
+        //adaAi.FromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
+        //adaAi.Take = 500;
         adaAi.DataTimeFrame = TimeFrame.H4;
 
         Bots.Add(adaAi);
       }
 
-
-      //SelectedBot.DrawChart = true;
-
       Task.Run(() =>
       {
         spliited = Bots.SplitList(20).ToList();
 
-        foreach(var spliited in spliited)
+        foreach (var spliited in spliited)
         {
           Task.Run(() =>
           {
@@ -190,13 +258,74 @@ namespace CTKS_Chart.ViewModels
             }
           });
         }
-
-       
       });
-
-
     }
 
+    #endregion
+
+    #region CreateBotsFullRun
+
+    bool fullRun = false;
+    public void CreateBotsFullRun()
+    {
+      FinishedCount = 0;
+      Bots.Clear();
+
+      BuyBotManager.CreateAgents();
+      SellBotManager.CreateAgents();
+
+      for (int i = 0; i < BuyBotManager.Agents.Count; i++)
+      {
+        var adaAi = viewModelsFactory.Create<SimulationTradingBot<AIPosition, AIStrategy>>(
+   new TradingBot<AIPosition, AIStrategy>(new Asset()
+   {
+     Symbol = "ADAUSDT",
+     NativeRound = 1,
+     PriceRound = 4,
+     DataPath = path,
+     DataSymbol = "BINANCE ADAUSD",
+     TimeFrames = timeFrames,
+   }, new AIStrategy(BuyBotManager.Agents[i], SellBotManager.Agents[i])));
+
+        adaAi.DisplayName = "ADAUSDT SPOT AI 15";
+        adaAi.DataPath = $"ADAUSDT-240-generated.csv";
+        var year = random.Next(2019, 2023);
+
+        //adaAi.FromDate = new DateTime(2019, 1, 1);
+        adaAi.FromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
+        adaAi.Take = 2190;
+        //adaAi.DataTimeFrame = TimeFrame.H4;
+
+        Bots.Add(adaAi);
+      }
+
+
+      List<List<SimulationTradingBot<AIPosition, AIStrategy>>> spliited = new List<List<SimulationTradingBot<AIPosition, AIStrategy>>>();
+
+      Task.Run(() =>
+      {
+        spliited = Bots.SplitList(20).ToList();
+
+        foreach (var spliited in spliited)
+        {
+          Task.Run(() =>
+          {
+            foreach (var bot in spliited)
+            {
+              bot.Finished += Bot_Finished;
+
+              bot.Start();
+            }
+          });
+        }
+      });
+    }
+
+
+
+    #endregion
+
+    #region Bot_Finished
 
     private void Bot_Finished(object sender, EventArgs e)
     {
@@ -216,42 +345,69 @@ namespace CTKS_Chart.ViewModels
               bot.Finished -= Bot_Finished;
             }
 
-            VSynchronizationContext.InvokeOnDispatcher(() =>
+            if (fullRun == false)
             {
-              UpdateGeneration();
-            });
+              fullRun = true;
+
+              VSynchronizationContext.InvokeOnDispatcher(() =>
+              {
+                UpdateGeneration();
+              });
+
+              //CreateBotsFullRun();
+            }
+            else
+            {
+              VSynchronizationContext.InvokeOnDispatcher(() =>
+              {
+                UpdateGeneration();
+              });
+            }
+
+
+
           }
 
         }
       }
     }
 
+    #endregion
+
     #region UpdateGeneration
 
     private async void UpdateGeneration()
     {
-  
-      var best = Bots.OrderByDescending(x => x.TradingBot.Strategy.TotalValue).First();
+      fullRun = false;
+      var best = Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First();
 
-      await RunTest(best.TradingBot.Strategy.AIBot);
+      await RunTest(best.TradingBot.Strategy);
+
+      BestFitness = best.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness;
 
       GenerationCount++;
       FinishedCount = 0;
+
+      FitnessData.Add(BestFitness);
       ChartData.Add(Bots.Average(x => x.TradingBot.Strategy.TotalValue));
       BestData.Add(Bots.Max(x => x.TradingBot.Strategy.TotalValue));
 
       Labels.Add(GenerationCount);
 
       SaveProgress();
-      BotManager.UpdateGeneration();
+      BuyBotManager.UpdateGeneration();
+      SellBotManager.UpdateGeneration();
+
       CreateStrategies();
     }
 
     #endregion
 
+    #region RunTest
+
     TaskCompletionSource<bool> taskCompletionSource;
 
-    private Task RunTest(AIBot aIBot)
+    private Task RunTest(AIStrategy strategy)
     {
       taskCompletionSource = new TaskCompletionSource<bool>();
 
@@ -264,46 +420,95 @@ namespace CTKS_Chart.ViewModels
       DataPath = path,
       DataSymbol = "BINANCE ADAUSD",
       TimeFrames = timeFrames,
-    }, new AIStrategy(new AIBot(new NeuralNetwork(aIBot.NeuralNetwork)))));
+    }, new AIStrategy(
+      new AIBuyBot(new NeuralNetwork(strategy.BuyAIBot.NeuralNetwork)),
+      new AIBuyBot(new NeuralNetwork(strategy.SellAIBot.NeuralNetwork)
+      ))));
 
       adaAi.DisplayName = "ADAUSDT SPOT AI 15";
       adaAi.DataPath = $"ADAUSDT-240-generated.csv";
       adaAi.FromDate = new DateTime(2019, 1, 1);
       adaAi.DataTimeFrame = TimeFrame.H4;
 
-      Task.Run(() =>
-      {
-        adaAi.Start();
-        adaAi.Finished += AdaAi_Finished;
+      SelectedBot = null;
 
-      
-      });
+      if (ShowTestBot)
+        SelectedBot = adaAi;
+
+      if (SelectedBot != null)
+      {
+        SelectedBot.DrawingViewModel.MinValue = 0.02m;
+        SelectedBot.DrawingViewModel.MaxValue = 0.07m;
+        SelectedBot.DrawingViewModel.InitialCandleCount = 300;
+        SelectedBot.DrawingViewModel.OnRestChartX();
+
+        SelectedBot.DrawChart = true;
+      }
+
+
+      if (SelectedBot != null && SelectedBot.DrawChart)
+      {
+        adaAi.Finished += AdaAi_Finished;
+        adaAi.Start();
+      }
+      else
+      {
+        Task.Run(() =>
+        {
+          adaAi.Finished += AdaAi_Finished;
+          adaAi.Start();
+        });
+      }
+
+
 
       return taskCompletionSource.Task;
     }
 
+    #endregion
+
+    #region AdaAi_Finished
+
     private void AdaAi_Finished(object sender, EventArgs e)
     {
-      if(sender is SimulationTradingBot<AIPosition, AIStrategy> sim)
+      if (sender is SimulationTradingBot<AIPosition, AIStrategy> sim)
       {
         VSynchronizationContext.InvokeOnDispatcher(() =>
         {
           taskCompletionSource.SetResult(true);
           FullData.Add(sim.TradingBot.Strategy.TotalValue);
+          DrawdawnData.Add(sim.TradingBot.Strategy.MaxDrawdawnFromMaxTotalValue);
         });
       }
-     
+
     }
+
+    #endregion
+
+    #region SaveProgress
 
     public void SaveProgress()
     {
-      var bestGhost = BotManager.Networks.OrderByDescending(x => x.Fitness).FirstOrDefault();
+      var bestBuy = BuyBotManager.Networks.OrderByDescending(x => x.Fitness).FirstOrDefault();
 
-      var gfolder = System.IO.Path.Combine("Trainings", session, "ADA");
+      var gfolder = System.IO.Path.Combine("Trainings", session, "ADA", "BUY");
 
       Directory.CreateDirectory(gfolder);
 
-      bestGhost.SaveNeuralNetwork(System.IO.Path.Combine(gfolder, $"{GenerationCount}.txt"));
+      bestBuy.SaveNeuralNetwork(System.IO.Path.Combine(gfolder, $"{GenerationCount}.txt"));
+
+
+      var bestSell = SellBotManager.Networks.OrderByDescending(x => x.Fitness).FirstOrDefault();
+
+      gfolder = System.IO.Path.Combine("Trainings", session, "ADA", "SELL");
+
+      Directory.CreateDirectory(gfolder);
+
+      bestSell.SaveNeuralNetwork(System.IO.Path.Combine(gfolder, $"{GenerationCount}.txt"));
     }
+
+    #endregion 
+
+    #endregion
   }
 }

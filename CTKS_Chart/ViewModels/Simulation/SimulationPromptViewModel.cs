@@ -12,6 +12,7 @@ using System.Windows.Input;
 using VCore.Standard.Factories.ViewModels;
 using VCore.WPF.Misc;
 using VCore.WPF.Prompts;
+using VNeuralNetwork;
 
 namespace CTKS_Chart.ViewModels
 {
@@ -23,16 +24,24 @@ namespace CTKS_Chart.ViewModels
     {
       this.viewModelsFactory = viewModelsFactory ?? throw new ArgumentNullException(nameof(viewModelsFactory));
 
-      CreateBots();  
+
+      BuyBotManager = new AIManager<AIBuyBot>(viewModelsFactory);
+      SellBotManager = new AIManager<AIBuyBot>(viewModelsFactory);
+
+      CreateBots();
+
     }
 
     public override string Title { get; set; } = "Simulation";
 
+    AIManager<AIBuyBot> BuyBotManager { get; set; }
+    AIManager<AIBuyBot> SellBotManager { get; set; }
+
     #region Bots
 
-    private ObservableCollection<ITradingBotViewModel> bots = new ObservableCollection<ITradingBotViewModel>();
+    private ObservableCollection<ISimulationTradingBot> bots = new ObservableCollection<ISimulationTradingBot>();
 
-    public ObservableCollection<ITradingBotViewModel> Bots
+    public ObservableCollection<ISimulationTradingBot> Bots
     {
       get { return bots; }
       set
@@ -147,6 +156,7 @@ namespace CTKS_Chart.ViewModels
 
       adaBotFutures.DisplayName = "ADAUSDT FUTURES";
       adaBotFutures.DataPath = $"ADAUSDT-15-generated.csv";
+  
 
       var adaBot = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(new TradingBot<Position, SimulationStrategy>(new Asset()
       {
@@ -197,20 +207,60 @@ namespace CTKS_Chart.ViewModels
 
       btcBot.DataPath = $"BTCUSDT-240-generated.csv";
 
+      var inputNumber = SimulationAIPromptViewModel.inputNumber;
 
-   
-      Bots.Add(adaBotFutures);
+      BuyBotManager.Initilize(new int[] {
+        inputNumber,
+        inputNumber * 2,
+        inputNumber * 2,
+        30 }, 1);
+
+      SellBotManager.Initilize(new int[] {
+        inputNumber,
+        inputNumber * 2,
+        inputNumber * 2,
+        15 }, 1);
+
+      BuyBotManager.LoadGeneration(@"D:\Aplikacie\Skusobne\CTKS_Chart\CTKS_Chart\bin\Debug\netcoreapp3.1\Trainings\29_07_2024_12_44_57\ADA\BUY\269.txt");
+      SellBotManager.LoadGeneration(@"D:\Aplikacie\Skusobne\CTKS_Chart\CTKS_Chart\bin\Debug\netcoreapp3.1\Trainings\29_07_2024_12_44_57\ADA\SELL\269.txt");
+
+
+      BuyBotManager.CreateAgents();
+      SellBotManager.CreateAgents();
+
+      var adaAi = viewModelsFactory.Create<SimulationTradingBot<AIPosition, AIStrategy>>(
+                   new TradingBot<AIPosition, AIStrategy>(new Asset()
+                   {
+                     Symbol = "ADAUSDT",
+                     NativeRound = 1,
+                     PriceRound = 4,
+                     DataPath = path,
+                     DataSymbol = "BINANCE ADAUSD",
+                     TimeFrames = timeFrames,
+                   }, new AIStrategy(BuyBotManager.Agents[0], SellBotManager.Agents[0])));
+
+      adaAi.DisplayName = "ADAUSDT SPOT AI 240";
+      adaAi.DataPath = $"ADAUSDT-240-generated.csv";
+      adaAi.FromDate = new DateTime(2019, 1, 1);
+    
+
+      Bots.Add(adaAi);
+    
+
+
+    Bots.Add(adaBotFutures);
       Bots.Add(adaBot);
       Bots.Add(adaBot1);
       Bots.Add(btcBot);
       Bots.Add(ltcBot);
-      
 
-      adaBotFutures.DrawChart = true;
-      adaBotFutures.DrawingViewModel.EnableAutoLock = true;
-      adaBotFutures.Delay = 100;
+      foreach(var bot in Bots)
+      {
+        bot.SaveResults = true;
+      }
 
-      SelectedBot = adaBot1;
+
+      SelectedBot = adaAi;
     }
   }
 }

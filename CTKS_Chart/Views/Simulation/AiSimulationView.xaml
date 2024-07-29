@@ -12,7 +12,7 @@
   mc:Ignorable="d">
   <Grid>
     <Grid.ColumnDefinitions>
-      <ColumnDefinition />
+      <ColumnDefinition Width="1.25*" />
       <ColumnDefinition />
       <ColumnDefinition Width="auto" />
     </Grid.ColumnDefinitions>
@@ -21,8 +21,10 @@
 
     <StackPanel Grid.Column="2">
       <CheckBox IsChecked="{Binding SelectedBot.DrawChart}">Draw chart</CheckBox>
+      <CheckBox IsChecked="{Binding ShowTestBot}">Show Test Bot</CheckBox>
       <TextBlock Text="{Binding FinishedCount}" />
       <TextBlock Text="{Binding GenerationCount}" />
+      <TextBlock Text="{Binding BestFitness}" />
     </StackPanel>
 
 
@@ -31,11 +33,13 @@
         <RowDefinition />
         <RowDefinition />
         <RowDefinition />
+        <RowDefinition />
+        <RowDefinition />
       </Grid.RowDefinitions>
 
       <lvc:CartesianChart Margin="10,0" LegendLocation="None">
         <lvc:CartesianChart.AxisY>
-          <lvc:Axis Title="Total Value">
+          <lvc:Axis Title="Average Value" LabelFormatter="{Binding YFormatter}">
             <lvc:Axis.Separator>
               <lvc:Separator Stroke="#252525" />
             </lvc:Axis.Separator>
@@ -52,10 +56,19 @@
 
         <lvc:CartesianChart.Series>
           <lvc:LineSeries
-            Title="Total Value"
+            Title="Average Value"
+            Fill="#20ffec42"
             PointGeometrySize="0"
+            Stroke="#ffec42"
             Values="{Binding ChartData}" />
         </lvc:CartesianChart.Series>
+
+        <lvc:CartesianChart.DataTooltip>
+          <lvc:DefaultTooltip
+            Background="#252525"
+            BorderBrush="#35ffffff"
+            BorderThickness="1" />
+        </lvc:CartesianChart.DataTooltip>
       </lvc:CartesianChart>
 
       <lvc:CartesianChart
@@ -63,7 +76,7 @@
         Margin="10,0"
         LegendLocation="None">
         <lvc:CartesianChart.AxisY>
-          <lvc:Axis Title="Total Value">
+          <lvc:Axis Title="Max Value" LabelFormatter="{Binding YFormatter}">
             <lvc:Axis.Separator>
               <lvc:Separator Stroke="#252525" />
             </lvc:Axis.Separator>
@@ -80,10 +93,20 @@
 
         <lvc:CartesianChart.Series>
           <lvc:LineSeries
-            Title="Survivorship"
+            Title="Max value"
+            Fill="#20c042ff"
+            PointForeground="#c042ff"
             PointGeometrySize="0"
+            Stroke="#c042ff"
             Values="{Binding BestData}" />
         </lvc:CartesianChart.Series>
+
+        <lvc:CartesianChart.DataTooltip>
+          <lvc:DefaultTooltip
+            Background="#252525"
+            BorderBrush="#35ffffff"
+            BorderThickness="1" />
+        </lvc:CartesianChart.DataTooltip>
       </lvc:CartesianChart>
 
       <lvc:CartesianChart
@@ -91,7 +114,45 @@
         Margin="10,0"
         LegendLocation="None">
         <lvc:CartesianChart.AxisY>
-          <lvc:Axis Title="Total Value">
+          <lvc:Axis Title="Fitness" LabelFormatter="{Binding YFormatter}">
+            <lvc:Axis.Separator>
+              <lvc:Separator Stroke="#252525" />
+            </lvc:Axis.Separator>
+          </lvc:Axis>
+        </lvc:CartesianChart.AxisY>
+
+        <lvc:CartesianChart.AxisX>
+          <lvc:Axis Title="Generation" Labels="{Binding Labels}">
+            <lvc:Axis.Separator>
+              <lvc:Separator Stroke="#252525" />
+            </lvc:Axis.Separator>
+          </lvc:Axis>
+        </lvc:CartesianChart.AxisX>
+
+        <lvc:CartesianChart.Series>
+          <lvc:LineSeries
+            Title="Fitness"
+            Fill="#204278ff"
+            PointForeground="#4278ff"
+            PointGeometrySize="0"
+            Stroke="#4278ff"
+            Values="{Binding FitnessData}" />
+        </lvc:CartesianChart.Series>
+
+        <lvc:CartesianChart.DataTooltip>
+          <lvc:DefaultTooltip
+            Background="#252525"
+            BorderBrush="#35ffffff"
+            BorderThickness="1" />
+        </lvc:CartesianChart.DataTooltip>
+      </lvc:CartesianChart>
+
+      <lvc:CartesianChart
+        Grid.Row="3"
+        Margin="10,0"
+        LegendLocation="None">
+        <lvc:CartesianChart.AxisY>
+          <lvc:Axis Title="Total Value" LabelFormatter="{Binding YFormatter}">
             <lvc:Axis.Separator>
               <lvc:Separator Stroke="#252525" />
             </lvc:Axis.Separator>
@@ -109,10 +170,59 @@
         <lvc:CartesianChart.Series>
           <lvc:LineSeries
             Title="Total Value"
+            Fill="#2036d66e"
+            PointForeground="{StaticResource GreenBrush}"
             PointGeometrySize="0"
+            Stroke="{StaticResource GreenBrush}"
             Values="{Binding FullData}" />
         </lvc:CartesianChart.Series>
+
+        <lvc:CartesianChart.DataTooltip>
+          <lvc:DefaultTooltip
+            Background="#252525"
+            BorderBrush="#35ffffff"
+            BorderThickness="1" />
+        </lvc:CartesianChart.DataTooltip>
       </lvc:CartesianChart>
+
+      <lvc:CartesianChart
+        Grid.Row="4"
+        Margin="10,0"
+        LegendLocation="None">
+        <lvc:CartesianChart.AxisY>
+          <lvc:Axis Title="Max Drawdawn" LabelFormatter="{Binding PercFormatter}">
+            <lvc:Axis.Separator>
+              <lvc:Separator Stroke="#252525" />
+            </lvc:Axis.Separator>
+          </lvc:Axis>
+        </lvc:CartesianChart.AxisY>
+
+        <lvc:CartesianChart.AxisX>
+          <lvc:Axis Title="Generation" Labels="{Binding Labels}">
+            <lvc:Axis.Separator>
+              <lvc:Separator Stroke="#252525" />
+            </lvc:Axis.Separator>
+          </lvc:Axis>
+        </lvc:CartesianChart.AxisX>
+
+        <lvc:CartesianChart.Series>
+          <lvc:LineSeries
+            Title="Max Drawdawn"
+            Fill="#20fe2754"
+            PointForeground="{StaticResource DefaultRedBrush}"
+            PointGeometrySize="0"
+            Stroke="{StaticResource DefaultRedBrush}"
+            Values="{Binding DrawdawnData}" />
+        </lvc:CartesianChart.Series>
+
+        <lvc:CartesianChart.DataTooltip>
+          <lvc:DefaultTooltip
+            Background="#252525"
+            BorderBrush="#35ffffff"
+            BorderThickness="1" />
+        </lvc:CartesianChart.DataTooltip>
+      </lvc:CartesianChart>
+
     </Grid>
   </Grid>
 </UserControl>

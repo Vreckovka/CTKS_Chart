@@ -11,79 +11,131 @@ namespace CTKS_Chart.Strategy.AIStrategy
   public class AIStrategy : BaseSimulationStrategy<AIPosition>
   {
     public IndicatorData IndicatorData { get; set; }
-    public AIBot AIBot { get; set; }
+    public AIBuyBot BuyAIBot { get; set; }
+    public AIBuyBot SellAIBot { get; set; }
 
     private decimal PositionSize
     {
       get
       {
-        return TotalValue * 0.10m;
+        return TotalValue;
+        //return 20m;
       }
     }
 
     public AIStrategy()
     {
       StartingBudget = 1000;
+      Budget = StartingBudget;
     }
 
-    public AIStrategy(AIBot bot): this()
+    public AIStrategy(AIBuyBot buyBot, AIBuyBot sellBot) : this()
     {
-      AIBot = bot;
+      BuyAIBot = buyBot;
+      SellAIBot = sellBot;
     }
 
     public override async void CreatePositions(Candle actualCandle, Candle dailyCandle)
     {
-      IndicatorData = dailyCandle.IndicatorData;
-
-
-      var output = AIBot.Update(actualCandle,dailyCandle, this, PositionSize);
-
-      var perc = (decimal)output[0];
-      var price = actualCandle.Close * perc;
-      var weight = PositionSize * (decimal)Math.Abs((decimal)output[1]);
-
-      if (price != null)
+      try
       {
-        var limits = GetMaxAndMinBuy(actualCandle, dailyCandle);
+        await buyLock.WaitAsync();
 
-        var lastSell = limits.Item1;
-        var minBuy = limits.Item2;
-        var maxBuy = limits.Item3;
+        IndicatorData = dailyCandle.IndicatorData;
+
+        var maxBuy = actualCandle.Close.Value * 0.995m;
+
+        var coeficient = MaxTotalValue / StartingBudget;
+        var fitness = TotalNativeAssetValue / TotalValue * 10 * coeficient;
+
+        BuyAIBot.NeuralNetwork.AddFitness((float)fitness * -1);
+        SellAIBot.NeuralNetwork.AddFitness((float)fitness * -1);
+
+        if (TotalNativeAssetValue == 0)
+        {
+          BuyAIBot.NeuralNetwork.AddFitness(-50);
+        }
+
+        if(MaxTotalValue * 0.7m > TotalValue)
+        {
+          BuyAIBot.NeuralNetwork.AddFitness((float)(TotalValue - MaxTotalValue));
+          SellAIBot.NeuralNetwork.AddFitness((float)(TotalValue - MaxTotalValue));
+        }
+
+        await CheckPositions(actualCandle, 0, maxBuy);
+
+        int take = 15;
 
         var inter = Intersections
-                   .Where(x => x.IsEnabled)
-                   .Where(x => x.Value < actualCandle.Close.Value &&
-                               x.Value > minBuy &&
-                               x.Value < lastSell)
-                   .ToList();
+                    .Where(x => x.IsEnabled)
+                    .Where(x => x.Value < actualCandle.Close.Value &&
+                                x.Value < maxBuy)
+                    .OrderByDescending(x => x.Value)
+                    .Take(take)
+                    .ToList();
 
-        var intersection = inter.OrderBy(x => Math.Abs(x.Value - price.Value)).FirstOrDefault();
 
-        if (intersection != null)
+        var output = BuyAIBot.Update(
+          actualCandle,
+          dailyCandle,
+          this,
+          PositionSize,
+          inter);
+
+
+        var indexes = output
+          .Take(take)
+          .Select((v, i) => new { prob = v, index = i });
+
+
+        var toOpen = indexes.Where(x => x.prob > 0.75);
+        var toClose = indexes.Where(x => x.prob < -0.75);
+
+
+        foreach (var prob in toOpen)
         {
-          var positionsOnIntersesction =
-               AllOpenedPositions
-               .Where(x => x.Intersection.IsSame(intersection) &&
-                           x.Intersection.TimeFrame == intersection.TimeFrame)
-               .ToList();
-
-          var existing =
-       ActualPositions
-       .Any(x => x.Intersection.IsSame(intersection) &&
-                   x.Intersection.TimeFrame == intersection.TimeFrame);
-
-          if (price > 0 && positionsOnIntersesction.Count == 0 && !existing)
+          if (prob.index < inter.Count)
           {
-            await CreateBuyPositionFromIntersection(intersection, weight);
-          }
-          else
-          {
-            foreach (var position in positionsOnIntersesction)
+            var intersection = inter[prob.index];
+            var weight = (decimal)(Math.Pow(Math.E, output[prob.index + take]) / Math.E);
+            var size = weight * PositionSize;
+
+            var positionsOnIntersesction =
+              AllOpenedPositions.Concat(ActualPositions)
+              .Where(x => x.Intersection.IsSame(intersection) &&
+                          x.Intersection.TimeFrame == intersection.TimeFrame
+                          && x.Side == PositionSide.Buy)
+              .ToList();
+
+
+            if (positionsOnIntersesction.Count == 0)
             {
-              await CancelPosition(position);
+              await CreateBuyPositionFromIntersection(intersection, size);
             }
           }
         }
+
+        foreach (var prob in toClose)
+        {
+          if (prob.index < inter.Count)
+          {
+            var intersection = inter[prob.index];
+
+            var position =
+             AllOpenedPositions
+             .Where(x => x.Intersection.IsSame(intersection) &&
+                         x.Intersection.TimeFrame == intersection.TimeFrame
+                         && x.Side == PositionSide.Buy)
+             .FirstOrDefault();
+
+            if (position != null)
+              await CancelPosition(position);
+          }
+        }
+      }
+      finally
+      {
+        buyLock.Release();
       }
     }
 
@@ -91,56 +143,85 @@ namespace CTKS_Chart.Strategy.AIStrategy
       CtksIntersection intersection,
       decimal leftSize)
     {
-
       if (GetBudget() > leftSize && leftSize > MinPositionValue)
       {
         await CreateBuyPosition(leftSize, intersection, false);
       }
     }
 
+
     protected override async Task CreateSellPositionForBuy(AIPosition buyPosition, decimal minForcePrice = 0)
     {
-      var output = AIBot.Update(lastCandle, lastDailyCandle, this, 0, PositionSide.Sell, buyPosition);
+      var inter = Intersections
+        .Where(x => x.Value > buyPosition.Price * 1.005m)
+        .OrderBy(x => x.Value)
+        .Take(15)
+        .ToList();
 
-      var price = buyPosition.Price * (1 + (decimal)Math.Abs(output[0]));
+      var output = SellAIBot.Update(
+        lastCandle,
+        lastDailyCandle,
+        this,
+        buyPosition.PositionSize,
+        inter);
 
-      var ctksIntersection = Intersections.OrderBy(x => Math.Abs(x.Value - price)).FirstOrDefault();
 
       var positionSize = buyPosition.PositionSize;
 
       var roundedNativeSize = Math.Round(positionSize / buyPosition.Price, Asset.NativeRound);
 
-      var newPosition = new AIPosition()
-      {
-        PositionSize = positionSize,
-        OriginalPositionSize = positionSize,
-        Price = ctksIntersection.Value,
-        OriginalPositionSizeNative = roundedNativeSize,
-        PositionSizeNative = roundedNativeSize,
-        Side = PositionSide.Sell,
-        TimeFrame = ctksIntersection.TimeFrame,
-        Intersection = ctksIntersection,
-        State = PositionState.Open,
-        IsAutomatic = buyPosition.IsAutomatic
-      };
+      var index = output
+        .Select((v, i) => new { prob = v, index = i })
+        .OrderByDescending(x => x.prob)
+        .FirstOrDefault()?.index;
 
-      await PlaceSellPositions(new List<AIPosition>() { newPosition }, buyPosition);
+      CtksIntersection intersection = null;
+
+      if (index < inter.Count)
+        intersection = inter[index.Value];
+
+
+      if (intersection != null)
+      {
+        var newPosition = new AIPosition()
+        {
+          PositionSize = positionSize,
+          OriginalPositionSize = positionSize,
+          Price = intersection.Value,
+          OriginalPositionSizeNative = roundedNativeSize,
+          PositionSizeNative = roundedNativeSize,
+          Side = PositionSide.Sell,
+          TimeFrame = intersection.TimeFrame,
+          Intersection = intersection,
+          State = PositionState.Open,
+          IsAutomatic = buyPosition.IsAutomatic
+        };
+
+
+        await PlaceSellPositions(new List<AIPosition>() { newPosition }, buyPosition);
+      }
     }
 
     public override Task CloseBuy(AIPosition TPosition, decimal minForcePrice = 0)
     {
-      AIBot.NeuralNetwork.AddFitness(1);
-
       return base.CloseBuy(TPosition, minForcePrice);
-
     }
 
     protected override void CloseSell(AIPosition position)
     {
       var finalSize = position.Price * position.OriginalPositionSizeNative;
-      var profit = finalSize - position.OriginalPositionSize; ;
+      var profit = finalSize - position.OriginalPositionSize;
 
-      AIBot.NeuralNetwork.AddFitness((float)profit);
+      if (profit < 0)
+        throw new Exception("Negative profit!");
+
+      BuyAIBot.NeuralNetwork.AddFitness((float)profit);
+      SellAIBot.NeuralNetwork.AddFitness((float)profit);
+
+      var coeficient = TotalValue / StartingBudget;
+
+      BuyAIBot.NeuralNetwork.AddFitness(1 * (float)coeficient);
+      SellAIBot.NeuralNetwork.AddFitness(1 * (float)coeficient);
 
       base.CloseSell(position);
     }

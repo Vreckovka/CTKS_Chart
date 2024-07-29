@@ -214,6 +214,7 @@ namespace CTKS_Chart.ViewModels
     private readonly BinanceDataProvider binanceDataProvider;
     string results;
     public event EventHandler Finished;
+    public bool SaveResults { get; set; }
 
     public SimulationTradingBot(
       TradingBot<TPosition, TStrategy> tradingBot,
@@ -521,38 +522,38 @@ namespace CTKS_Chart.ViewModels
 
       }, cts.Token);
 
-      if (!cts.IsCancellationRequested)
+      if (!cts.IsCancellationRequested && SaveResults)
       {
-        //DrawingViewModel.OnRestChart();
-        //DrawingViewModel.Render();
+        DrawingViewModel.OnRestChart();
+        DrawingViewModel.Render();
 
-        //result.TotalValue = TradingBot.Strategy.TotalValue;
-        //result.TotalProfit = TradingBot.Strategy.TotalProfit;
-        //result.TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue;
-        //result.TotalNative = TradingBot.Strategy.TotalNativeAsset;
-        //result.RunTime = RunningTime;
-        //result.RunTimeTicks = RunningTime.Ticks;
-        //result.Date = DateTime.Now;
+        result.TotalValue = TradingBot.Strategy.TotalValue;
+        result.TotalProfit = TradingBot.Strategy.TotalProfit;
+        result.TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue;
+        result.TotalNative = TradingBot.Strategy.TotalNativeAsset;
+        result.RunTime = RunningTime;
+        result.RunTimeTicks = RunningTime.Ticks;
+        result.Date = DateTime.Now;
 
-        //var json = JsonSerializer.Serialize(result);
+        var json = JsonSerializer.Serialize(result);
 
-        //if (File.Exists(results))
-        //{
-        //  using (StreamWriter w = File.AppendText(results))
-        //  {
-        //    w.WriteLine(JsonSerializer.Serialize(result));
-        //  }
-        //}
-        //else
-        //{
-        //  File.WriteAllText(results, json);
-        //}
+        if (File.Exists(results))
+        {
+          using (StreamWriter w = File.AppendText(results))
+          {
+            w.WriteLine(JsonSerializer.Serialize(result));
+          }
+        }
+        else
+        {
+          File.WriteAllText(results, json);
+        }
 
-        //SimulationResults.Add(result);
-        //SimulationResults.LinqSortDescending(x => x.Date);
+        SimulationResults.Add(result);
+        SimulationResults.LinqSortDescending(x => x.Date);
       }
 
-      Finished.Invoke(this, null);
+      Finished?.Invoke(this, null);
     }
 
     #endregion

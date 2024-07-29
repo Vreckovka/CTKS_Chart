@@ -28,8 +28,8 @@ namespace CTKS_Chart.Strategy
   public abstract class BaseStrategy<TPosition> : ViewModel where TPosition : Position, new()
   {
     protected decimal LeftSize = 0;
-    private SemaphoreSlim sellLock = new SemaphoreSlim(1, 1);
-    private SemaphoreSlim buyLock = new SemaphoreSlim(1, 1);
+    protected SemaphoreSlim sellLock = new SemaphoreSlim(1, 1);
+    protected SemaphoreSlim buyLock = new SemaphoreSlim(1, 1);
 
     public BaseStrategy()
     {
@@ -43,7 +43,7 @@ namespace CTKS_Chart.Strategy
       var multi = 1;
       var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
-      StartingBudget = 1000;
+      StartingBudget = 100000;
       StartingBudget *= multi;
       Budget = StartingBudget;
 
@@ -53,12 +53,12 @@ namespace CTKS_Chart.Strategy
 
       PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
       {
-        { TimeFrame.M12, 700},
-        { TimeFrame.M6, 600},
-        { TimeFrame.M3, 500},
-        { TimeFrame.M1, 400},
-        { TimeFrame.W2, 300},
-        { TimeFrame.W1, 200},
+        { TimeFrame.M12, 70},
+        { TimeFrame.M6, 60},
+        { TimeFrame.M3, 50},
+        { TimeFrame.M1, 40},
+        { TimeFrame.W2, 30},
+        { TimeFrame.W1, 20},
       };
 
       foreach (var data in StrategyData.PositionSizeMapping)
@@ -411,6 +411,44 @@ namespace CTKS_Chart.Strategy
 
     public decimal MaxTotalValue { get; set; }
 
+    #region DrawdawnFromMaxTotalValue
+
+    private decimal drawdawnFromMaxTotalValue;
+
+    public decimal DrawdawnFromMaxTotalValue
+    {
+      get { return drawdawnFromMaxTotalValue; }
+      set
+      {
+        if (value != drawdawnFromMaxTotalValue)
+        {
+          drawdawnFromMaxTotalValue = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region MaxDrawdawnFromMaxTotalValue
+
+    private decimal maxDrawdawnFromMaxTotalValue;
+
+    public decimal MaxDrawdawnFromMaxTotalValue
+    {
+      get { return maxDrawdawnFromMaxTotalValue; }
+      set
+      {
+        if (value != maxDrawdawnFromMaxTotalValue)
+        {
+          maxDrawdawnFromMaxTotalValue = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     #region Budget
 
     public decimal Budget
@@ -446,6 +484,7 @@ namespace CTKS_Chart.Strategy
     #endregion
 
     #region BasePositionSizeMapping
+
     IEnumerable<KeyValuePair<TimeFrame, decimal>> basePositionSizeMapping;
     public IEnumerable<KeyValuePair<TimeFrame, decimal>> BasePositionSizeMapping
     {
@@ -785,7 +824,7 @@ namespace CTKS_Chart.Strategy
         await CheckPositions(actualCandle, minBuy, maxBuy);
         var validIntersections = Intersections;
 
-
+      
 
         if (EnableRangeFilterStrategy)
         {
@@ -1176,6 +1215,13 @@ namespace CTKS_Chart.Strategy
         MaxTotalValue = TotalValue;
       }
 
+      DrawdawnFromMaxTotalValue = (TotalValue - MaxTotalValue) / MaxTotalValue;
+
+      if (DrawdawnFromMaxTotalValue < MaxDrawdawnFromMaxTotalValue)
+      {
+        MaxDrawdawnFromMaxTotalValue = DrawdawnFromMaxTotalValue;
+      }
+
       RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.AvrageBuyPrice));
       RaisePropertyChanged(nameof(AllClosedPositions));
     }
@@ -1238,6 +1284,7 @@ namespace CTKS_Chart.Strategy
 
 
           ActualPositions.Add(TPosition);
+
           RaisePropertyChanged(nameof(AllCompletedPositions));
           RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.TotalExpectedProfit));
           SaveState();
@@ -1760,27 +1807,12 @@ namespace CTKS_Chart.Strategy
       {
         var inter = postion.Intersection;
 
-        var found = ctksIntersections.SingleOrDefault(y => y.IsSame(inter));
+        var found = ctksIntersections.FirstOrDefault(y => y.IsSame(inter));
 
         if (found != null)
         {
           found.IsEnabled = inter.IsEnabled;
 
-          postion.Intersection = found;
-        }
-        else
-          postion.Intersection = new CtksIntersection();
-      }
-
-
-      foreach (var postion in positions)
-      {
-        var inter = postion.Intersection;
-        var found = ctksIntersections.SingleOrDefault(y => y.IsSame(inter));
-
-        if (found != null)
-        {
-          found.IsEnabled = inter.IsEnabled;
           postion.Intersection = found;
         }
         else
@@ -1796,7 +1828,7 @@ namespace CTKS_Chart.Strategy
 #if RELEASE
       Logger.Log(MessageType.Error, message);
 #else
-      //throw new Exception(message);
+      throw new Exception(message);
 #endif
     }
 

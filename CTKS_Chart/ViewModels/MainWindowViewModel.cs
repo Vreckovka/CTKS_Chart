@@ -180,7 +180,7 @@ namespace CTKS_Chart.ViewModels
       var prompt = ViewModelsFactory.Create<SimulationAIPromptViewModel>();
       TradingBotViewModel.IsPaused = true;
 
-      windowManager.ShowPrompt<AiSimulationView>(prompt, 1000, 1000);
+      windowManager.ShowPrompt<AiSimulationView>(prompt, 1250, 1000);
 
       TradingBotViewModel.IsPaused = false;
     }
