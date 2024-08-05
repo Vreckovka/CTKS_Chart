@@ -120,6 +120,15 @@ namespace CTKS_Chart.Strategy
 
     #endregion
 
+    #region ActualProfitPerc
+
+    public decimal ActualProfitPerc
+    {
+      get { return ActualProfit / OriginalPositionSize * 100; }
+    }
+
+    #endregion
+
     public decimal TotalProfit
     {
       get
@@ -204,6 +213,17 @@ namespace CTKS_Chart.Strategy
     public void RaiseNotify(string name)
     {
       RaisePropertyChanged(name);
+    }
+
+    public decimal GetActualProfit(Candle actual)
+    {
+      var filledSells = OpositPositions.Where(x => x.State == PositionState.Filled).ToList();
+
+      var realizedProfit = filledSells.Sum(x => x.OriginalPositionSize + x.Profit);
+      var leftSize = OpositPositions.Where(x => x.State == PositionState.Open).Sum(x => x.PositionSizeNative);
+      var fees = Fees ?? 0 + filledSells.Sum(x => x.Fees ?? 0);
+
+      return (realizedProfit + (leftSize * actual.Close.Value)) - OriginalPositionSize - fees;
     }
   }
 }

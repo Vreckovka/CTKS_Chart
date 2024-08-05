@@ -2,6 +2,7 @@
   x:Class="CTKS_Chart.Views.Simulation.AiSimulationView"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:converters="clr-namespace:VCore.WPF.Converters;assembly=VCore.WPF"
   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
   xmlns:local="clr-namespace:CTKS_Chart.Views.Simulation"
   xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
@@ -32,33 +33,123 @@
 
     <StackPanel
       Grid.Column="2"
-      MinWidth="130"
+      MinWidth="150"
       Margin="5,5">
       <StackPanel Margin="0,0,0,10">
+        <Button
+          Width="120"
+          Margin="0,5"
+          HorizontalAlignment="Left"
+          Command="{Binding StartCommand}">
+          Start
+        </Button>
         <CheckBox Margin="0,5" IsChecked="{Binding SelectedBot.DrawChart}">Draw chart</CheckBox>
         <CheckBox Margin="0,5" IsChecked="{Binding ShowTestBot}">Show Test Bot</CheckBox>
+        <Grid
+          Height="1"
+          Margin="0,5"
+          Background="#252525" />
+
+        <CheckBox Margin="0,5" IsChecked="{Binding UseRandomDate}">Use Random Date</CheckBox>
+        <CheckBox Margin="0,5" IsChecked="{Binding ChangeSymbol}">Change Symbol</CheckBox>
+        <TextBox Margin="0,5" Text="{Binding TestSymbol, UpdateSourceTrigger=PropertyChanged}" />
+
+        <Grid
+          Height="1"
+          Margin="0,5"
+          Background="#252525" />
+        <TextBox Margin="0,5" Text="{Binding Symbol, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBox Margin="0,5" Text="{Binding Minutes, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBox Margin="0,5" Text="{Binding SplitTake, UpdateSourceTrigger=PropertyChanged}" />
+
       </StackPanel>
 
+
       <TextBlock>
-        <Run Foreground="#bbb" Text="Current Done:" />
-        <Run FontWeight="Bold" Text="{Binding FinishedCount}" />
+        <Run
+          FontSize="11"
+          Foreground="#858585"
+          Text="To Start: " />
+        <Run
+          FontWeight="Bold"
+          Foreground="#858585"
+          Text="{Binding ToStart}" />
       </TextBlock>
 
       <TextBlock>
-        <Run Foreground="#80fec827" Text="Generation:" />
+        <Run
+          FontSize="11"
+          Foreground="#aae83f62"
+          Text="In Progress: " />
+        <Run
+          FontWeight="Bold"
+          Foreground="{StaticResource LightRedBrush}"
+          Text="{Binding InProgress}" />
+      </TextBlock>
+
+      <TextBlock>
+        <Run
+          FontSize="11"
+          Foreground="#bbb"
+          Text="Current Done: " />
+        <Run FontWeight="Bold" Text="{Binding FinishedCount}" />
+        <Run FontWeight="Bold" Text="/" />
+        <Run FontWeight="Bold" Text="{Binding Bots.Count, Mode=OneWay}" />
+        <Run FontSize="11" Foreground="#bbbbbb">
+          <Run.Text>
+            <MultiBinding Converter="{converters:PercentageConverter}" StringFormat="{}({0:N0}%)">
+              <Binding Path="FinishedCount" />
+              <Binding Mode="OneWay" Path="Bots.Count" />
+            </MultiBinding>
+          </Run.Text>
+        </Run>
+      </TextBlock>
+
+      <TextBlock>
+        <Run
+          FontSize="11"
+          Foreground="#80fec827"
+          Text="Generation: " />
         <Run
           FontWeight="Bold"
           Foreground="{StaticResource YellowBrush}"
-          Text="{Binding GenerationCount}" />
+          Text="{Binding BuyBotManager.Generation, Mode=OneWay}" />
       </TextBlock>
 
       <TextBlock>
-        <Run Foreground="#804278ff" Text="Best Fitness:" />
+        <Run
+          FontSize="11"
+          Foreground="#804278ff"
+          Text="Best Fitness: " />
         <Run
           FontWeight="Bold"
           Foreground="#4278ff"
-          Text="{Binding BestFitness}" />
+          Text="{Binding BestFitness, StringFormat={}{0:N0}}" />
       </TextBlock>
+
+      <StackPanel Margin="0,10">
+        <TextBlock>
+          <Run
+            FontSize="11"
+            Foreground="#858585"
+            Text="Generation time: " />
+          <Run
+            FontWeight="Bold"
+            Foreground="#858585"
+            Text="{Binding GenerationRunTime, StringFormat={}{0:mm\\:ss}}" />
+        </TextBlock>
+
+        <TextBlock>
+          <Run
+            FontSize="11"
+            Foreground="#858585"
+            Text="Run Time: " />
+          <Run
+            FontWeight="Bold"
+            Foreground="#858585"
+            Text="{Binding RunTime, StringFormat={}{0:hh\\:mm\\:ss}}" />
+        </TextBlock>
+      </StackPanel>
     </StackPanel>
 
 
@@ -69,11 +160,12 @@
         <RowDefinition />
         <RowDefinition />
         <RowDefinition />
+        <RowDefinition />
       </Grid.RowDefinitions>
 
       <lvc:CartesianChart Margin="10,0" LegendLocation="None">
         <lvc:CartesianChart.AxisY>
-          <lvc:Axis Title="Average Value" LabelFormatter="{Binding YFormatter}">
+          <lvc:Axis Title="Average Fitness" LabelFormatter="{Binding YFormatter}">
             <lvc:Axis.Separator>
               <lvc:Separator Stroke="#252525" />
             </lvc:Axis.Separator>
@@ -90,8 +182,9 @@
 
         <lvc:CartesianChart.Series>
           <lvc:LineSeries
-            Title="Average Value"
+            Title="Average Fitness"
             Fill="#20ffec42"
+            PointForeground="#ffec42"
             PointGeometrySize="0"
             Stroke="#ffec42"
             Values="{Binding ChartData}" />
@@ -110,7 +203,7 @@
         Margin="10,0"
         LegendLocation="None">
         <lvc:CartesianChart.AxisY>
-          <lvc:Axis Title="Max Value" LabelFormatter="{Binding YFormatter}">
+          <lvc:Axis Title="Max Fitness" LabelFormatter="{Binding YFormatter}">
             <lvc:Axis.Separator>
               <lvc:Separator Stroke="#252525" />
             </lvc:Axis.Separator>
@@ -127,7 +220,7 @@
 
         <lvc:CartesianChart.Series>
           <lvc:LineSeries
-            Title="Max value"
+            Title="Max Fitness"
             Fill="#20c042ff"
             PointForeground="#c042ff"
             PointGeometrySize="0"
@@ -247,6 +340,44 @@
             PointGeometrySize="0"
             Stroke="{StaticResource DefaultRedBrush}"
             Values="{Binding DrawdawnData}" />
+        </lvc:CartesianChart.Series>
+
+        <lvc:CartesianChart.DataTooltip>
+          <lvc:DefaultTooltip
+            Background="#252525"
+            BorderBrush="#35ffffff"
+            BorderThickness="1" />
+        </lvc:CartesianChart.DataTooltip>
+      </lvc:CartesianChart>
+
+      <lvc:CartesianChart
+        Grid.Row="5"
+        Margin="10,0"
+        LegendLocation="None">
+        <lvc:CartesianChart.AxisY>
+          <lvc:Axis Title="Number of trades" LabelFormatter="{Binding YFormatter}">
+            <lvc:Axis.Separator>
+              <lvc:Separator Stroke="#252525" />
+            </lvc:Axis.Separator>
+          </lvc:Axis>
+        </lvc:CartesianChart.AxisY>
+
+        <lvc:CartesianChart.AxisX>
+          <lvc:Axis Title="Generation" Labels="{Binding Labels}">
+            <lvc:Axis.Separator>
+              <lvc:Separator Stroke="#252525" />
+            </lvc:Axis.Separator>
+          </lvc:Axis>
+        </lvc:CartesianChart.AxisX>
+
+        <lvc:CartesianChart.Series>
+          <lvc:LineSeries
+            Title="Number of trades"
+            Fill="#20f57542"
+            PointForeground="{StaticResource OrangeBrush}"
+            PointGeometrySize="0"
+            Stroke="{StaticResource OrangeBrush}"
+            Values="{Binding NumberOfTradesData}" />
         </lvc:CartesianChart.Series>
 
         <lvc:CartesianChart.DataTooltip>

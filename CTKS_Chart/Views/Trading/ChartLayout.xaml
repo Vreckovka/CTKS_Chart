@@ -311,7 +311,17 @@
       ChartHeight="{Binding CanvasHeight, Mode=TwoWay}"
       ChartWidth="{Binding CanvasWidth, Mode=TwoWay}"
       DrawingViewModel="{Binding}"
-      Overlay="{Binding ElementName=Overlay}" />
+      Overlay="{Binding ElementName=Overlay}">
+      <controls1:Chart.Style>
+        <Style  TargetType="controls1:Chart">
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding Chart}" Value="{x:Null}">
+              <Setter Property="Visibility" Value="Hidden" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </controls1:Chart.Style>
+    </controls1:Chart>
 
     <controls1:Overlay
       x:Name="Overlay"
@@ -320,7 +330,17 @@
       Grid.Column="1"
       Chart="{Binding ElementName=Chart}"
       HorizontalRuler="{Binding ElementName=HorizontalRuler}"
-      VerticalRuler="{Binding ElementName=VerticalRuler}" />
+      VerticalRuler="{Binding ElementName=VerticalRuler}">
+      <controls1:Overlay.Style>
+        <Style TargetType="controls1:Overlay">
+          <Style.Triggers>
+            <DataTrigger Binding="{Binding Chart}" Value="{x:Null}">
+              <Setter Property="Visibility" Value="Hidden" />
+            </DataTrigger>
+          </Style.Triggers>
+        </Style>
+      </controls1:Overlay.Style>
+    </controls1:Overlay>
 
     <controls1:VerticalRuler
       x:Name="VerticalRuler"

@@ -53,6 +53,11 @@
 
       <Button Focusable="True">X</Button>
 
+      <Button
+        Margin="5,0"
+        Command="{Binding DownloadSymbol}"
+        Content="Download Symbol" />
+
     </StackPanel>
 
     <trading:BotView

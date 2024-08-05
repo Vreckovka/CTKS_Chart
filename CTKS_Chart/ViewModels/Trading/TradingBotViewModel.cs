@@ -776,22 +776,34 @@ namespace CTKS_Chart.ViewModels
 
     #region PreLoadCTks
 
-    List<CtksLayout> preloadedLayots = new List<CtksLayout>();
+    static List<CtksLayout> preloadedLayots = new List<CtksLayout>();
+    static object batton = new object();
+
     protected void PreLoadCTks(DateTime startTime)
     {
-      preloadedLayots = new List<CtksLayout>();
-
-      foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
+      lock (batton)
       {
-        var candles = TradingViewHelper.ParseTradingView(layoutData.Value, layoutData.Key, Asset.Symbol,saveData: true)
-          .Where(x => x.CloseTime > startTime);
-
-        foreach (var candle in candles)
+        foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
         {
-          var layout = CreateCtks(layoutData.Key, layoutData.Value, candle.OpenTime);
+          var candles = TradingViewHelper.ParseTradingView(layoutData.Value, layoutData.Key, Asset.Symbol, saveData: true)
+            .Where(x => x.CloseTime > startTime);
 
-          preloadedLayots.Add(layout);
-        }
+          var loaded = preloadedLayots
+                       .Where(x => x.Asset.Symbol == Asset.Symbol)
+                       .Where(x => x.TimeFrame == layoutData.Value)
+                       .FirstOrDefault(x => candles.First().OpenTime >= x.AllCandles.First().OpenTime);
+
+          if (loaded == null)
+          {
+            foreach (var candle in candles)
+            {
+              var layout = CreateCtks(layoutData.Key, layoutData.Value, candle.OpenTime);
+              layout.Asset = Asset;
+
+              preloadedLayots.Add(layout);
+            }
+          }
+        } 
       }
     }
 
@@ -851,7 +863,9 @@ namespace CTKS_Chart.ViewModels
 
               if (IsSimulation)
               {
-                var newLayout = preloadedLayots.SingleOrDefault(x => x.Ctks.Candles.Count == lastCount + 1 && x.TimeFrame == secondaryLayout.TimeFrame);
+                var newLayout = preloadedLayots
+                  .Where(x => x.Asset.Symbol == Asset.Symbol)
+                  .SingleOrDefault(x => x.Ctks.Candles.Count == lastCount + 1 && x.TimeFrame == secondaryLayout.TimeFrame);
 
                 if (newLayout != null)
                 {
@@ -859,7 +873,7 @@ namespace CTKS_Chart.ViewModels
 
                   secondaryLayouts[secIndex] = newLayout;
                   secondaryLayout = newLayout;
-                }
+                }     
               }
               else
               {

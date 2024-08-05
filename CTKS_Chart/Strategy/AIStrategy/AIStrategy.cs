@@ -11,8 +11,8 @@ namespace CTKS_Chart.Strategy.AIStrategy
   public class AIStrategy : BaseSimulationStrategy<AIPosition>
   {
     public IndicatorData IndicatorData { get; set; }
-    public AIBuyBot BuyAIBot { get; set; }
-    public AIBuyBot SellAIBot { get; set; }
+    public AIBot BuyAIBot { get; set; }
+    public AIBot SellAIBot { get; set; }
 
     decimal Coeficient
     {
@@ -38,7 +38,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       Budget = StartingBudget;
     }
 
-    public AIStrategy(AIBuyBot buyBot, AIBuyBot sellBot) : this()
+    public AIStrategy(AIBot buyBot, AIBot sellBot) : this()
     {
       BuyAIBot = buyBot;
       SellAIBot = sellBot;
@@ -50,27 +50,31 @@ namespace CTKS_Chart.Strategy.AIStrategy
       {
         await buyLock.WaitAsync();
 
+        if (BuyAIBot == null)
+          return;
+
         IndicatorData = dailyCandle.IndicatorData;
 
         var maxBuy = actualCandle.Close.Value * 0.995m;
 
-        //var fitness = TotalNativeAssetValue / TotalValue * 10 * Coeficient;
+        //var fitness = GetNegativeValue((float)Math.Pow((double)DrawdawnFromMaxTotalValue , 2)) / 50;
 
-        var fitness = Math.Pow((double)DrawdawnFromMaxTotalValue / 10,2);
+        //AddFitness(fitness);
 
-        BuyAIBot.NeuralNetwork.AddFitness((float)fitness * -1);
-        SellAIBot.NeuralNetwork.AddFitness((float)fitness * -1);
-
-        if (TotalNativeAssetValue == 0)
-        {
-          BuyAIBot.NeuralNetwork.AddFitness(-50);
-        }
-
-        //if (MaxTotalValue * 0.7m > TotalValue)
+        //foreach (var actualPosition in ActualPositions.ToArray())
         //{
-        //  BuyAIBot.NeuralNetwork.AddFitness((float)(TotalValue - MaxTotalValue));
-        //  SellAIBot.NeuralNetwork.AddFitness((float)(TotalValue - MaxTotalValue));
+        //  actualPosition.ActualProfit = actualPosition.GetActualProfit(actualCandle);
+
+        //  if(actualPosition.ActualProfitPerc < -12)
+        //  {
+        //    StopLossPosition(actualPosition, actualCandle);
+        //  }
         //}
+
+        countFromLastBuy++;
+        countFromLastSell++;
+
+        //AddFitness(GetNegativeValue((countFromLastBuy + countFromLastSell) / 10));
 
         await CheckPositions(actualCandle, 0, maxBuy);
 
@@ -143,6 +147,10 @@ namespace CTKS_Chart.Strategy.AIStrategy
           }
         }
       }
+      catch(Exception ex)
+      {
+
+      }
       finally
       {
         buyLock.Release();
@@ -158,7 +166,6 @@ namespace CTKS_Chart.Strategy.AIStrategy
         await CreateBuyPosition(leftSize, intersection, false);
       }
     }
-
 
     protected override async Task CreateSellPositionForBuy(AIPosition buyPosition, decimal minForcePrice = 0)
     {
@@ -180,57 +187,120 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
       var roundedNativeSize = Math.Round(positionSize / buyPosition.Price, Asset.NativeRound);
 
-      var index = output
+      var indexes = output
         .Select((v, i) => new { prob = v, index = i })
-        .OrderByDescending(x => x.prob)
-        .FirstOrDefault()?.index;
-
-      CtksIntersection intersection = null;
-
-      if (index < inter.Count)
-        intersection = inter[index.Value];
+        .OrderByDescending(x => x.prob);
 
 
-      if (intersection != null)
+      AIPosition newPosition = null;
+
+      foreach (var indexProb in indexes)
       {
-        var newPosition = new AIPosition()
+        CtksIntersection intersection = null;
+
+        if (indexProb.index < inter.Count)
+          intersection = inter[indexProb.index];
+
+        if (intersection != null)
         {
-          PositionSize = positionSize,
-          OriginalPositionSize = positionSize,
-          Price = intersection.Value,
-          OriginalPositionSizeNative = roundedNativeSize,
-          PositionSizeNative = roundedNativeSize,
-          Side = PositionSide.Sell,
-          TimeFrame = intersection.TimeFrame,
-          Intersection = intersection,
-          State = PositionState.Open,
-          IsAutomatic = buyPosition.IsAutomatic
-        };
+          newPosition = new AIPosition()
+          {
+            PositionSize = positionSize,
+            OriginalPositionSize = positionSize,
+            Price = intersection.Value,
+            OriginalPositionSizeNative = roundedNativeSize,
+            PositionSizeNative = roundedNativeSize,
+            Side = PositionSide.Sell,
+            TimeFrame = intersection.TimeFrame,
+            Intersection = intersection,
+            State = PositionState.Open,
+            IsAutomatic = buyPosition.IsAutomatic
+          };
 
-
-        await PlaceSellPositions(new List<AIPosition>() { newPosition }, buyPosition);
+          break;
+        }
       }
+
+      if (newPosition != null)
+        await PlaceSellPositions(new List<AIPosition>() { newPosition }, buyPosition);
+      else
+        throw new Exception("There is no line to place SELL position!!");
     }
 
-   
+
+
+
+    int countFromLastBuy;
+    int countFromLastSell;
+
     public override Task CloseBuy(AIPosition TPosition, decimal minForcePrice = 0)
     {
-      BuyAIBot.NeuralNetwork.AddFitness(10 * (float)Coeficient * 10);
+      AddFitness(1);
+      countFromLastBuy = 0;
 
       return base.CloseBuy(TPosition, minForcePrice);
     }
 
     protected override void CloseSell(AIPosition position)
     {
+      countFromLastSell = 0;
+
+      AddFitness(1);
+
       var finalSize = position.Price * position.OriginalPositionSizeNative;
       var profit = finalSize - position.OriginalPositionSize;
+
+      var fitness = GetProfitFitness(profit);
 
       if (profit < 0)
         throw new Exception("Negative profit!");
 
-      SellAIBot.NeuralNetwork.AddFitness((float)profit * (float)Coeficient * 10);
+      AddFitness(fitness);
 
       base.CloseSell(position);
+    }
+
+    private void StopLossPosition(AIPosition position, Candle actualCandle)
+    {
+      position.Profit = position.GetActualProfit(actualCandle);
+      position.PositionSize = 0;
+      position.PositionSizeNative = 0;
+
+      TotalProfit += position.Profit;
+      Budget += position.OriginalPositionSize + position.Profit;
+      TotalNativeAsset -= position.OriginalPositionSizeNative;
+
+      Budget -= position.Fees ?? 0;
+
+      position.State = PositionState.Completed;
+
+      OpenSellPositions.Remove((AIPosition)position.OpositPositions[0]);
+      ActualPositions.Remove(position);
+
+      var fitness = GetNegativeValue(GetProfitFitness(position.Profit));
+
+      AddFitness(fitness);
+    }
+
+    private void AddFitness(float fitness)
+    {
+      SellAIBot.NeuralNetwork.AddFitness(fitness);
+      BuyAIBot.NeuralNetwork.AddFitness(fitness);
+    }
+
+    private float GetProfitFitness(decimal profit)
+    {
+      var profitPerc = (profit / TotalValue * 100);
+
+      return (float)profitPerc;
+    }
+
+    private float GetNegativeValue(float value)
+    {
+      if (value > 0)
+        value *= -1;
+
+      return value;
     }
   }
 }

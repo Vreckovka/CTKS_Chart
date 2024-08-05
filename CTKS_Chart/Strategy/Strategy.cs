@@ -43,7 +43,7 @@ namespace CTKS_Chart.Strategy
       var multi = 1;
       var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
-      StartingBudget = 100000;
+      StartingBudget = 1000;
       StartingBudget *= multi;
       Budget = StartingBudget;
 
@@ -1342,7 +1342,6 @@ namespace CTKS_Chart.Strategy
           AutomaticBudget -= position.Fees ?? 0;
         }
 
-        Scale(position.Profit);
         position.State = PositionState.Filled;
 
         ClosedSellPositions.Add(position);
@@ -1743,59 +1742,6 @@ namespace CTKS_Chart.Strategy
         OpenSellPositions.Remove(position);
       }
     }
-
-    #region Scale
-
-    private void Scale(decimal profit)
-    {
-      if (lastCandle != null)
-      {
-        var perc = ((profit * (decimal)100.0 / (TotalProfit + StartingBudget))) / (decimal)100.0;
-        var map = PositionSizeMapping.ToList();
-
-        var size = (1 + (perc * (decimal)1 * (decimal)ScaleSize));
-        var maxValue = lastCandle.Close * TotalNativeAssetValue * (decimal)0.25;
-        var nextMaxValue = PositionSizeMapping.Single(x => x.Key == TimeFrame.M12).Value * size;
-
-        var newList = new Dictionary<TimeFrame, decimal>();
-
-        if (nextMaxValue > maxValue && BasePositionSizeMapping != null && size > 1)
-        {
-          return;
-        }
-
-        if (BasePositionSizeMapping != null)
-        {
-          foreach (var mapping in BasePositionSizeMapping.ToList())
-          {
-            newList.Add(mapping.Key, mapping.Value * size);
-          }
-        }
-
-
-        BasePositionSizeMapping = newList;
-      }
-
-
-      //var newList = new Dictionary<TimeFrame, decimal>();
-
-      //if (nextMaxValue < maxValue)
-      //{
-      //  foreach (var mapping in map)
-      //  {
-      //    newList.Add(mapping.Key, mapping.Value * size);
-      //  }
-
-      //  PositionSizeMapping = newList;
-
-      //  SaveState();
-      //}
-
-
-
-    }
-
-    #endregion
 
     #region UpdateIntersections
 

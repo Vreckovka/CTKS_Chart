@@ -40,5 +40,7 @@ namespace CTKS_Chart.Trading
   public class CtksLayout : Layout
   {
     public Ctks Ctks { get; set; }
+
+    public Asset Asset { get; set; }
   }
 }

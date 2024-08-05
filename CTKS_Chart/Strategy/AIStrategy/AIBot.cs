@@ -6,11 +6,11 @@ using VNeuralNetwork;
 
 namespace CTKS_Chart.Strategy.AIStrategy
 {
-  public class AIBuyBot : AIObject
+  public class AIBot : AIObject
   {
    
 
-    public AIBuyBot(NeuralNetwork neuralNetwork) : base(neuralNetwork)
+    public AIBot(NeuralNetwork neuralNetwork) : base(neuralNetwork)
     {
     }
 
@@ -24,10 +24,9 @@ namespace CTKS_Chart.Strategy.AIStrategy
       float[] inputs = GetInputs(
         actualCandle,
         dailyCandle, 
-        strategy, 
-        intersections,
-        positionSize
-        );
+        strategy,
+        positionSize,
+        intersections);
 
       return NeuralNetwork.FeedForward(inputs);
     }
@@ -36,10 +35,10 @@ namespace CTKS_Chart.Strategy.AIStrategy
       Candle actualCandle,
       Candle dailyCandle,
       AIStrategy strategy,
-      IList<CtksIntersection> intersections,
-      decimal positionSize)
+       decimal positionSize,
+      IList<CtksIntersection> intersections)
     {
-      float[] inputs = new float[NeuralNetwork.Layers[0]];
+      float[] inputs = new float[NeuralNetwork.Layers[0].inputCount];
 
       int index = 0;
 
@@ -70,7 +69,6 @@ namespace CTKS_Chart.Strategy.AIStrategy
       AddInput(LogTransform(dailyCandle.Close), ref index, ref inputs);
       AddInput(LogTransform(dailyCandle.High), ref index, ref inputs);
       AddInput(LogTransform(dailyCandle.Low), ref index, ref inputs);
-
 
       AddIntersectionInputs(intersections, ref index, ref inputs);
 

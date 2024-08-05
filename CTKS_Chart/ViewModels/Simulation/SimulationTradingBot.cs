@@ -211,7 +211,6 @@ namespace CTKS_Chart.ViewModels
     where TPosition : Position, new()
     where TStrategy : BaseSimulationStrategy<TPosition>, new()
   {
-    private readonly BinanceDataProvider binanceDataProvider;
     string results;
     public event EventHandler Finished;
     public bool SaveResults { get; set; }
@@ -221,12 +220,10 @@ namespace CTKS_Chart.ViewModels
       ILogger logger,
       IWindowManager windowManager,
       BinanceBroker binanceBroker,
-      BinanceDataProvider binanceDataProvider,
       IViewModelsFactory viewModelsFactory) :
       base(tradingBot, logger, windowManager, binanceBroker, viewModelsFactory)
     {
-      this.binanceDataProvider = binanceDataProvider ?? throw new ArgumentNullException(nameof(binanceDataProvider));
-
+    
       IsSimulation = true;
 
       TradingBot.Strategy.EnableRangeFilterStrategy = true;
@@ -319,9 +316,8 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
     public DateTime FromDate { get; set; } = new DateTime(2018, 9, 21);
-
     public TimeFrame DataTimeFrame { get; set; } = TimeFrame.Null;
-    public int Take { get; set; }
+    public double SplitTake { get; set; }
 
     #region LoadLayouts
 
@@ -330,7 +326,7 @@ namespace CTKS_Chart.ViewModels
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, TradingBot.Asset);
 
-      var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{Asset.DataSymbol}T, 1D.csv", Asset.Symbol, saveData: true);
+      var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{Asset.IndicatorDataPath}, 1D.csv", Asset.Symbol, saveData: true);
       var mainCandles = TradingViewHelper.ParseTradingView(DataTimeFrame, DataPath, Asset.Symbol, saveData: true);
 
       //fromDate = new DateTime(2021,8, 30);
@@ -369,16 +365,16 @@ namespace CTKS_Chart.ViewModels
       //Layouts.Add(mainLayout);
       SelectedLayout = mainLayout;
 
-      if (Take != 0)
+      if (SplitTake != 0)
       {
-        Simulate(cutCandles.Take(Take).ToList(), InnerLayouts);
+        var take = (int)(mainCandles.Count / SplitTake);
+
+        Simulate(cutCandles.Take(take).ToList(), InnerLayouts);
       }
       else
       {
         Simulate(cutCandles.ToList(), InnerLayouts);
       }
-
-    
     }
 
     #endregion
@@ -437,123 +433,129 @@ namespace CTKS_Chart.ViewModels
 
     private async void Simulate(List<Candle> cutCandles, List<CtksLayout> secondaryLayouts)
     {
-      RunningTime = new TimeSpan();
-      cts?.Cancel();
-      cts = new CancellationTokenSource();
-
-      disposable?.Dispose();
-
-      lastElapsed = DateTime.Now;
-
-      if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
-        disposable = Observable.Interval(TimeSpan.FromSeconds(0.25))
-       .ObserveOnDispatcher()
-       .Subscribe((x) =>
-       {
-
-         TimeSpan diff = DateTime.Now - lastElapsed;
-
-         RunningTime = RunningTime.Add(diff);
-
-         lastElapsed = DateTime.Now;
-       });
-
-      if (DrawChart)
+      try
       {
-        if(DrawingViewModel.MaxValue == 0)
-        {
-          DrawingViewModel.OnRestChart();
-        }
-
-        DrawingViewModel.OnRestChartX();
-      }
-
-      var result = new SimulationResult()
-      {
-        BotName = DisplayName
-      };
-
-
-      await Task.Run(async () =>
-      {
-        DateTime lastDay = DateTime.MinValue;
-        for (int i = 0; i < cutCandles.Count; i++)
-        {
-          var actual = cutCandles[i];
-
-          if (cts.IsCancellationRequested)
-            return;
-
-          SimulateCandle(secondaryLayouts, actual);
-
-          await Task.Delay(!IsSimulation || DrawChart ? Delay : 0);
-
-          if (lastDay < actual.OpenTime.Date)
-          {
-            lastDay = actual.OpenTime.Date;
-            result.DataPoints.Add(new SimulationResultDataPoint()
-            {
-              Date = lastDay,
-              TotalNative = TradingBot.Strategy.TotalNativeAsset,
-              TotalValue = TradingBot.Strategy.TotalValue,
-              TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
-              Close = actual.Close.Value
-            });
-          }
-
-          if (TradingBot.Strategy.TotalValue > result.MaxValue.Value)
-          {
-            //Ignore high after last market low
-            if (actual.OpenTime < new DateTime(2023, 5, 1))
-            {
-              result.MaxValue.Value = TradingBot.Strategy.TotalValue;
-              result.MaxValue.Candle = actual;
-              result.LowAfterMaxValue = new SimulationResultValue(decimal.MaxValue);
-            }
-          }
-          else if (TradingBot.Strategy.TotalValue < result.LowAfterMaxValue.Value)
-          {
-            result.LowAfterMaxValue.Value = TradingBot.Strategy.TotalValue;
-            result.MaxValue.Candle = actual;
-          }
-        }
+        RunningTime = new TimeSpan();
+        cts?.Cancel();
+        cts = new CancellationTokenSource();
 
         disposable?.Dispose();
 
-      }, cts.Token);
+        lastElapsed = DateTime.Now;
 
-      if (!cts.IsCancellationRequested && SaveResults)
-      {
-        DrawingViewModel.OnRestChart();
-        DrawingViewModel.Render();
+        if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
+          disposable = Observable.Interval(TimeSpan.FromSeconds(0.25))
+         .ObserveOnDispatcher()
+         .Subscribe((x) =>
+         {
 
-        result.TotalValue = TradingBot.Strategy.TotalValue;
-        result.TotalProfit = TradingBot.Strategy.TotalProfit;
-        result.TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue;
-        result.TotalNative = TradingBot.Strategy.TotalNativeAsset;
-        result.RunTime = RunningTime;
-        result.RunTimeTicks = RunningTime.Ticks;
-        result.Date = DateTime.Now;
+           TimeSpan diff = DateTime.Now - lastElapsed;
 
-        var json = JsonSerializer.Serialize(result);
+           RunningTime = RunningTime.Add(diff);
 
-        if (File.Exists(results))
+           lastElapsed = DateTime.Now;
+         });
+
+        if (DrawChart)
         {
-          using (StreamWriter w = File.AppendText(results))
+          if (DrawingViewModel.MaxValue == 0)
           {
-            w.WriteLine(JsonSerializer.Serialize(result));
+            DrawingViewModel.OnRestChart();
           }
+
+          DrawingViewModel.OnRestChartX();
         }
-        else
+
+        var result = new SimulationResult()
         {
-          File.WriteAllText(results, json);
+          BotName = DisplayName
+        };
+
+
+        await Task.Run(async () =>
+        {
+          DateTime lastDay = DateTime.MinValue;
+          for (int i = 0; i < cutCandles.Count; i++)
+          {
+            var actual = cutCandles[i];
+
+            if (cts.IsCancellationRequested)
+              return;
+
+            SimulateCandle(secondaryLayouts, actual);
+
+            await Task.Delay(!IsSimulation || DrawChart ? Delay : 0);
+
+            if (lastDay < actual.OpenTime.Date)
+            {
+              lastDay = actual.OpenTime.Date;
+              result.DataPoints.Add(new SimulationResultDataPoint()
+              {
+                Date = lastDay,
+                TotalNative = TradingBot.Strategy.TotalNativeAsset,
+                TotalValue = TradingBot.Strategy.TotalValue,
+                TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
+                Close = actual.Close.Value
+              });
+            }
+
+            if (TradingBot.Strategy.TotalValue > result.MaxValue.Value)
+            {
+            //Ignore high after last market low
+            if (actual.OpenTime < new DateTime(2023, 5, 1))
+              {
+                result.MaxValue.Value = TradingBot.Strategy.TotalValue;
+                result.MaxValue.Candle = actual;
+                result.LowAfterMaxValue = new SimulationResultValue(decimal.MaxValue);
+              }
+            }
+            else if (TradingBot.Strategy.TotalValue < result.LowAfterMaxValue.Value)
+            {
+              result.LowAfterMaxValue.Value = TradingBot.Strategy.TotalValue;
+              result.MaxValue.Candle = actual;
+            }
+          }
+
+          disposable?.Dispose();
+
+        }, cts.Token);
+
+        if (!cts.IsCancellationRequested && SaveResults)
+        {
+          DrawingViewModel.OnRestChart();
+          DrawingViewModel.Render();
+
+          result.TotalValue = TradingBot.Strategy.TotalValue;
+          result.TotalProfit = TradingBot.Strategy.TotalProfit;
+          result.TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue;
+          result.TotalNative = TradingBot.Strategy.TotalNativeAsset;
+          result.RunTime = RunningTime;
+          result.RunTimeTicks = RunningTime.Ticks;
+          result.Date = DateTime.Now;
+
+          var json = JsonSerializer.Serialize(result);
+
+          if (File.Exists(results))
+          {
+            using (StreamWriter w = File.AppendText(results))
+            {
+              w.WriteLine(JsonSerializer.Serialize(result));
+            }
+          }
+          else
+          {
+            File.WriteAllText(results, json);
+          }
+
+          SimulationResults.Add(result);
+          SimulationResults.LinqSortDescending(x => x.Date);
         }
 
-        SimulationResults.Add(result);
-        SimulationResults.LinqSortDescending(x => x.Date);
+        Finished?.Invoke(this, null);
       }
-
-      Finished?.Invoke(this, null);
+      catch (Exception)
+      {
+      }
     }
 
     #endregion
@@ -597,11 +599,6 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-
-    private void DownloadCandles(string symbol, TimeSpan timeSpan)
-    {
-      this.binanceDataProvider.GetKlines(symbol, timeSpan);
-    }
 
   }
 }

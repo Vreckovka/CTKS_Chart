@@ -10,6 +10,13 @@ using CTKS_Chart.Trading;
 
 namespace CTKS_Chart.Binance.Data
 {
+  public class DownloadedData
+  {
+    public int Count { get; set; }
+    public DateTime? CurrentDate { get; set; }
+    public bool Finished { get; set; }
+  }
+
   public class BinanceDataProvider
   {
     private readonly BinanceBroker binanceBroker;
@@ -19,9 +26,11 @@ namespace CTKS_Chart.Binance.Data
       this.binanceBroker = binanceBroker ?? throw new ArgumentNullException(nameof(binanceBroker));
     }
 
-    #region GetKlines
+    public event EventHandler<DownloadedData> onDownloadedData;
 
-    public async void GetKlines(
+    #region DownloadSymbol
+
+    public async void DownloadSymbol(
       string symbol,
       TimeSpan klineInterval,
       CancellationToken? cancellationToken = null,
@@ -65,18 +74,32 @@ namespace CTKS_Chart.Binance.Data
           break;
 
         candles.AddRange(lastValues);
-
+      
         lastCloseTime = firstDate;
+
+        onDownloadedData?.Invoke(this, new DownloadedData()
+        {
+          Count = candles.Count,
+          CurrentDate = lastCloseTime
+        });
       }
 
+     
       using (StreamWriter w = File.AppendText(fileName))
       {
         foreach (var value in candles.OrderBy(x => x.CloseTime))
         {
           w.WriteLine($"{value.UnixTime},{value.Open},{value.High},{value.Low},{value.Close}");
-        }
-       
+        }     
       }
+
+      onDownloadedData?.Invoke(this, new DownloadedData()
+      {
+        Count = candles.Count,
+        CurrentDate = lastCloseTime,
+        Finished = true
+      });
+
     }
 
     #endregion
