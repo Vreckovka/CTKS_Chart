@@ -21,11 +21,19 @@ namespace CTKS_Chart.Trading
     [Description("1D")]
     D1 = 1,
 
+    [Description("1H")]
+    H1 = 60,
+    [Description("2H")]
+    H2 = 120,
     [Description("4H")]
     H4 = 240,
+    [Description("8H")]
+    H8 = 480,
     [Description("12H")]
     H12 = 720,
 
+    [Description("15")]
+    m30 = 30,
     [Description("15")]
     m15 = 15,
     //Change to 1

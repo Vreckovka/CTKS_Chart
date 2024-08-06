@@ -27,7 +27,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
     {
       get
       {
-        return TotalValue;
+        return TotalValue / TakeIntersections;
         //return 20m;
       }
     }
@@ -38,11 +38,17 @@ namespace CTKS_Chart.Strategy.AIStrategy
       Budget = StartingBudget;
     }
 
+    public int TakeIntersections { get; set; } = 15;
+
     public AIStrategy(AIBot buyBot, AIBot sellBot) : this()
     {
       BuyAIBot = buyBot;
       SellAIBot = sellBot;
     }
+
+    #region CreatePositions
+
+    List<CtksIntersection> lastIntersections = new List<CtksIntersection>();
 
     public override async void CreatePositions(Candle actualCandle, Candle dailyCandle)
     {
@@ -50,16 +56,25 @@ namespace CTKS_Chart.Strategy.AIStrategy
       {
         await buyLock.WaitAsync();
 
+
+        if (lastDailyCandle?.OpenTime != dailyCandle.OpenTime)
+        {
+          var fitness = GetNegativeValue((float)Math.Pow((double)DrawdawnFromMaxTotalValue, 2) / 100);
+
+          AddFitness(fitness);
+        }
+
+
+        lastDailyCandle = dailyCandle;
+        lastCandle = actualCandle;
+
         if (BuyAIBot == null)
           return;
+
 
         IndicatorData = dailyCandle.IndicatorData;
 
         var maxBuy = actualCandle.Close.Value * 0.995m;
-
-        //var fitness = GetNegativeValue((float)Math.Pow((double)DrawdawnFromMaxTotalValue , 2)) / 50;
-
-        //AddFitness(fitness);
 
         //foreach (var actualPosition in ActualPositions.ToArray())
         //{
@@ -71,23 +86,28 @@ namespace CTKS_Chart.Strategy.AIStrategy
         //  }
         //}
 
-        countFromLastBuy++;
-        countFromLastSell++;
-
         //AddFitness(GetNegativeValue((countFromLastBuy + countFromLastSell) / 10));
 
         await CheckPositions(actualCandle, 0, maxBuy);
 
-        int take = 15;
+
 
         var inter = Intersections
                     .Where(x => x.IsEnabled)
                     .Where(x => x.Value < actualCandle.Close.Value &&
                                 x.Value < maxBuy)
                     .OrderByDescending(x => x.Value)
-                    .Take(take)
+                    .Take(TakeIntersections)
                     .ToList();
 
+        var notIns = lastIntersections.Where(p => !inter.Any(p2 => p2.IsSame(p)));
+
+        foreach (var notIn in notIns)
+        {
+          await CancelPositionOnIntersection(notIn);
+        }
+
+        lastIntersections = inter;
 
         var output = BuyAIBot.Update(
           actualCandle,
@@ -98,7 +118,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
 
         var indexes = output
-          .Take(take)
+          .Take(TakeIntersections)
           .Select((v, i) => new { prob = v, index = i });
 
 
@@ -111,7 +131,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
           if (prob.index < inter.Count)
           {
             var intersection = inter[prob.index];
-            var weight = (decimal)(Math.Pow(Math.E, output[prob.index + take]) / Math.E);
+            var weight = (decimal)(Math.Pow(Math.E, output[prob.index + TakeIntersections]) / Math.E);
             var size = weight * PositionSize;
 
             var positionsOnIntersesction =
@@ -135,19 +155,11 @@ namespace CTKS_Chart.Strategy.AIStrategy
           {
             var intersection = inter[prob.index];
 
-            var position =
-             AllOpenedPositions
-             .Where(x => x.Intersection.IsSame(intersection) &&
-                         x.Intersection.TimeFrame == intersection.TimeFrame
-                         && x.Side == PositionSide.Buy)
-             .FirstOrDefault();
-
-            if (position != null)
-              await CancelPosition(position);
+            await CancelPositionOnIntersection(intersection);
           }
         }
       }
-      catch(Exception ex)
+      catch (Exception ex)
       {
 
       }
@@ -156,6 +168,23 @@ namespace CTKS_Chart.Strategy.AIStrategy
         buyLock.Release();
       }
     }
+
+    #endregion
+
+    private async Task CancelPositionOnIntersection(CtksIntersection intersection)
+    {
+      var position =
+       AllOpenedPositions
+       .Where(x => x.Intersection.IsSame(intersection) &&
+                   x.Intersection.TimeFrame == intersection.TimeFrame
+                   && x.Side == PositionSide.Buy)
+       .FirstOrDefault();
+
+      if (position != null)
+        await CancelPosition(position);
+    }
+
+    #region CreateBuyPositionFromIntersection
 
     private async Task CreateBuyPositionFromIntersection(
       CtksIntersection intersection,
@@ -167,12 +196,16 @@ namespace CTKS_Chart.Strategy.AIStrategy
       }
     }
 
+    #endregion
+
+    #region CreateSellPositionForBuy
+
     protected override async Task CreateSellPositionForBuy(AIPosition buyPosition, decimal minForcePrice = 0)
     {
       var inter = Intersections
         .Where(x => x.Value > buyPosition.Price * 1.005m)
         .OrderBy(x => x.Value)
-        .Take(15)
+        .Take(TakeIntersections)
         .ToList();
 
       var output = SellAIBot.Update(
@@ -227,73 +260,91 @@ namespace CTKS_Chart.Strategy.AIStrategy
         throw new Exception("There is no line to place SELL position!!");
     }
 
+    #endregion
 
+    private void OnClosePosition()
+    {
+      AddFitness(0.5f);
+    }
 
-
-    int countFromLastBuy;
-    int countFromLastSell;
+    #region CloseBuy
 
     public override Task CloseBuy(AIPosition TPosition, decimal minForcePrice = 0)
     {
-      AddFitness(1);
-      countFromLastBuy = 0;
-
+      OnClosePosition();
       return base.CloseBuy(TPosition, minForcePrice);
     }
 
+    #endregion
+
+    #region CloseSell
+
     protected override void CloseSell(AIPosition position)
     {
-      countFromLastSell = 0;
-
-      AddFitness(1);
-
       var finalSize = position.Price * position.OriginalPositionSizeNative;
       var profit = finalSize - position.OriginalPositionSize;
 
-      var fitness = GetProfitFitness(profit);
+      //var fitness = GetProfitFitness(profit);
+      //AddFitness(fitness);
+
+      OnClosePosition();
 
       if (profit < 0)
-        throw new Exception("Negative profit!");
-
-      AddFitness(fitness);
+        throw new Exception("Negative profit!");  
 
       base.CloseSell(position);
     }
 
-    private void StopLossPosition(AIPosition position, Candle actualCandle)
+    #endregion
+
+    //#region StopLossPosition
+
+    //private void StopLossPosition(AIPosition position, Candle actualCandle)
+    //{
+    //  position.Profit = position.GetActualProfit(actualCandle);
+    //  position.PositionSize = 0;
+    //  position.PositionSizeNative = 0;
+
+    //  TotalProfit += position.Profit;
+    //  Budget += position.OriginalPositionSize + position.Profit;
+    //  TotalNativeAsset -= position.OriginalPositionSizeNative;
+
+    //  Budget -= position.Fees ?? 0;
+
+    //  position.State = PositionState.Completed;
+
+    //  OpenSellPositions.Remove((AIPosition)position.OpositPositions[0]);
+    //  ActualPositions.Remove(position);
+
+    //  var fitness = GetNegativeValue(GetProfitFitness(position.Profit));
+
+    //  AddFitness(fitness);
+    //}
+
+    //#endregion
+
+    #region AddFitness
+
+    public void AddFitness(float fitness)
     {
-      position.Profit = position.GetActualProfit(actualCandle);
-      position.PositionSize = 0;
-      position.PositionSizeNative = 0;
-
-      TotalProfit += position.Profit;
-      Budget += position.OriginalPositionSize + position.Profit;
-      TotalNativeAsset -= position.OriginalPositionSizeNative;
-
-      Budget -= position.Fees ?? 0;
-
-      position.State = PositionState.Completed;
-
-      OpenSellPositions.Remove((AIPosition)position.OpositPositions[0]);
-      ActualPositions.Remove(position);
-
-      var fitness = GetNegativeValue(GetProfitFitness(position.Profit));
-
-      AddFitness(fitness);
+      SellAIBot?.NeuralNetwork.AddFitness(fitness);
+      BuyAIBot?.NeuralNetwork.AddFitness(fitness);
     }
 
-    private void AddFitness(float fitness)
-    {
-      SellAIBot.NeuralNetwork.AddFitness(fitness);
-      BuyAIBot.NeuralNetwork.AddFitness(fitness);
-    }
+    #endregion
+
+    #region GetProfitFitness
 
     private float GetProfitFitness(decimal profit)
     {
-      var profitPerc = (profit / TotalValue * 100);
+      var profitPerc = (double)(profit / TotalValue) * 100;
 
       return (float)profitPerc;
     }
+
+    #endregion
+
+    #region GetNegativeValue
 
     private float GetNegativeValue(float value)
     {
@@ -302,5 +353,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
       return value;
     }
+
+    #endregion
   }
 }

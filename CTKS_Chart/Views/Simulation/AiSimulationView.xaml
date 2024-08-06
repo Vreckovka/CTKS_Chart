@@ -50,7 +50,6 @@
           Margin="0,5"
           Background="#252525" />
 
-        <CheckBox Margin="0,5" IsChecked="{Binding UseRandomDate}">Use Random Date</CheckBox>
         <CheckBox Margin="0,5" IsChecked="{Binding ChangeSymbol}">Change Symbol</CheckBox>
         <TextBox Margin="0,5" Text="{Binding TestSymbol, UpdateSourceTrigger=PropertyChanged}" />
 

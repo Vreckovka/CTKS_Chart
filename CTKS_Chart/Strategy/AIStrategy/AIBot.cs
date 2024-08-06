@@ -50,8 +50,6 @@ namespace CTKS_Chart.Strategy.AIStrategy
       AddInput(openSize > 0 ? openSize : -1 , ref index, ref inputs);
       AddInput(openCount > 0 ? openCount : -1, ref index, ref inputs);
 
-      AddInput((float)strategy.TotalActualProfit, ref index, ref inputs);
-
       AddInput(LogTransform(actualCandle.Open), ref index, ref inputs);
       AddInput(LogTransform(actualCandle.Close), ref index, ref inputs);
       AddInput(LogTransform(actualCandle.High), ref index, ref inputs);
@@ -61,7 +59,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       AddInput(LogTransform(strategy.IndicatorData.RangeFilterData.HighTarget), ref index, ref inputs);
       AddInput(LogTransform(strategy.IndicatorData.RangeFilterData.LowTarget), ref index, ref inputs);
       AddInput(strategy.IndicatorData.RangeFilterData.Upward ? 1 : -1, ref index, ref inputs);
-      AddInput((float)strategy.IndicatorData.BBWP, ref index, ref inputs);
+      AddInput((float)strategy.IndicatorData.BBWP / 100.0f , ref index, ref inputs);
 
       AddInput((float)positionSize, ref index, ref inputs);
 

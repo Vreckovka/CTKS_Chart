@@ -27,7 +27,7 @@ namespace CTKS_Chart.ViewModels
     string session;
 
 
-    public const int inputNumber = 34;
+
     public int agentNumber = 50;
 
 
@@ -35,8 +35,10 @@ namespace CTKS_Chart.ViewModels
     {
       this.viewModelsFactory = viewModelsFactory ?? throw new ArgumentNullException(nameof(viewModelsFactory));
 
-      BuyBotManager = new AIManager<AIBot>(viewModelsFactory, 0.1f);
-      SellBotManager = new AIManager<AIBot>(viewModelsFactory, 0.1f);
+      float mutationRate = 0.01f;
+
+      BuyBotManager = new AIManager<AIBot>(viewModelsFactory, mutationRate);
+      SellBotManager = new AIManager<AIBot>(viewModelsFactory, mutationRate);
 
       Title = "AI Training";
 
@@ -235,26 +237,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region UseRandomDate
-
-    private bool useRandomDate = true;
-
-    public bool UseRandomDate
-    {
-      get { return useRandomDate; }
-      set
-      {
-        if (value != useRandomDate)
-        {
-          useRandomDate = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-
     #region Symbol
 
     private string symbol = "ADAUSDT";
@@ -276,7 +258,7 @@ namespace CTKS_Chart.ViewModels
 
     #region Minutes
 
-    private int minutes = 240;
+    private int minutes = 720;
 
     public int Minutes
     {
@@ -314,7 +296,7 @@ namespace CTKS_Chart.ViewModels
 
     #region ChangeSymbol
 
-    private bool changeSymbol = true;
+    private bool changeSymbol;
 
     public bool ChangeSymbol
     {
@@ -408,21 +390,31 @@ namespace CTKS_Chart.ViewModels
     #region CreateBots
 
     DateTime lastElapsed;
+
+    public int TakeIntersections = 10;
+    public const int inputNumber = 18;
+
     public void CreateBots()
     {
       lastElapsed = DateTime.Now;
 
+      var inputCount = inputNumber + TakeIntersections;
+
       BuyBotManager.Initilize(new int[] {
-        inputNumber,
-        inputNumber * 2,
-        inputNumber * 2,
-        30 }, agentNumber);
+        inputCount,
+        inputCount * 2,
+        inputCount * 2,
+        inputCount * 2,
+        inputCount * 2,
+        TakeIntersections * 2 }, agentNumber);
 
       SellBotManager.Initilize(new int[] {
-        inputNumber,
-        inputNumber * 2,
-        inputNumber * 2,
-        15 }, agentNumber);
+        inputCount,
+        inputCount * 2,
+        inputCount * 2,
+        inputCount * 2,
+        inputCount * 2,
+        TakeIntersections }, agentNumber);
 
       Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
       {
@@ -468,7 +460,7 @@ namespace CTKS_Chart.ViewModels
 
       for (int i = 0; i < BuyBotManager.Agents.Count; i++)
       {
-        var bot = GetBot(Symbol, BuyBotManager.Agents[i], SellBotManager.Agents[i]);
+        var bot = GetBot(Symbol, BuyBotManager.Agents[i], SellBotManager.Agents[i], IsRandom());
 
         Bots.Add(bot);
       }
@@ -478,13 +470,19 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    private bool IsRandom()
+    {
+      return BuyBotManager.Generation % 5 == 0 && BuyBotManager.Generation != 0;
+    }
+
     #region GetBot
 
     private SimulationTradingBot<AIPosition, AIStrategy>
       GetBot(
       string symbol,
       AIBot buy,
-      AIBot sell)
+      AIBot sell,
+      bool useRandom = false)
     {
       ToStart++;
 
@@ -492,17 +490,21 @@ namespace CTKS_Chart.ViewModels
                   new TradingBot<AIPosition, AIStrategy>(GetAsset(symbol), new AIStrategy(buy, sell)));
 
       bot.DataPath = $"{symbol}-{Minutes}-generated.csv";
-      bot.SplitTake = SplitTake;
 
-      if (UseRandomDate)
+      if (useRandom)
       {
         var year = random.Next(2019, 2023);
         bot.FromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
+        bot.SplitTake = SplitTake;
       }
       else
       {
+        bot.SplitTake = 0;
         bot.FromDate = new DateTime(2019, 1, 1);
       }
+
+      bot.DataTimeFrame = (TimeFrame)Minutes;
+      bot.TradingBot.Strategy.TakeIntersections = TakeIntersections;
 
       return bot;
     }
@@ -515,31 +517,20 @@ namespace CTKS_Chart.ViewModels
     private void StartBots()
     {
       generationStart = DateTime.Now;
-      List<List<SimulationTradingBot<AIPosition, AIStrategy>>> spliited = new List<List<SimulationTradingBot<AIPosition, AIStrategy>>>();
 
-      int threadCount = 3;
-      var splitSize = (Bots.Count / threadCount) + 1;
 
       Task.Run(() =>
       {
-        spliited = Bots.SplitList(splitSize).ToList();
-
-        foreach (var spliited in spliited)
+        foreach (var bot in Bots)
         {
-          Task.Run(() =>
+          bot.Finished += Bot_Finished;
+
+          bot.Start();
+
+          VSynchronizationContext.InvokeOnDispatcher(() =>
           {
-            foreach (var bot in spliited)
-            {
-              bot.Finished += Bot_Finished;
-
-              bot.Start();
-
-              VSynchronizationContext.InvokeOnDispatcher(() =>
-              {
-                InProgress++;
-                ToStart--;
-              });
-            }
+            InProgress++;
+            ToStart--;
           });
         }
       });
@@ -555,11 +546,8 @@ namespace CTKS_Chart.ViewModels
       {
         if (sender is SimulationTradingBot<AIPosition, AIStrategy> sim)
         {
-          VSynchronizationContext.InvokeOnDispatcher(() =>
-        {
           InProgress--;
           FinishedCount++;
-        });
 
           if (FinishedCount == Bots.Count)
           {
@@ -570,6 +558,9 @@ namespace CTKS_Chart.ViewModels
 
             VSynchronizationContext.InvokeOnDispatcher(() =>
             {
+              RaisePropertyChanged(nameof(InProgress));
+              RaisePropertyChanged(nameof(FinishedCount));
+
               UpdateGeneration();
             });
           }
@@ -587,17 +578,26 @@ namespace CTKS_Chart.ViewModels
 
       var best = Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First();
 
-      ChartData.Add(Bots.Average(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness));
-      BestData.Add(best.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness);
+      Bots.ForEach(x => x.TradingBot.Strategy.AddFitness((float)(x.TradingBot.Strategy.TotalValue - x.TradingBot.Strategy.StartingBudget)));
 
-      Labels.Add(BuyBotManager.Generation);
+      if (!IsRandom())
+      {
+        ChartData.Add(Bots.Average(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness));
+        BestData.Add(best.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness);
+
+        Labels.Add(BuyBotManager.Generation);
+      }
+
 
       if (taskCompletionSource != null && !taskCompletionSource.Task.IsCompleted)
       {
         await taskCompletionSource.Task;
       }
 
-      var task = RunTest(best.TradingBot.Strategy);
+      Task task = null;
+
+      if (!IsRandom())
+        task = RunTest(best.TradingBot.Strategy);
 
       if (SelectedBot != null)
         await task;
@@ -647,7 +647,6 @@ namespace CTKS_Chart.ViewModels
       }
 
 
-
       if (SelectedBot != null && SelectedBot.DrawChart)
       {
         testBot.Finished += TestBot_Finished;
@@ -685,6 +684,8 @@ namespace CTKS_Chart.ViewModels
           taskCompletionSource.SetResult(true);
 
           var simStrategy = sim.TradingBot.Strategy;
+          simStrategy.AddFitness((float)(simStrategy.TotalValue - simStrategy.StartingBudget));
+
 
           FullData.Add(simStrategy.TotalValue);
           DrawdawnData.Add(simStrategy.MaxDrawdawnFromMaxTotalValue);
