@@ -10,7 +10,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
   {
    
 
-    public AIBot(NeuralNetwork neuralNetwork) : base(neuralNetwork)
+    public AIBot(INeuralNetwork neuralNetwork) : base(neuralNetwork)
     {
     }
 
@@ -38,7 +38,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
        decimal positionSize,
       IList<CtksIntersection> intersections)
     {
-      float[] inputs = new float[NeuralNetwork.Layers[0].inputCount];
+      float[] inputs = new float[NeuralNetwork.InputCount];
 
       int index = 0;
 

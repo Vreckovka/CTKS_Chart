@@ -1,6 +1,10 @@
-﻿using CTKS_Chart.Strategy.AIStrategy;
+﻿using CTKS_Chart.Strategy;
+using CTKS_Chart.Strategy.AIStrategy;
 using CTKS_Chart.Trading;
 using LiveCharts;
+using SharpNeat.Decoders;
+using SharpNeat.Genomes.Neat;
+using SharpNeat.Network;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -26,24 +30,55 @@ namespace CTKS_Chart.ViewModels
     private readonly IViewModelsFactory viewModelsFactory;
     string session;
 
+    public int AgentNumber { get; } = 50;
 
+    public static int TakeIntersections = 10;
+    public const int inputNumber = 18;
 
-    public int agentNumber = 50;
-
+    #region Constructors
 
     public SimulationAIPromptViewModel(IViewModelsFactory viewModelsFactory)
     {
       this.viewModelsFactory = viewModelsFactory ?? throw new ArgumentNullException(nameof(viewModelsFactory));
 
-      float mutationRate = 0.01f;
-
-      BuyBotManager = new AIManager<AIBot>(viewModelsFactory, mutationRate);
-      SellBotManager = new AIManager<AIBot>(viewModelsFactory, mutationRate);
+      BuyBotManager = GetNeatManager(viewModelsFactory, PositionSide.Buy);
+      SellBotManager = GetNeatManager(viewModelsFactory, PositionSide.Sell);
 
       Title = "AI Training";
 
       session = DateTime.Now.ToString("dd_MM_yyyy_hh_mm_ss");
 
+    }
+
+    #endregion
+
+    public static NEATManager<AIBot> GetNeatManager(
+      IViewModelsFactory viewModelsFactory,
+      PositionSide positionSide)
+    {
+      var inputCount = inputNumber + TakeIntersections;
+
+      switch (positionSide)
+      {
+        case PositionSide.Neutral:
+          break;
+        case PositionSide.Buy:
+          return new NEATManager<AIBot>(
+         viewModelsFactory,
+         NetworkActivationScheme.CreateCyclicFixedTimestepsScheme(100),
+         inputCount,
+         TakeIntersections * 2,
+         QuadraticSigmoid.__DefaultInstance);
+        case PositionSide.Sell:
+          return new NEATManager<AIBot>(
+        viewModelsFactory,
+        NetworkActivationScheme.CreateCyclicFixedTimestepsScheme(100),
+        inputCount,
+        TakeIntersections,
+        QuadraticSigmoid.__DefaultInstance);
+      }
+
+      return null;
     }
 
     #region Properties
@@ -67,8 +102,8 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    public AIManager<AIBot> BuyBotManager { get; set; }
-    public AIManager<AIBot> SellBotManager { get; set; }
+    public NEATManager<AIBot> BuyBotManager { get; set; }
+    public NEATManager<AIBot> SellBotManager { get; set; }
 
     public ChartValues<float> ChartData { get; set; } = new ChartValues<float>();
 
@@ -79,7 +114,26 @@ namespace CTKS_Chart.ViewModels
 
     public ChartValues<double> NumberOfTradesData { get; set; } = new ChartValues<double>();
 
-    public ObservableCollection<int> Labels { get; set; } = new ObservableCollection<int>();
+
+
+    #region Labels
+
+    private List<string> labels = new List<string>();
+
+    public List<string> Labels
+    {
+      get { return labels; }
+      set
+      {
+        if (value != labels)
+        {
+          labels = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
 
     public Func<double, string> PercFormatter { get; set; } = value => value.ToString("N2");
 
@@ -391,30 +445,17 @@ namespace CTKS_Chart.ViewModels
 
     DateTime lastElapsed;
 
-    public int TakeIntersections = 10;
-    public const int inputNumber = 18;
-
     public void CreateBots()
     {
       lastElapsed = DateTime.Now;
 
       var inputCount = inputNumber + TakeIntersections;
 
-      BuyBotManager.Initilize(new int[] {
-        inputCount,
-        inputCount * 2,
-        inputCount * 2,
-        inputCount * 2,
-        inputCount * 2,
-        TakeIntersections * 2 }, agentNumber);
+     // BuyBotManager.LoadPredifinedGenome(new int[] { inputCount, 3, TakeIntersections * 2 });
+     // SellBotManager.LoadPredifinedGenome(new int[] { inputCount, 3, TakeIntersections  });
 
-      SellBotManager.Initilize(new int[] {
-        inputCount,
-        inputCount * 2,
-        inputCount * 2,
-        inputCount * 2,
-        inputCount * 2,
-        TakeIntersections }, agentNumber);
+      BuyBotManager.InitializeManager(AgentNumber);
+      SellBotManager.InitializeManager(AgentNumber);
 
       Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
       {
@@ -461,6 +502,7 @@ namespace CTKS_Chart.ViewModels
       for (int i = 0; i < BuyBotManager.Agents.Count; i++)
       {
         var bot = GetBot(Symbol, BuyBotManager.Agents[i], SellBotManager.Agents[i], IsRandom());
+        //var bot = GetBot(Symbol, BuyBotManager.Agents[i], SellBotManager.Agents[i], true);
 
         Bots.Add(bot);
       }
@@ -470,10 +512,14 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region IsRandom
+
     private bool IsRandom()
     {
       return BuyBotManager.Generation % 5 == 0 && BuyBotManager.Generation != 0;
     }
+
+    #endregion
 
     #region GetBot
 
@@ -487,7 +533,7 @@ namespace CTKS_Chart.ViewModels
       ToStart++;
 
       var bot = viewModelsFactory.Create<SimulationTradingBot<AIPosition, AIStrategy>>(
-                  new TradingBot<AIPosition, AIStrategy>(GetAsset(symbol), new AIStrategy(buy, sell)));
+                  new TradingBot<AIPosition, AIStrategy>(SimulationPromptViewModel.GetAsset(symbol), new AIStrategy(buy, sell)));
 
       bot.DataPath = $"{symbol}-{Minutes}-generated.csv";
 
@@ -570,22 +616,46 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    private void AddFitness(AIStrategy strategy)
+    {
+      float fitness = (float)(strategy.TotalValue - strategy.StartingBudget);
+
+      var drawdawn = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
+
+      var multi = drawdawn * 2;
+
+      if (multi <= 1 && fitness > 0)
+        fitness *= 1 - multi;
+      else
+        fitness = 0;
+
+      strategy.AddFitness(fitness < 0 ? 0 : fitness);
+    }
+
     #region UpdateGeneration
 
     private async void UpdateGeneration()
     {
       GenerationRunTime = DateTime.Now - generationStart;
 
+      Bots.ForEach(x =>
+      {
+        AddFitness(x.TradingBot.Strategy);
+      });
+
       var best = Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First();
 
-      Bots.ForEach(x => x.TradingBot.Strategy.AddFitness((float)(x.TradingBot.Strategy.TotalValue - x.TradingBot.Strategy.StartingBudget)));
+      var addStats = !IsRandom() && BuyBotManager.Generation + 1 % 10 > 1;
 
-      if (!IsRandom())
+      //var addStats = true;
+
+      if (addStats)
       {
         ChartData.Add(Bots.Average(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness));
         BestData.Add(best.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness);
 
-        Labels.Add(BuyBotManager.Generation);
+        Labels.Add(BuyBotManager.Generation.ToString());
+        RaisePropertyChanged(nameof(Labels));
       }
 
 
@@ -596,16 +666,28 @@ namespace CTKS_Chart.ViewModels
 
       Task task = null;
 
-      if (!IsRandom())
-        task = RunTest(best.TradingBot.Strategy);
+      if (addStats)
+      {
+        SaveProgress(BuyBotManager, "BUY");
+        SaveProgress(SellBotManager, "SELL");
+
+        if (TestSymbol != Symbol || ShowTestBot)
+        {
+          task = RunTest(best.TradingBot.Strategy);
+        }
+        else
+        {
+          AddTestData(best.TradingBot.Strategy);
+        }
+
+        //task = RunTest(best.TradingBot.Strategy);
+      }
+
 
       if (SelectedBot != null)
         await task;
 
       FinishedCount = 0;
-
-      SaveProgress(BuyBotManager, "BUY");
-      SaveProgress(SellBotManager, "SELL");
 
       BuyBotManager.UpdateGeneration();
       SellBotManager.UpdateGeneration();
@@ -626,8 +708,8 @@ namespace CTKS_Chart.ViewModels
       InProgress++;
 
       var testBot = GetBot(TestSymbol,
-        new AIBot(new NeuralNetwork(strategy.BuyAIBot.NeuralNetwork)),
-        new AIBot(new NeuralNetwork(strategy.SellAIBot.NeuralNetwork)));
+        new AIBot(new NeatGenome((NeatGenome)strategy.BuyAIBot.NeuralNetwork, 0, 0)),
+        new AIBot(new NeatGenome((NeatGenome)strategy.SellAIBot.NeuralNetwork, 0, 0)));
 
       testBot.FromDate = new DateTime(2019, 1, 1);
 
@@ -684,15 +766,9 @@ namespace CTKS_Chart.ViewModels
           taskCompletionSource.SetResult(true);
 
           var simStrategy = sim.TradingBot.Strategy;
-          simStrategy.AddFitness((float)(simStrategy.TotalValue - simStrategy.StartingBudget));
 
-
-          FullData.Add(simStrategy.TotalValue);
-          DrawdawnData.Add(simStrategy.MaxDrawdawnFromMaxTotalValue);
-          NumberOfTradesData.Add(simStrategy.ClosedBuyPositions.Count);
-
-          BestFitness = simStrategy.BuyAIBot.NeuralNetwork.Fitness;
-          FitnessData.Add(BestFitness);
+          AddFitness(simStrategy);
+          AddTestData(simStrategy);
 
           InProgress--;
         });
@@ -702,82 +778,34 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region AddTestData
+
+    private void AddTestData(AIStrategy aIStrategy)
+    {
+      FullData.Add(aIStrategy.TotalValue);
+      DrawdawnData.Add(aIStrategy.MaxDrawdawnFromMaxTotalValue);
+      NumberOfTradesData.Add(aIStrategy.ClosedSellPositions.Count);
+
+      BestFitness = aIStrategy.BuyAIBot.NeuralNetwork.Fitness;
+      FitnessData.Add(BestFitness);
+    }
+
+    #endregion
+
     #region SaveProgress
 
-    private void SaveProgress(AIManager<AIBot> manager, string folderName)
+    private void SaveProgress(NEATManager<AIBot> manager, string folderName)
     {
       var gfolder = Path.Combine("Trainings", session, "ADA", folderName);
 
       Directory.CreateDirectory(gfolder);
 
-      var best = manager.Networks.OrderByDescending(x => x.Fitness).FirstOrDefault();
-
-      best.SaveNeuralNetwork(Path.Combine(gfolder, $"{manager.Generation}.txt"));
+      manager.SavePopulation(Path.Combine(gfolder, $"{manager.Generation}.txt"));
     }
 
     #endregion
 
-    #region GetAsset
 
-    private Asset GetAsset(string symbol)
-    {
-      Asset asset = null;
-      string path = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data";
-
-      TimeFrame[] timeFrames = new TimeFrame[] {
-        TimeFrame.W1,
-        TimeFrame.W2,
-        TimeFrame.M1,
-        TimeFrame.M3,
-        TimeFrame.M6,
-        TimeFrame.M12
-        };
-
-      switch (symbol)
-      {
-        case "ADAUSDT":
-          asset = new Asset()
-          {
-            Symbol = "ADAUSDT",
-            NativeRound = 1,
-            PriceRound = 4,
-            DataPath = path,
-            DataSymbol = "BINANCE ADAUSD",
-            TimeFrames = timeFrames,
-            IndicatorDataPath = "BINANCE ADAUSDT"
-          };
-          break;
-        case "BTCUSDT":
-          asset = new Asset()
-          {
-            Symbol = "BTCUSDT",
-            NativeRound = 5,
-            PriceRound = 2,
-            DataPath = path,
-            DataSymbol = "INDEX BTCUSD",
-            IndicatorDataPath = "BINANCE BTCUSDT",
-            TimeFrames = timeFrames,
-          };
-          break;
-        case "LTCUSDT":
-          asset = new Asset()
-          {
-            Symbol = "LTCUSDT",
-            NativeRound = 3,
-            PriceRound = 2,
-            DataPath = path,
-            DataSymbol = "BINANCE LTCUSD",
-            IndicatorDataPath = "BINANCE LTCUSD",
-            TimeFrames = timeFrames,
-          };
-          break;
-      }
-
-
-      return asset;
-    }
-
-    #endregion
 
     #endregion
   }

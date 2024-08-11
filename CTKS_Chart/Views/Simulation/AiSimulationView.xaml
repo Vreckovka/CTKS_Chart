@@ -98,7 +98,7 @@
           <Run.Text>
             <MultiBinding Converter="{converters:PercentageConverter}" StringFormat="{}({0:N0}%)">
               <Binding Path="FinishedCount" />
-              <Binding Mode="OneWay" Path="Bots.Count" />
+              <Binding Mode="OneWay" Path="AgentNumber" />
             </MultiBinding>
           </Run.Text>
         </Run>
@@ -164,7 +164,10 @@
 
       <lvc:CartesianChart Margin="10,0" LegendLocation="None">
         <lvc:CartesianChart.AxisY>
-          <lvc:Axis Title="Average Fitness" LabelFormatter="{Binding YFormatter}">
+          <lvc:Axis
+            Title="Average Fitness"
+            LabelFormatter="{Binding YFormatter}"
+            MinValue="0">
             <lvc:Axis.Separator>
               <lvc:Separator Stroke="#252525" />
             </lvc:Axis.Separator>
@@ -202,7 +205,10 @@
         Margin="10,0"
         LegendLocation="None">
         <lvc:CartesianChart.AxisY>
-          <lvc:Axis Title="Max Fitness" LabelFormatter="{Binding YFormatter}">
+          <lvc:Axis
+            Title="Max Fitness"
+            LabelFormatter="{Binding YFormatter}"
+            MinValue="0">
             <lvc:Axis.Separator>
               <lvc:Separator Stroke="#252525" />
             </lvc:Axis.Separator>
@@ -240,7 +246,10 @@
         Margin="10,0"
         LegendLocation="None">
         <lvc:CartesianChart.AxisY>
-          <lvc:Axis Title="Fitness" LabelFormatter="{Binding YFormatter}">
+          <lvc:Axis
+            Title="Fitness"
+            LabelFormatter="{Binding YFormatter}"
+            MinValue="0">
             <lvc:Axis.Separator>
               <lvc:Separator Stroke="#252525" />
             </lvc:Axis.Separator>
@@ -316,7 +325,11 @@
         Margin="10,0"
         LegendLocation="None">
         <lvc:CartesianChart.AxisY>
-          <lvc:Axis Title="Max Drawdawn" LabelFormatter="{Binding PercFormatter}">
+          <lvc:Axis
+            Title="Max Drawdawn"
+            LabelFormatter="{Binding PercFormatter}"
+            MaxValue="0"
+            MinValue="-100">
             <lvc:Axis.Separator>
               <lvc:Separator Stroke="#252525" />
             </lvc:Axis.Separator>
@@ -354,7 +367,10 @@
         Margin="10,0"
         LegendLocation="None">
         <lvc:CartesianChart.AxisY>
-          <lvc:Axis Title="Number of trades" LabelFormatter="{Binding YFormatter}">
+          <lvc:Axis
+            Title="Number of trades"
+            LabelFormatter="{Binding YFormatter}"
+            MinValue="0">
             <lvc:Axis.Separator>
               <lvc:Separator Stroke="#252525" />
             </lvc:Axis.Separator>

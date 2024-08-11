@@ -38,7 +38,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       Budget = StartingBudget;
     }
 
-    public int TakeIntersections { get; set; } = 15;
+    public int TakeIntersections { get; set; } = 10;
 
     public AIStrategy(AIBot buyBot, AIBot sellBot) : this()
     {
@@ -59,9 +59,12 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
         if (lastDailyCandle?.OpenTime != dailyCandle.OpenTime)
         {
-          var fitness = GetNegativeValue((float)Math.Pow((double)DrawdawnFromMaxTotalValue, 2) / 100);
+          var fitness = (float)(TotalValue - (MaxTotalValue * 0.75m));
 
-          AddFitness(fitness);
+          //if (fitness < 0 || (fitness > 0 && ActualPositions.Count > 0))
+          //AddFitness(fitness);
+
+          //AddFitness(GetNegativeValue((float)Math.Pow((double)DrawdawnFromMaxTotalValue, 2) / 1000));
         }
 
 
@@ -116,10 +119,19 @@ namespace CTKS_Chart.Strategy.AIStrategy
           PositionSize,
           inter);
 
+        for (int i = 0; i < TakeIntersections; i++)
+        {
+          output[i] = NEATManager.MapRangeToNegativeOneToOne(output[i]);
+        }
+
+        //for (int i = TakeIntersections; i < output.Length; i++)
+        //{
+        //  output[i] = NEATManager.ScaledLeakyReLU(output[i]);
+        //}
 
         var indexes = output
-          .Take(TakeIntersections)
-          .Select((v, i) => new { prob = v, index = i });
+        .Take(TakeIntersections)
+        .Select((v, i) => new { prob = v, index = i });
 
 
         var toOpen = indexes.Where(x => x.prob > 0.75);
@@ -131,7 +143,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
           if (prob.index < inter.Count)
           {
             var intersection = inter[prob.index];
-            var weight = (decimal)(Math.Pow(Math.E, output[prob.index + TakeIntersections]) / Math.E);
+            var weight = (decimal)output[prob.index + TakeIntersections];
             var size = weight * PositionSize;
 
             var positionsOnIntersesction =
@@ -161,7 +173,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       }
       catch (Exception ex)
       {
-
+        Logger.Log(ex);
       }
       finally
       {
@@ -264,7 +276,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
     private void OnClosePosition()
     {
-      AddFitness(0.5f);
+      //AddFitness(0.5f);
     }
 
     #region CloseBuy
@@ -290,7 +302,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       OnClosePosition();
 
       if (profit < 0)
-        throw new Exception("Negative profit!");  
+        throw new Exception("Negative profit!");
 
       base.CloseSell(position);
     }

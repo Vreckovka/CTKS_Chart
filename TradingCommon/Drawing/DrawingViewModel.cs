@@ -700,8 +700,13 @@ namespace CTKS_Chart.ViewModels
                 RaisePropertyChanged(nameof(MinUnix));
               }
             }
-
+         
             newChart = DrawChart(writeableBmp, candlesToRender, CanvasHeight, CanvasWidth);
+
+            if(newChart.Candles.Count() == 0)
+            {
+              ;
+            }
 
             DrawIndicators(dc);
             OnRender(newChart, dc, dGroup, writeableBmp);

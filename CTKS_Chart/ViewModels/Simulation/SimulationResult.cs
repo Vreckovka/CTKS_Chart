@@ -20,18 +20,12 @@ namespace CTKS_Chart.ViewModels
 
     public SimulationResultValue MaxValue { get; set; } = new SimulationResultValue();
     public SimulationResultValue LowAfterMaxValue { get; set; } = new SimulationResultValue(decimal.MaxValue);
-
     public IList<SimulationResultDataPoint> DataPoints { get; set; } = new List<SimulationResultDataPoint>();
 
     public decimal Drawdawn
     {
-      get
-      {
-        if (MaxValue.Value > 0)
-          return (MaxValue.Value - LowAfterMaxValue.Value) / MaxValue.Value * 100;
-
-        return 0;
-      }
+      get;
+      set;
     }
   }
 }

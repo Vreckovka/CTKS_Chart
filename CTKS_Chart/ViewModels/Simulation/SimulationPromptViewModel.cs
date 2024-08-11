@@ -6,6 +6,8 @@ using CTKS_Chart.Views.Prompts;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -27,8 +29,8 @@ namespace CTKS_Chart.ViewModels
     {
       this.viewModelsFactory = viewModelsFactory ?? throw new ArgumentNullException(nameof(viewModelsFactory));
       this.windowManager = windowManager ?? throw new ArgumentNullException(nameof(windowManager));
-      BuyBotManager = new AIManager<AIBot>(viewModelsFactory);
-      SellBotManager = new AIManager<AIBot>(viewModelsFactory);
+      BuyBotManager = SimulationAIPromptViewModel.GetNeatManager(viewModelsFactory, PositionSide.Buy);
+      SellBotManager = SimulationAIPromptViewModel.GetNeatManager(viewModelsFactory, PositionSide.Sell);
 
       CreateBots();
 
@@ -36,8 +38,8 @@ namespace CTKS_Chart.ViewModels
 
     public override string Title { get; set; } = "Simulation";
 
-    AIManager<AIBot> BuyBotManager { get; set; }
-    AIManager<AIBot> SellBotManager { get; set; }
+    NEATManager<AIBot> BuyBotManager { get; set; }
+    NEATManager<AIBot> SellBotManager { get; set; }
 
     #region Bots
 
@@ -120,6 +122,26 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region LoadAiBot
+
+    protected ActionCommand loadAiBot;
+
+
+    public ICommand LoadAiBot
+    {
+      get
+      {
+        return loadAiBot ??= new ActionCommand(OnLoadAiBot, () => File.Exists(AiPath));
+      }
+    }
+
+    public void OnLoadAiBot()
+    {
+      CreateAiBot();
+    }
+
+    #endregion
+
     #region OnClose
 
     protected override void OnClose(Window window)
@@ -153,122 +175,56 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region AiPath
+
+    private string aiPath = @"D:\Aplikacie\Skusobne\CTKS_Chart\CTKS_Chart\bin\Debug\netcoreapp3.1\Trainings\10_08_2024_07_56_37\ADA\BUY\25.txt";
+
+    public string AiPath
+    {
+      get { return aiPath; }
+      set
+      {
+        if (value != aiPath)
+        {
+          aiPath = value;
+
+          RaisePropertyChanged();
+          loadAiBot?.RaiseCanExecuteChanged();
+        }
+      }
+    }
+
+    #endregion
+
     private void CreateBots()
     {
-      var path = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data";
-
-
-
-      var timeFrames = new TimeFrame[] {
-        TimeFrame.W1,
-        TimeFrame.W2,
-        TimeFrame.M1,
-        TimeFrame.M3,
-        TimeFrame.M6,
-        TimeFrame.M12
-        };
-
-      var adaBotFutures = viewModelsFactory.Create<SimulationTradingBot<FuturesPosition, FuturesSimulationStrategy>>(new TradingBot<FuturesPosition, FuturesSimulationStrategy>(new Asset()
-      {
-        Symbol = "ADAUSDT",
-        NativeRound = 1,
-        PriceRound = 4,
-        DataPath = path,
-        DataSymbol = "BINANCE ADAUSD",
-        TimeFrames = timeFrames,
-        IndicatorDataPath = "BINANCE ADAUSDT",
-      }, new FuturesSimulationStrategy(), TradingBotType.Futures));
+      var adaBotFutures = viewModelsFactory.Create<SimulationTradingBot<FuturesPosition, FuturesSimulationStrategy>>(
+        new TradingBot<FuturesPosition, FuturesSimulationStrategy>(GetAsset("ADAUSDT"), new FuturesSimulationStrategy(), TradingBotType.Futures));
 
       adaBotFutures.DisplayName = "ADAUSDT FUTURES";
       adaBotFutures.DataPath = $"ADAUSDT-15-generated.csv";
 
 
-      var adaBot = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(new TradingBot<Position, SimulationStrategy>(new Asset()
-      {
-        Symbol = "ADAUSDT",
-        NativeRound = 1,
-        PriceRound = 4,
-        DataPath = path,
-        DataSymbol = "BINANCE ADAUSD",
-        IndicatorDataPath = "BINANCE ADAUSDT",
-        TimeFrames = timeFrames,
-      }, new SimulationStrategy()));
+      var adaBot = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(
+        new TradingBot<Position, SimulationStrategy>(GetAsset("ADAUSDT"), new SimulationStrategy()));
 
       adaBot.DisplayName = "ADAUSDT SPOT 15";
       adaBot.DataPath = $"ADAUSDT-15-generated.csv";
 
-      var adaBot1 = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(new TradingBot<Position, SimulationStrategy>(new Asset()
-      {
-        Symbol = "ADAUSDT",
-        NativeRound = 1,
-        PriceRound = 4,
-        DataPath = path,
-        DataSymbol = "BINANCE ADAUSD",
-        IndicatorDataPath = "BINANCE ADAUSDT",
-        TimeFrames = timeFrames,
-      }, new SimulationStrategy()));
+      var adaBot1 = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(
+        new TradingBot<Position, SimulationStrategy>(GetAsset("ADAUSDT"), new SimulationStrategy()));
 
       adaBot1.DisplayName = "ADAUSDT SPOT 240";
       adaBot1.DataPath = $"ADAUSDT-240-generated.csv";
 
 
-      var ltcBot = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(new TradingBot<Position, SimulationStrategy>(new Asset()
-      {
-        Symbol = "LTCUSDT",
-        NativeRound = 3,
-        PriceRound = 2,
-        DataPath = path,
-        DataSymbol = "BINANCE LTCUSD",
-        IndicatorDataPath = "BINANCE LTCUSDT",
-        TimeFrames = timeFrames,
-      }, new SimulationStrategy()));
+      var ltcBot = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(
+        new TradingBot<Position, SimulationStrategy>(GetAsset("LTCUSDT"), new SimulationStrategy()));
 
-      var btcBot = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(new TradingBot<Position, SimulationStrategy>(new Asset()
-      {
-        Symbol = "BTCUSDT",
-        NativeRound = 5,
-        PriceRound = 2,
-        DataPath = path,
-        DataSymbol = "INDEX BTCUSD",
-        IndicatorDataPath = "BINANCE BTCUSDT",
-        TimeFrames = timeFrames,
-      }, new SimulationStrategy()));
+      var btcBot = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(
+        new TradingBot<Position, SimulationStrategy>(GetAsset("BTCUSDT"), new SimulationStrategy()));
 
       btcBot.DataPath = $"BTCUSDT-240-generated.csv";
-
-      var inputNumber = SimulationAIPromptViewModel.inputNumber;
-
-      BuyBotManager.Initilize(new int[] {
-        inputNumber,
-        inputNumber * 2,
-        inputNumber * 2,
-        30 }, 1);
-
-      SellBotManager.Initilize(new int[] {
-        inputNumber,
-        inputNumber * 2,
-        inputNumber * 2,
-        15 }, 1);
-
-      //var adaAi = viewModelsFactory.Create<SimulationTradingBot<AIPosition, AIStrategy>>(
-      //             new TradingBot<AIPosition, AIStrategy>(new Asset()
-      //             {
-      //               Symbol = "ADAUSDT",
-      //               NativeRound = 1,
-      //               PriceRound = 4,
-      //               DataPath = path,
-      //               DataSymbol = "BINANCE ADAUSD",
-      //               TimeFrames = timeFrames,
-      //             }, new AIStrategy(BuyBotManager.Agents[0], SellBotManager.Agents[0])));
-
-      //adaAi.DisplayName = "ADAUSDT SPOT AI 240";
-      //adaAi.DataPath = $"ADAUSDT-240-generated.csv";
-      //adaAi.FromDate = new DateTime(2019, 1, 1);
-
-
-      //Bots.Add(adaAi);
-
-
 
       Bots.Add(adaBotFutures);
       Bots.Add(adaBot);
@@ -282,7 +238,101 @@ namespace CTKS_Chart.ViewModels
       }
 
 
-      //SelectedBot = adaAi;
+      SelectedBot = adaBot;
+    }
+
+    #region GetAsset
+
+    public static Asset GetAsset(string symbol)
+    {
+      Asset asset = null;
+      string path = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data";
+
+      TimeFrame[] timeFrames = new TimeFrame[] {
+        TimeFrame.W1,
+        TimeFrame.W2,
+        TimeFrame.M1,
+        TimeFrame.M3,
+        TimeFrame.M6,
+        TimeFrame.M12
+        };
+
+      switch (symbol)
+      {
+        case "ADAUSDT":
+          asset = new Asset()
+          {
+            Symbol = "ADAUSDT",
+            NativeRound = 1,
+            PriceRound = 4,
+            DataPath = path,
+            DataSymbol = "BINANCE ADAUSD",
+            TimeFrames = timeFrames,
+            IndicatorDataPath = "BINANCE ADAUSDT"
+          };
+          break;
+        case "BTCUSDT":
+          asset = new Asset()
+          {
+            Symbol = "BTCUSDT",
+            NativeRound = 5,
+            PriceRound = 2,
+            DataPath = path,
+            DataSymbol = "INDEX BTCUSD",
+            IndicatorDataPath = "BINANCE BTCUSDT",
+            TimeFrames = timeFrames,
+          };
+          break;
+        case "LTCUSDT":
+          asset = new Asset()
+          {
+            Symbol = "LTCUSDT",
+            NativeRound = 3,
+            PriceRound = 2,
+            DataPath = path,
+            DataSymbol = "BINANCE LTCUSD",
+            IndicatorDataPath = "BINANCE LTCUSD",
+            TimeFrames = timeFrames,
+          };
+          break;
+      }
+
+
+      return asset;
+    }
+
+    #endregion
+
+    private void CreateAiBot()
+    {
+      var directories = AiPath.Split("\\");
+
+      var date = directories.Reverse().ToArray()[3];
+      var number = Path.GetFileName(AiPath).Replace(".txt","");
+
+      var buy = AiPath.Replace("SELL", "BUY");
+      var sell = AiPath.Replace("BUY", "SELL");
+
+      BuyBotManager.LoadPopulation(buy);
+      SellBotManager.LoadPopulation(sell);
+
+      BuyBotManager.InitializeManager(1);
+      SellBotManager.InitializeManager(1);
+
+
+      BuyBotManager.CreateAgents();
+      SellBotManager.CreateAgents();
+
+      var adaAi = viewModelsFactory.Create<SimulationTradingBot<AIPosition, AIStrategy>>(
+                   new TradingBot<AIPosition, AIStrategy>(GetAsset("ADAUSDT"), new AIStrategy(BuyBotManager.Agents[0], SellBotManager.Agents[0])));
+
+      adaAi.DisplayName = $"ADAUSDT SPOT AI 240 {date} - {number}";
+      adaAi.DataPath = $"ADAUSDT-240-generated.csv";
+      adaAi.FromDate = new DateTime(2019, 1, 1);
+      adaAi.SaveResults = true;
+
+      SelectedBot = adaAi;
+      Bots.Add(adaAi);
     }
   }
 }

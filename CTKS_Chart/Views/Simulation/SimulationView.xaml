@@ -24,39 +24,50 @@
     <StackPanel
       Grid.Column="1"
       Margin="5"
-      HorizontalAlignment="Left"
-      Orientation="Horizontal">
+      HorizontalAlignment="Left">
+      <StackPanel Orientation="Horizontal">
+        <Button
+          Margin="5,0"
+          Command="{Binding StartCommand}"
+          Content="Start" />
+        <Button
+          Margin="5,0"
+          Command="{Binding StopCommand}"
+          Content="Stop" />
+
+        <CheckBox IsChecked="{Binding SelectedBot.DrawChart}">Draw chart</CheckBox>
+
+        <ComboBox
+          Margin="5,0"
+          DisplayMemberPath="DisplayName"
+          ItemsSource="{Binding Bots}"
+          SelectedItem="{Binding SelectedBot}" />
+
+        <TextBlock
+          Margin="5,0"
+          VerticalAlignment="Center"
+          Foreground="#45ffffff"
+          Text="{Binding SelectedBot.RunningTime, StringFormat={}{0:mm\\:ss}}" />
+
+        <TextBox Text="{Binding SelectedBot.Delay, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+        <Button Focusable="True">X</Button>
+
+        <Button
+          Margin="5,0"
+          Command="{Binding DownloadSymbol}"
+          Content="Download Symbol" />
+
+      </StackPanel>
+
+
+      <TextBox Text="{Binding AiPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
       <Button
-        Margin="5,0"
-        Command="{Binding StartCommand}"
-        Content="Start" />
-      <Button
-        Margin="5,0"
-        Command="{Binding StopCommand}"
-        Content="Stop" />
-
-      <CheckBox IsChecked="{Binding SelectedBot.DrawChart}">Draw chart</CheckBox>
-
-      <ComboBox
-        Margin="5,0"
-        DisplayMemberPath="DisplayName"
-        ItemsSource="{Binding Bots}"
-        SelectedItem="{Binding SelectedBot}" />
-
-      <TextBlock
-        Margin="5,0"
-        VerticalAlignment="Center"
-        Foreground="#45ffffff"
-        Text="{Binding SelectedBot.RunningTime, StringFormat={}{0:mm\\:ss}}" />
-
-      <TextBox Text="{Binding SelectedBot.Delay, Mode=TwoWay}" />
-
-      <Button Focusable="True">X</Button>
-
-      <Button
-        Margin="5,0"
-        Command="{Binding DownloadSymbol}"
-        Content="Download Symbol" />
+        Width="150"
+        Margin="5,5"
+        Command="{Binding LoadAiBot}"
+        Content="Load AI bot" />
 
     </StackPanel>
 
@@ -113,7 +124,7 @@
 
               <TextBlock
                 Foreground="{StaticResource DefaultRedBrush}"
-                Text="{Binding Drawdawn, StringFormat={}-{0:N2} %}"
+                Text="{Binding Drawdawn, StringFormat={}{0:N2} %}"
                 ToolTip="Drawdawn %" />
 
               <TextBlock Foreground="#555555" Text="{Binding RunTime, StringFormat={}{0:mm\\:ss}}" />

@@ -776,7 +776,7 @@ namespace CTKS_Chart.ViewModels
 
     #region PreLoadCTks
 
-    static List<CtksLayout> preloadedLayots = new List<CtksLayout>();
+    static Dictionary<Tuple<string, TimeFrame>, List<CtksLayout>> preloadedLayots = new Dictionary<Tuple<string, TimeFrame>, List<CtksLayout>>();
     static object batton = new object();
 
     protected void PreLoadCTks(DateTime startTime)
@@ -788,22 +788,38 @@ namespace CTKS_Chart.ViewModels
           var candles = TradingViewHelper.ParseTradingView(layoutData.Value, layoutData.Key, Asset.Symbol, saveData: true)
             .Where(x => x.CloseTime > startTime);
 
-          var loaded = preloadedLayots
-                       .Where(x => x.Asset.Symbol == Asset.Symbol)
-                       .Where(x => x.TimeFrame == layoutData.Value)
-                       .FirstOrDefault(x => candles.First().OpenTime >= x.AllCandles.First().OpenTime);
-
-          if (loaded == null)
+          if (preloadedLayots.TryGetValue(new Tuple<string, TimeFrame>(Asset.Symbol, layoutData.Value), out var data))
           {
+            var loaded = data.FirstOrDefault(x => candles.First().OpenTime >= x.AllCandles.First().OpenTime);
+
+            if (loaded == null)
+            {
+              foreach (var candle in candles)
+              {
+                var layout = CreateCtks(layoutData.Key, layoutData.Value, candle.OpenTime);
+                layout.Asset = Asset;
+
+                data.Add(layout);
+              }
+            }
+          }
+          else
+          {
+            var newList = new List<CtksLayout>();
+
+
             foreach (var candle in candles)
             {
               var layout = CreateCtks(layoutData.Key, layoutData.Value, candle.OpenTime);
               layout.Asset = Asset;
 
-              preloadedLayots.Add(layout);
+
+              newList.Add(layout);
             }
+
+            preloadedLayots.Add(new Tuple<string, TimeFrame>(Asset.Symbol, layoutData.Value), newList);
           }
-        } 
+        }
       }
     }
 
@@ -863,17 +879,18 @@ namespace CTKS_Chart.ViewModels
 
               if (IsSimulation)
               {
-                var newLayout = preloadedLayots
-                  .Where(x => x.Asset.Symbol == Asset.Symbol)
-                  .SingleOrDefault(x => x.Ctks.Candles.Count == lastCount + 1 && x.TimeFrame == secondaryLayout.TimeFrame);
-
-                if (newLayout != null)
+                if (preloadedLayots.TryGetValue(new Tuple<string, TimeFrame>(Asset.Symbol, secondaryLayout.TimeFrame), out var list))
                 {
-                  var secIndex = secondaryLayouts.IndexOf(secondaryLayout);
+                  var newLayout = list.SingleOrDefault(x => x.Ctks.Candles.Count == lastCount + 1);
 
-                  secondaryLayouts[secIndex] = newLayout;
-                  secondaryLayout = newLayout;
-                }     
+                  if (newLayout != null)
+                  {
+                    var secIndex = secondaryLayouts.IndexOf(secondaryLayout);
+
+                    secondaryLayouts[secIndex] = newLayout;
+                    secondaryLayout = newLayout;
+                  }
+                }
               }
               else
               {
@@ -938,11 +955,11 @@ namespace CTKS_Chart.ViewModels
           if (ctksIntersections.Count > 0)
             TradingBot.Strategy.UpdateIntersections(ctksIntersections);
 
-          var allCtks = new Ctks(new CtksLayout(), TimeFrame.W1, TradingBot.Asset);
-          allCtks.Epsilon = 0.0025m;
+          //var allCtks = new Ctks(new CtksLayout(), TimeFrame.W1, TradingBot.Asset);
+          //allCtks.Epsilon = 0.0025m;
 
-          var clustered = allCtks.CreateClusters(ctksIntersections, Tag.GlobalCluster);
-          ctksIntersections.AddRange(clustered);
+          //var clustered = allCtks.CreateClusters(ctksIntersections, Tag.GlobalCluster);
+          //ctksIntersections.AddRange(clustered);
 
           var duplicates = ctksIntersections.GroupBy(x => x.Value);
 
@@ -973,11 +990,8 @@ namespace CTKS_Chart.ViewModels
 
         AddRangeFilterIntersections(TimeFrame.D1, actual);
         AddRangeFilterIntersections(TimeFrame.W1, actual);
-        var athPrice = GetAthPrice();
 
-        if (DrawChart)
-          VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(athPrice, actual));
-
+       
         this.actual = actual;
 
         if (ctksIntersections.Count > 0)
@@ -1009,7 +1023,11 @@ namespace CTKS_Chart.ViewModels
         }
 
         if (DrawChart)
+        {
+          var athPrice = GetAthPrice();
           VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(athPrice, actual));
+        }
+
       }
       finally
       {
