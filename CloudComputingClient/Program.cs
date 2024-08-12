@@ -1,0 +1,541 @@
+﻿using CTKS_Chart.Strategy;
+using CTKS_Chart.Strategy.AIStrategy;
+using CTKS_Chart.Trading;
+using CTKS_Chart.ViewModels;
+using Logger;
+using Ninject;
+using SharpNeat.Genomes.Neat;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Reactive.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using System.Xml;
+using VCore.Standard.Factories.ViewModels;
+using VCore.WPF.Interfaces.Managers;
+using VCore.WPF.Managers;
+using VNeuralNetwork;
+
+namespace CloudComputingClient
+{
+  public class ServerAdress
+  {
+    public string IP { get; set; }
+    public int Port { get; set; }
+  }
+  class Program
+  {
+    static IKernel Kernel { get; set; }
+    static IViewModelsFactory ViewModelsFactory { get; set; }
+
+
+    static List<SimulationTradingBot<AIPosition, AIStrategy>> Bots { get; set; } = new List<SimulationTradingBot<AIPosition, AIStrategy>>();
+
+    static int ToStart { get; set; }
+    static int InProgress { get; set; }
+    static int FinishedCount { get; set; }
+    static TimeSpan RunTime { get; set; }
+    static TimeSpan GenerationRunTime { get; set; }
+
+    static DateTime lastElapsed;
+    static DateTime generationStart;
+    static Random random = new Random();
+    static float BestFitness { get; set; }
+    static float AverageFitness { get; set; }
+    static decimal TotalValue { get; set; }
+    static decimal Drawdawn { get; set; }
+    static int NumberOfTrades { get; set; }
+    public static bool Connected { get; set; }
+
+
+    static string serverIp;
+    static int port;
+
+    static ServerRunData ServerRunData { get; set; }
+
+    static NEATManager<AIBot> buyManager;
+    static NEATManager<AIBot> sellManager;
+
+    static void Main(string[] args)
+    {
+      try
+      {
+        Kernel = new StandardKernel();
+
+        Kernel.Bind<IViewModelsFactory>().To<BaseViewModelsFactory>();
+        Kernel.Bind<ILoggerContainer>().To<Logger.ConsoleLogger>();
+        Kernel.Bind<ILogger>().To<Logger.Logger>();
+        Kernel.Bind<IWindowManager>().To<WindowManager>();
+
+        ViewModelsFactory = Kernel.Get<IViewModelsFactory>();
+
+        TradingViewHelper.DebugFlag = true;
+
+        buyManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
+        sellManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
+
+        buyManager.InitializeManager(1);
+        sellManager.InitializeManager(1);
+
+        lastElapsed = DateTime.Now;
+
+        var add = JsonSerializer.Deserialize<ServerAdress>(File.ReadAllText("server.txt"));
+
+        serverIp = add.IP;
+
+        serverIp = "127.0.0.1";
+        port = add.Port;
+
+        UpdateUI();
+        ListenToServer(ConnectToServer());
+
+        Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+        CultureInfo.CurrentCulture = new CultureInfo("en-US");
+
+        Observable.Interval(TimeSpan.FromSeconds(5)).Subscribe((x) =>
+        {
+          if (!IsClientConnected(tcpClient))
+          {
+            ListenToServer(ConnectToServer());
+          }
+
+          UpdateUI();
+        });
+
+        string input;
+
+        do
+        {
+          Console.WriteLine("Type 'exit' to quit the program:");
+          input = Console.ReadLine();
+        } while (input != "exit");
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine(ex);
+      }
+    }
+
+    #region RunGeneration
+
+    private static void RunGeneration(
+      int agentCount,
+      int minutes,
+      double split,
+      string symbol,
+      bool isRandom,
+      List<NeatGenome> buyGenomes,
+      List<NeatGenome> sellGenomes)
+    {
+      CreateStrategies(agentCount, minutes, split, symbol, isRandom, buyGenomes, sellGenomes);
+
+      StartBots();
+
+    }
+
+    #endregion
+
+    #region CreateStrategies
+
+    private static void CreateStrategies(
+      int agentCount,
+      int minutes,
+      double splitTake,
+      string symbol,
+      bool isRandom,
+      List<NeatGenome> buyGenomes,
+      List<NeatGenome> sellGenomes)
+    {
+      Bots.Clear();
+
+      ToStart = 0;
+
+
+      for (int i = 0; i < agentCount; i++)
+      {
+        buyGenomes[i].InputCount = buyGenomes[i].NodeList.Count(x => x.NodeType == SharpNeat.Network.NodeType.Input);
+        sellGenomes[i].InputCount = sellGenomes[i].NodeList.Count(x => x.NodeType == SharpNeat.Network.NodeType.Input);
+
+
+        var bot = SimulationAIPromptViewModel.GetBot(
+          symbol,
+          new AIBot(buyGenomes[i]),
+          new AIBot(sellGenomes[i]),
+          minutes,
+          splitTake,
+          random,
+          ViewModelsFactory,
+          isRandom);
+
+        ToStart++;
+
+        Bots.Add(bot);
+      }
+    }
+
+    #endregion
+
+    #region GenerationCompleted
+
+    private static void GenerationCompleted()
+    {
+      GenerationRunTime = DateTime.Now - generationStart;
+
+      Bots.ForEach(x =>
+      {
+        SimulationAIPromptViewModel.AddFitness(x.TradingBot.Strategy);
+      });
+
+      var aIStrategy = Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First().TradingBot.Strategy;
+
+      BestFitness = aIStrategy.BuyAIBot.NeuralNetwork.Fitness;
+      AverageFitness = Bots.Average(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness);
+
+      TotalValue = aIStrategy.TotalValue;
+      Drawdawn = aIStrategy.MaxDrawdawnFromMaxTotalValue;
+      NumberOfTrades = aIStrategy.ClosedSellPositions.Count;
+
+      ConnectToServer();
+
+      var data = new RunData();
+
+      var genomeList = Bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
+
+      data.BuyGenomes = GetGenomesXml(genomeList);
+      data.SellGenomes = GetGenomesXml(Bots.Select(x => x.TradingBot.Strategy.SellAIBot.NeuralNetwork).OfType<NeatGenome>().ToList());
+
+      SendMessage(tcpClient, data);
+
+      FinishedCount = 0;
+
+      UpdateUI();
+    }
+
+    #endregion
+
+    #region StartBots
+
+    private static void StartBots()
+    {
+      generationStart = DateTime.Now;
+
+      Task.Run(() =>
+      {
+        foreach (var bot in Bots)
+        {
+          bot.Finished += Bot_Finished; ;
+
+          bot.Start();
+
+          InProgress++;
+          ToStart--;
+        }
+      });
+    }
+
+    #endregion
+
+    #region Bot_Finished
+
+    static object batton = new object();
+
+    private static void Bot_Finished(object sender, EventArgs e)
+    {
+      lock (batton)
+      {
+        if (sender is SimulationTradingBot<AIPosition, AIStrategy> sim)
+        {
+          InProgress--;
+          FinishedCount++;
+
+          if (FinishedCount == Bots.Count)
+          {
+            foreach (var bot in Bots)
+            {
+              bot.Finished -= Bot_Finished;
+            }
+
+            GenerationCompleted();
+          }
+        }
+      }
+    }
+
+    #endregion
+
+    #region ConnectToServer
+
+    private static TcpClient ConnectToServer()
+    {
+      try
+      {
+        if (!IsClientConnected(tcpClient))
+        {
+          tcpClient = new TcpClient(serverIp, port);
+
+          Console.WriteLine($"Connectted to: {serverIp}\n");
+        }
+
+        return tcpClient;
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"Error: {ex.Message}\n");
+        return null;
+      }
+    }
+
+    #endregion
+
+    private static bool IsClientConnected(TcpClient client)
+    {
+      try
+      {
+        if (client == null || !client.Connected)
+        {
+          return false;
+        }
+
+        // Poll to check if the client is still connected
+        if (client.Client.Poll(0, SelectMode.SelectRead))
+        {
+          // Check if the buffer is empty, meaning the client has disconnected
+          return client.Client.Available > 0;
+        }
+
+        return true;
+      }
+      catch (SocketException)
+      {
+        return false; // Exception means the client is not connected
+      }
+    }
+
+    #region ListenToServer
+
+    static TcpClient tcpClient;
+
+    private static void ListenToServer(TcpClient client)
+    {
+      var clientThread = new Thread(() => HandleIncomingMessage(client));
+      clientThread.IsBackground = true;
+      clientThread.Start();
+    }
+
+    #endregion
+
+    #region HandleIncomingMessage
+
+    private static void HandleIncomingMessage(TcpClient tcpClient)
+    {
+      try
+      {
+        NetworkStream stream = tcpClient?.GetStream();
+
+        if (stream == null)
+          return;
+
+        Span<byte> buffer = new byte[10485760];
+        MemoryStream ms = new MemoryStream();
+
+
+        int bytesRead;
+        // Read the stream until all data is received.
+        while ((bytesRead = stream.Read(buffer)) > 0)
+        {
+          ms.Write(buffer);
+
+          string currentData = Encoding.Unicode.GetString(ms.ToArray());
+
+          try
+          {
+            if (!currentData.Contains("END_OF_MESSAGE"))
+            {
+              continue;
+            }
+
+            var input2 = currentData;
+
+            var currentDatadd = Regex.Replace(input2, @"\\[Uu]([0-9A-Fa-f]{4})", m => char.ToString((char)ushort.Parse(m.Groups[1].Value, NumberStyles.AllowHexSpecifier)));
+
+
+            int index = currentDatadd.IndexOf("END_OF_MESSAGE");
+            currentDatadd = currentDatadd.Substring(0, index);
+
+            ServerRunData = JsonSerializer.Deserialize<ServerRunData>(currentDatadd);
+
+            if (ServerRunData != null)
+            {
+              Task.Run(() =>
+              {
+                List<NeatGenome> buyGenomes = new List<NeatGenome>();
+                List<NeatGenome> sellGenomes = new List<NeatGenome>();
+
+                using (StringReader tx = new StringReader(ServerRunData.BuyGenomes.ToString().Replace("'","\"")))
+                using (XmlReader xr = XmlReader.Create(tx))
+                {
+                  // Replace NeatGenomeXmlIO.ReadCompleteGenomeList with your actual method to read genomes.
+                  buyGenomes = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, buyManager.GetGenomeFactory());
+                }
+
+                using (StringReader tx = new StringReader(ServerRunData.SellGenomes.ToString().Replace("'", "\"")))
+                using (XmlReader xr = XmlReader.Create(tx))
+                {
+                  // Replace NeatGenomeXmlIO.ReadCompleteGenomeList with your actual method to read genomes.
+                  sellGenomes = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, sellManager.GetGenomeFactory());
+                }
+
+                foreach (var buyGene in buyGenomes)
+                {
+                  Debug.WriteLine($"RECEIVED IDs: {buyGene.Id}");
+                }
+
+                buyManager.NeatAlgorithm.UpdateNetworks(buyGenomes);
+                sellManager.NeatAlgorithm.UpdateNetworks(sellGenomes);
+
+                UpdateUI();
+
+                RunGeneration(
+                           ServerRunData.AgentCount,
+                           ServerRunData.Minutes,
+                           ServerRunData.Split,
+                           ServerRunData.Symbol,
+                           ServerRunData.IsRandom,
+                           buyGenomes,
+                           sellGenomes);
+
+                UpdateUI();
+              });
+
+
+              ms = new MemoryStream();
+            }
+          }
+          catch (Exception ex)
+          {
+            ms = new MemoryStream();
+            Console.WriteLine(ex);
+          }
+
+
+          buffer.Clear();
+        }
+      }
+      catch (Exception)
+      {
+        Connected = false;
+        CloseClient();
+        Console.WriteLine("DISCONNECTED!");
+      }
+    }
+
+    #endregion
+
+    #region SendMessage
+
+    private static void SendMessage(TcpClient tcpClient, RunData runData)
+    {
+      try
+      {
+        var _stream = tcpClient?.GetStream();
+
+        if (_stream != null)
+        {
+          var json = JsonSerializer.Serialize(runData) + "_END_";
+
+          using (StringWriter stringWriter = new StringWriter())
+          {
+            var data = Encoding.Unicode.GetBytes(json);
+
+            _stream.Write(data, 0, data.Length);
+            _stream.Flush();
+          }
+        }
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine(ex);
+      }
+    }
+
+    #endregion
+
+    private static string GetGenomesXml(IList<NeatGenome> genomes)
+    {
+      var asd = NeatGenomeXmlIO.SaveComplete(genomes, false);
+
+      return asd.OuterXml;
+    }
+
+    private static void CloseClient()
+    {
+      tcpClient?.Close();
+      tcpClient = null;
+    }
+
+    #region UpdateUI
+
+    private static void UpdateUI()
+    {
+      Console.Clear();
+
+      TimeSpan diff = DateTime.Now - lastElapsed;
+
+      RunTime = RunTime.Add(diff);
+
+      lastElapsed = DateTime.Now;
+
+      Console.WriteLine($"Generation: {ServerRunData?.Generation ?? -1}");
+      Console.WriteLine($"Run Time: {RunTime.ToString(@"hh\:mm\:ss")}");
+      Console.WriteLine($"GEN.Run Time: {GenerationRunTime.ToString(@"hh\:mm\:ss")}");
+
+      Console.WriteLine();
+      Console.WriteLine($"To Start: {ToStart} In Progress: {InProgress} Finished: {FinishedCount}");
+      Console.WriteLine();
+      Console.WriteLine($"BEST Fitness: {BestFitness.ToString("N2")}");
+      Console.WriteLine($"AVG.Fitness: {AverageFitness.ToString("N2")}");
+      Console.WriteLine();
+      Console.WriteLine($"Total Value: {TotalValue.ToString("N2")}$");
+      Console.WriteLine($"Drawdawn: {Drawdawn.ToString("N2")}%");
+      Console.WriteLine($"Number of Trades: {NumberOfTrades}");
+
+      var connected = IsClientConnected(tcpClient);
+      Console.WriteLine(connected ? $"Connected to: {serverIp}" : "Not connected...");
+    }
+
+    #endregion
+  }
+
+
+  public class ServerRunData
+  {
+    public int Generation { get; set; }
+    public object BuyGenomes { get; set; }
+    public object SellGenomes { get; set; }
+
+    public int AgentCount { get; set; }
+    public int Minutes { get; set; }
+    public double Split { get; set; }
+    public bool IsRandom { get; set; }
+
+    public string Symbol { get; set; }
+  }
+
+  public class RunData
+  {
+    public string BuyGenomes { get; set; }
+    public string SellGenomes { get; set; }
+  }
+}

@@ -40,7 +40,7 @@ namespace CTKS_Chart.Strategy
 #endif
 
 #if DEBUG
-      var multi = 2;
+      var multi = 1;
       var newss = new List<KeyValuePair<TimeFrame, decimal>>();
 
       StartingBudget = 1000;
@@ -786,7 +786,6 @@ namespace CTKS_Chart.Strategy
     }
 
     #endregion
-
 
     #region Methods
 

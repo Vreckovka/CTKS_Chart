@@ -16,7 +16,10 @@
     </Grid.RowDefinitions>
 
     <UniformGrid MinWidth="850" Columns="2">
-      <wpf:CartesianChart Background="Transparent" LegendLocation="None">
+      <wpf:CartesianChart
+        Background="Transparent"
+        DisableAnimations="True"
+        LegendLocation="None">
 
         <wpf:CartesianChart.AxisY>
           <wpf:LogarithmicAxis
@@ -62,7 +65,10 @@
         </wpf:CartesianChart.Series>
       </wpf:CartesianChart>
 
-      <wpf:CartesianChart Background="Transparent" LegendLocation="None">
+      <wpf:CartesianChart
+        Background="Transparent"
+        DisableAnimations="True"
+        LegendLocation="None">
 
         <wpf:CartesianChart.AxisY>
           <wpf:LogarithmicAxis
@@ -110,6 +116,7 @@
       <wpf:CartesianChart
         Margin="0,20,0,0"
         Background="Transparent"
+        DisableAnimations="True"
         LegendLocation="None">
 
         <wpf:CartesianChart.AxisY>
@@ -167,6 +174,7 @@
       <wpf:CartesianChart
         Margin="0,20,0,0"
         Background="Transparent"
+        DisableAnimations="True"
         LegendLocation="None">
 
         <wpf:CartesianChart.AxisY>
@@ -236,7 +244,10 @@
         </wpf:CartesianChart.Series>
       </wpf:CartesianChart>
 
-      <wpf:CartesianChart Background="Transparent" LegendLocation="None">
+      <wpf:CartesianChart
+        Background="Transparent"
+        DisableAnimations="True"
+        LegendLocation="None">
 
         <wpf:CartesianChart.AxisY>
           <wpf:LogarithmicAxis Title="Profit" LabelFormatter="{Binding ValueFormatter}">
@@ -286,7 +297,10 @@
         </wpf:CartesianChart.Series>
       </wpf:CartesianChart>
 
-      <wpf:CartesianChart Background="Transparent" LegendLocation="None">
+      <wpf:CartesianChart
+        Background="Transparent"
+        DisableAnimations="True"
+        LegendLocation="None">
 
         <wpf:CartesianChart.AxisY>
           <wpf:LogarithmicAxis Title="Value" LabelFormatter="{Binding ValueFormatter}">
@@ -336,7 +350,10 @@
     </UniformGrid>
 
     <UniformGrid Grid.Row="1" Columns="1">
-      <wpf:CartesianChart Background="Transparent" LegendLocation="None">
+      <wpf:CartesianChart
+        Background="Transparent"
+        DisableAnimations="True"
+        LegendLocation="None">
         <wpf:CartesianChart.AxisY>
           <wpf:Axis Title="Profits" LabelFormatter="{Binding ValueFormatter}">
             <wpf:Axis.Separator>

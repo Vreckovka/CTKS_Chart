@@ -10,6 +10,7 @@ namespace CTKS_Chart.Trading
 {
   public static class TradingViewHelper
   {
+    public static bool DebugFlag = false;
     public static object batton = new object();
     public static Dictionary<string, Dictionary<TimeFrame, List<Candle>>> LoadedData { get; } = new Dictionary<string, Dictionary<TimeFrame, List<Candle>>>();
 
@@ -29,17 +30,26 @@ namespace CTKS_Chart.Trading
 
       lock (batton)
       {
+
+        bool isDebug = false;
+
 #if DEBUG
-        var existingData = GetExistingData(symbol, timeFrame);
-
-        if (existingData != null)
-        {
-          if (maxDate != null)
-            return existingData.Where(x => x.OpenTime <= maxDate).ToList();
-
-          return existingData;
-        }
+        isDebug = true;
 #endif
+
+        if (DebugFlag || isDebug)
+        {
+          var existingData = GetExistingData(symbol, timeFrame);
+
+          if (existingData != null)
+          {
+            if (maxDate != null)
+              return existingData.Where(x => x.OpenTime <= maxDate).ToList();
+
+            return existingData;
+          }
+        }
+
 
         var list = new List<Candle>();
 
@@ -157,7 +167,7 @@ namespace CTKS_Chart.Trading
 
         }
 
-        return list; 
+        return list;
       }
     }
 

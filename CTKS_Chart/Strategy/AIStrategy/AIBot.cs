@@ -2,97 +2,104 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using VCore.Standard.Helpers;
 using VNeuralNetwork;
 
 namespace CTKS_Chart.Strategy.AIStrategy
 {
   public class AIBot : AIObject
   {
-   
-
     public AIBot(INeuralNetwork neuralNetwork) : base(neuralNetwork)
     {
+     
     }
 
     public float[] Update(
       Candle actualCandle,
-       Candle dailyCandle,
       AIStrategy strategy,
-      decimal positionSize,
-      IList<CtksIntersection> intersections)
+      IList<CtksIntersection> intersections,
+      IList<decimal> lastPrices,
+      params float[] extraInputs)
     {
       float[] inputs = GetInputs(
         actualCandle,
-        dailyCandle, 
         strategy,
-        positionSize,
-        intersections);
+        intersections,
+        lastPrices,
+        extraInputs);
 
       return NeuralNetwork.FeedForward(inputs);
     }
 
-    public float[] GetInputs(
+    public virtual float[] GetInputs(
       Candle actualCandle,
-      Candle dailyCandle,
       AIStrategy strategy,
-       decimal positionSize,
-      IList<CtksIntersection> intersections)
+      IList<CtksIntersection> intersections,
+      IList<decimal> lastPrices,
+      params float[] extraInputs)
     {
-      float[] inputs = new float[NeuralNetwork.InputCount];
+      var inputs = new float[NeuralNetwork.InputCount];
+      var index = 0;
 
-      int index = 0;
+      decimal minPrice = lastPrices.Min();
+      decimal maxPrice = lastPrices.Max();
 
-      var openSize = (float)strategy.OpenBuyPositions.Sum(x => x.PositionSize);
-      var openCount = (float)strategy.OpenBuyPositions.Count;
+      AddInput((float)(strategy.Budget / strategy.TotalValue), ref index, ref inputs);
+      AddInput((float)(strategy.OpenBuyPositions.Sum(x => x.PositionSize) / strategy.TotalValue), ref index, ref inputs);
+      AddInput((float)(strategy.DrawdawnFromMaxTotalValue / 100.0m), ref index, ref inputs);
 
-      AddInput((float)strategy.TotalValue, ref index, ref inputs);
-      AddInput((float)strategy.Budget, ref index, ref inputs);
-      AddInput(openSize > 0 ? openSize : -1 , ref index, ref inputs);
-      AddInput(openCount > 0 ? openCount : -1, ref index, ref inputs);
+      AddInput(AddNormalizedInput(actualCandle.Open, minPrice, maxPrice), ref index, ref inputs);
+      AddInput(AddNormalizedInput(actualCandle.Close, minPrice, maxPrice), ref index, ref inputs);
+      AddInput(AddNormalizedInput(actualCandle.High, minPrice, maxPrice), ref index, ref inputs);
+      AddInput(AddNormalizedInput(actualCandle.Low, minPrice, maxPrice), ref index, ref inputs);
 
-      AddInput(LogTransform(actualCandle.Open), ref index, ref inputs);
-      AddInput(LogTransform(actualCandle.Close), ref index, ref inputs);
-      AddInput(LogTransform(actualCandle.High), ref index, ref inputs);
-      AddInput(LogTransform(actualCandle.Low), ref index, ref inputs);
+      AddInput(AddNormalizedInput(strategy.IndicatorData.RangeFilterData.RangeFilter, minPrice, maxPrice), ref index, ref inputs);
+      AddInput(AddNormalizedInput(strategy.IndicatorData.RangeFilterData.HighTarget, minPrice, maxPrice), ref index, ref inputs);
+      AddInput(AddNormalizedInput(strategy.IndicatorData.RangeFilterData.LowTarget, minPrice, maxPrice), ref index, ref inputs);
 
-      AddInput(LogTransform(strategy.IndicatorData.RangeFilterData.RangeFilter), ref index, ref inputs);
-      AddInput(LogTransform(strategy.IndicatorData.RangeFilterData.HighTarget), ref index, ref inputs);
-      AddInput(LogTransform(strategy.IndicatorData.RangeFilterData.LowTarget), ref index, ref inputs);
       AddInput(strategy.IndicatorData.RangeFilterData.Upward ? 1 : -1, ref index, ref inputs);
-      AddInput((float)strategy.IndicatorData.BBWP / 100.0f , ref index, ref inputs);
+      AddInput((float)strategy.IndicatorData.BBWP / 100.0f, ref index, ref inputs);
 
-      AddInput((float)positionSize, ref index, ref inputs);
+      foreach(var extraInput in extraInputs)
+      {
+        AddInput(extraInput, ref index, ref inputs);
+      }
 
-      AddInput(LogTransform(dailyCandle.Open), ref index, ref inputs);
-      AddInput(LogTransform(dailyCandle.Close), ref index, ref inputs);
-      AddInput(LogTransform(dailyCandle.High), ref index, ref inputs);
-      AddInput(LogTransform(dailyCandle.Low), ref index, ref inputs);
 
-      AddIntersectionInputs(intersections, ref index, ref inputs);
+      AddIntersectionInputs(intersections, minPrice, maxPrice, ref index, ref inputs);
 
       return inputs;
     }
 
     private void AddIntersectionInputs(
       IList<CtksIntersection> intersections,
+      decimal minPrice, 
+      decimal maxPrice,
       ref int index,
       ref float[] inputs)
     {
       for (int i = 0; i < intersections.Count; i++)
       {
-        AddInput(LogTransform(intersections[i].Value), ref index, ref inputs);
+        AddInput(AddNormalizedInput(intersections[i].Value, minPrice, maxPrice), ref index, ref inputs);
       }
     }
 
-    private float LogTransform(decimal? data)
-    {
-      return (float)Math.Log((float)data + 1);
-    }
-
-    private void AddInput(float input, ref int index, ref float[] inputs)
+    protected void AddInput(float input, ref int index, ref float[] inputs)
     {
       inputs[index] = input;
       index++;
+    }
+
+    protected float AddNormalizedInput(decimal? price, decimal minPrice, decimal maxPrice)
+    {
+      if(price != null)
+      {
+        decimal normalized = (price.Value - minPrice) / (maxPrice - minPrice);
+
+        return (float)normalized;
+      }
+
+      return -1;
     }
   }
 }

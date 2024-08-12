@@ -177,7 +177,7 @@ namespace CTKS_Chart.ViewModels
 
     #region AiPath
 
-    private string aiPath = @"D:\Aplikacie\Skusobne\CTKS_Chart\CTKS_Chart\bin\Debug\netcoreapp3.1\Trainings\10_08_2024_07_56_37\ADA\BUY\25.txt";
+    private string aiPath = @"Trainings\10_08_2024_07_56_37\ADA\BUY\25.txt";
 
     public string AiPath
     {
@@ -246,7 +246,7 @@ namespace CTKS_Chart.ViewModels
     public static Asset GetAsset(string symbol)
     {
       Asset asset = null;
-      string path = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\Data";
+      string path = "Chart Data";
 
       TimeFrame[] timeFrames = new TimeFrame[] {
         TimeFrame.W1,

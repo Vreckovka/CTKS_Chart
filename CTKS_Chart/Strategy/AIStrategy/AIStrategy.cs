@@ -38,7 +38,8 @@ namespace CTKS_Chart.Strategy.AIStrategy
       Budget = StartingBudget;
     }
 
-    public int TakeIntersections { get; set; } = 10;
+    public int TakeIntersections { get; set; } = 15;
+
 
     public AIStrategy(AIBot buyBot, AIBot sellBot) : this()
     {
@@ -49,6 +50,8 @@ namespace CTKS_Chart.Strategy.AIStrategy
     #region CreatePositions
 
     List<CtksIntersection> lastIntersections = new List<CtksIntersection>();
+    public List<Candle> lastDailyCandles = new List<Candle>();
+    public int takeLastDailyCandles = 100;
 
     public override async void CreatePositions(Candle actualCandle, Candle dailyCandle)
     {
@@ -56,17 +59,10 @@ namespace CTKS_Chart.Strategy.AIStrategy
       {
         await buyLock.WaitAsync();
 
-
-        if (lastDailyCandle?.OpenTime != dailyCandle.OpenTime)
+        if(lastDailyCandle == null || lastDailyCandle.CloseTime < dailyCandle.CloseTime)
         {
-          var fitness = (float)(TotalValue - (MaxTotalValue * 0.75m));
-
-          //if (fitness < 0 || (fitness > 0 && ActualPositions.Count > 0))
-          //AddFitness(fitness);
-
-          //AddFitness(GetNegativeValue((float)Math.Pow((double)DrawdawnFromMaxTotalValue, 2) / 1000));
+          lastDailyCandles.Add(dailyCandle);
         }
-
 
         lastDailyCandle = dailyCandle;
         lastCandle = actualCandle;
@@ -74,26 +70,11 @@ namespace CTKS_Chart.Strategy.AIStrategy
         if (BuyAIBot == null)
           return;
 
-
         IndicatorData = dailyCandle.IndicatorData;
 
         var maxBuy = actualCandle.Close.Value * 0.995m;
 
-        //foreach (var actualPosition in ActualPositions.ToArray())
-        //{
-        //  actualPosition.ActualProfit = actualPosition.GetActualProfit(actualCandle);
-
-        //  if(actualPosition.ActualProfitPerc < -12)
-        //  {
-        //    StopLossPosition(actualPosition, actualCandle);
-        //  }
-        //}
-
-        //AddFitness(GetNegativeValue((countFromLastBuy + countFromLastSell) / 10));
-
         await CheckPositions(actualCandle, 0, maxBuy);
-
-
 
         var inter = Intersections
                     .Where(x => x.IsEnabled)
@@ -114,28 +95,16 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
         var output = BuyAIBot.Update(
           actualCandle,
-          dailyCandle,
           this,
-          PositionSize,
-          inter);
-
-        for (int i = 0; i < TakeIntersections; i++)
-        {
-          output[i] = NEATManager.MapRangeToNegativeOneToOne(output[i]);
-        }
-
-        //for (int i = TakeIntersections; i < output.Length; i++)
-        //{
-        //  output[i] = NEATManager.ScaledLeakyReLU(output[i]);
-        //}
+          inter,
+          GetLastPrices(takeLastDailyCandles));
 
         var indexes = output
         .Take(TakeIntersections)
         .Select((v, i) => new { prob = v, index = i });
 
-
         var toOpen = indexes.Where(x => x.prob > 0.75);
-        var toClose = indexes.Where(x => x.prob < -0.75);
+        var toClose = indexes.Where(x => x.prob < 0.25);
 
 
         foreach (var prob in toOpen)
@@ -183,6 +152,8 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
     #endregion
 
+    #region CancelPositionOnIntersection
+
     private async Task CancelPositionOnIntersection(CtksIntersection intersection)
     {
       var position =
@@ -195,6 +166,8 @@ namespace CTKS_Chart.Strategy.AIStrategy
       if (position != null)
         await CancelPosition(position);
     }
+
+    #endregion
 
     #region CreateBuyPositionFromIntersection
 
@@ -222,10 +195,10 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
       var output = SellAIBot.Update(
         lastCandle,
-        lastDailyCandle,
         this,
-        buyPosition.PositionSize,
-        inter);
+        inter,
+        GetLastPrices(takeLastDailyCandles),
+        (float)(buyPosition.PositionSize / PositionSize));
 
 
       var positionSize = buyPosition.PositionSize;
@@ -274,67 +247,6 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
     #endregion
 
-    private void OnClosePosition()
-    {
-      //AddFitness(0.5f);
-    }
-
-    #region CloseBuy
-
-    public override Task CloseBuy(AIPosition TPosition, decimal minForcePrice = 0)
-    {
-      OnClosePosition();
-      return base.CloseBuy(TPosition, minForcePrice);
-    }
-
-    #endregion
-
-    #region CloseSell
-
-    protected override void CloseSell(AIPosition position)
-    {
-      var finalSize = position.Price * position.OriginalPositionSizeNative;
-      var profit = finalSize - position.OriginalPositionSize;
-
-      //var fitness = GetProfitFitness(profit);
-      //AddFitness(fitness);
-
-      OnClosePosition();
-
-      if (profit < 0)
-        throw new Exception("Negative profit!");
-
-      base.CloseSell(position);
-    }
-
-    #endregion
-
-    //#region StopLossPosition
-
-    //private void StopLossPosition(AIPosition position, Candle actualCandle)
-    //{
-    //  position.Profit = position.GetActualProfit(actualCandle);
-    //  position.PositionSize = 0;
-    //  position.PositionSizeNative = 0;
-
-    //  TotalProfit += position.Profit;
-    //  Budget += position.OriginalPositionSize + position.Profit;
-    //  TotalNativeAsset -= position.OriginalPositionSizeNative;
-
-    //  Budget -= position.Fees ?? 0;
-
-    //  position.State = PositionState.Completed;
-
-    //  OpenSellPositions.Remove((AIPosition)position.OpositPositions[0]);
-    //  ActualPositions.Remove(position);
-
-    //  var fitness = GetNegativeValue(GetProfitFitness(position.Profit));
-
-    //  AddFitness(fitness);
-    //}
-
-    //#endregion
-
     #region AddFitness
 
     public void AddFitness(float fitness)
@@ -345,27 +257,9 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
     #endregion
 
-    #region GetProfitFitness
-
-    private float GetProfitFitness(decimal profit)
+    private List<decimal> GetLastPrices(int count)
     {
-      var profitPerc = (double)(profit / TotalValue) * 100;
-
-      return (float)profitPerc;
+      return lastDailyCandles.TakeLast(count).Select(x => x.Close.Value).ToList();
     }
-
-    #endregion
-
-    #region GetNegativeValue
-
-    private float GetNegativeValue(float value)
-    {
-      if (value > 0)
-        value *= -1;
-
-      return value;
-    }
-
-    #endregion
   }
 }

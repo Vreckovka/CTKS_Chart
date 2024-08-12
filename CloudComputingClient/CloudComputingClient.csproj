@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UseWPF>true</UseWPF>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\CustomLibraries\DomainCore\DomainCore.csproj" />
+    <ProjectReference Include="..\..\..\CustomLibraries\Logger\Logger.csproj" />
+    <ProjectReference Include="..\..\..\CustomLibraries\VCore.Standard\VCore.Standard.csproj" />
+    <ProjectReference Include="..\CTKS_Chart\CTKS_Chart.csproj" />
+    <ProjectReference Include="C:\Users\Roman Pecho\source\repos\MoonLanding_NeuralNetwork\VNeuralNetwork\VNeuralNetwork.csproj" />
+  </ItemGroup>
+
+</Project>

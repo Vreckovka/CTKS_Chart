@@ -183,8 +183,8 @@ namespace CTKS_Chart.ViewModels
       DrawingViewModel.LockChart = true;
 
 
-      var rangeAdaFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\BINANCE ADAUSDT, 1D.csv";
-      var rangeBtcFilterData = "D:\\Aplikacie\\Skusobne\\CTKS_Chart\\CTKS_Chart\\bin\\Debug\\netcoreapp3.1\\INDEX BTCUSD, 1D.csv";
+      var rangeAdaFilterData = "BINANCE ADAUSDT, 1D.csv";
+      var rangeBtcFilterData = "INDEX BTCUSD, 1D.csv";
 
       TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy<TPosition>(rangeAdaFilterData, Asset.Symbol, rangeBtcFilterData, TradingBot.Strategy));
 
@@ -195,16 +195,27 @@ namespace CTKS_Chart.ViewModels
       //Layouts.Add(mainLayout);
       SelectedLayout = mainLayout;
 
+      var candlesToSimulate = cutCandles.ToList();
+
       if (SplitTake != 0)
       {
         var take = (int)(mainCandles.Count / SplitTake);
 
-        Simulate(cutCandles.Take(take).ToList(), InnerLayouts);
+        candlesToSimulate = cutCandles.Take(take).ToList();
       }
-      else
+
+      if(TradingBot.Strategy is AIStrategy aIStrategy)
       {
-        Simulate(cutCandles.ToList(), InnerLayouts);
+        var lastDailyCandles = dailyCandles
+          .Where(x => x.CloseTime < candlesToSimulate.First().CloseTime)
+          .TakeLast(aIStrategy.takeLastDailyCandles)
+          .ToList();
+
+        aIStrategy.lastDailyCandles = lastDailyCandles;
+        aIStrategy.lastDailyCandle = lastDailyCandles.Last();
       }
+
+      Simulate(candlesToSimulate, InnerLayouts);
     }
 
     #endregion

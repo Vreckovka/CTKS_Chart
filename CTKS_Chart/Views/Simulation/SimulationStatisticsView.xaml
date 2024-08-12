@@ -11,7 +11,10 @@
   mc:Ignorable="d">
   <UniformGrid Columns="1">
 
-    <wpf:CartesianChart Background="Transparent" LegendLocation="None">
+    <wpf:CartesianChart
+      Background="Transparent"
+      DisableAnimations="True"
+      LegendLocation="None">
       <wpf:CartesianChart.AxisY>
         <wpf:LogarithmicAxis
           Title="Total Value"
@@ -80,7 +83,10 @@
       </wpf:CartesianChart.Series>
     </wpf:CartesianChart>
 
-    <wpf:CartesianChart Background="Transparent" LegendLocation="None">
+    <wpf:CartesianChart
+      Background="Transparent"
+      DisableAnimations="True"
+      LegendLocation="None">
       <wpf:CartesianChart.AxisY>
 
         <wpf:Axis

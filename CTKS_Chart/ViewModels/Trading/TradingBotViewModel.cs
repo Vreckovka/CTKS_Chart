@@ -531,7 +531,7 @@ namespace CTKS_Chart.ViewModels
 
     #region Initialize
 
-    public async override void Initialize()
+    public override void Initialize()
     {
       base.Initialize();
 
@@ -606,7 +606,7 @@ namespace CTKS_Chart.ViewModels
         KlineInterval = LayoutIntervals.SelectedItem.Model.Interval;
       }
 
-      DrawingViewModel.SetLock(true);
+      DrawingViewModel?.SetLock(true);
 
 
 

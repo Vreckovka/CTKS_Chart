@@ -30,10 +30,28 @@ namespace CTKS_Chart.ViewModels
     private readonly IViewModelsFactory viewModelsFactory;
     string session;
 
-    public int AgentNumber { get; } = 50;
+    #region AgentCount
 
-    public static int TakeIntersections = 10;
-    public const int inputNumber = 18;
+    private int agentCount = 10;
+
+    public int AgentCount
+    {
+      get { return agentCount; }
+      set
+      {
+        if (value != agentCount)
+        {
+          agentCount = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
+    public static int TakeIntersections = 15;
+    public const int inputNumber = 12;
 
     #region Constructors
 
@@ -46,40 +64,11 @@ namespace CTKS_Chart.ViewModels
 
       Title = "AI Training";
 
-      session = DateTime.Now.ToString("dd_MM_yyyy_hh_mm_ss");
+      session = DateTime.Now.ToString("dd_MM_yyyy_HH_mm_ss");
 
     }
 
     #endregion
-
-    public static NEATManager<AIBot> GetNeatManager(
-      IViewModelsFactory viewModelsFactory,
-      PositionSide positionSide)
-    {
-      var inputCount = inputNumber + TakeIntersections;
-
-      switch (positionSide)
-      {
-        case PositionSide.Neutral:
-          break;
-        case PositionSide.Buy:
-          return new NEATManager<AIBot>(
-         viewModelsFactory,
-         NetworkActivationScheme.CreateCyclicFixedTimestepsScheme(100),
-         inputCount,
-         TakeIntersections * 2,
-         QuadraticSigmoid.__DefaultInstance);
-        case PositionSide.Sell:
-          return new NEATManager<AIBot>(
-        viewModelsFactory,
-        NetworkActivationScheme.CreateCyclicFixedTimestepsScheme(100),
-        inputCount,
-        TakeIntersections,
-        QuadraticSigmoid.__DefaultInstance);
-      }
-
-      return null;
-    }
 
     #region Properties
 
@@ -105,16 +94,13 @@ namespace CTKS_Chart.ViewModels
     public NEATManager<AIBot> BuyBotManager { get; set; }
     public NEATManager<AIBot> SellBotManager { get; set; }
 
-    public ChartValues<float> ChartData { get; set; } = new ChartValues<float>();
 
+    public ChartValues<float> ChartData { get; set; } = new ChartValues<float>();
     public ChartValues<decimal> FullData { get; set; } = new ChartValues<decimal>();
     public ChartValues<float> BestData { get; set; } = new ChartValues<float>();
     public ChartValues<decimal> DrawdawnData { get; set; } = new ChartValues<decimal>();
     public ChartValues<float> FitnessData { get; set; } = new ChartValues<float>();
-
     public ChartValues<double> NumberOfTradesData { get; set; } = new ChartValues<double>();
-
-
 
     #region Labels
 
@@ -136,8 +122,9 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
     public Func<double, string> PercFormatter { get; set; } = value => value.ToString("N2");
-
     public Func<double, string> YFormatter { get; set; } = value => value.ToString("N0");
+
+
 
     #region BestFitness
 
@@ -151,25 +138,6 @@ namespace CTKS_Chart.ViewModels
         if (value != bestFitness)
         {
           bestFitness = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region FinishedCount
-
-    private int finishedCount;
-
-    public int FinishedCount
-    {
-      get { return finishedCount; }
-      set
-      {
-        if (value != finishedCount)
-        {
-          finishedCount = value;
           RaisePropertyChanged();
         }
       }
@@ -246,6 +214,25 @@ namespace CTKS_Chart.ViewModels
         if (value != inProgress)
         {
           inProgress = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region FinishedCount
+
+    private int finishedCount;
+
+    public int FinishedCount
+    {
+      get { return finishedCount; }
+      set
+      {
+        if (value != finishedCount)
+        {
+          finishedCount = value;
           RaisePropertyChanged();
         }
       }
@@ -441,6 +428,39 @@ namespace CTKS_Chart.ViewModels
 
     #region Methods
 
+    #region GetNeatManager
+
+    public static NEATManager<AIBot> GetNeatManager(
+      IViewModelsFactory viewModelsFactory,
+      PositionSide positionSide)
+    {
+      var inputCount = inputNumber + TakeIntersections;
+
+      switch (positionSide)
+      {
+        case PositionSide.Neutral:
+          break;
+        case PositionSide.Buy:
+          return new NEATManager<AIBot>(
+         viewModelsFactory,
+         NetworkActivationScheme.CreateCyclicFixedTimestepsScheme(180),
+         inputCount,
+         TakeIntersections * 2,
+         QuadraticSigmoid.__DefaultInstance);
+        case PositionSide.Sell:
+          return new NEATManager<AIBot>(
+        viewModelsFactory,
+        NetworkActivationScheme.CreateCyclicFixedTimestepsScheme(180),
+        inputCount + 1,
+        TakeIntersections,
+        QuadraticSigmoid.__DefaultInstance);
+      }
+
+      return null;
+    }
+
+    #endregion
+
     #region CreateBots
 
     DateTime lastElapsed;
@@ -451,11 +471,11 @@ namespace CTKS_Chart.ViewModels
 
       var inputCount = inputNumber + TakeIntersections;
 
-     // BuyBotManager.LoadPredifinedGenome(new int[] { inputCount, 3, TakeIntersections * 2 });
-     // SellBotManager.LoadPredifinedGenome(new int[] { inputCount, 3, TakeIntersections  });
+      // BuyBotManager.LoadPredifinedGenome(new int[] { inputCount, 3, TakeIntersections * 2 });
+      // SellBotManager.LoadPredifinedGenome(new int[] { inputCount, 3, TakeIntersections  });
 
-      BuyBotManager.InitializeManager(AgentNumber);
-      SellBotManager.InitializeManager(AgentNumber);
+      BuyBotManager.InitializeManager(AgentCount);
+      SellBotManager.InitializeManager(AgentCount);
 
       Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
       {
@@ -501,8 +521,8 @@ namespace CTKS_Chart.ViewModels
 
       for (int i = 0; i < BuyBotManager.Agents.Count; i++)
       {
-        var bot = GetBot(Symbol, BuyBotManager.Agents[i], SellBotManager.Agents[i], IsRandom());
-        //var bot = GetBot(Symbol, BuyBotManager.Agents[i], SellBotManager.Agents[i], true);
+        var bot = GetBot(Symbol, BuyBotManager.Agents[i], SellBotManager.Agents[i], Minutes, SplitTake, random, viewModelsFactory, IsRandom());
+        ToStart++;
 
         Bots.Add(bot);
       }
@@ -523,25 +543,27 @@ namespace CTKS_Chart.ViewModels
 
     #region GetBot
 
-    private SimulationTradingBot<AIPosition, AIStrategy>
+    public static SimulationTradingBot<AIPosition, AIStrategy>
       GetBot(
       string symbol,
       AIBot buy,
       AIBot sell,
+      int minutes,
+      double splitTake,
+      Random random,
+      IViewModelsFactory viewModelsFactory,
       bool useRandom = false)
     {
-      ToStart++;
-
       var bot = viewModelsFactory.Create<SimulationTradingBot<AIPosition, AIStrategy>>(
                   new TradingBot<AIPosition, AIStrategy>(SimulationPromptViewModel.GetAsset(symbol), new AIStrategy(buy, sell)));
 
-      bot.DataPath = $"{symbol}-{Minutes}-generated.csv";
+      bot.DataPath = $"{symbol}-{minutes}-generated.csv";
 
       if (useRandom)
       {
         var year = random.Next(2019, 2023);
         bot.FromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
-        bot.SplitTake = SplitTake;
+        bot.SplitTake = splitTake;
       }
       else
       {
@@ -549,7 +571,7 @@ namespace CTKS_Chart.ViewModels
         bot.FromDate = new DateTime(2019, 1, 1);
       }
 
-      bot.DataTimeFrame = (TimeFrame)Minutes;
+      bot.DataTimeFrame = (TimeFrame)minutes;
       bot.TradingBot.Strategy.TakeIntersections = TakeIntersections;
 
       return bot;
@@ -616,8 +638,11 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    private void AddFitness(AIStrategy strategy)
+    #region AddFitness
+
+    public static void AddFitness(AIStrategy strategy)
     {
+      //float fitness = (float)((strategy.TotalValue - strategy.StartingBudget) / strategy.StartingBudget) * 100;
       float fitness = (float)(strategy.TotalValue - strategy.StartingBudget);
 
       var drawdawn = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
@@ -631,6 +656,8 @@ namespace CTKS_Chart.ViewModels
 
       strategy.AddFitness(fitness < 0 ? 0 : fitness);
     }
+
+    #endregion
 
     #region UpdateGeneration
 
@@ -668,8 +695,8 @@ namespace CTKS_Chart.ViewModels
 
       if (addStats)
       {
-        SaveProgress(BuyBotManager, "BUY");
-        SaveProgress(SellBotManager, "SELL");
+        SaveProgress(BuyBotManager, session, "BUY");
+        SaveProgress(SellBotManager, session, "SELL");
 
         if (TestSymbol != Symbol || ShowTestBot)
         {
@@ -709,7 +736,7 @@ namespace CTKS_Chart.ViewModels
 
       var testBot = GetBot(TestSymbol,
         new AIBot(new NeatGenome((NeatGenome)strategy.BuyAIBot.NeuralNetwork, 0, 0)),
-        new AIBot(new NeatGenome((NeatGenome)strategy.SellAIBot.NeuralNetwork, 0, 0)));
+        new AIBot(new NeatGenome((NeatGenome)strategy.SellAIBot.NeuralNetwork, 0, 0)), Minutes, SplitTake, random, viewModelsFactory);
 
       testBot.FromDate = new DateTime(2019, 1, 1);
 
@@ -794,13 +821,15 @@ namespace CTKS_Chart.ViewModels
 
     #region SaveProgress
 
-    private void SaveProgress(NEATManager<AIBot> manager, string folderName)
+    public static void SaveProgress(NEATManager<AIBot> manager, string session, string folderName, int? generation = null)
     {
       var gfolder = Path.Combine("Trainings", session, "ADA", folderName);
 
       Directory.CreateDirectory(gfolder);
 
-      manager.SavePopulation(Path.Combine(gfolder, $"{manager.Generation}.txt"));
+      int generationValue = generation != null ? generation.Value : manager.Generation;
+
+      manager.SavePopulation(Path.Combine(gfolder, $"{generationValue}.txt"));
     }
 
     #endregion
