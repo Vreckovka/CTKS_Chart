@@ -1,4 +1,5 @@
-﻿using CTKS_Chart.Strategy;
+﻿using CloudComputing.Domains;
+using CTKS_Chart.Strategy;
 using CTKS_Chart.Strategy.AIStrategy;
 using CTKS_Chart.Trading;
 using CTKS_Chart.ViewModels;
@@ -30,13 +31,10 @@ using VNeuralNetwork;
 
 namespace CloudComputingClient
 {
-  public class ServerAdress
-  {
-    public string IP { get; set; }
-    public int Port { get; set; }
-  }
   class Program
   {
+    #region Fields
+
     static IKernel Kernel { get; set; }
     static IViewModelsFactory ViewModelsFactory { get; set; }
 
@@ -68,6 +66,12 @@ namespace CloudComputingClient
     static NEATManager<AIBot> buyManager;
     static NEATManager<AIBot> sellManager;
 
+    #endregion
+
+    #region Methods
+
+    #region Main
+
     static void Main(string[] args)
     {
       try
@@ -94,8 +98,9 @@ namespace CloudComputingClient
         var add = JsonSerializer.Deserialize<ServerAdress>(File.ReadAllText("server.txt"));
 
         serverIp = add.IP;
-
+#if DEBUG
         serverIp = "127.0.0.1";
+#endif
         port = add.Port;
 
         UpdateUI();
@@ -127,6 +132,8 @@ namespace CloudComputingClient
         Console.WriteLine(ex);
       }
     }
+
+    #endregion
 
     #region RunGeneration
 
@@ -211,10 +218,11 @@ namespace CloudComputingClient
 
       var data = new RunData();
 
-      var genomeList = Bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
+      var buyGenomes = Bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
+      var sellGenomes = Bots.Select(x => x.TradingBot.Strategy.SellAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
 
-      data.BuyGenomes = GetGenomesXml(genomeList);
-      data.SellGenomes = GetGenomesXml(Bots.Select(x => x.TradingBot.Strategy.SellAIBot.NeuralNetwork).OfType<NeatGenome>().ToList());
+      data.BuyGenomes = NeatGenomeXmlIO.SaveComplete(buyGenomes, false).OuterXml;
+      data.SellGenomes = NeatGenomeXmlIO.SaveComplete(sellGenomes, false).OuterXml;
 
       SendMessage(tcpClient, data);
 
@@ -299,6 +307,8 @@ namespace CloudComputingClient
 
     #endregion
 
+    #region IsClientConnected
+
     private static bool IsClientConnected(TcpClient client)
     {
       try
@@ -322,6 +332,8 @@ namespace CloudComputingClient
         return false; // Exception means the client is not connected
       }
     }
+
+    #endregion
 
     #region ListenToServer
 
@@ -383,7 +395,7 @@ namespace CloudComputingClient
                 List<NeatGenome> buyGenomes = new List<NeatGenome>();
                 List<NeatGenome> sellGenomes = new List<NeatGenome>();
 
-                using (StringReader tx = new StringReader(ServerRunData.BuyGenomes.ToString().Replace("'","\"")))
+                using (StringReader tx = new StringReader(ServerRunData.BuyGenomes.ToString().Replace("'", "\"")))
                 using (XmlReader xr = XmlReader.Create(tx))
                 {
                   // Replace NeatGenomeXmlIO.ReadCompleteGenomeList with your actual method to read genomes.
@@ -472,18 +484,15 @@ namespace CloudComputingClient
 
     #endregion
 
-    private static string GetGenomesXml(IList<NeatGenome> genomes)
-    {
-      var asd = NeatGenomeXmlIO.SaveComplete(genomes, false);
-
-      return asd.OuterXml;
-    }
+    #region CloseClient
 
     private static void CloseClient()
     {
       tcpClient?.Close();
       tcpClient = null;
     }
+
+    #endregion
 
     #region UpdateUI
 
@@ -515,27 +524,8 @@ namespace CloudComputingClient
       Console.WriteLine(connected ? $"Connected to: {serverIp}" : "Not connected...");
     }
 
+    #endregion 
+
     #endregion
-  }
-
-
-  public class ServerRunData
-  {
-    public int Generation { get; set; }
-    public object BuyGenomes { get; set; }
-    public object SellGenomes { get; set; }
-
-    public int AgentCount { get; set; }
-    public int Minutes { get; set; }
-    public double Split { get; set; }
-    public bool IsRandom { get; set; }
-
-    public string Symbol { get; set; }
-  }
-
-  public class RunData
-  {
-    public string BuyGenomes { get; set; }
-    public string SellGenomes { get; set; }
   }
 }

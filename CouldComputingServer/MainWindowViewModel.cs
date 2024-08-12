@@ -1,4 +1,5 @@
-﻿using CTKS_Chart.Strategy;
+﻿using CloudComputing.Domains;
+using CTKS_Chart.Strategy;
 using CTKS_Chart.Strategy.AIStrategy;
 using CTKS_Chart.ViewModels;
 using LiveCharts;
@@ -28,21 +29,13 @@ using VNeuralNetwork;
 
 namespace CouldComputingServer
 {
-  public class ServerAdress
-  {
-    public string IP { get; set; }
-    public int Port { get; set; }
-  }
-
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
     private TcpListener _listener;
     private Thread _listenerThread;
     string session;
 
-    public MainWindowViewModel(
-      IViewModelsFactory viewModelsFactory,
-      IWindowManager windowManager) : base(viewModelsFactory)
+    public MainWindowViewModel(IViewModelsFactory viewModelsFactory) : base(viewModelsFactory)
     {
       session = DateTime.Now.ToString("dd_MM_yyyy_HH_mm_ss");
 
@@ -50,12 +43,20 @@ namespace CouldComputingServer
       SellBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
     }
 
+    #region Properties
+
     public NEATManager<AIBot> BuyBotManager { get; set; }
     public NEATManager<AIBot> SellBotManager { get; set; }
 
     #region AgentCount
 
+#if DEBUG
     private int agentCount = 10;
+#endif
+
+#if RELEASE
+    private int agentCount = 120;
+#endif
 
     public int AgentCount
     {
@@ -163,7 +164,13 @@ namespace CouldComputingServer
 
     #region Minutes
 
+#if DEBUG
     private int minutes = 720;
+#endif
+
+#if RELEASE
+    private int minutes = 240;
+#endif
 
     public int Minutes
     {
@@ -292,6 +299,12 @@ namespace CouldComputingServer
 
     #endregion
 
+    #endregion
+
+    #region Methods
+
+    #region Initialize
+
 
     public override void Initialize()
     {
@@ -304,8 +317,11 @@ namespace CouldComputingServer
 
     }
 
-    DateTime generationStart;
+    #endregion
 
+    #region DistributeGeneration
+
+    DateTime generationStart;
     private void DistributeGeneration()
     {
       generationStart = DateTime.Now;
@@ -354,10 +370,15 @@ namespace CouldComputingServer
         runAgents += agentsPerClient;
 
         ToStart -= agentsPerClient;
+        InProgress += agentsPerClient;
 
         SendMessage(client, newData);
       }
     }
+
+    #endregion
+
+    #region UpdateGeneration
 
     private void UpdateGeneration()
     {
@@ -375,14 +396,13 @@ namespace CouldComputingServer
           ChartData.Add(BuyBotManager.NeatAlgorithm.GenomeList.Average(x => x.Fitness));
           BestData.Add(bestSell.Fitness);
 
-          BestFitness = bestSell.Fitness;
-          FitnessData.Add(BestFitness);
 
           Labels.Add(BuyBotManager.Generation.ToString());
           RaisePropertyChanged(nameof(Labels));
         }
 
         FinishedCount = 0;
+        ToStart = AgentCount;
 
         SimulationAIPromptViewModel.SaveProgress(BuyBotManager, session, "BUY");
         SimulationAIPromptViewModel.SaveProgress(SellBotManager, session, "SELL");
@@ -400,6 +420,8 @@ namespace CouldComputingServer
         DistributeGeneration();
       });
     }
+
+    #endregion
 
     #region RunTest
 
@@ -449,7 +471,6 @@ namespace CouldComputingServer
 
     #endregion
 
-
     #region TestBot_Finished
 
     private void TestBot_Finished(object sender, EventArgs e, bool addStats)
@@ -469,6 +490,10 @@ namespace CouldComputingServer
             FullData.Add(simStrategy.TotalValue);
             DrawdawnData.Add(simStrategy.MaxDrawdawnFromMaxTotalValue);
             NumberOfTradesData.Add(simStrategy.ClosedSellPositions.Count);
+
+            BestFitness = simStrategy.BuyAIBot.NeuralNetwork.Fitness;
+            FitnessData.Add(BestFitness);
+
           }
 
           InProgress--;
@@ -478,7 +503,6 @@ namespace CouldComputingServer
     }
 
     #endregion
-
 
     #region IsRandom
 
@@ -633,6 +657,10 @@ namespace CouldComputingServer
       }
     }
 
+    #endregion
+
+    #region UpdateManager
+
     private void UpdateManager(string xml, NEATManager<AIBot> manager)
     {
       using (StringReader tx = new StringReader(xml))
@@ -656,9 +684,14 @@ namespace CouldComputingServer
 
           if (existing != null)
           {
-            manager.NeatAlgorithm.GenomeList[manager.NeatAlgorithm.GenomeList.IndexOf(existing)] = receivedGenome;
+            manager.NeatAlgorithm.GenomeList[manager.NeatAlgorithm.GenomeList.IndexOf(existing)].AddFitness(receivedGenome.Fitness);
 
             FinishedCount += 0.5;
+
+            if (FinishedCount % 2 == 0)
+            {
+              InProgress -= 1;
+            }
           }
           else
           {
@@ -668,11 +701,19 @@ namespace CouldComputingServer
       }
     }
 
+    #endregion
+
+    #region TryRemoveClient
+
     private void TryRemoveClient(TcpClient client)
     {
       client?.Close();
       VSynchronizationContext.InvokeOnDispatcher(() => { Clients.Remove(client); });
     }
+
+    #endregion
+
+    #region IsClientConnected
 
     private bool IsClientConnected(TcpClient client)
     {
@@ -699,25 +740,8 @@ namespace CouldComputingServer
     }
 
     #endregion
+
+    #endregion
   }
 
-  public class ServerRunData
-  {
-    public int Generation { get; set; }
-    public string BuyGenomes { get; set; }
-    public string SellGenomes { get; set; }
-
-    public int AgentCount { get; set; }
-    public int Minutes { get; set; }
-    public double Split { get; set; }
-    public bool IsRandom { get; set; }
-
-    public string Symbol { get; set; }
-  }
-
-  public class RunData
-  {
-    public string BuyGenomes { get; set; }
-    public string SellGenomes { get; set; }
-  }
 }
