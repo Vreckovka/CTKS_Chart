@@ -417,49 +417,9 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    protected override void OnClose(Window window)
-    {
-      base.OnClose(window);
-
-      OnStop();
-    }
-
     #endregion
 
     #region Methods
-
-    #region GetNeatManager
-
-    public static NEATManager<AIBot> GetNeatManager(
-      IViewModelsFactory viewModelsFactory,
-      PositionSide positionSide)
-    {
-      var inputCount = inputNumber + TakeIntersections;
-
-      switch (positionSide)
-      {
-        case PositionSide.Neutral:
-          break;
-        case PositionSide.Buy:
-          return new NEATManager<AIBot>(
-         viewModelsFactory,
-         NetworkActivationScheme.CreateCyclicFixedTimestepsScheme(180),
-         inputCount,
-         TakeIntersections * 2,
-         QuadraticSigmoid.__DefaultInstance);
-        case PositionSide.Sell:
-          return new NEATManager<AIBot>(
-        viewModelsFactory,
-        NetworkActivationScheme.CreateCyclicFixedTimestepsScheme(180),
-        inputCount + 1,
-        TakeIntersections,
-        QuadraticSigmoid.__DefaultInstance);
-      }
-
-      return null;
-    }
-
-    #endregion
 
     #region CreateBots
 
@@ -541,44 +501,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region GetBot
-
-    public static SimulationTradingBot<AIPosition, AIStrategy>
-      GetBot(
-      string symbol,
-      AIBot buy,
-      AIBot sell,
-      int minutes,
-      double splitTake,
-      Random random,
-      IViewModelsFactory viewModelsFactory,
-      bool useRandom = false)
-    {
-      var bot = viewModelsFactory.Create<SimulationTradingBot<AIPosition, AIStrategy>>(
-                  new TradingBot<AIPosition, AIStrategy>(SimulationPromptViewModel.GetAsset(symbol), new AIStrategy(buy, sell)));
-
-      bot.DataPath = $"{symbol}-{minutes}-generated.csv";
-
-      if (useRandom)
-      {
-        var year = random.Next(2019, 2023);
-        bot.FromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
-        bot.SplitTake = splitTake;
-      }
-      else
-      {
-        bot.SplitTake = 0;
-        bot.FromDate = new DateTime(2019, 1, 1);
-      }
-
-      bot.DataTimeFrame = (TimeFrame)minutes;
-      bot.TradingBot.Strategy.TakeIntersections = TakeIntersections;
-
-      return bot;
-    }
-
-    #endregion
-
     #region StartBots
 
     DateTime generationStart;
@@ -644,10 +566,12 @@ namespace CTKS_Chart.ViewModels
     {
       float fitness = (float)((strategy.TotalValue - strategy.StartingBudget) / strategy.StartingBudget) * 1000;
 
-      //var numberOfTrades = strategy.ClosedSellPositions.Count;
+      strategy.OriginalFitness = fitness < 0 ? 0 : fitness;
 
-      //if (numberOfTrades > 0)
-      //  fitness *= (float)Math.Log(numberOfTrades);
+      var numberOfTrades = strategy.ClosedSellPositions.Count;
+
+      if (numberOfTrades > 0)
+        fitness *= (float)Math.Log(numberOfTrades);
 
       var drawdawn = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
 
@@ -823,6 +747,74 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region GetBot
+
+    public static SimulationTradingBot<AIPosition, AIStrategy>
+      GetBot(
+      string symbol,
+      AIBot buy,
+      AIBot sell,
+      int minutes,
+      double splitTake,
+      Random random,
+      IViewModelsFactory viewModelsFactory,
+      bool useRandom = false)
+    {
+      var bot = SimulationPromptViewModel.GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, symbol, minutes.ToString(), new AIStrategy(buy, sell));
+
+      if (useRandom)
+      {
+        var year = random.Next(2019, 2023);
+        bot.FromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
+        bot.SplitTake = splitTake;
+      }
+      else
+      {
+        bot.SplitTake = 0;
+        bot.FromDate = new DateTime(2019, 1, 1);
+      }
+
+      bot.DataTimeFrame = (TimeFrame)minutes;
+      bot.TradingBot.Strategy.TakeIntersections = TakeIntersections;
+
+      return bot;
+    }
+
+    #endregion
+
+    #region GetNeatManager
+
+    public static NEATManager<AIBot> GetNeatManager(
+      IViewModelsFactory viewModelsFactory,
+      PositionSide positionSide)
+    {
+      var inputCount = inputNumber + TakeIntersections;
+
+      switch (positionSide)
+      {
+        case PositionSide.Neutral:
+          break;
+        case PositionSide.Buy:
+          return new NEATManager<AIBot>(
+         viewModelsFactory,
+         NetworkActivationScheme.CreateAcyclicScheme(),
+         inputCount,
+         TakeIntersections * 2,
+         QuadraticSigmoid.__DefaultInstance);
+        case PositionSide.Sell:
+          return new NEATManager<AIBot>(
+        viewModelsFactory,
+        NetworkActivationScheme.CreateAcyclicScheme(),
+        inputCount + 1,
+        TakeIntersections,
+        QuadraticSigmoid.__DefaultInstance);
+      }
+
+      return null;
+    }
+
+    #endregion
+
     #region SaveProgress
 
     public static void SaveProgress(NEATManager<AIBot> manager, string session, string folderName, int? generation = null)
@@ -838,7 +830,16 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region OnClose
 
+    protected override void OnClose(Window window)
+    {
+      base.OnClose(window);
+
+      OnStop();
+    }
+
+    #endregion
 
     #endregion
   }

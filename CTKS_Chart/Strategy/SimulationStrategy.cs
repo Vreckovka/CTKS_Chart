@@ -47,7 +47,7 @@ namespace CTKS_Chart.Strategy
 
     public override async void ValidatePositions(Candle candle)
     {
-      await ValidateSimulationPosition(candle, AllOpenedPositions);
+      await ValidateSimulationPosition(candle, AllOpenedPositions.ToList());
       base.ValidatePositions(candle);
     }
 

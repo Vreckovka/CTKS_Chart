@@ -14,6 +14,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
     public IndicatorData IndicatorData { get; set; }
     public AIBot BuyAIBot { get; set; }
     public AIBot SellAIBot { get; set; }
+    public float OriginalFitness { get; set; }
 
     decimal Coeficient
     {

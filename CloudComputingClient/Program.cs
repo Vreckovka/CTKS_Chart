@@ -67,6 +67,8 @@ namespace CloudComputingClient
     static NEATManager<AIBot> buyManager;
     static NEATManager<AIBot> sellManager;
 
+    static ILogger Logger { get; set; }
+
     #endregion
 
     #region Methods
@@ -85,6 +87,7 @@ namespace CloudComputingClient
         Kernel.Bind<IWindowManager>().To<WindowManager>();
 
         ViewModelsFactory = Kernel.Get<IViewModelsFactory>();
+        Logger = Kernel.Get<ILogger>();
 
         TradingViewHelper.DebugFlag = true;
 
@@ -124,7 +127,7 @@ namespace CloudComputingClient
 
         do
         {
-          Console.WriteLine("Type 'exit' to quit the program:");
+          Logger.Log(MessageType.Inform, "Type 'exit' to quit the program:");
           input = Console.ReadLine();
         } while (input != "exit");
       }
@@ -308,14 +311,14 @@ namespace CloudComputingClient
         {
           tcpClient = new TcpClient(serverIp, port);
 
-          Console.WriteLine($"Connectted to: {serverIp}\n");
+          Logger.Log(MessageType.Inform2, $"Connectted to: {serverIp}\n");
         }
 
         return tcpClient;
       }
       catch (Exception ex)
       {
-        Console.WriteLine($"Error: {ex.Message}\n");
+        Logger.Log(ex, false, false);
         return null;
       }
     }
@@ -389,7 +392,7 @@ namespace CloudComputingClient
 
             string currentData = Encoding.Unicode.GetString(ms.ToArray());
 
-            if(currentData.Contains(MessageContract.Done))
+            if (currentData.Contains(MessageContract.Done))
             {
               ms = new MemoryStream();
               continue;
@@ -460,15 +463,16 @@ namespace CloudComputingClient
           catch (Exception ex)
           {
             ms = new MemoryStream();
-            Console.WriteLine(ex);
+            Logger.Log(ex);
             buffer.Clear();
           }
         }
       }
-      catch (Exception)
+      catch (Exception ex)
       {
         Connected = false;
         CloseClient();
+        Logger.Log(ex);
         Console.WriteLine("DISCONNECTED!");
       }
     }
@@ -505,7 +509,7 @@ namespace CloudComputingClient
       }
       catch (Exception ex)
       {
-        Console.WriteLine(ex);
+        Logger.Log(ex);
       }
     }
 
@@ -537,7 +541,10 @@ namespace CloudComputingClient
       Console.WriteLine($"Generation: {ServerRunData?.Generation ?? -1}");
       Console.WriteLine($"Run Time: {RunTime.ToString(@"hh\:mm\:ss")}");
       Console.WriteLine($"GEN.Run Time: {GenerationRunTime.ToString(@"hh\:mm\:ss")}");
+      Console.WriteLine();
 
+
+      Console.WriteLine($"Symbol: {ServerRunData?.Symbol}");
       Console.WriteLine();
       Console.WriteLine($"To Start: {ToStart} In Progress: {InProgress} Finished: {FinishedCount}");
       Console.WriteLine();

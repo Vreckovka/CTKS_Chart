@@ -45,7 +45,9 @@ namespace CTKS_Chart.Binance.Data
         cancellationToken.Value.ThrowIfCancellationRequested();
       }
 
-      var fileName = $"{symbol}-{klineInterval.TotalMinutes}-generated.csv";
+      var fileName = $"Training data\\{symbol}-{klineInterval.TotalMinutes}-generated.csv";
+
+      Directory.CreateDirectory("Training data");
 
       if(File.Exists(fileName))
       {

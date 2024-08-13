@@ -6,6 +6,7 @@ using CTKS_Chart.Trading;
 using LiveCharts;
 using LiveCharts.Configurations;
 using LiveCharts.Defaults;
+using LiveCharts.Wpf;
 using VCore.WPF.Prompts;
 
 namespace CTKS_Chart.ViewModels
@@ -13,13 +14,17 @@ namespace CTKS_Chart.ViewModels
   public class SimulationStatisticsViewModel : BasePromptViewModel
   {
     private readonly Asset asset;
-   
 
-    public SimulationStatisticsViewModel(Asset asset)
+    public SimulationStatisticsViewModel(Asset asset, IList<SimulationResultDataPoint> dataPoints)
     {
       this.asset = asset ?? throw new ArgumentNullException(nameof(asset));
+
+      DataPoints = dataPoints;
       Title = "Simulation result statistics";
+
     }
+
+    #region Properties
 
     #region ValueFormatter
 
@@ -52,25 +57,6 @@ namespace CTKS_Chart.ViewModels
         if (value != nativeFormatter)
         {
           nativeFormatter = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region TotalValue
-
-    private IChartValues totalValue;
-
-    public IChartValues TotalValue
-    {
-      get { return totalValue; }
-      set
-      {
-        if (value != totalValue)
-        {
-          totalValue = value;
           RaisePropertyChanged();
         }
       }
@@ -135,6 +121,10 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    public SeriesCollection TotalValueSeries { get; set; }
+    public Func<double, string> Formatter { get; set; }
+    public double Base { get; set; }
+
     #region Labels
 
     private IList<string[]> labels;
@@ -155,25 +145,32 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #endregion
+
+    #region Methods
+
     public override void Initialize()
     {
       base.Initialize();
-
 
       LoadChart();
     }
 
     public IList<SimulationResultDataPoint> DataPoints { get; set; } = new List<SimulationResultDataPoint>();
-
+    double pointD = 0;
     private void LoadChart()
     {
-      var mapper = Mappers.Xy<ObservablePoint>()
-    .X(point => Math.Log(point.X, 10)) //a 10 base log scale in the X axis
-    .Y(point => point.Y);
+      Base = 10;
 
-      DataPoints = DataPoints.Where((x, i) => i % 3 == 0).ToList();
+      var mapper = Mappers.Xy<decimal>()
+         .Y(point => Math.Log((double)point, Base));
 
-      TotalValue = new ChartValues<decimal>(DataPoints.Select(x => x.TotalValue));
+      TotalValueSeries = new SeriesCollection(mapper);
+
+      TotalValueSeries.Add(new LineSeries() { Values = new ChartValues<decimal>(DataPoints.Select(x => x.TotalValue)), PointGeometrySize = 0 });
+
+      Formatter = value => Math.Pow(Base, value).ToString("N");
+
       TotalNative = new ChartValues<decimal>(DataPoints.Select(x => x.TotalNative));
       TotalNativeValue = new ChartValues<decimal>(DataPoints.Select(x => x.TotalNativeValue));
       Price = new ChartValues<decimal>(DataPoints.Select(x => x.Close));
@@ -184,6 +181,34 @@ namespace CTKS_Chart.ViewModels
 
       ValueFormatter = value => value.ToString("N2");
       NativeFormatter = value => value.ToString($"N{asset.NativeRound}");
+
+      CreateHODL();
+      RaisePropertyChanged(nameof(TotalValueSeries));
+      RaisePropertyChanged(nameof(Formatter));
+      RaisePropertyChanged(nameof(Base));
     }
+
+    private void CreateHODL()
+    {
+      var firstPoint = DataPoints.First();
+      var startingNative = firstPoint.TotalValue / firstPoint.Close;
+      List<SimulationResult> results = new List<SimulationResult>();
+
+      foreach (var candle in DataPoints)
+      {
+        var actualValue = startingNative * candle.Close;
+
+        var newsd = new SimulationResult()
+        {
+          TotalValue = actualValue
+        };
+
+        results.Add(newsd);
+      }
+
+      TotalValueSeries.Add(new LineSeries() { Values = new ChartValues<decimal>(results.Select(x => x.TotalValue)), PointGeometrySize = 0 });
+    }
+
+    #endregion
   }
 }

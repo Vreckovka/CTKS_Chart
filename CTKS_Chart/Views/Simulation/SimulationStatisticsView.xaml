@@ -11,36 +11,11 @@
   mc:Ignorable="d">
   <UniformGrid Columns="1">
 
-    <wpf:CartesianChart
-      Background="Transparent"
-      DisableAnimations="True"
-      LegendLocation="None">
+    <wpf:CartesianChart DisableAnimations="True" Series="{Binding TotalValueSeries}">
       <wpf:CartesianChart.AxisY>
-        <wpf:LogarithmicAxis
-          Title="Total Value"
-          Base="10"
-          DisableAnimations="True"
-          Foreground="{StaticResource YellowBrush3}"
-          LabelFormatter="{Binding ValueFormatter}">
+        <wpf:LogarithmicAxis Base="{Binding Base}" LabelFormatter="{Binding Formatter}">
           <wpf:Axis.Separator>
-            <wpf:Separator
-              Stroke="{StaticResource YellowBrush3}"
-              StrokeDashArray="0"
-              StrokeThickness="0" />
-          </wpf:Axis.Separator>
-        </wpf:LogarithmicAxis>
-
-        <wpf:LogarithmicAxis
-          Title="Price"
-          Base="10"
-          DisableAnimations="True"
-          Foreground="{StaticResource BlueBrush}"
-          LabelFormatter="{Binding ValueFormatter}">
-          <wpf:Axis.Separator>
-            <wpf:Separator
-              Stroke="{StaticResource BlueBrush}"
-              StrokeDashArray="0"
-              StrokeThickness="0" />
+            <wpf:Separator StrokeDashArray="0" StrokeThickness="0" />
           </wpf:Axis.Separator>
         </wpf:LogarithmicAxis>
       </wpf:CartesianChart.AxisY>
@@ -53,34 +28,13 @@
 
         </wpf:Axis>
       </wpf:CartesianChart.AxisX>
+
       <wpf:CartesianChart.DataTooltip>
         <wpf:DefaultTooltip
           Background="#252525"
           BorderBrush="#35ffffff"
           BorderThickness="1" />
       </wpf:CartesianChart.DataTooltip>
-
-      <wpf:CartesianChart.Series>
-        <wpf:LineSeries
-          Title="Total Value"
-          Fill="Transparent"
-          LineSmoothness="0"
-          PointForeground="{StaticResource YellowBrush3}"
-          PointGeometrySize="0"
-          ScalesYAt="0"
-          Stroke="{StaticResource YellowBrush3}"
-          Values="{Binding TotalValue}" />
-
-        <wpf:LineSeries
-          Title="Price"
-          Fill="Transparent"
-          LineSmoothness="0"
-          PointForeground="{StaticResource BlueBrush}"
-          PointGeometrySize="0"
-          ScalesYAt="1"
-          Stroke="{StaticResource BlueBrush}"
-          Values="{Binding Price}" />
-      </wpf:CartesianChart.Series>
     </wpf:CartesianChart>
 
     <wpf:CartesianChart

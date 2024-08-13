@@ -52,6 +52,8 @@ namespace CouldComputingServer
 
       BuyBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
       SellBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
+
+      CurrentSymbol = symbolsToTest[0];
     }
 
     #region Properties
@@ -367,6 +369,24 @@ namespace CouldComputingServer
 
     #endregion
 
+    #region CurrentSymbol
+
+    private string currentSymbol;
+
+    public string CurrentSymbol
+    {
+      get { return currentSymbol; }
+      set
+      {
+        if (value != currentSymbol)
+        {
+          currentSymbol = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
 
     #endregion
 
@@ -403,11 +423,12 @@ namespace CouldComputingServer
     #region DistributeGeneration
 
     DateTime generationStart;
-
+    Random random = new Random();
+    bool wasRandomPrevious = false;
     private void DistributeGeneration()
     {
       generationStart = DateTime.Now;
-      
+
       if (Clients.Count == 0)
         return;
 
@@ -420,6 +441,26 @@ namespace CouldComputingServer
       Clients.ForEach(x => x.SentBuyGenomes.Clear());
       Clients.ForEach(x => x.SentSellGenomes.Clear());
 
+      CurrentSymbol = symbolsToTest[wholeRunsCount % symbolsToTest.Length];
+      bool isRandom = false;
+
+      if(!wasRandomPrevious)
+      {
+        isRandom = IsRandom();
+
+        if (isRandom)
+        {
+          wasRandomPrevious = true;
+          CurrentSymbol = symbolsToTest[random.Next(0, symbolsToTest.Length)];
+        }
+      }
+      else
+      {
+        wasRandomPrevious = false;
+      }
+
+     
+
       foreach (var client in Clients.ToList())
       {
         if (agentsToRun < agentsPerClient)
@@ -431,10 +472,10 @@ namespace CouldComputingServer
         {
           AgentCount = agentsPerClient,
           Generation = BuyBotManager.Generation,
-          IsRandom = IsRandom(),
+          IsRandom = isRandom,
           Minutes = Minutes,
           Split = SplitTake,
-          Symbol = "ADAUSDT",
+          Symbol = CurrentSymbol,
         };
 
         var buyGenomes = BuyBotManager.NeatAlgorithm.GenomeList.Skip(runAgents).Take(agentsPerClient).ToList();
@@ -462,6 +503,11 @@ namespace CouldComputingServer
 
         SendMessage(client, JsonSerializer.Serialize(newData).Replace("\n", "") + MessageContract.EndOfMessage);
       }
+
+      if(!isRandom)
+      {
+        wholeRunsCount++;
+      }
     }
 
     #endregion
@@ -472,7 +518,7 @@ namespace CouldComputingServer
     {
       GenerationRunTime = DateTime.Now - generationStart;
 
-      var addStats = !IsRandom() && BuyBotManager.Generation + 1 % 10 > 1;
+      var addStats = !IsRandom() && CurrentSymbol == symbolsToTest[0];
 
       var bestBuy = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
       var bestSell = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
@@ -493,12 +539,16 @@ namespace CouldComputingServer
       SimulationAIPromptViewModel.SaveProgress(BuyBotManager, session, "BUY");
       SimulationAIPromptViewModel.SaveProgress(SellBotManager, session, "SELL");
 
-      if (taskCompletionSource != null && !taskCompletionSource.Task.IsCompleted)
+      if (addStats)
       {
-        await taskCompletionSource.Task;
+        if (taskCompletionSource != null && !taskCompletionSource.Task.IsCompleted)
+        {
+          await taskCompletionSource.Task;
+        }
+
+        _ = RunTest(bestBuy, bestSell, addStats);
       }
 
-      _ = RunTest(bestBuy, bestSell, addStats);
 
       BuyBotManager.UpdateNEATGeneration();
       SellBotManager.UpdateNEATGeneration();
@@ -511,6 +561,7 @@ namespace CouldComputingServer
     #region RunTest
 
     TaskCompletionSource<bool> taskCompletionSource;
+    string[] symbolsToTest = new string[] { "ADAUSDT", "BTCUSDT", "ETHUSDT", "LTCUSDT", "BNBUSDT" };
 
     private Task RunTest(NeatGenome buy, NeatGenome sell, bool addStats)
     {
@@ -521,7 +572,7 @@ namespace CouldComputingServer
       var buyGene = new NeatGenome(buy, 0, 0);
       var sellGene = new NeatGenome(sell, 0, 0);
 
-      var testBot = SimulationAIPromptViewModel.GetBot("ADAUSDT",
+      var testBot = SimulationAIPromptViewModel.GetBot(symbolsToTest[0],
         new AIBot(buyGene),
         new AIBot(sellGene),
         Minutes,
@@ -582,7 +633,7 @@ namespace CouldComputingServer
             NumberOfTradesData.Add(simStrategy.ClosedSellPositions.Count);
             NumberOfTrades = simStrategy.ClosedSellPositions.Count;
 
-            BestFitness = simStrategy.BuyAIBot.NeuralNetwork.Fitness;
+            BestFitness = simStrategy.OriginalFitness;
             FitnessData.Add(BestFitness);
 
           }
@@ -597,9 +648,10 @@ namespace CouldComputingServer
 
     #region IsRandom
 
+    private int wholeRunsCount;
     private bool IsRandom()
     {
-      return BuyBotManager.Generation % 5 == 0 && BuyBotManager.Generation != 0;
+      return wholeRunsCount % symbolsToTest.Length  == 0 && BuyBotManager.Generation != 0;
     }
 
     #endregion
@@ -749,10 +801,14 @@ namespace CouldComputingServer
 
     #endregion
 
+    #region IsGenerationEnded
+
     public bool IsGenerationEnded()
     {
       return Clients.All(x => x.Done) && Clients.Count > 0;
     }
+
+    #endregion
 
     #region UpdateManager
 
@@ -765,6 +821,12 @@ namespace CouldComputingServer
     {
       lock (managerBatton)
       {
+        if (buyManger.NeatAlgorithm == null)
+        {
+          SendMessage(tcpClient, MessageContract.Done);
+          return;
+        }
+
         List<NeatGenome> buyGenomeList = new List<NeatGenome>();
         List<NeatGenome> sellGenomeList = new List<NeatGenome>();
 

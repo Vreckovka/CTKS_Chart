@@ -61,13 +61,25 @@
       </StackPanel>
 
 
-      <TextBox Text="{Binding AiPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+      <TextBox
+        Width="350"
+        HorizontalAlignment="Left"
+        Text="{Binding AiPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-      <Button
-        Width="150"
-        Margin="5,5"
-        Command="{Binding LoadAiBot}"
-        Content="Load AI bot" />
+      <StackPanel Orientation="Horizontal">
+        <Button
+          Width="150"
+          Margin="5,5"
+          Command="{Binding LoadAiBot}"
+          Content="Load AI bot" />
+
+        <Button
+          Width="150"
+          Margin="5,5"
+          Command="{Binding LoadAiBot}"
+          Content="Start AI bot" />
+      </StackPanel>
+
 
     </StackPanel>
 

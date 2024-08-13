@@ -69,6 +69,8 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
+    #region Properties
+
     public ObservableCollection<SimulationResult> SimulationResults { get; } = new ObservableCollection<SimulationResult>();
 
     private string displayName;
@@ -149,9 +151,39 @@ namespace CTKS_Chart.ViewModels
     public TimeFrame DataTimeFrame { get; set; } = TimeFrame.Null;
     public double SplitTake { get; set; }
 
+    #endregion
+
+    #region Commnads
+
+
+    #region ShowStatistics
+
+    private ActionCommand<SimulationResult> showStatistics;
+
+    public ICommand ShowStatistics
+    {
+      get
+      {
+        return showStatistics ??= new ActionCommand<SimulationResult>(OnShowStatistics);
+      }
+    }
+
+    protected virtual void OnShowStatistics(SimulationResult simulationResult)
+    {
+      windowManager.ShowPrompt<SimulationStatisticsView>(new SimulationStatisticsViewModel(TradingBot.Asset, simulationResult.DataPoints), 1000, 1000);
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Methods
+
     #region LoadLayouts
 
-    private List<Candle> cutCandles = new List<Candle>();
+    private List<Candle> simulateCandles = new List<Candle>();
+    private decimal startingBudget = 0;
+
     protected override async Task LoadLayouts(CtksLayout mainLayout)
     {
       var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, TradingBot.Asset);
@@ -161,7 +193,7 @@ namespace CTKS_Chart.ViewModels
 
       //fromDate = new DateTime(2021,8, 30);
 
-      cutCandles = mainCandles.Where(x => x.CloseTime > FromDate).ToList();
+      var cutCandles = mainCandles.Where(x => x.CloseTime > FromDate).ToList();
       var candles = mainCandles.Where(x => x.CloseTime < FromDate).ToList();
 
       DrawingViewModel.ActualCandles = candles;
@@ -195,19 +227,19 @@ namespace CTKS_Chart.ViewModels
       //Layouts.Add(mainLayout);
       SelectedLayout = mainLayout;
 
-      var candlesToSimulate = cutCandles.ToList();
+      var simulateCandles = cutCandles.ToList();
 
       if (SplitTake != 0)
       {
         var take = (int)(mainCandles.Count / SplitTake);
 
-        candlesToSimulate = cutCandles.Take(take).ToList();
+        simulateCandles = cutCandles.Take(take).ToList();
       }
 
-      if(TradingBot.Strategy is AIStrategy aIStrategy)
+      if (TradingBot.Strategy is AIStrategy aIStrategy)
       {
         var lastDailyCandles = dailyCandles
-          .Where(x => x.CloseTime < candlesToSimulate.First().CloseTime)
+          .Where(x => x.CloseTime < simulateCandles.First().CloseTime)
           .TakeLast(aIStrategy.takeLastDailyCandles)
           .ToList();
 
@@ -215,7 +247,9 @@ namespace CTKS_Chart.ViewModels
         aIStrategy.lastDailyCandle = lastDailyCandles.Last();
       }
 
-      Simulate(candlesToSimulate, InnerLayouts);
+      startingBudget = TradingBot.Strategy.StartingBudget;
+
+      Simulate(simulateCandles, InnerLayouts);
     }
 
     #endregion
@@ -427,27 +461,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region ShowStatistics
-
-    private ActionCommand<SimulationResult> showStatistics;
-
-    public ICommand ShowStatistics
-    {
-      get
-      {
-        return showStatistics ??= new ActionCommand<SimulationResult>(OnShowStatistics);
-      }
-    }
-
-    protected virtual void OnShowStatistics(SimulationResult simulationResult)
-    {
-      windowManager.ShowPrompt<SimulationStatisticsView>(new SimulationStatisticsViewModel(TradingBot.Asset)
-      {
-        DataPoints = simulationResult.DataPoints
-      }, 1000, 1000);
-    }
 
     #endregion
-
   }
 }

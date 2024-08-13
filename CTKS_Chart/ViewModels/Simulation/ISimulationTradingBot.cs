@@ -5,5 +5,7 @@
     public void LoadSimulationResults();
 
     public bool SaveResults { get; set; }
+
+    public string DisplayName { get; set; }
   }
 }
