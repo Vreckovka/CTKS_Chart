@@ -18,9 +18,11 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using System.Xml;
 using VCore.Standard.Factories.ViewModels;
+using VCore.Standard.Helpers;
 using VCore.WPF;
 using VCore.WPF.Interfaces.Managers;
 using VCore.WPF.Misc;
@@ -29,6 +31,15 @@ using VNeuralNetwork;
 
 namespace CouldComputingServer
 {
+  public class CloudClient
+  {
+    public TcpClient Client { get; set; }
+    public Dictionary<uint, bool> SentBuyGenomes { get; set; } = new Dictionary<uint, bool>();
+    public Dictionary<uint, bool> SentSellGenomes { get; set; } = new Dictionary<uint, bool>();
+
+    public bool Done { get; set; }
+  }
+
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
     private TcpListener _listener;
@@ -73,7 +84,7 @@ namespace CouldComputingServer
 
     #endregion
 
-    public ObservableCollection<TcpClient> Clients { get; set; } = new ObservableCollection<TcpClient>();
+    public ObservableCollection<CloudClient> Clients { get; set; } = new ObservableCollection<CloudClient>();
 
     #region ToStart
 
@@ -96,9 +107,9 @@ namespace CouldComputingServer
 
     #region InProgress
 
-    private int inProgress;
+    private double inProgress;
 
-    public int InProgress
+    public double InProgress
     {
       get { return inProgress; }
       set
@@ -299,12 +310,69 @@ namespace CouldComputingServer
 
     #endregion
 
+    #region TotalValue
+
+    private decimal totalValue;
+
+    public decimal TotalValue
+    {
+      get { return totalValue; }
+      set
+      {
+        if (value != totalValue)
+        {
+          totalValue = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region Drawdawn
+
+    private decimal drawdawn;
+
+    public decimal Drawdawn
+    {
+      get { return drawdawn; }
+      set
+      {
+        if (value != drawdawn)
+        {
+          drawdawn = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region NumberOfTrades
+
+    private decimal numberOfTrades;
+
+    public decimal NumberOfTrades
+    {
+      get { return numberOfTrades; }
+      set
+      {
+        if (value != numberOfTrades)
+        {
+          numberOfTrades = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
     #endregion
 
     #region Methods
 
     #region Initialize
-
 
     public override void Initialize()
     {
@@ -314,7 +382,20 @@ namespace CouldComputingServer
       _listenerThread.IsBackground = true;
       _listenerThread.Start();
 
+      Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe(async (x) =>
+      {
+        if (IsGenerationEnded())
+        {
+          Clients.ForEach(x => x.Done = false);
 
+          if (taskCompletionSource != null && !taskCompletionSource.Task.IsCompleted)
+          {
+            await taskCompletionSource.Task;
+          }
+
+          UpdateGeneration();
+        }
+      });
     }
 
     #endregion
@@ -322,10 +403,11 @@ namespace CouldComputingServer
     #region DistributeGeneration
 
     DateTime generationStart;
+
     private void DistributeGeneration()
     {
       generationStart = DateTime.Now;
-
+      
       if (Clients.Count == 0)
         return;
 
@@ -334,6 +416,9 @@ namespace CouldComputingServer
       int runAgents = 0;
 
       ToStart = AgentCount;
+
+      Clients.ForEach(x => x.SentBuyGenomes.Clear());
+      Clients.ForEach(x => x.SentSellGenomes.Clear());
 
       foreach (var client in Clients.ToList())
       {
@@ -346,7 +431,7 @@ namespace CouldComputingServer
         {
           AgentCount = agentsPerClient,
           Generation = BuyBotManager.Generation,
-          IsRandom = false,
+          IsRandom = IsRandom(),
           Minutes = Minutes,
           Split = SplitTake,
           Symbol = "ADAUSDT",
@@ -354,6 +439,9 @@ namespace CouldComputingServer
 
         var buyGenomes = BuyBotManager.NeatAlgorithm.GenomeList.Skip(runAgents).Take(agentsPerClient).ToList();
         var sellGenomes = SellBotManager.NeatAlgorithm.GenomeList.Skip(runAgents).Take(agentsPerClient).ToList();
+
+        buyGenomes.ForEach(x => client.SentBuyGenomes.Add(x.Id, false));
+        sellGenomes.ForEach(x => client.SentSellGenomes.Add(x.Id, false));
 
         var buyDocument = NeatGenomeXmlIO.SaveComplete(buyGenomes, false);
         var sellDocument = NeatGenomeXmlIO.SaveComplete(sellGenomes, false);
@@ -372,7 +460,7 @@ namespace CouldComputingServer
         ToStart -= agentsPerClient;
         InProgress += agentsPerClient;
 
-        SendMessage(client, newData);
+        SendMessage(client, JsonSerializer.Serialize(newData).Replace("\n", "") + MessageContract.EndOfMessage);
       }
     }
 
@@ -380,45 +468,42 @@ namespace CouldComputingServer
 
     #region UpdateGeneration
 
-    private void UpdateGeneration()
+    private async void UpdateGeneration()
     {
       GenerationRunTime = DateTime.Now - generationStart;
 
-      VSynchronizationContext.InvokeOnDispatcher(async () =>
+      var addStats = !IsRandom() && BuyBotManager.Generation + 1 % 10 > 1;
+
+      var bestBuy = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
+      var bestSell = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
+
+      if (addStats)
       {
-        var addStats = !IsRandom() && BuyBotManager.Generation + 1 % 10 > 1;
-
-        var bestBuy = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
-        var bestSell = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
-
-        if (addStats)
-        {
-          ChartData.Add(BuyBotManager.NeatAlgorithm.GenomeList.Average(x => x.Fitness));
-          BestData.Add(bestSell.Fitness);
+        ChartData.Add(BuyBotManager.NeatAlgorithm.GenomeList.Average(x => x.Fitness));
+        BestData.Add(bestSell.Fitness);
 
 
-          Labels.Add(BuyBotManager.Generation.ToString());
-          RaisePropertyChanged(nameof(Labels));
-        }
+        Labels.Add(BuyBotManager.Generation.ToString());
+        RaisePropertyChanged(nameof(Labels));
+      }
 
-        FinishedCount = 0;
-        ToStart = AgentCount;
+      FinishedCount = 0;
+      ToStart = AgentCount;
 
-        SimulationAIPromptViewModel.SaveProgress(BuyBotManager, session, "BUY");
-        SimulationAIPromptViewModel.SaveProgress(SellBotManager, session, "SELL");
+      SimulationAIPromptViewModel.SaveProgress(BuyBotManager, session, "BUY");
+      SimulationAIPromptViewModel.SaveProgress(SellBotManager, session, "SELL");
 
-        if (taskCompletionSource != null && !taskCompletionSource.Task.IsCompleted)
-        {
-          await taskCompletionSource.Task;
-        }
+      if (taskCompletionSource != null && !taskCompletionSource.Task.IsCompleted)
+      {
+        await taskCompletionSource.Task;
+      }
 
-        _ = RunTest(bestBuy, bestSell, addStats);
+      _ = RunTest(bestBuy, bestSell, addStats);
 
-        BuyBotManager.UpdateNEATGeneration();
-        SellBotManager.UpdateNEATGeneration();
+      BuyBotManager.UpdateNEATGeneration();
+      SellBotManager.UpdateNEATGeneration();
 
-        DistributeGeneration();
-      });
+      DistributeGeneration();
     }
 
     #endregion
@@ -479,7 +564,8 @@ namespace CouldComputingServer
       {
         VSynchronizationContext.InvokeOnDispatcher(() =>
         {
-          taskCompletionSource.SetResult(true);
+          if (!taskCompletionSource.Task.IsCompleted)
+            taskCompletionSource.SetResult(true);
 
           var simStrategy = sim.TradingBot.Strategy;
 
@@ -488,8 +574,13 @@ namespace CouldComputingServer
           if (addStats)
           {
             FullData.Add(simStrategy.TotalValue);
+            TotalValue = simStrategy.TotalValue;
+
             DrawdawnData.Add(simStrategy.MaxDrawdawnFromMaxTotalValue);
+            Drawdawn = simStrategy.MaxDrawdawnFromMaxTotalValue;
+
             NumberOfTradesData.Add(simStrategy.ClosedSellPositions.Count);
+            NumberOfTrades = simStrategy.ClosedSellPositions.Count;
 
             BestFitness = simStrategy.BuyAIBot.NeuralNetwork.Fitness;
             FitnessData.Add(BestFitness);
@@ -531,12 +622,13 @@ namespace CouldComputingServer
 
           VSynchronizationContext.InvokeOnDispatcher(() =>
           {
-            Clients.Add(client);
-          });
+            var newClient = new CloudClient() { Client = client };
+            Clients.Add(newClient);
 
-          Thread clientThread = new Thread(() => HandleClient(client));
-          clientThread.IsBackground = true;
-          clientThread.Start();
+            Thread clientThread = new Thread(() => HandleClient(newClient));
+            clientThread.IsBackground = true;
+            clientThread.Start();
+          });
         }
       }
       catch (Exception ex)
@@ -549,16 +641,16 @@ namespace CouldComputingServer
 
     #region SendMessage
 
-    private void SendMessage(TcpClient client, ServerRunData serverData)
+    private void SendMessage(CloudClient client, string serverData)
     {
       try
       {
-        var _stream = client.GetStream();
+        var _stream = client.Client.GetStream();
 
         if (_stream != null)
         {
-          var json = JsonSerializer.Serialize(serverData).Replace("\n", "") + "END_OF_MESSAGE";
-          var data = Encoding.Unicode.GetBytes(json);
+
+          var data = Encoding.Unicode.GetBytes(serverData);
 
           _stream.Write(data, 0, data.Length);
           _stream.Flush();
@@ -580,11 +672,12 @@ namespace CouldComputingServer
     #region HandleClient
 
     object batton = new object();
-    private void HandleClient(TcpClient client)
+    int ind = 0;
+    private void HandleClient(CloudClient client)
     {
       try
       {
-        NetworkStream stream = client.GetStream();
+        NetworkStream stream = client.Client.GetStream();
         Span<byte> buffer = new byte[10485760];
 
         MemoryStream ms = new MemoryStream();
@@ -592,19 +685,19 @@ namespace CouldComputingServer
 
         int bytesRead;
         string currentData = "";
+
         // Read the stream until all data is received.
         while ((bytesRead = stream.Read(buffer)) > 0)
         {
-
           try
           {
             ms.Write(buffer);
 
             currentData = Encoding.Unicode.GetString(ms.ToArray()).Trim();
 
-            if (currentData.Contains("_END_"))
+            if (currentData.Contains(MessageContract.EndOfMessage))
             {
-              var indexOf = currentData.IndexOf("_END_");
+              var indexOf = currentData.IndexOf(MessageContract.EndOfMessage);
 
               currentData = currentData.Substring(0, indexOf);
 
@@ -612,13 +705,11 @@ namespace CouldComputingServer
 
               lock (batton)
               {
-                UpdateManager(data.BuyGenomes, BuyBotManager);
-                UpdateManager(data.SellGenomes, SellBotManager);
+                Console.WriteLine($"Received message {++ind}");
 
-
-                if (FinishedCount == AgentCount)
+                if (!client.Done)
                 {
-                  UpdateGeneration();
+                  UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
                 }
               }
 
@@ -626,9 +717,8 @@ namespace CouldComputingServer
               ms.Flush();
               ms.Dispose();
               ms = new MemoryStream();
+              buffer.Clear();
             }
-
-            buffer.Clear();
           }
           catch (Exception ex)
           {
@@ -659,43 +749,80 @@ namespace CouldComputingServer
 
     #endregion
 
+    public bool IsGenerationEnded()
+    {
+      return Clients.All(x => x.Done) && Clients.Count > 0;
+    }
+
     #region UpdateManager
 
-    private void UpdateManager(string xml, NEATManager<AIBot> manager)
+    object managerBatton = new object();
+    private void UpdateManager(
+      CloudClient tcpClient,
+      string buyXml,
+      NEATManager<AIBot> buyManger,
+      string sellXml, NEATManager<AIBot> sellManager)
     {
-      using (StringReader tx = new StringReader(xml))
-      using (XmlReader xr = XmlReader.Create(tx))
+      lock (managerBatton)
       {
-        // Replace NeatGenomeXmlIO.ReadCompleteGenomeList with your actual method to read genomes.
-        var genomeList = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, manager.GetGenomeFactory());
+        List<NeatGenome> buyGenomeList = new List<NeatGenome>();
+        List<NeatGenome> sellGenomeList = new List<NeatGenome>();
 
-        if (manager == BuyBotManager)
+        using (StringReader tx = new StringReader(buyXml))
+        using (XmlReader xr = XmlReader.Create(tx))
         {
-          foreach (var buyGene in genomeList)
-          {
-            Console.WriteLine($"RECEIVED IDs: {buyGene.Id}");
-          }
+          buyGenomeList = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, buyManger.GetGenomeFactory());
+        }
+
+        using (StringReader tx = new StringReader(sellXml))
+        using (XmlReader xr = XmlReader.Create(tx))
+        {
+          sellGenomeList = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, sellManager.GetGenomeFactory());
+        }
+
+        foreach (var buyGene in buyGenomeList)
+        {
+          Console.WriteLine($"RECEIVED ID: {buyGene.Id}");
+        }
+
+        List<Tuple<NeatGenome, NeatGenome>> list = new List<Tuple<NeatGenome, NeatGenome>>();
+
+        for (int i = 0; i < buyGenomeList.Count; i++)
+        {
+          list.Add(new Tuple<NeatGenome, NeatGenome>(buyGenomeList[i], sellGenomeList[i]));
         }
 
 
-        foreach (var receivedGenome in genomeList)
+        foreach (var receivedGenome in list)
         {
-          var existing = manager.NeatAlgorithm.GenomeList.SingleOrDefault(x => x.Id == receivedGenome.Id);
+          var existingBuy = buyManger.NeatAlgorithm.GenomeList.SingleOrDefault(x => x.Id == receivedGenome.Item1.Id);
+          var existingSell = sellManager.NeatAlgorithm.GenomeList.SingleOrDefault(x => x.Id == receivedGenome.Item2.Id);
 
-          if (existing != null)
+          if (existingBuy != null && existingSell != null)
           {
-            manager.NeatAlgorithm.GenomeList[manager.NeatAlgorithm.GenomeList.IndexOf(existing)].AddFitness(receivedGenome.Fitness);
-
-            FinishedCount += 0.5;
-
-            if (FinishedCount % 2 == 0)
+            if (!tcpClient.SentBuyGenomes[existingBuy.Id] && !tcpClient.SentSellGenomes[existingSell.Id])
             {
+              buyManger.NeatAlgorithm.GenomeList[buyManger.NeatAlgorithm.GenomeList.IndexOf(existingBuy)].AddFitness(receivedGenome.Item1.Fitness);
+              sellManager.NeatAlgorithm.GenomeList[sellManager.NeatAlgorithm.GenomeList.IndexOf(existingSell)].AddFitness(receivedGenome.Item2.Fitness);
+
+              FinishedCount += 1;
               InProgress -= 1;
+
+              tcpClient.SentBuyGenomes[existingBuy.Id] = true;
+              tcpClient.SentSellGenomes[existingSell.Id] = true;
+
+              tcpClient.Done = tcpClient.SentBuyGenomes.All(x => x.Value == true) && tcpClient.SentSellGenomes.All(x => x.Value == true);
+
+              if (tcpClient.Done)
+              {
+                SendMessage(tcpClient, MessageContract.Done);
+              }
             }
           }
           else
           {
-            Console.WriteLine($"NOT FOUND GENOME WITH ID: {receivedGenome.Id}");
+            Console.WriteLine($"------------------NOT FOUND GENOME WITH ID: {receivedGenome.Item1.Id}------------------");
+            Console.WriteLine($"------------------NOT FOUND GENOME WITH ID: {receivedGenome.Item2.Id}------------------");
           }
         }
       }
@@ -705,10 +832,19 @@ namespace CouldComputingServer
 
     #region TryRemoveClient
 
-    private void TryRemoveClient(TcpClient client)
+    private void TryRemoveClient(CloudClient client)
     {
-      client?.Close();
-      VSynchronizationContext.InvokeOnDispatcher(() => { Clients.Remove(client); });
+      VSynchronizationContext.InvokeOnDispatcher(() =>
+      {
+        try
+        {
+          client?.Client.Close();
+          Clients.Remove(client);
+        }
+        catch (Exception ex)
+        {
+        }
+      });
     }
 
     #endregion
@@ -740,6 +876,13 @@ namespace CouldComputingServer
     }
 
     #endregion
+
+    protected override void OnClose(Window window)
+    {
+      Clients.ForEach(x => x.Client.Close());
+
+      base.OnClose(window);
+    }
 
     #endregion
   }

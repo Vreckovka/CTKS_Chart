@@ -642,8 +642,12 @@ namespace CTKS_Chart.ViewModels
 
     public static void AddFitness(AIStrategy strategy)
     {
-      //float fitness = (float)((strategy.TotalValue - strategy.StartingBudget) / strategy.StartingBudget) * 100;
-      float fitness = (float)(strategy.TotalValue - strategy.StartingBudget);
+      float fitness = (float)((strategy.TotalValue - strategy.StartingBudget) / strategy.StartingBudget) * 1000;
+
+      //var numberOfTrades = strategy.ClosedSellPositions.Count;
+
+      //if (numberOfTrades > 0)
+      //  fitness *= (float)Math.Log(numberOfTrades);
 
       var drawdawn = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
 

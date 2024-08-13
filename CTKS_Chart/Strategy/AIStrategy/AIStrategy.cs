@@ -1,4 +1,5 @@
 ﻿using CTKS_Chart.Trading;
+using Logger;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,16 +60,22 @@ namespace CTKS_Chart.Strategy.AIStrategy
       {
         await buyLock.WaitAsync();
 
-        if(lastDailyCandle == null || lastDailyCandle.CloseTime < dailyCandle.CloseTime)
+        if(dailyCandle == null)
+        {
+          Logger.Log(MessageType.Warning, "No daily candle, doing nothing...");
+          return;
+        }
+
+        if (BuyAIBot == null)
+          return;
+
+        if (lastDailyCandle == null || lastDailyCandle.CloseTime < dailyCandle.CloseTime)
         {
           lastDailyCandles.Add(dailyCandle);
         }
 
         lastDailyCandle = dailyCandle;
         lastCandle = actualCandle;
-
-        if (BuyAIBot == null)
-          return;
 
         IndicatorData = dailyCandle.IndicatorData;
 

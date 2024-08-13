@@ -208,8 +208,8 @@ namespace CTKS_Chart.ViewModels
       var adaBot = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(
         new TradingBot<Position, SimulationStrategy>(GetAsset("ADAUSDT"), new SimulationStrategy()));
 
-      adaBot.DisplayName = "ADAUSDT SPOT 15";
-      adaBot.DataPath = $"ADAUSDT-15-generated.csv";
+      adaBot.DisplayName = "ADAUSDT SPOT 120";
+      adaBot.DataPath = $"ADAUSDT-120-generated.csv";
 
       var adaBot1 = viewModelsFactory.Create<SimulationTradingBot<Position, SimulationStrategy>>(
         new TradingBot<Position, SimulationStrategy>(GetAsset("ADAUSDT"), new SimulationStrategy()));

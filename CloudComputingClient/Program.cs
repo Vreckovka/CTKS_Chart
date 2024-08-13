@@ -14,6 +14,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
@@ -146,6 +147,8 @@ namespace CloudComputingClient
       List<NeatGenome> buyGenomes,
       List<NeatGenome> sellGenomes)
     {
+      serialDisposable.Disposable?.Dispose();
+
       CreateStrategies(agentCount, minutes, split, symbol, isRandom, buyGenomes, sellGenomes);
 
       StartBots();
@@ -195,6 +198,7 @@ namespace CloudComputingClient
     #endregion
 
     #region GenerationCompleted
+    static SerialDisposable serialDisposable = new SerialDisposable();
 
     private static void GenerationCompleted()
     {
@@ -214,8 +218,6 @@ namespace CloudComputingClient
       Drawdawn = aIStrategy.MaxDrawdawnFromMaxTotalValue;
       NumberOfTrades = aIStrategy.ClosedSellPositions.Count;
 
-      ConnectToServer();
-
       var data = new RunData();
 
       var buyGenomes = Bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
@@ -225,6 +227,19 @@ namespace CloudComputingClient
       data.SellGenomes = NeatGenomeXmlIO.SaveComplete(sellGenomes, false).OuterXml;
 
       SendMessage(tcpClient, data);
+
+      serialDisposable.Disposable = Observable.Interval(TimeSpan.FromSeconds(5)).Subscribe((x) =>
+      {
+        var data = new RunData();
+
+        var buyGenomes = Bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
+        var sellGenomes = Bots.Select(x => x.TradingBot.Strategy.SellAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
+
+        data.BuyGenomes = NeatGenomeXmlIO.SaveComplete(buyGenomes, false).OuterXml;
+        data.SellGenomes = NeatGenomeXmlIO.SaveComplete(sellGenomes, false).OuterXml;
+
+        SendMessage(tcpClient, data);
+      });
 
       FinishedCount = 0;
 
@@ -359,7 +374,7 @@ namespace CloudComputingClient
         if (stream == null)
           return;
 
-        Span<byte> buffer = new byte[10485760];
+        Span<byte> buffer = new byte[30485760];
         MemoryStream ms = new MemoryStream();
 
 
@@ -367,13 +382,20 @@ namespace CloudComputingClient
         // Read the stream until all data is received.
         while ((bytesRead = stream.Read(buffer)) > 0)
         {
-          ms.Write(buffer);
-
-          string currentData = Encoding.Unicode.GetString(ms.ToArray());
-
           try
           {
-            if (!currentData.Contains("END_OF_MESSAGE"))
+            serialDisposable.Disposable?.Dispose();
+            ms.Write(buffer);
+
+            string currentData = Encoding.Unicode.GetString(ms.ToArray());
+
+            if(currentData.Contains(MessageContract.Done))
+            {
+              ms = new MemoryStream();
+              continue;
+            }
+
+            if (!currentData.Contains(MessageContract.EndOfMessage))
             {
               continue;
             }
@@ -383,7 +405,7 @@ namespace CloudComputingClient
             var currentDatadd = Regex.Replace(input2, @"\\[Uu]([0-9A-Fa-f]{4})", m => char.ToString((char)ushort.Parse(m.Groups[1].Value, NumberStyles.AllowHexSpecifier)));
 
 
-            int index = currentDatadd.IndexOf("END_OF_MESSAGE");
+            int index = currentDatadd.IndexOf(MessageContract.EndOfMessage);
             currentDatadd = currentDatadd.Substring(0, index);
 
             ServerRunData = JsonSerializer.Deserialize<ServerRunData>(currentDatadd);
@@ -439,10 +461,8 @@ namespace CloudComputingClient
           {
             ms = new MemoryStream();
             Console.WriteLine(ex);
+            buffer.Clear();
           }
-
-
-          buffer.Clear();
         }
       }
       catch (Exception)
@@ -457,22 +477,29 @@ namespace CloudComputingClient
 
     #region SendMessage
 
+    static object batton0 = new object();
+    static int asd = 0;
     private static void SendMessage(TcpClient tcpClient, RunData runData)
     {
       try
       {
-        var _stream = tcpClient?.GetStream();
 
-        if (_stream != null)
+        lock (batton0)
         {
-          var json = JsonSerializer.Serialize(runData) + "_END_";
+          var _stream = tcpClient?.GetStream();
+          Console.WriteLine($"SENDING {++asd}");
 
-          using (StringWriter stringWriter = new StringWriter())
+          if (_stream != null)
           {
-            var data = Encoding.Unicode.GetBytes(json);
+            var json = JsonSerializer.Serialize(runData) + MessageContract.EndOfMessage;
 
-            _stream.Write(data, 0, data.Length);
-            _stream.Flush();
+            using (StringWriter stringWriter = new StringWriter())
+            {
+              var data = Encoding.Unicode.GetBytes(json);
+
+              _stream.Write(data, 0, data.Length);
+              _stream.Flush();
+            }
           }
         }
       }
@@ -481,6 +508,7 @@ namespace CloudComputingClient
         Console.WriteLine(ex);
       }
     }
+
 
     #endregion
 
@@ -524,7 +552,7 @@ namespace CloudComputingClient
       Console.WriteLine(connected ? $"Connected to: {serverIp}" : "Not connected...");
     }
 
-    #endregion 
+    #endregion
 
     #endregion
   }
