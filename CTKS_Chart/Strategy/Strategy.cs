@@ -1322,7 +1322,7 @@ namespace CTKS_Chart.Strategy
         }
 
         var finalSize = position.Price * position.OriginalPositionSizeNative;
-        var profit = finalSize - position.OriginalPositionSize; ;
+        var profit = finalSize - position.OriginalPositionSize; 
 
         position.Profit = profit;
         position.PositionSize = 0;

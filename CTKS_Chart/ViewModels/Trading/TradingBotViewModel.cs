@@ -667,7 +667,7 @@ namespace CTKS_Chart.ViewModels
     {
       TradingBot.Strategy.Logger = logger;
 
-      await LoadLayouts(MainLayout);
+      await LoadLayouts();
     }
 
     #endregion
@@ -677,9 +677,9 @@ namespace CTKS_Chart.ViewModels
     TimeFrame minTimeframe = TimeFrame.D1;
     protected List<CtksLayout> InnerLayouts = new List<CtksLayout>();
 
-    protected virtual async Task LoadLayouts(CtksLayout mainLayout)
+    protected virtual async Task LoadLayouts()
     {
-      var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, TradingBot.Asset);
+      var mainCtks = new Ctks(MainLayout, MainLayout.TimeFrame, TradingBot.Asset);
 
       DrawingViewModel.ActualCandles = (await
         binanceBroker.GetCandles(TradingBot.Asset.Symbol,
@@ -691,13 +691,13 @@ namespace CTKS_Chart.ViewModels
       LoadSecondaryLayouts();
       LoadIndicators();
 
-      mainLayout.Ctks = mainCtks;
+      MainLayout.Ctks = mainCtks;
       //Layouts.Add(mainLayout);
-      SelectedLayout = mainLayout;
+      SelectedLayout = MainLayout;
 
       if (DrawingViewModel.ActualCandles.Count > 0)
       {
-        RenderLayout(InnerLayouts, DrawingViewModel.ActualCandles.Last());
+        RenderLayout(DrawingViewModel.ActualCandles.Last());
       }
     }
 
@@ -838,7 +838,7 @@ namespace CTKS_Chart.ViewModels
 
     public bool IsSimulation { get; set; } = false;
 
-    public async void RenderLayout(List<CtksLayout> secondaryLayouts, Candle actual)
+    public async void RenderLayout(Candle actual)
     {
       if (IsPaused)
       {
@@ -848,6 +848,8 @@ namespace CTKS_Chart.ViewModels
       try
       {
         await semaphoreSlim.WaitAsync();
+
+        List<CtksLayout> secondaryLayouts = InnerLayouts;
 
         for (int i = 0; i < secondaryLayouts.Count; i++)
         {
@@ -955,11 +957,14 @@ namespace CTKS_Chart.ViewModels
           if (ctksIntersections.Count > 0)
             TradingBot.Strategy.UpdateIntersections(ctksIntersections);
 
-          //var allCtks = new Ctks(new CtksLayout(), TimeFrame.W1, TradingBot.Asset);
-          //allCtks.Epsilon = 0.0025m;
+          if(!IsSimulation)
+          {
+            var allCtks = new Ctks(new CtksLayout(), TimeFrame.W1, TradingBot.Asset);
+            allCtks.Epsilon = 0.0025m;
 
-          //var clustered = allCtks.CreateClusters(ctksIntersections, Tag.GlobalCluster);
-          //ctksIntersections.AddRange(clustered);
+            var clustered = allCtks.CreateClusters(ctksIntersections, Tag.GlobalCluster);
+            ctksIntersections.AddRange(clustered);
+          }
 
           var duplicates = ctksIntersections.GroupBy(x => x.Value);
 
@@ -1258,7 +1263,7 @@ namespace CTKS_Chart.ViewModels
         VSynchronizationContext.InvokeOnDispatcher(() =>
         {
           if (SelectedLayout != null)
-            RenderLayout(InnerLayouts, actual);
+            RenderLayout(actual);
         });
 
 

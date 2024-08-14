@@ -3,6 +3,7 @@ using CTKS_Chart.Strategy;
 using CTKS_Chart.Strategy.AIStrategy;
 using CTKS_Chart.ViewModels;
 using LiveCharts;
+using Logger;
 using SharpNeat.Genomes.Neat;
 using System;
 using System.Collections.Generic;
@@ -46,7 +47,7 @@ namespace CouldComputingServer
     private Thread _listenerThread;
     string session;
 
-    public MainWindowViewModel(IViewModelsFactory viewModelsFactory) : base(viewModelsFactory)
+    public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
     {
       session = DateTime.Now.ToString("dd_MM_yyyy_HH_mm_ss");
 
@@ -54,6 +55,7 @@ namespace CouldComputingServer
       SellBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
 
       CurrentSymbol = symbolsToTest[0];
+      Logger = logger;
     }
 
     #region Properties
@@ -385,6 +387,8 @@ namespace CouldComputingServer
         }
       }
     }
+
+    public ILogger Logger { get; }
 
     #endregion
 
@@ -774,7 +778,13 @@ namespace CouldComputingServer
           }
           catch (Exception ex)
           {
-            Console.WriteLine(ex);
+            stream.Flush();
+            ms.Flush();
+            ms.Dispose();
+            ms = new MemoryStream();
+            buffer.Clear();
+
+            Logger.Log(ex);
           }
         }
 
@@ -783,19 +793,9 @@ namespace CouldComputingServer
       }
       catch (Exception ex)
       {
-        if (ex.ToString().Contains("An existing connection was forcibly closed by the remote host.."))
-        {
-          TryRemoveClient(client);
-          return;
-        }
+        TryRemoveClient(client);
 
-        if (ex.Message.Contains("Unable to read data from the transport connection: A blocking operation was interrupted by a call to WSACancelBlockingCall"))
-        {
-          TryRemoveClient(client);
-          return;
-        }
-
-        Console.WriteLine(ex);
+        Logger.Log(ex);
       }
     }
 
@@ -905,6 +905,7 @@ namespace CouldComputingServer
         }
         catch (Exception ex)
         {
+          Logger.Log(ex);
         }
       });
     }

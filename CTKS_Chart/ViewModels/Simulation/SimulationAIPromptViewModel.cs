@@ -429,11 +429,6 @@ namespace CTKS_Chart.ViewModels
     {
       lastElapsed = DateTime.Now;
 
-      var inputCount = inputNumber + TakeIntersections;
-
-      // BuyBotManager.LoadPredifinedGenome(new int[] { inputCount, 3, TakeIntersections * 2 });
-      // SellBotManager.LoadPredifinedGenome(new int[] { inputCount, 3, TakeIntersections  });
-
       BuyBotManager.InitializeManager(AgentCount);
       SellBotManager.InitializeManager(AgentCount);
 
@@ -445,16 +440,6 @@ namespace CTKS_Chart.ViewModels
 
         lastElapsed = DateTime.Now;
       });
-
-
-      //var manager = new GeneticAiManager(50, GetScore);
-
-      //manager.GeneticAlgorithmManager.OnNewGenerationCreated.Subscribe((x) =>
-      //{
-
-      //});
-
-      //manager.GeneticAlgorithmManager.Run(CancellationToken.None);
 
       CreateStrategies();
     }
@@ -468,9 +453,7 @@ namespace CTKS_Chart.ViewModels
     private void CreateStrategies()
     {
       Bots.Clear();
-
-      List<List<SimulationTradingBot<AIPosition, AIStrategy>>> spliited = new List<List<SimulationTradingBot<AIPosition, AIStrategy>>>();
-
+      generationStart = DateTime.Now;
       BuyBotManager.CreateAgents();
       SellBotManager.CreateAgents();
 
@@ -487,6 +470,7 @@ namespace CTKS_Chart.ViewModels
         Bots.Add(bot);
       }
 
+      //RunGeneration(random, Symbol, IsRandom(), SplitTake, minutes);
       StartBots();
     }
 
@@ -506,9 +490,6 @@ namespace CTKS_Chart.ViewModels
     DateTime generationStart;
     private void StartBots()
     {
-      generationStart = DateTime.Now;
-
-
       Task.Run(() =>
       {
         foreach (var bot in Bots)
@@ -568,10 +549,8 @@ namespace CTKS_Chart.ViewModels
 
       strategy.OriginalFitness = fitness < 0 ? 0 : fitness;
 
-      var numberOfTrades = strategy.ClosedSellPositions.Count;
-
-      if (numberOfTrades > 0)
-        fitness *= (float)Math.Log(numberOfTrades);
+      var numberOfTrades = strategy.ClosedSellPositions.Count / 1000.0;
+      fitness *= (float)numberOfTrades;
 
       var drawdawn = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
 
@@ -741,11 +720,72 @@ namespace CTKS_Chart.ViewModels
       DrawdawnData.Add(aIStrategy.MaxDrawdawnFromMaxTotalValue);
       NumberOfTradesData.Add(aIStrategy.ClosedSellPositions.Count);
 
-      BestFitness = aIStrategy.BuyAIBot.NeuralNetwork.Fitness;
+      BestFitness = aIStrategy.OriginalFitness;
       FitnessData.Add(BestFitness);
     }
 
     #endregion
+
+    public void RunGeneration(
+      Random random,
+      string symbol,
+      bool useRandomDate,
+      double pSpliTake,
+      int minutes)
+    {
+      Task.Run(() =>
+      {
+        DateTime fromDate = DateTime.Now;
+        double splitTake = 0;
+
+        if (useRandomDate)
+        {
+          var year = random.Next(2019, 2023);
+          fromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
+          splitTake = pSpliTake;
+        }
+        else
+        {
+          fromDate = new DateTime(2019, 1, 1);
+        }
+
+        TimeFrame dataTimeFrame = (TimeFrame)minutes;
+
+        var candles = SimulationTradingBot.GetSimulationCandles(
+           dataTimeFrame,
+           SimulationPromptViewModel.GetSimulationDataPath(symbol, minutes.ToString()), symbol, fromDate);
+
+        foreach (var bot in Bots)
+        {
+          bot.InitializeBot();
+          bot.HeatBot(candles.cutCandles, bot.TradingBot.Strategy);
+        }
+
+        var splitTakeC = Bots.SplitList(5);
+        var tasks = new List<Task>();
+
+        foreach (var take in splitTakeC)
+        {
+          tasks.Add(Task.Run(() =>
+          {
+            foreach (var candle in candles.cutCandles)
+            {
+
+              foreach (var bot in Bots)
+              {
+                bot.SimulateCandle(candle);
+              }
+            }
+          }));
+        }
+
+        Task.WaitAll(tasks.ToArray());
+
+        FinishedCount = Bots.Count;
+        UpdateGeneration();
+      });
+
+    }
 
     #region GetBot
 
@@ -762,19 +802,21 @@ namespace CTKS_Chart.ViewModels
     {
       var bot = SimulationPromptViewModel.GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, symbol, minutes.ToString(), new AIStrategy(buy, sell));
 
+      DateTime fromDate = DateTime.Now;
+
       if (useRandom)
       {
         var year = random.Next(2019, 2023);
-        bot.FromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
-        bot.SplitTake = splitTake;
+        fromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
       }
       else
       {
-        bot.SplitTake = 0;
-        bot.FromDate = new DateTime(2019, 1, 1);
+        fromDate = new DateTime(2019, 1, 1);
       }
 
-      bot.DataTimeFrame = (TimeFrame)minutes;
+      bot.FromDate = fromDate;
+      bot.SplitTake = splitTake;
+
       bot.TradingBot.Strategy.TakeIntersections = TakeIntersections;
 
       return bot;
@@ -790,6 +832,28 @@ namespace CTKS_Chart.ViewModels
     {
       var inputCount = inputNumber + TakeIntersections;
 
+      //switch (positionSide)
+      //{
+      //  case PositionSide.Neutral:
+      //    break;
+      //  case PositionSide.Buy:
+      //    return new NEATManager<AIBot>(
+      //   viewModelsFactory,
+      //   NetworkActivationScheme.CreateAcyclicScheme(),
+      //   inputCount,
+      //   TakeIntersections * 2,
+      //   QuadraticSigmoid.__DefaultInstance);
+      //  case PositionSide.Sell:
+      //    return new NEATManager<AIBot>(
+      //  viewModelsFactory,
+      //  NetworkActivationScheme.CreateAcyclicScheme(),
+      //  inputCount + 1,
+      //  TakeIntersections,
+      //  QuadraticSigmoid.__DefaultInstance);
+      //}
+
+      //return null;
+
       switch (positionSide)
       {
         case PositionSide.Neutral:
@@ -799,7 +863,7 @@ namespace CTKS_Chart.ViewModels
          viewModelsFactory,
          NetworkActivationScheme.CreateAcyclicScheme(),
          inputCount,
-         TakeIntersections * 2,
+         3,
          QuadraticSigmoid.__DefaultInstance);
         case PositionSide.Sell:
           return new NEATManager<AIBot>(

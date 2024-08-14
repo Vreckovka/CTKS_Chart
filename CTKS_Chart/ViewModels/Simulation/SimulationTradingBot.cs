@@ -27,6 +27,20 @@ using VCore.WPF.Misc;
 
 namespace CTKS_Chart.ViewModels
 {
+  public static class SimulationTradingBot
+  {
+
+    public static (List<Candle> candles, List<Candle> cutCandles, List<Candle> allCandles) GetSimulationCandles(TimeFrame dataTimeFrame, string dataPath, string symbol, DateTime fromDate)
+    {
+      var mainCandles = TradingViewHelper.ParseTradingView(dataTimeFrame, dataPath, symbol, saveData: true);
+
+      var candles = mainCandles.Where(x => x.CloseTime < fromDate).ToList();
+      var cutCandles = mainCandles.Where(x => x.CloseTime > fromDate).ToList();
+
+
+      return (candles, cutCandles, mainCandles);
+    }
+  }
 
   public class SimulationTradingBot<TPosition, TStrategy> : TradingBotViewModel<TPosition, TStrategy>, ISimulationTradingBot
     where TPosition : Position, new()
@@ -47,7 +61,7 @@ namespace CTKS_Chart.ViewModels
       IViewModelsFactory viewModelsFactory) :
       base(tradingBot, logger, windowManager, binanceBroker, viewModelsFactory)
     {
-    
+
       IsSimulation = true;
 
       TradingBot.Strategy.EnableRangeFilterStrategy = true;
@@ -62,7 +76,7 @@ namespace CTKS_Chart.ViewModels
         DisplayName = tradingBot.Asset.Symbol;
       }
 
-      if(tradingBot.Strategy is  AIStrategy aIStrategy)
+      if (tradingBot.Strategy is AIStrategy aIStrategy)
       {
         BUY_BOT = aIStrategy.BuyAIBot;
         SELL_BOT = aIStrategy.SellAIBot;
@@ -179,22 +193,46 @@ namespace CTKS_Chart.ViewModels
 
     #region Methods
 
+    public void HeatBot(IEnumerable<Candle> simulateCandles, AIStrategy aIStrategy)
+    {
+      var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{Asset.IndicatorDataPath}, 1D.csv", Asset.Symbol, saveData: true);
+
+      var lastDailyCandles = dailyCandles
+        .Where(x => x.CloseTime < simulateCandles.First().CloseTime)
+        .TakeLast(aIStrategy.takeLastDailyCandles)
+        .ToList();
+
+      aIStrategy.lastDailyCandles = lastDailyCandles;
+      aIStrategy.lastDailyCandle = lastDailyCandles.Last();
+    }
+
+    public void InitializeBot()
+    {
+      var mainCtks = new Ctks(MainLayout, MainLayout.TimeFrame, TradingBot.Asset);
+
+      LoadSecondaryLayouts(FromDate);
+      PreLoadCTks(FromDate);
+
+      MainLayout.Ctks = mainCtks;
+      SelectedLayout = MainLayout;
+    }
+
     #region LoadLayouts
 
-    private List<Candle> simulateCandles = new List<Candle>();
-    private decimal startingBudget = 0;
-
-    protected override async Task LoadLayouts(CtksLayout mainLayout)
+    protected override async Task LoadLayouts()
     {
-      var mainCtks = new Ctks(mainLayout, mainLayout.TimeFrame, TradingBot.Asset);
+      InitializeBot();
 
       var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{Asset.IndicatorDataPath}, 1D.csv", Asset.Symbol, saveData: true);
-      var mainCandles = TradingViewHelper.ParseTradingView(DataTimeFrame, DataPath, Asset.Symbol, saveData: true);
+      var allCandles = SimulationTradingBot.GetSimulationCandles(
+          DataTimeFrame,
+         DataPath, Asset.Symbol, FromDate);
 
       //fromDate = new DateTime(2021,8, 30);
 
-      var cutCandles = mainCandles.Where(x => x.CloseTime > FromDate).ToList();
-      var candles = mainCandles.Where(x => x.CloseTime < FromDate).ToList();
+      var cutCandles = allCandles.cutCandles;
+      var candles = allCandles.candles;
+      var mainCandles = allCandles.allCandles;
 
       DrawingViewModel.ActualCandles = candles;
 
@@ -220,12 +258,6 @@ namespace CTKS_Chart.ViewModels
 
       TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy<TPosition>(rangeAdaFilterData, Asset.Symbol, rangeBtcFilterData, TradingBot.Strategy));
 
-      LoadSecondaryLayouts(FromDate);
-      PreLoadCTks(FromDate);
-
-      mainLayout.Ctks = mainCtks;
-      //Layouts.Add(mainLayout);
-      SelectedLayout = mainLayout;
 
       var simulateCandles = cutCandles.ToList();
 
@@ -238,25 +270,19 @@ namespace CTKS_Chart.ViewModels
 
       if (TradingBot.Strategy is AIStrategy aIStrategy)
       {
-        var lastDailyCandles = dailyCandles
-          .Where(x => x.CloseTime < simulateCandles.First().CloseTime)
-          .TakeLast(aIStrategy.takeLastDailyCandles)
-          .ToList();
-
-        aIStrategy.lastDailyCandles = lastDailyCandles;
-        aIStrategy.lastDailyCandle = lastDailyCandles.Last();
+        HeatBot(cutCandles, aIStrategy);
       }
 
-      startingBudget = TradingBot.Strategy.StartingBudget;
 
-      Simulate(simulateCandles, InnerLayouts);
+      Simulate(simulateCandles);
     }
 
     #endregion
 
+
     #region SimulateCandle
 
-    private void SimulateCandle(List<CtksLayout> secondaryLayouts, Candle candle)
+    public void SimulateCandle(Candle candle)
     {
       DrawingViewModel.ActualCandles.Add(candle);
 
@@ -264,12 +290,12 @@ namespace CTKS_Chart.ViewModels
       {
         VSynchronizationContext.InvokeOnDispatcher(() =>
         {
-          RenderLayout(secondaryLayouts, candle);
+          RenderLayout(candle);
         });
       }
       else
       {
-        RenderLayout(secondaryLayouts, candle);
+        RenderLayout(candle);
       }
 
     }
@@ -306,13 +332,14 @@ namespace CTKS_Chart.ViewModels
     IDisposable disposable;
     DateTime lastElapsed;
 
-    private async void Simulate(List<Candle> cutCandles, List<CtksLayout> secondaryLayouts)
+    private async void Simulate(List<Candle> cutCandles)
     {
       try
       {
         RunningTime = new TimeSpan();
         cts?.Cancel();
         cts = new CancellationTokenSource();
+        stopRequested = false;
 
         disposable?.Dispose();
 
@@ -346,52 +373,64 @@ namespace CTKS_Chart.ViewModels
           BotName = DisplayName
         };
 
+        IsPaused = false;
 
         await Task.Run(async () =>
         {
           DateTime lastDay = DateTime.MinValue;
           for (int i = 0; i < cutCandles.Count; i++)
           {
-            var actual = cutCandles[i];
-
-            if (cts.IsCancellationRequested)
-              return;
-
-            SimulateCandle(secondaryLayouts, actual);
-
-            await Task.Delay(!IsSimulation || DrawChart ? Delay : 0);
-
-            if (lastDay < actual.OpenTime.Date)
+            try
             {
-              lastDay = actual.OpenTime.Date;
-              result.DataPoints.Add(new SimulationResultDataPoint()
+              var actual = cutCandles[i];
+
+              if (cts.IsCancellationRequested)
+                return;
+
+
+              SimulateCandle(actual);
+
+
+              if (cts.IsCancellationRequested)
+                return;
+
+              await Task.Delay(!IsSimulation || DrawChart ? Delay : 0);
+
+              if (lastDay < actual.OpenTime.Date)
               {
-                Date = lastDay,
-                TotalNative = TradingBot.Strategy.TotalNativeAsset,
-                TotalValue = TradingBot.Strategy.TotalValue,
-                TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
-                Close = actual.Close.Value
-              });
-            }
-            if (TradingBot.Strategy.TotalValue > result.MaxValue.Value)
-            {
-              //Ignore high after last market low
-              if (actual.OpenTime < new DateTime(2023, 5, 1))
-              {
-                result.MaxValue.Value = TradingBot.Strategy.TotalValue;
-                result.MaxValue.Candle = actual;
-                result.LowAfterMaxValue = new SimulationResultValue(decimal.MaxValue);
+                lastDay = actual.OpenTime.Date;
+                result.DataPoints.Add(new SimulationResultDataPoint()
+                {
+                  Date = lastDay,
+                  TotalNative = TradingBot.Strategy.TotalNativeAsset,
+                  TotalValue = TradingBot.Strategy.TotalValue,
+                  TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue,
+                  Close = actual.Close.Value
+                });
               }
+              if (TradingBot.Strategy.TotalValue > result.MaxValue.Value)
+              {
+                //Ignore high after last market low
+                if (actual.OpenTime < new DateTime(2023, 5, 1))
+                {
+                  result.MaxValue.Value = TradingBot.Strategy.TotalValue;
+                  result.MaxValue.Candle = actual;
+                  result.LowAfterMaxValue = new SimulationResultValue(decimal.MaxValue);
+                }
+              }
+              else if (TradingBot.Strategy.TotalValue < result.LowAfterMaxValue.Value)
+              {
+                result.LowAfterMaxValue.Value = TradingBot.Strategy.TotalValue;
+                result.MaxValue.Candle = actual;
+              }
+              disposable?.Dispose();
             }
-            else if (TradingBot.Strategy.TotalValue < result.LowAfterMaxValue.Value)
+            catch (TaskCanceledException) { }
+            catch (Exception ex)
             {
-              result.LowAfterMaxValue.Value = TradingBot.Strategy.TotalValue;
-              result.MaxValue.Candle = actual;
+              Logger.Log(ex);
             }
           }
-
-          disposable?.Dispose();
-
         }, cts.Token);
 
         if (!cts.IsCancellationRequested && SaveResults)
@@ -428,9 +467,33 @@ namespace CTKS_Chart.ViewModels
 
         Finished?.Invoke(this, null);
       }
+      catch(TaskCanceledException)
+      {
+
+      }
       catch (Exception ex)
       {
         Logger.Log(ex);
+      }
+
+      if(stopRequested)
+      {
+
+        var simulationStrategy = new TStrategy();
+
+        simulationStrategy.EnableRangeFilterStrategy = true;
+        simulationStrategy.Asset = TradingBot.Asset;
+        Layouts.Clear();
+        InnerLayouts.Clear();
+
+
+        if (simulationStrategy is AIStrategy aIStrategy)
+        {
+          aIStrategy.BuyAIBot = BUY_BOT;
+          aIStrategy.SellAIBot = SELL_BOT;
+        }
+
+        TradingBot.Strategy = simulationStrategy;
       }
     }
 
@@ -438,25 +501,14 @@ namespace CTKS_Chart.ViewModels
 
     #region Stop
 
+    bool stopRequested = false;
     public override void Stop()
     {
       cts?.Cancel();
       disposable?.Dispose();
-      var simulationStrategy = new TStrategy();
+      IsPaused = true;
+      stopRequested = true;
 
-      simulationStrategy.EnableRangeFilterStrategy = true;
-      simulationStrategy.Asset = TradingBot.Asset;
-      Layouts.Clear();
-      InnerLayouts.Clear();
-
-
-      if (simulationStrategy is AIStrategy aIStrategy)
-      {
-        aIStrategy.BuyAIBot = BUY_BOT;
-        aIStrategy.SellAIBot = SELL_BOT;
-      }
-
-      TradingBot.Strategy = simulationStrategy;
     }
 
     #endregion

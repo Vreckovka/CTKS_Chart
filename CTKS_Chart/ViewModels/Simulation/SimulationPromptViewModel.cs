@@ -232,12 +232,15 @@ namespace CTKS_Chart.ViewModels
         new TradingBot<TPosition, TStrategy>(GetAsset(symbol, timeframe), strategy ?? new TStrategy()));
 
       newBot.DisplayName = $"{symbol} {timeframe}";
-      newBot.DataPath = $"Training data\\{symbol}-{timeframe}-generated.csv";
+      newBot.DataPath = GetSimulationDataPath(symbol, timeframe);
 
       return newBot;
     }
 
-
+    public static string GetSimulationDataPath(string symbol, string timeframe)
+    {
+      return $"Training data\\{symbol}-{timeframe}-generated.csv";
+    }
 
     #region GetAsset
 
