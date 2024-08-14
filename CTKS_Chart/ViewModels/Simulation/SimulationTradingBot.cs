@@ -328,7 +328,7 @@ namespace CTKS_Chart.ViewModels
 
     #region Simulate
 
-    CancellationTokenSource cts;
+    public CancellationTokenSource cts;
     IDisposable disposable;
     DateTime lastElapsed;
 
@@ -501,7 +501,7 @@ namespace CTKS_Chart.ViewModels
 
     #region Stop
 
-    bool stopRequested = false;
+    public bool stopRequested = false;
     public override void Stop()
     {
       cts?.Cancel();

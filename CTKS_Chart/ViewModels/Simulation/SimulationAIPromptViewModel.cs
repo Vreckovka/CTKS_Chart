@@ -464,14 +464,21 @@ namespace CTKS_Chart.ViewModels
 
       for (int i = 0; i < BuyBotManager.Agents.Count; i++)
       {
-        var bot = GetBot(Symbol, BuyBotManager.Agents[i], SellBotManager.Agents[i], Minutes, SplitTake, random, viewModelsFactory, IsRandom());
+        var bot = GetBot(
+          Symbol,
+          BuyBotManager.Agents[i],
+          SellBotManager.Agents[i],
+          Minutes,
+          SplitTake,
+          random,
+          viewModelsFactory,
+          IsRandom());
         ToStart++;
 
         Bots.Add(bot);
       }
 
-      //RunGeneration(random, Symbol, IsRandom(), SplitTake, minutes);
-      StartBots();
+      RunGeneration(random, Symbol, IsRandom(), SplitTake, minutes);
     }
 
     #endregion
@@ -545,21 +552,21 @@ namespace CTKS_Chart.ViewModels
 
     public static void AddFitness(AIStrategy strategy)
     {
-      float fitness = (float)((strategy.TotalValue - strategy.StartingBudget) / strategy.StartingBudget) * 1000;
+      float originalFitness = (float)((strategy.TotalValue - strategy.StartingBudget) / strategy.StartingBudget) * 1000;
 
-      strategy.OriginalFitness = fitness < 0 ? 0 : fitness;
+      var drawdawn = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
+      var multi = drawdawn * 2;
+
+      if (multi <= 1 && originalFitness > 0)
+        originalFitness *= 1 - multi;
+      else
+        originalFitness = 0;
+
+      strategy.OriginalFitness = originalFitness < 0 ? 0 : originalFitness;
+      var fitness = strategy.OriginalFitness;
 
       var numberOfTrades = strategy.ClosedSellPositions.Count / 1000.0;
       fitness *= (float)numberOfTrades;
-
-      var drawdawn = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
-
-      var multi = drawdawn * 2;
-
-      if (multi <= 1 && fitness > 0)
-        fitness *= 1 - multi;
-      else
-        fitness = 0;
 
       strategy.AddFitness(fitness < 0 ? 0 : fitness);
     }
@@ -726,6 +733,8 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region RunGeneration
+
     public void RunGeneration(
       Random random,
       string symbol,
@@ -761,31 +770,42 @@ namespace CTKS_Chart.ViewModels
           bot.HeatBot(candles.cutCandles, bot.TradingBot.Strategy);
         }
 
-        var splitTakeC = Bots.SplitList(5);
+        ToStart = Bots.Count;
+
+
+        var splitTakeC = Bots.SplitList(Bots.Count / 10);
         var tasks = new List<Task>();
 
         foreach (var take in splitTakeC)
         {
           tasks.Add(Task.Run(() =>
           {
+            VSynchronizationContext.InvokeOnDispatcher(() => { ToStart -= take.Count; InProgress += take.Count; });
+
             foreach (var candle in candles.cutCandles)
             {
+              if (take.Any(x => x.stopRequested))
+                return;
 
-              foreach (var bot in Bots)
+              foreach (var bot in take)
               {
                 bot.SimulateCandle(candle);
               }
             }
+
+            VSynchronizationContext.InvokeOnDispatcher(() => { FinishedCount += take.Count; InProgress -= take.Count; });
           }));
         }
 
         Task.WaitAll(tasks.ToArray());
 
-        FinishedCount = Bots.Count;
-        UpdateGeneration();
+        if (!closing)
+          UpdateGeneration();
       });
 
     }
+
+    #endregion
 
     #region GetBot
 
@@ -815,7 +835,9 @@ namespace CTKS_Chart.ViewModels
       }
 
       bot.FromDate = fromDate;
-      bot.SplitTake = splitTake;
+
+      if (useRandom)
+        bot.SplitTake = splitTake;
 
       bot.TradingBot.Strategy.TakeIntersections = TakeIntersections;
 
@@ -832,28 +854,6 @@ namespace CTKS_Chart.ViewModels
     {
       var inputCount = inputNumber + TakeIntersections;
 
-      //switch (positionSide)
-      //{
-      //  case PositionSide.Neutral:
-      //    break;
-      //  case PositionSide.Buy:
-      //    return new NEATManager<AIBot>(
-      //   viewModelsFactory,
-      //   NetworkActivationScheme.CreateAcyclicScheme(),
-      //   inputCount,
-      //   TakeIntersections * 2,
-      //   QuadraticSigmoid.__DefaultInstance);
-      //  case PositionSide.Sell:
-      //    return new NEATManager<AIBot>(
-      //  viewModelsFactory,
-      //  NetworkActivationScheme.CreateAcyclicScheme(),
-      //  inputCount + 1,
-      //  TakeIntersections,
-      //  QuadraticSigmoid.__DefaultInstance);
-      //}
-
-      //return null;
-
       switch (positionSide)
       {
         case PositionSide.Neutral:
@@ -863,7 +863,7 @@ namespace CTKS_Chart.ViewModels
          viewModelsFactory,
          NetworkActivationScheme.CreateAcyclicScheme(),
          inputCount,
-         3,
+         TakeIntersections * 2,
          QuadraticSigmoid.__DefaultInstance);
         case PositionSide.Sell:
           return new NEATManager<AIBot>(
@@ -896,8 +896,10 @@ namespace CTKS_Chart.ViewModels
 
     #region OnClose
 
+    bool closing;
     protected override void OnClose(Window window)
     {
+      closing = true;
       base.OnClose(window);
 
       OnStop();
