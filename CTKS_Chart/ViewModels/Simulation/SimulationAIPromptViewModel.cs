@@ -766,10 +766,8 @@ namespace CTKS_Chart.ViewModels
           fromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime;
         }
 
-        TimeFrame dataTimeFrame = (TimeFrame)minutes;
-
         var candles = SimulationTradingBot.GetSimulationCandles(
-           dataTimeFrame,
+           minutes,
            SimulationPromptViewModel.GetSimulationDataPath(symbol, minutes.ToString()), symbol, fromDate);
 
         foreach (var bot in Bots)
@@ -829,7 +827,7 @@ namespace CTKS_Chart.ViewModels
       ILogger logger,
       bool useRandom = false)
     {
-      var bot = SimulationPromptViewModel.GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, symbol, minutes.ToString(), logger, new AIStrategy(buy, sell));
+      var bot = SimulationPromptViewModel.GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, symbol, minutes, logger, new AIStrategy(buy, sell));
 
       DateTime fromDate = DateTime.Now;
 

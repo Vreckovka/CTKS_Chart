@@ -203,7 +203,7 @@ namespace CTKS_Chart.Strategy
     public decimal StartingBudget
     {
       get { return StrategyData.StartingBudget; }
-      protected set
+      set
       {
         if (value != StrategyData.StartingBudget)
         {

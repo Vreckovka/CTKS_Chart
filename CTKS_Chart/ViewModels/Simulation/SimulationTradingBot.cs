@@ -30,9 +30,14 @@ namespace CTKS_Chart.ViewModels
   public static class SimulationTradingBot
   {
 
-    public static (List<Candle> candles, List<Candle> cutCandles, List<Candle> allCandles) GetSimulationCandles(TimeFrame dataTimeFrame, string dataPath, string symbol, DateTime fromDate)
+    public static (List<Candle> candles, List<Candle> cutCandles, List<Candle> allCandles) GetSimulationCandles(int minutes, string dataPath, string symbol, DateTime fromDate)
     {
-      var mainCandles = TradingViewHelper.ParseTradingView(dataTimeFrame, dataPath, symbol, saveData: true);
+      var timeframe = (TimeFrame)minutes;
+
+      if (minutes == 5)
+        timeframe = TimeFrame.m5;
+
+      var mainCandles = TradingViewHelper.ParseTradingView(timeframe, dataPath, symbol, saveData: true);
 
       var candles = mainCandles.Where(x => x.CloseTime < fromDate).ToList();
       var cutCandles = mainCandles.Where(x => x.CloseTime > fromDate).ToList();
@@ -162,7 +167,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
     public DateTime FromDate { get; set; } = new DateTime(2018, 9, 21);
-    public TimeFrame DataTimeFrame { get; set; } = TimeFrame.Null;
+    public int Minutes { get; set; } = 720;
     public double SplitTake { get; set; }
 
     #endregion
@@ -225,10 +230,8 @@ namespace CTKS_Chart.ViewModels
 
       var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{Asset.IndicatorDataPath}, 1D.csv", Asset.Symbol, saveData: true);
       var allCandles = SimulationTradingBot.GetSimulationCandles(
-          DataTimeFrame,
+         Minutes,
          DataPath, Asset.Symbol, FromDate);
-
-      //fromDate = new DateTime(2021,8, 30);
 
       var cutCandles = allCandles.cutCandles;
       var candles = allCandles.candles;

@@ -295,10 +295,8 @@ namespace CloudComputingClient
           fromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime;
         }
 
-        TimeFrame dataTimeFrame = (TimeFrame)minutes;
-
         var candles = SimulationTradingBot.GetSimulationCandles(
-           dataTimeFrame,
+           minutes,
            SimulationPromptViewModel.GetSimulationDataPath(symbol, minutes.ToString()), symbol, fromDate);
 
         foreach (var bot in Bots)

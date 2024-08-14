@@ -47,9 +47,19 @@ namespace CTKS_Chart.Views.Controls
       }
     }
 
+    public long OriginalMaxUnix { get; set; }
+    public long OriginalMinUnix { get; set; }
+    public decimal OriginalMaxValue { get; set; }
+    public decimal OriginalMinValue { get; set; }
+
     public override void OnEnd()
     {
       base.OnEnd();
+
+      OriginalMaxUnix = Chart.DrawingViewModel.MaxUnix;
+      OriginalMinUnix = Chart.DrawingViewModel.MinUnix;
+      OriginalMaxValue = Chart.DrawingViewModel.MaxValue;
+      OriginalMinValue = Chart.DrawingViewModel.MinValue;
 
       Chart.DrawingViewModel.EnableAutoLock = false;
       Chart.DrawingViewModel.SetLock(false);

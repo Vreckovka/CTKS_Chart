@@ -321,7 +321,7 @@ namespace CTKS_Chart.ViewModels
             fontSize = (int)(fontSize / 1.33);
           }
 
-          var positionX = candle.Body.X;
+          var positionX = TradingHelper.GetCanvasValueLinear(canvasWidth, DateTimeHelper.DateTimeToUnixSeconds(position.FilledDate.Value), MaxUnix, MinUnix);
 
           var point = new Point(positionX, positionY);
 

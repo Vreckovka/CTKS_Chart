@@ -66,6 +66,24 @@
         HorizontalAlignment="Left"
         Text="{Binding AiPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
+      <StackPanel>
+        <TextBox
+          Width="350"
+          Margin="0,5"
+          HorizontalAlignment="Left"
+          Text="{Binding RunData.Symbol, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBox
+          Width="350"
+          Margin="0,5"
+          HorizontalAlignment="Left"
+          Text="{Binding RunData.Minutes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        <TextBox
+          Width="350"
+          Margin="0,5"
+          HorizontalAlignment="Left"
+          Text="{Binding RunData.StartingBudget, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+      </StackPanel>
+
       <StackPanel Orientation="Horizontal">
         <Button
           Width="150"

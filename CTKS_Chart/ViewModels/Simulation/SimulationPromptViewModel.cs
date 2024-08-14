@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Input;
+using VCore.Standard;
 using VCore.Standard.Factories.ViewModels;
 using VCore.WPF.Interfaces.Managers;
 using VCore.WPF.Misc;
@@ -23,6 +24,66 @@ using VNeuralNetwork;
 
 namespace CTKS_Chart.ViewModels
 {
+  public class RunData : ViewModel
+  {
+    #region Symbol
+
+    private string symbol = "ADAUSDT";
+
+    public string Symbol
+    {
+      get { return symbol; }
+      set
+      {
+        if (value != symbol)
+        {
+          symbol = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region Minutes
+
+    private int minutes = 240;
+
+    public int Minutes
+    {
+      get { return minutes; }
+      set
+      {
+        if (value != minutes)
+        {
+          minutes = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region StartingBudget
+
+    private decimal startingBudget = 1000;
+
+    public decimal StartingBudget
+    {
+      get { return startingBudget; }
+      set
+      {
+        if (value != startingBudget)
+        {
+          startingBudget = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+  }
+
   public class SimulationPromptViewModel : BasePromptViewModel
   {
     private readonly IViewModelsFactory viewModelsFactory;
@@ -45,6 +106,8 @@ namespace CTKS_Chart.ViewModels
 
     NEATManager<AIBot> BuyBotManager { get; set; }
     NEATManager<AIBot> SellBotManager { get; set; }
+
+    public RunData RunData { get; set; } = new RunData();
 
     #region Bots
 
@@ -194,6 +257,8 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region Methods
+
     #region OnClose
 
     protected override void OnClose(Window window)
@@ -252,12 +317,12 @@ namespace CTKS_Chart.ViewModels
 
     private void CreateBots()
     {
-      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ADAUSDT", "15", logger));
-      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ADAUSDT", "120", logger));
-      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ADAUSDT", "240", logger));
-      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "BTCUSDT", "240", logger));
-      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ETHUSDT", "240", logger));
-      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "LTCUSDT", "240", logger));
+      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ADAUSDT", 15, logger));
+      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ADAUSDT", 120, logger));
+      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ADAUSDT", 240, logger));
+      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "BTCUSDT", 240, logger));
+      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ETHUSDT", 240, logger));
+      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "LTCUSDT", 240, logger));
 
 
 
@@ -275,18 +340,19 @@ namespace CTKS_Chart.ViewModels
     public static SimulationTradingBot<TPosition, TStrategy> GetTradingBot<TPosition, TStrategy>(
       IViewModelsFactory viewModelsFactory,
       string symbol,
-      string timeframe,
+      int minutes,
       ILogger logger,
       TStrategy strategy = null)
         where TPosition : Position, new()
         where TStrategy : BaseSimulationStrategy<TPosition>, new()
     {
       var newBot = viewModelsFactory.Create<SimulationTradingBot<TPosition, TStrategy>>(
-        new TradingBot<TPosition, TStrategy>(GetAsset(symbol, timeframe), strategy ?? new TStrategy()));
+        new TradingBot<TPosition, TStrategy>(GetAsset(symbol, minutes.ToString()), strategy ?? new TStrategy()));
 
-      newBot.DisplayName = $"{symbol} {timeframe}";
-      newBot.DataPath = GetSimulationDataPath(symbol, timeframe);
+      newBot.DisplayName = $"{symbol} {minutes.ToString()}";
+      newBot.DataPath = GetSimulationDataPath(symbol, minutes.ToString());
       newBot.TradingBot.Strategy.Logger = logger;
+      newBot.Minutes = minutes;
 
       return newBot;
     }
@@ -401,7 +467,7 @@ namespace CTKS_Chart.ViewModels
       BuyBotManager.CreateAgents();
       SellBotManager.CreateAgents();
 
-      var adaAi = GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, "ADAUSDT", "240", logger, new AIStrategy(BuyBotManager.Agents[0], SellBotManager.Agents[0]));
+      var adaAi = GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, RunData.Symbol, RunData.Minutes, logger, new AIStrategy(BuyBotManager.Agents[0], SellBotManager.Agents[0]));
 
       var asset = Bots.First().Asset;
       var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
@@ -410,11 +476,14 @@ namespace CTKS_Chart.ViewModels
 
       adaAi.SaveResults = true;
       adaAi.DisplayName += " AI";
+      adaAi.TradingBot.Strategy.StartingBudget = RunData.StartingBudget;
+      adaAi.TradingBot.Strategy.Budget = RunData.StartingBudget;
 
       SelectedBot = adaAi;
       Bots.Add(adaAi);
     }
 
+    #endregion 
     #endregion
   }
 }

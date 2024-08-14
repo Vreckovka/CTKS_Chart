@@ -813,6 +813,8 @@ namespace CTKS_Chart.ViewModels
               var layout = CreateCtks(layoutData.Key, layoutData.Value, candle.OpenTime);
               layout.Asset = Asset;
 
+              var allCtks = new Ctks(new CtksLayout(), TimeFrame.W1, TradingBot.Asset);
+              allCtks.Epsilon = 0.0025m;
 
               newList.Add(layout);
             }
@@ -957,15 +959,6 @@ namespace CTKS_Chart.ViewModels
           if (ctksIntersections.Count > 0)
             TradingBot.Strategy.UpdateIntersections(ctksIntersections);
 
-          if(!IsSimulation)
-          {
-            var allCtks = new Ctks(new CtksLayout(), TimeFrame.W1, TradingBot.Asset);
-            allCtks.Epsilon = 0.0025m;
-
-            var clustered = allCtks.CreateClusters(ctksIntersections, Tag.GlobalCluster);
-            ctksIntersections.AddRange(clustered);
-          }
-
           var duplicates = ctksIntersections.GroupBy(x => x.Value);
 
           foreach (var duplicate in duplicates.Where(x => x.Count() > 1))
@@ -977,8 +970,6 @@ namespace CTKS_Chart.ViewModels
               ctksIntersections.Remove(list[i]);
             }
           }
-
-
         }
 
         if (ctksIntersections.Count == 0)
@@ -995,7 +986,6 @@ namespace CTKS_Chart.ViewModels
 
         AddRangeFilterIntersections(TimeFrame.D1, actual);
         AddRangeFilterIntersections(TimeFrame.W1, actual);
-
        
         this.actual = actual;
 
@@ -1015,9 +1005,6 @@ namespace CTKS_Chart.ViewModels
             if (ctksIntersections.Count > 0)
               TradingBot.Strategy.UpdateIntersections(ctksIntersections);
           }
-
-          AddRangeFilterIntersections(TimeFrame.D1, actual);
-          AddRangeFilterIntersections(TimeFrame.W1, actual);
 
           TradingBot.Strategy.ValidatePositions(actual);
           TradingBot.Strategy.CreatePositions(actual, lastDailyClose);
@@ -1079,6 +1066,7 @@ namespace CTKS_Chart.ViewModels
       {
         DateTimeFormatInfo dfi = DateTimeFormatInfo.CurrentInfo;
         var cal = dfi.Calendar;
+       
         var week = cal.GetWeekOfYear(actualCandle.OpenTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek);
 
         var lastweek = lastWeeklyClose?.CloseTime != null ? cal.GetWeekOfYear(lastWeeklyClose.CloseTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek) : -1;

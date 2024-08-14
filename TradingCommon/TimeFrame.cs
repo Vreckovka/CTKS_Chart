@@ -32,10 +32,12 @@ namespace CTKS_Chart.Trading
     [Description("12H")]
     H12 = 720,
 
-    [Description("15")]
+    [Description("30")]
     m30 = 30,
     [Description("15")]
     m15 = 15,
+    [Description("5")]
+    m5 = 500,
     //Change to 1
     [Description("1")]
     m1 = 100,

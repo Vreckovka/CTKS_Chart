@@ -89,13 +89,31 @@ namespace CTKS_Chart.Views.Controls
     {
       var delta = 0.025m;
 
-      Chart.DrawingViewModel.SetMaxValue(Chart.DrawingViewModel.MaxValue * (1 + delta));
-      Chart.DrawingViewModel.SetMinValue(Chart.DrawingViewModel.MinValue * (1 - delta));
+      if(MagnifyingGlass.OriginalMaxValue > 0)
+      {
+        Chart.DrawingViewModel.SetMaxValue(MagnifyingGlass.OriginalMaxValue);
+        Chart.DrawingViewModel.SetMinValue(MagnifyingGlass.OriginalMinValue);
 
-      var diff = Chart.DrawingViewModel.MaxUnix - Chart.DrawingViewModel.MinUnix;
+        Chart.DrawingViewModel.SetMaxUnix(MagnifyingGlass.OriginalMaxUnix);
+        Chart.DrawingViewModel.SetMinUnix(MagnifyingGlass.OriginalMinUnix);
 
-      //Chart.DrawingViewModel.SetMaxUnix((long)(Chart.DrawingViewModel.MaxUnix + (diff  * (1 + (delta / 10)))));
-      Chart.DrawingViewModel.SetMinUnix((long)(Chart.DrawingViewModel.MinUnix - (diff * (1 - delta))));
+        MagnifyingGlass.OriginalMaxValue = 0;
+        MagnifyingGlass.OriginalMaxUnix = 0;
+        MagnifyingGlass.OriginalMinUnix = 0;
+        MagnifyingGlass.OriginalMinValue = 0;
+      }
+      else
+      {
+
+        Chart.DrawingViewModel.SetMaxValue(Chart.DrawingViewModel.MaxValue * (1 + delta));
+        Chart.DrawingViewModel.SetMinValue(Chart.DrawingViewModel.MinValue * (1 - delta));
+
+        var diff = Chart.DrawingViewModel.MaxUnix - Chart.DrawingViewModel.MinUnix;
+
+        //Chart.DrawingViewModel.SetMaxUnix((long)(Chart.DrawingViewModel.MaxUnix + (diff  * (1 + (delta / 10)))));
+        Chart.DrawingViewModel.SetMinUnix((long)(Chart.DrawingViewModel.MinUnix - (diff * (1 - delta))));
+      }
+
 
       Chart.DrawingViewModel.Render();
     }
