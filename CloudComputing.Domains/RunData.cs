@@ -12,7 +12,8 @@ namespace CloudComputing.Domains
 
     public decimal Average { get; set; }
     public decimal Drawdawn { get; set; } 
-    public decimal Fitness { get; set; } 
+    public decimal Fitness { get; set; }
+    public decimal OriginalFitness { get; set; }
     public decimal NumberOfTrades { get; set; }
     public decimal TotalValue { get; set; } 
   }

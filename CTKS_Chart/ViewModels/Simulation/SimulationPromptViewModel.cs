@@ -3,6 +3,7 @@ using CTKS_Chart.Strategy.AIStrategy;
 using CTKS_Chart.Strategy.Futures;
 using CTKS_Chart.Trading;
 using CTKS_Chart.Views.Prompts;
+using Logger;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -26,11 +27,13 @@ namespace CTKS_Chart.ViewModels
   {
     private readonly IViewModelsFactory viewModelsFactory;
     private readonly IWindowManager windowManager;
+    private readonly ILogger logger;
 
-    public SimulationPromptViewModel(IViewModelsFactory viewModelsFactory, IWindowManager windowManager)
+    public SimulationPromptViewModel(IViewModelsFactory viewModelsFactory, IWindowManager windowManager, ILogger logger)
     {
       this.viewModelsFactory = viewModelsFactory ?? throw new ArgumentNullException(nameof(viewModelsFactory));
       this.windowManager = windowManager ?? throw new ArgumentNullException(nameof(windowManager));
+      this.logger = logger;
       BuyBotManager = SimulationAIPromptViewModel.GetNeatManager(viewModelsFactory, PositionSide.Buy);
       SellBotManager = SimulationAIPromptViewModel.GetNeatManager(viewModelsFactory, PositionSide.Sell);
 
@@ -249,12 +252,12 @@ namespace CTKS_Chart.ViewModels
 
     private void CreateBots()
     {
-      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ADAUSDT", "15"));
-      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ADAUSDT", "120"));
-      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ADAUSDT", "240"));
-      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "BTCUSDT", "240"));
-      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ETHUSDT", "240"));
-      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "LTCUSDT", "240"));
+      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ADAUSDT", "15", logger));
+      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ADAUSDT", "120", logger));
+      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ADAUSDT", "240", logger));
+      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "BTCUSDT", "240", logger));
+      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "ETHUSDT", "240", logger));
+      Bots.Add(GetTradingBot<Position, SimulationStrategy>(viewModelsFactory, "LTCUSDT", "240", logger));
 
 
 
@@ -273,6 +276,7 @@ namespace CTKS_Chart.ViewModels
       IViewModelsFactory viewModelsFactory,
       string symbol,
       string timeframe,
+      ILogger logger,
       TStrategy strategy = null)
         where TPosition : Position, new()
         where TStrategy : BaseSimulationStrategy<TPosition>, new()
@@ -282,6 +286,7 @@ namespace CTKS_Chart.ViewModels
 
       newBot.DisplayName = $"{symbol} {timeframe}";
       newBot.DataPath = GetSimulationDataPath(symbol, timeframe);
+      newBot.TradingBot.Strategy.Logger = logger;
 
       return newBot;
     }
@@ -396,9 +401,13 @@ namespace CTKS_Chart.ViewModels
       BuyBotManager.CreateAgents();
       SellBotManager.CreateAgents();
 
-      var adaAi = GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, "ADAUSDT", "240", new AIStrategy(BuyBotManager.Agents[0], SellBotManager.Agents[0]));
+      var adaAi = GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, "ADAUSDT", "240", logger, new AIStrategy(BuyBotManager.Agents[0], SellBotManager.Agents[0]));
 
-      adaAi.FromDate = new DateTime(2019, 1, 1);
+      var asset = Bots.First().Asset;
+      var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
+
+      adaAi.FromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime;
+
       adaAi.SaveResults = true;
       adaAi.DisplayName += " AI";
 

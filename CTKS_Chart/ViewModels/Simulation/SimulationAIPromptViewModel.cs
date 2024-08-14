@@ -2,6 +2,7 @@
 using CTKS_Chart.Strategy.AIStrategy;
 using CTKS_Chart.Trading;
 using LiveCharts;
+using Logger;
 using SharpNeat.Decoders;
 using SharpNeat.Genomes.Neat;
 using SharpNeat.Network;
@@ -29,6 +30,7 @@ namespace CTKS_Chart.ViewModels
   public class SimulationAIPromptViewModel : BasePromptViewModel
   {
     private readonly IViewModelsFactory viewModelsFactory;
+    private readonly ILogger logger;
     string session;
 
     #region AgentCount
@@ -56,10 +58,10 @@ namespace CTKS_Chart.ViewModels
 
     #region Constructors
 
-    public SimulationAIPromptViewModel(IViewModelsFactory viewModelsFactory)
+    public SimulationAIPromptViewModel(IViewModelsFactory viewModelsFactory, ILogger logger)
     {
       this.viewModelsFactory = viewModelsFactory ?? throw new ArgumentNullException(nameof(viewModelsFactory));
-
+      this.logger = logger;
       BuyBotManager = GetNeatManager(viewModelsFactory, PositionSide.Buy);
       SellBotManager = GetNeatManager(viewModelsFactory, PositionSide.Sell);
 
@@ -474,6 +476,7 @@ namespace CTKS_Chart.ViewModels
           SplitTake,
           random,
           viewModelsFactory,
+          logger,
           IsRandom());
         ToStart++;
 
@@ -652,7 +655,7 @@ namespace CTKS_Chart.ViewModels
 
       var testBot = GetBot(TestSymbol,
         new AIBot(new NeatGenome((NeatGenome)strategy.BuyAIBot.NeuralNetwork, 0, 0)),
-        new AIBot(new NeatGenome((NeatGenome)strategy.SellAIBot.NeuralNetwork, 0, 0)), Minutes, SplitTake, random, viewModelsFactory);
+        new AIBot(new NeatGenome((NeatGenome)strategy.SellAIBot.NeuralNetwork, 0, 0)), Minutes, SplitTake, random, viewModelsFactory, logger);
 
       testBot.FromDate = new DateTime(2019, 1, 1);
 
@@ -757,7 +760,10 @@ namespace CTKS_Chart.ViewModels
         }
         else
         {
-          fromDate = new DateTime(2019, 1, 1);
+          var asset = Bots.First().Asset;
+          var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
+
+          fromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime;
         }
 
         TimeFrame dataTimeFrame = (TimeFrame)minutes;
@@ -820,9 +826,10 @@ namespace CTKS_Chart.ViewModels
       double splitTake,
       Random random,
       IViewModelsFactory viewModelsFactory,
+      ILogger logger,
       bool useRandom = false)
     {
-      var bot = SimulationPromptViewModel.GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, symbol, minutes.ToString(), new AIStrategy(buy, sell));
+      var bot = SimulationPromptViewModel.GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, symbol, minutes.ToString(), logger, new AIStrategy(buy, sell));
 
       DateTime fromDate = DateTime.Now;
 

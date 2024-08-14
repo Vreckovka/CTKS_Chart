@@ -443,6 +443,7 @@ namespace CouldComputingServer
 
         newSeries.Fill = Brushes.Transparent;
         newSeries.Title = symbolsToTest[i];
+        newSeries.PointForeground = Brushes.Transparent;
 
         series.Add(newSeries);
       }
@@ -556,20 +557,20 @@ namespace CouldComputingServer
 
       var index = symbolsToTest.IndexOf((x) => x == serverRunData.Symbol);
 
-      if (index != null && !IsRandom())
+      if (index != null && !wasRandomPrevious)
       {
         var bestRun = runData.OrderByDescending(x => x.Fitness).First();
 
         FullData[index.Value].Values.Add(bestRun.TotalValue);
         DrawdawnData[index.Value].Values.Add(bestRun.Drawdawn);
         NumberOfTradesData[index.Value].Values.Add(bestRun.NumberOfTrades);
-        FitnessData[index.Value].Values.Add(bestRun.Fitness);
+        FitnessData[index.Value].Values.Add(bestRun.OriginalFitness);
         BestData[index.Value].Values.Add(bestRun.Fitness);
         AverageData[index.Value].Values.Add(bestRun.Average);
 
         if (addStats)
         {
-          BestFitness = (float)bestRun.Fitness;
+          BestFitness = (float)bestRun.OriginalFitness;
           TotalValue = bestRun.TotalValue;
           Drawdawn = bestRun.Drawdawn;
           NumberOfTrades = bestRun.NumberOfTrades;

@@ -190,6 +190,7 @@ namespace CloudComputingClient
           splitTake,
           random,
           ViewModelsFactory,
+          Logger,
           isRandom);
 
         ToStart++;
@@ -257,11 +258,14 @@ namespace CloudComputingClient
         data.Drawdawn = best.MaxDrawdawnFromMaxTotalValue;
         data.TotalValue = best.TotalValue;
         data.NumberOfTrades = best.ClosedSellPositions.Count;
+        data.OriginalFitness = (decimal)best.OriginalFitness;
         data.Fitness = (decimal)best.OriginalFitness;
 
         SendMessage(tcpClient, data); 
       }
     }
+
+    #region RunBots
 
     static object batton = new object();
     public static void RunBots(
@@ -285,7 +289,10 @@ namespace CloudComputingClient
         }
         else
         {
-          fromDate = new DateTime(2019, 1, 1);
+          var asset = Bots.First().Asset;
+          var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
+
+          fromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime;
         }
 
         TimeFrame dataTimeFrame = (TimeFrame)minutes;
@@ -329,7 +336,7 @@ namespace CloudComputingClient
             lock (batton)
             {
               FinishedCount += take.Count;
-              InProgress -= take.Count;  
+              InProgress -= take.Count;
             }
           }));
         }
@@ -339,6 +346,8 @@ namespace CloudComputingClient
         GenerationCompleted();
       });
     }
+
+    #endregion
 
     #region ConnectToServer
 
