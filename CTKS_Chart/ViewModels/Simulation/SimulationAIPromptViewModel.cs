@@ -8,6 +8,7 @@ using SharpNeat.Network;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
@@ -416,6 +417,7 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
 
     #endregion
 

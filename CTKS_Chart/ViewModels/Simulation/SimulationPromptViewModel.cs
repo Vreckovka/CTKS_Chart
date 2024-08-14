@@ -6,11 +6,13 @@ using CTKS_Chart.Views.Prompts;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Forms;
 using System.Windows.Input;
 using VCore.Standard.Factories.ViewModels;
 using VCore.WPF.Interfaces.Managers;
@@ -82,6 +84,8 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region Commands
+
     #region StartCommand
 
     protected ActionCommand startCommand;
@@ -122,23 +126,68 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+
     #region LoadAiBot
 
-    protected ActionCommand loadAiBot;
-
+    private ActionCommand loadAiBot;
 
     public ICommand LoadAiBot
     {
       get
       {
-        return loadAiBot ??= new ActionCommand(OnLoadAiBot, () => File.Exists(AiPath));
+        if (loadAiBot == null)
+        {
+          loadAiBot = new ActionCommand(OnLoadAiBot);
+        }
+
+        return loadAiBot;
       }
     }
 
-    public void OnLoadAiBot()
+
+    public virtual void OnLoadAiBot()
+    {
+      using (OpenFileDialog openFileDialog = new OpenFileDialog())
+      {
+        // Set properties for OpenFileDialog
+        openFileDialog.Title = "Select a File";
+        openFileDialog.Filter = "All files (*.*)|*.*";
+        openFileDialog.FilterIndex = 1;
+        openFileDialog.RestoreDirectory = true;
+        openFileDialog.InitialDirectory = Path.GetDirectoryName("Trainings");
+
+          // Show the dialog and check if the user selected a file
+        if (openFileDialog.ShowDialog() == DialogResult.OK)
+        {
+          // Get the selected file path
+          AiPath = openFileDialog.FileName;
+
+        }
+      }
+    }
+
+    #endregion
+
+
+    #region StartAiBot
+
+    protected ActionCommand startAiBot;
+
+
+    public ICommand StartAiBot
+    {
+      get
+      {
+        return startAiBot ??= new ActionCommand(OnStartAiBot, () => File.Exists(AiPath));
+      }
+    }
+
+    public void OnStartAiBot()
     {
       CreateAiBot();
     }
+
+    #endregion
 
     #endregion
 
@@ -189,7 +238,7 @@ namespace CTKS_Chart.ViewModels
           aiPath = value;
 
           RaisePropertyChanged();
-          loadAiBot?.RaiseCanExecuteChanged();
+          startAiBot?.RaiseCanExecuteChanged();
         }
       }
     }
@@ -347,10 +396,11 @@ namespace CTKS_Chart.ViewModels
       BuyBotManager.CreateAgents();
       SellBotManager.CreateAgents();
 
-      var adaAi = GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory,"BTCUSDT","240", new AIStrategy(BuyBotManager.Agents[0], SellBotManager.Agents[0]));
+      var adaAi = GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, "ADAUSDT", "240", new AIStrategy(BuyBotManager.Agents[0], SellBotManager.Agents[0]));
 
       adaAi.FromDate = new DateTime(2019, 1, 1);
       adaAi.SaveResults = true;
+      adaAi.DisplayName += " AI";
 
       SelectedBot = adaAi;
       Bots.Add(adaAi);

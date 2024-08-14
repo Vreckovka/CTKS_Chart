@@ -46,7 +46,8 @@
         <lvc:CartesianChart
           Margin="10,0"
           DisableAnimations="True"
-          LegendLocation="None">
+          LegendLocation="None"
+          Series="{Binding AverageData}">
           <lvc:CartesianChart.AxisY>
             <lvc:Axis
               Title="Average Fitness"
@@ -65,16 +66,6 @@
               </lvc:Axis.Separator>
             </lvc:Axis>
           </lvc:CartesianChart.AxisX>
-
-          <lvc:CartesianChart.Series>
-            <lvc:LineSeries
-              Title="Average Fitness"
-              Fill="#20ffec42"
-              PointForeground="#ffec42"
-              PointGeometrySize="0"
-              Stroke="#ffec42"
-              Values="{Binding ChartData}" />
-          </lvc:CartesianChart.Series>
 
           <lvc:CartesianChart.DataTooltip>
             <lvc:DefaultTooltip
@@ -88,7 +79,8 @@
           Grid.Row="1"
           Margin="10,0"
           DisableAnimations="True"
-          LegendLocation="None">
+          LegendLocation="None"
+          Series="{Binding BestData}">
           <lvc:CartesianChart.AxisY>
             <lvc:Axis
               Title="Max Fitness"
@@ -107,16 +99,6 @@
               </lvc:Axis.Separator>
             </lvc:Axis>
           </lvc:CartesianChart.AxisX>
-
-          <lvc:CartesianChart.Series>
-            <lvc:LineSeries
-              Title="Max Fitness"
-              Fill="#20c042ff"
-              PointForeground="#c042ff"
-              PointGeometrySize="0"
-              Stroke="#c042ff"
-              Values="{Binding BestData}" />
-          </lvc:CartesianChart.Series>
 
           <lvc:CartesianChart.DataTooltip>
             <lvc:DefaultTooltip
@@ -130,7 +112,8 @@
           Grid.Row="2"
           Margin="10,0"
           DisableAnimations="True"
-          LegendLocation="None">
+          LegendLocation="None"
+          Series="{Binding FitnessData}">
           <lvc:CartesianChart.AxisY>
             <lvc:Axis
               Title="Fitness"
@@ -150,16 +133,6 @@
             </lvc:Axis>
           </lvc:CartesianChart.AxisX>
 
-          <lvc:CartesianChart.Series>
-            <lvc:LineSeries
-              Title="Fitness"
-              Fill="#204278ff"
-              PointForeground="#4278ff"
-              PointGeometrySize="0"
-              Stroke="#4278ff"
-              Values="{Binding FitnessData}" />
-          </lvc:CartesianChart.Series>
-
           <lvc:CartesianChart.DataTooltip>
             <lvc:DefaultTooltip
               Background="#252525"
@@ -172,9 +145,13 @@
           Grid.Row="3"
           Margin="10,0"
           DisableAnimations="True"
-          LegendLocation="None">
+          LegendLocation="None"
+          Series="{Binding FullData}">
           <lvc:CartesianChart.AxisY>
-            <lvc:Axis Title="Total Value" LabelFormatter="{Binding YFormatter}">
+            <lvc:Axis
+              Title="Total Value"
+              LabelFormatter="{Binding YFormatter}"
+              MinValue="0">
               <lvc:Axis.Separator>
                 <lvc:Separator Stroke="#252525" />
               </lvc:Axis.Separator>
@@ -189,16 +166,6 @@
             </lvc:Axis>
           </lvc:CartesianChart.AxisX>
 
-          <lvc:CartesianChart.Series>
-            <lvc:LineSeries
-              Title="Total Value"
-              Fill="#2036d66e"
-              PointForeground="{StaticResource GreenBrush}"
-              PointGeometrySize="0"
-              Stroke="{StaticResource GreenBrush}"
-              Values="{Binding FullData}" />
-          </lvc:CartesianChart.Series>
-
           <lvc:CartesianChart.DataTooltip>
             <lvc:DefaultTooltip
               Background="#252525"
@@ -211,7 +178,8 @@
           Grid.Row="4"
           Margin="10,0"
           DisableAnimations="True"
-          LegendLocation="None">
+          LegendLocation="None"
+          Series="{Binding DrawdawnData}">
           <lvc:CartesianChart.AxisY>
             <lvc:Axis
               Title="Max Drawdawn"
@@ -231,16 +199,6 @@
             </lvc:Axis>
           </lvc:CartesianChart.AxisX>
 
-          <lvc:CartesianChart.Series>
-            <lvc:LineSeries
-              Title="Max Drawdawn"
-              Fill="#20fe2754"
-              PointForeground="{StaticResource DefaultRedBrush}"
-              PointGeometrySize="0"
-              Stroke="{StaticResource DefaultRedBrush}"
-              Values="{Binding DrawdawnData}" />
-          </lvc:CartesianChart.Series>
-
           <lvc:CartesianChart.DataTooltip>
             <lvc:DefaultTooltip
               Background="#252525"
@@ -253,7 +211,8 @@
           Grid.Row="5"
           Margin="10,0"
           DisableAnimations="True"
-          LegendLocation="None">
+          LegendLocation="None"
+          Series="{Binding NumberOfTradesData}">
           <lvc:CartesianChart.AxisY>
             <lvc:Axis
               Title="Number of trades"
@@ -272,16 +231,6 @@
               </lvc:Axis.Separator>
             </lvc:Axis>
           </lvc:CartesianChart.AxisX>
-
-          <lvc:CartesianChart.Series>
-            <lvc:LineSeries
-              Title="Number of trades"
-              Fill="#20f57542"
-              PointForeground="{StaticResource OrangeBrush}"
-              PointGeometrySize="0"
-              Stroke="{StaticResource OrangeBrush}"
-              Values="{Binding NumberOfTradesData}" />
-          </lvc:CartesianChart.Series>
 
           <lvc:CartesianChart.DataTooltip>
             <lvc:DefaultTooltip

@@ -26,6 +26,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Xml;
 using VCore.Standard.Factories.ViewModels;
+using VCore.Standard.Helpers;
 using VCore.WPF.Interfaces.Managers;
 using VCore.WPF.Managers;
 using VNeuralNetwork;
@@ -63,6 +64,7 @@ namespace CloudComputingClient
     static int port;
 
     static ServerRunData ServerRunData { get; set; }
+    static ServerRunData LastServerRunData { get; set; }
 
     static NEATManager<AIBot> buyManager;
     static NEATManager<AIBot> sellManager;
@@ -154,8 +156,6 @@ namespace CloudComputingClient
 
       CreateStrategies(agentCount, minutes, split, symbol, isRandom, buyGenomes, sellGenomes);
 
-      StartBots();
-
     }
 
     #endregion
@@ -196,6 +196,9 @@ namespace CloudComputingClient
 
         Bots.Add(bot);
       }
+
+
+      RunBots(random,symbol,isRandom,splitTake,minutes);
     }
 
     #endregion
@@ -221,27 +224,11 @@ namespace CloudComputingClient
       Drawdawn = aIStrategy.MaxDrawdawnFromMaxTotalValue;
       NumberOfTrades = aIStrategy.ClosedSellPositions.Count;
 
-      var data = new RunData();
-
-      var buyGenomes = Bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
-      var sellGenomes = Bots.Select(x => x.TradingBot.Strategy.SellAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
-
-      data.BuyGenomes = NeatGenomeXmlIO.SaveComplete(buyGenomes, false).OuterXml;
-      data.SellGenomes = NeatGenomeXmlIO.SaveComplete(sellGenomes, false).OuterXml;
-
-      SendMessage(tcpClient, data);
+      SendResult();
 
       serialDisposable.Disposable = Observable.Interval(TimeSpan.FromSeconds(5)).Subscribe((x) =>
       {
-        var data = new RunData();
-
-        var buyGenomes = Bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
-        var sellGenomes = Bots.Select(x => x.TradingBot.Strategy.SellAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
-
-        data.BuyGenomes = NeatGenomeXmlIO.SaveComplete(buyGenomes, false).OuterXml;
-        data.SellGenomes = NeatGenomeXmlIO.SaveComplete(sellGenomes, false).OuterXml;
-
-        SendMessage(tcpClient, data);
+        SendResult();
       });
 
       FinishedCount = 0;
@@ -251,55 +238,107 @@ namespace CloudComputingClient
 
     #endregion
 
-    #region StartBots
-
-    private static void StartBots()
+    static object resultLock = new object();
+    private static void SendResult()
     {
-      generationStart = DateTime.Now;
-
-      Task.Run(() =>
+      lock (resultLock)
       {
-        foreach (var bot in Bots)
-        {
-          bot.Finished += Bot_Finished; ;
+        var data = new RunData();
 
-          bot.Start();
+        var best = Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First().TradingBot.Strategy;
 
-          InProgress++;
-          ToStart--;
-        }
-      });
-    }
+        var buyGenomes = Bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
+        var sellGenomes = Bots.Select(x => x.TradingBot.Strategy.SellAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
 
-    #endregion
+        data.BuyGenomes = NeatGenomeXmlIO.SaveComplete(buyGenomes, false).OuterXml;
+        data.SellGenomes = NeatGenomeXmlIO.SaveComplete(sellGenomes, false).OuterXml;
 
-    #region Bot_Finished
+        data.Average = (decimal)buyGenomes.Average(x => x.Fitness);
+        data.Drawdawn = best.MaxDrawdawnFromMaxTotalValue;
+        data.TotalValue = best.TotalValue;
+        data.NumberOfTrades = best.ClosedSellPositions.Count;
+        data.Fitness = (decimal)best.OriginalFitness;
 
-    static object batton = new object();
-
-    private static void Bot_Finished(object sender, EventArgs e)
-    {
-      lock (batton)
-      {
-        if (sender is SimulationTradingBot<AIPosition, AIStrategy> sim)
-        {
-          InProgress--;
-          FinishedCount++;
-
-          if (FinishedCount == Bots.Count)
-          {
-            foreach (var bot in Bots)
-            {
-              bot.Finished -= Bot_Finished;
-            }
-
-            GenerationCompleted();
-          }
-        }
+        SendMessage(tcpClient, data); 
       }
     }
 
-    #endregion
+    static object batton = new object();
+    public static void RunBots(
+              Random random,
+              string symbol,
+              bool useRandomDate,
+              double pSpliTake,
+              int minutes)
+    {
+      generationStart = DateTime.Now;
+      Task.Run(() =>
+      {
+        DateTime fromDate = DateTime.Now;
+        double splitTake = 0;
+
+        if (useRandomDate)
+        {
+          var year = random.Next(2019, 2023);
+          fromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
+          splitTake = pSpliTake;
+        }
+        else
+        {
+          fromDate = new DateTime(2019, 1, 1);
+        }
+
+        TimeFrame dataTimeFrame = (TimeFrame)minutes;
+
+        var candles = SimulationTradingBot.GetSimulationCandles(
+           dataTimeFrame,
+           SimulationPromptViewModel.GetSimulationDataPath(symbol, minutes.ToString()), symbol, fromDate);
+
+        foreach (var bot in Bots)
+        {
+          bot.InitializeBot();
+          bot.HeatBot(candles.cutCandles, bot.TradingBot.Strategy);
+        }
+
+        ToStart = Bots.Count;
+
+        var splitTakeC = Bots.SplitList(Bots.Count / 10);
+        var tasks = new List<Task>();
+
+        foreach (var take in splitTakeC)
+        {
+          tasks.Add(Task.Run(() =>
+          {
+            lock (batton)
+            {
+              ToStart -= take.Count;
+              InProgress += take.Count;
+            }
+
+            foreach (var candle in candles.cutCandles)
+            {
+              if (take.Any(x => x.stopRequested))
+                return;
+
+              foreach (var bot in take)
+              {
+                bot.SimulateCandle(candle);
+              }
+            }
+
+            lock (batton)
+            {
+              FinishedCount += take.Count;
+              InProgress -= take.Count;  
+            }
+          }));
+        }
+
+        Task.WaitAll(tasks.ToArray());
+
+        GenerationCompleted();
+      });
+    }
 
     #region ConnectToServer
 
@@ -411,7 +450,14 @@ namespace CloudComputingClient
             int index = currentDatadd.IndexOf(MessageContract.EndOfMessage);
             currentDatadd = currentDatadd.Substring(0, index);
 
-            ServerRunData = JsonSerializer.Deserialize<ServerRunData>(currentDatadd);
+            
+            var serverRunData = JsonSerializer.Deserialize<ServerRunData>(currentDatadd);
+
+            if(serverRunData != null)
+            {
+              LastServerRunData = ServerRunData;
+              ServerRunData = serverRunData;
+            }
 
             if (ServerRunData != null)
             {
@@ -548,6 +594,10 @@ namespace CloudComputingClient
       Console.WriteLine();
       Console.WriteLine($"To Start: {ToStart} In Progress: {InProgress} Finished: {FinishedCount}");
       Console.WriteLine();
+
+
+      Console.WriteLine($"----LAST GENERATION----");
+      Console.WriteLine($"Symbol: {LastServerRunData?.Symbol}");
       Console.WriteLine($"BEST Fitness: {BestFitness.ToString("N2")}");
       Console.WriteLine($"AVG.Fitness: {AverageFitness.ToString("N2")}");
       Console.WriteLine();

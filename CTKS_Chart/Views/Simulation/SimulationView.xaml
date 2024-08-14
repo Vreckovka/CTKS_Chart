@@ -71,13 +71,13 @@
           Width="150"
           Margin="5,5"
           Command="{Binding LoadAiBot}"
-          Content="Load AI bot" />
+          Content="Locate AI bot" />
 
         <Button
           Width="150"
           Margin="5,5"
-          Command="{Binding LoadAiBot}"
-          Content="Start AI bot" />
+          Command="{Binding StartAiBot}"
+          Content="Load AI bot" />
       </StackPanel>
 
 
