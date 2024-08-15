@@ -53,7 +53,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 
-    public static int TakeIntersections = 15;
+    public static int TakeIntersections = 10;
     public const int inputNumber = 12;
 
     #region Constructors
@@ -889,13 +889,31 @@ namespace CTKS_Chart.ViewModels
 
     public static void SaveProgress(NEATManager<AIBot> manager, string session, string folderName, int? generation = null)
     {
-      var gfolder = Path.Combine("Trainings", session, "ADA", folderName);
+      var gfolder = Path.Combine("Trainings", session, folderName);
 
       Directory.CreateDirectory(gfolder);
 
       int generationValue = generation != null ? generation.Value : manager.Generation;
 
-      manager.SavePopulation(Path.Combine(gfolder, $"{generationValue}.txt"));
+      manager.SaveBestGenome(Path.Combine(gfolder, $"{generationValue}.txt"));
+    }
+
+    #endregion
+
+    #region SaveProgress
+
+    public static void SaveGeneration(
+      NEATManager<AIBot> manager, 
+      string session, 
+      string folderName,
+      string fileName,
+      string bestGenomeFileName)
+    {
+      var gfolder = Path.Combine("Trainings", session, folderName);
+
+      Directory.CreateDirectory(gfolder);
+
+      manager.SavePopulation(Path.Combine(gfolder, fileName), Path.Combine(gfolder, bestGenomeFileName));
     }
 
     #endregion

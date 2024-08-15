@@ -457,8 +457,8 @@ namespace CTKS_Chart.ViewModels
       var buy = AiPath.Replace("SELL", "BUY");
       var sell = AiPath.Replace("BUY", "SELL");
 
-      BuyBotManager.LoadPopulation(buy);
-      SellBotManager.LoadPopulation(sell);
+      BuyBotManager.LoadBestGenome(buy);
+      SellBotManager.LoadBestGenome(sell);
 
       BuyBotManager.InitializeManager(1);
       SellBotManager.InitializeManager(1);

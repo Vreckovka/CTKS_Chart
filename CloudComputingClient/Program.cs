@@ -53,13 +53,9 @@ namespace CloudComputingClient
     static DateTime lastElapsed;
     static DateTime generationStart;
     static Random random = new Random();
-    static float BestFitness { get; set; }
-    static float AverageFitness { get; set; }
-    static decimal TotalValue { get; set; }
-    static decimal Drawdawn { get; set; }
-    static int NumberOfTrades { get; set; }
-    public static bool Connected { get; set; }
 
+    public static bool Connected { get; set; }
+    static RunData LastData { get; set; }
 
     static string serverIp;
     static int port;
@@ -219,13 +215,6 @@ namespace CloudComputingClient
 
       var aIStrategy = Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First().TradingBot.Strategy;
 
-      BestFitness = aIStrategy.BuyAIBot.NeuralNetwork.Fitness;
-      AverageFitness = Bots.Average(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness);
-
-      TotalValue = aIStrategy.TotalValue;
-      Drawdawn = aIStrategy.MaxDrawdawnFromMaxTotalValue;
-      NumberOfTrades = aIStrategy.ClosedSellPositions.Count;
-
       SendResult();
 
       serialDisposable.Disposable = Observable.Interval(TimeSpan.FromSeconds(5)).Subscribe((x) =>
@@ -265,6 +254,8 @@ namespace CloudComputingClient
         data.Fitness = (decimal)best.BuyAIBot.NeuralNetwork.Fitness;
 
         SendMessage(tcpClient, data);
+
+        LastData = data;
       }
     }
 
@@ -313,7 +304,9 @@ namespace CloudComputingClient
 
         ToStart = Bots.Count;
 
-        var splitTakeC = Bots.SplitList(Bots.Count / 10);
+        var min = Math.Min(Bots.Count, 10);
+
+        var splitTakeC = Bots.SplitList(Bots.Count / min);
         var tasks = new List<Task>();
 
         foreach (var take in splitTakeC)
@@ -584,10 +577,8 @@ namespace CloudComputingClient
       lastElapsed = DateTime.Now;
 
       Console.WriteLine($"Generation: {ServerRunData?.Generation ?? -1}");
-      Console.WriteLine($"Run Time: {RunTime.ToString(@"hh\:mm\:ss")}");
-      Console.WriteLine($"GEN.Run Time: {GenerationRunTime.ToString(@"hh\:mm\:ss")}");
+      Console.WriteLine($"Run Time: {RunTime.ToString(@"hh\:mm\:ss")}"); 
       Console.WriteLine();
-
 
       Console.WriteLine($"Symbol: {ServerRunData?.Symbol}");
       Console.WriteLine($"Symbol: {ServerRunData?.Minutes}");
@@ -597,14 +588,15 @@ namespace CloudComputingClient
 
 
       Console.WriteLine($"----LAST GENERATION----");
+      Console.WriteLine($"GEN.Run Time: {GenerationRunTime.ToString(@"hh\:mm\:ss")}");
       Console.WriteLine($"Symbol: {LastServerRunData?.Symbol}");
-      Console.WriteLine($"Symbol: {LastServerRunData?.Minutes}");
-      Console.WriteLine($"BEST Fitness: {BestFitness.ToString("N2")}");
-      Console.WriteLine($"AVG.Fitness: {AverageFitness.ToString("N2")}");
+      Console.WriteLine($"Minutes: {LastServerRunData?.Minutes}");
+      Console.WriteLine($"BEST Fitness: {LastData?.Fitness.ToString("N2")}");
+      Console.WriteLine($"AVG.Fitness: {LastData?.Average.ToString("N2")}");
       Console.WriteLine();
-      Console.WriteLine($"Total Value: {TotalValue.ToString("N2")} $");
-      Console.WriteLine($"Drawdawn: {Drawdawn.ToString("N2")} %");
-      Console.WriteLine($"Number of Trades: {NumberOfTrades}");
+      Console.WriteLine($"Total Value: {LastData?.TotalValue.ToString("N2")} $");
+      Console.WriteLine($"Drawdawn: {LastData?.Drawdawn.ToString("N2")} %");
+      Console.WriteLine($"Number of Trades: {LastData?.NumberOfTrades}");
 
       var connected = IsClientConnected(tcpClient);
       Console.WriteLine(connected ? $"Connected to: {serverIp}" : "Not connected...");

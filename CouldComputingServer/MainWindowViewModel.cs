@@ -2,9 +2,7 @@
 using CTKS_Chart.Strategy;
 using CTKS_Chart.Strategy.AIStrategy;
 using CTKS_Chart.ViewModels;
-using LiveCharts;
 using LiveCharts.Configurations;
-using LiveCharts.Wpf;
 using Logger;
 using SharpNeat.Genomes.Neat;
 using System;
@@ -22,11 +20,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
 using System.Xml;
 using VCore.Standard.Factories.ViewModels;
 using VCore.Standard.Helpers;
 using VCore.WPF;
+using VCore.WPF.Helpers;
 using VCore.WPF.Misc;
 using VCore.WPF.ViewModels;
 using VNeuralNetwork;
@@ -34,29 +32,25 @@ using RunData = CloudComputing.Domains.RunData;
 
 namespace CouldComputingServer
 {
-  public class CloudClient
-  {
-    public TcpClient Client { get; set; }
-    public Dictionary<uint, bool> SentBuyGenomes { get; set; } = new Dictionary<uint, bool>();
-    public Dictionary<uint, bool> SentSellGenomes { get; set; } = new Dictionary<uint, bool>();
-
-    public bool Done { get; set; }
-  }
 
   public class MainWindowViewModel : BaseMainWindowViewModel
   {
     private TcpListener _listener;
     private Thread _listenerThread;
-    string session;
+
+    Dictionary<CloudClient, string> messages = new Dictionary<CloudClient, string>();
+    List<RunData> runResults = new List<RunData>();
+
 
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
-    {
-      session = DateTime.Now.ToString("dd_MM_yyyy_HH_mm_ss");
+    {    
+      TrainingSession = new TrainingSession(DateTime.Now.ToString("dd_MM_yyyy_HH_mm_ss"));
+      TrainingSession.CreateSymbolsToTest(new string[] { "ADAUSDT", "BTCUSDT", "ETHUSDT", "LTCUSDT", "BNBUSDT" });
 
       BuyBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
       SellBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
 
-      CurrentSymbol = symbolsToTest[0];
+      CurrentSymbol = TrainingSession.SymbolsToTest[0].Name;
       Logger = logger;
       Title = "Cloud Computing SERVER";
     }
@@ -66,7 +60,7 @@ namespace CouldComputingServer
     public NEATManager<AIBot> BuyBotManager { get; set; }
     public NEATManager<AIBot> SellBotManager { get; set; }
 
-
+    public TrainingSession TrainingSession { get; set; }
 
     #region UseRandomizer
 
@@ -81,14 +75,15 @@ namespace CouldComputingServer
         {
           useRandomizer = value;
 
-          if(useRandomizer)
+          if (useRandomizer)
           {
-           symbolsToTest = new string[] { "ADAUSDT", "BTCUSDT", "ETHUSDT", "LTCUSDT", "BNBUSDT" };
+            TrainingSession.CreateSymbolsToTest(new string[] { "ADAUSDT", "BTCUSDT", "ETHUSDT", "LTCUSDT", "BNBUSDT" });
           }
           else
           {
-            symbolsToTest = new string[] { "ADAUSDT" };
+            TrainingSession.CreateSymbolsToTest(new string[] { "ADAUSDT" });
           }
+
 
           RaisePropertyChanged();
         }
@@ -97,9 +92,6 @@ namespace CouldComputingServer
 
     #endregion
 
-
-
-
     #region AgentCount
 
 #if DEBUG
@@ -107,7 +99,7 @@ namespace CouldComputingServer
 #endif
 
 #if RELEASE
-    private int agentCount = 80;
+    private int agentCount = 100;
 #endif
 
     public int AgentCount
@@ -126,6 +118,7 @@ namespace CouldComputingServer
     #endregion
 
     public ObservableCollection<CloudClient> Clients { get; set; } = new ObservableCollection<CloudClient>();
+
 
     #region ToStart
 
@@ -185,33 +178,6 @@ namespace CouldComputingServer
     #endregion
 
 
-    public SeriesCollection AverageData { get; set; } = new SeriesCollection();
-    public SeriesCollection FullData { get; set; } = new SeriesCollection();
-    public SeriesCollection BestData { get; set; } = new SeriesCollection();
-    public SeriesCollection DrawdawnData { get; set; } = new SeriesCollection();
-    public SeriesCollection FitnessData { get; set; } = new SeriesCollection();
-    public SeriesCollection NumberOfTradesData { get; set; } = new SeriesCollection();
-
-
-    #region Labels
-
-    private List<string> labels = new List<string>();
-
-    public List<string> Labels
-    {
-      get { return labels; }
-      set
-      {
-        if (value != labels)
-        {
-          labels = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
     public Func<double, string> PercFormatter { get; set; } = value => value.ToString("N2");
     public Func<double, string> YFormatter { get; set; } = value => value.ToString("N0");
 
@@ -222,7 +188,7 @@ namespace CouldComputingServer
 #endif
 
 #if RELEASE
-    private int minutes = 240;
+    private int minutes = 480;
 #endif
 
     public int Minutes
@@ -445,13 +411,6 @@ namespace CouldComputingServer
       _listenerThread.Start();
 
 
-      CreateCharts(AverageData);
-      CreateCharts(FullData);
-      CreateCharts(BestData);
-      CreateCharts(DrawdawnData);
-      CreateCharts(FitnessData);
-      CreateCharts(NumberOfTradesData);
-
       Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe(async (x) =>
       {
         if (IsGenerationEnded())
@@ -464,25 +423,6 @@ namespace CouldComputingServer
     }
 
     #endregion
-
-    private void CreateCharts(SeriesCollection series)
-    {
-      for (int i = 0; i < symbolsToTest.Length; i++)
-      {
-        var newSeries = new LineSeries()
-        {
-          Values = new ChartValues<decimal>(),
-          PointGeometrySize = 0
-        };
-
-
-        newSeries.Fill = Brushes.Transparent;
-        newSeries.Title = symbolsToTest[i];
-        newSeries.PointForeground = Brushes.Transparent;
-
-        series.Add(newSeries);
-      }
-    }
 
     #region DistributeGeneration
 
@@ -506,7 +446,7 @@ namespace CouldComputingServer
       Clients.ForEach(x => x.SentBuyGenomes.Clear());
       Clients.ForEach(x => x.SentSellGenomes.Clear());
 
-      CurrentSymbol = symbolsToTest[wholeRunsCount % symbolsToTest.Length];
+      CurrentSymbol = TrainingSession.SymbolsToTest[wholeRunsCount % TrainingSession.SymbolsToTest.Count].Name;
       bool isRandom = false;
 
       if (!wasRandomPrevious)
@@ -516,7 +456,7 @@ namespace CouldComputingServer
         if (isRandom)
         {
           wasRandomPrevious = true;
-          CurrentSymbol = symbolsToTest[random.Next(0, symbolsToTest.Length)];
+          CurrentSymbol = TrainingSession.SymbolsToTest[random.Next(0, TrainingSession.SymbolsToTest.Count)].Name;
         }
       }
       else
@@ -554,11 +494,6 @@ namespace CouldComputingServer
         var buyDocument = NeatGenomeXmlIO.SaveComplete(buyGenomes, false);
         var sellDocument = NeatGenomeXmlIO.SaveComplete(sellGenomes, false);
 
-        foreach (var buyGene in buyGenomes)
-        {
-          Console.WriteLine($"SENDING IDs: {buyGene.Id}");
-        }
-
         newData.BuyGenomes = buyDocument.OuterXml.Replace("\"", "'");
         newData.SellGenomes = sellDocument.OuterXml.Replace("\"", "'");
 
@@ -582,6 +517,8 @@ namespace CouldComputingServer
         SendMessage(client, message);
       }
 
+      Logger.Log(MessageType.Inform, "Generation distributed");
+
       if (!isRandom)
       {
         wholeRunsCount++;
@@ -590,31 +527,29 @@ namespace CouldComputingServer
 
     #endregion
 
-    Dictionary<CloudClient, string> messages = new Dictionary<CloudClient, string>();
-
     #region UpdateGeneration
 
     private void UpdateGeneration(IEnumerable<RunData> runData)
     {
       GenerationRunTime = DateTime.Now - generationStart;
 
-      var isStartSymbol = CurrentSymbol == symbolsToTest[0];
+      var isStartSymbol = CurrentSymbol == TrainingSession.SymbolsToTest[0].Name;
 
       var bestBuy = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
       var bestSell = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
 
-      var index = symbolsToTest.IndexOf((x) => x == serverRunData.Symbol);
+      var index = TrainingSession.SymbolsToTest.IndexOf((x) => x.Name == serverRunData.Symbol);
 
       if (index != null && !wasRandomPrevious)
       {
         var bestRun = runData.OrderByDescending(x => x.Fitness).First();
 
-        FullData[index.Value].Values.Add(bestRun.TotalValue);
-        DrawdawnData[index.Value].Values.Add(bestRun.Drawdawn);
-        NumberOfTradesData[index.Value].Values.Add(bestRun.NumberOfTrades);
-        FitnessData[index.Value].Values.Add(bestRun.OriginalFitness);
-        BestData[index.Value].Values.Add(bestRun.Fitness);
-        AverageData[index.Value].Values.Add(bestRun.Average);
+        TrainingSession.AddValue(serverRunData.Symbol, Statistic.AverageFitness, bestRun.Average);
+        TrainingSession.AddValue(serverRunData.Symbol, Statistic.BestFitness, bestRun.Fitness);
+        TrainingSession.AddValue(serverRunData.Symbol, Statistic.OriginalFitness, bestRun.OriginalFitness);
+        TrainingSession.AddValue(serverRunData.Symbol, Statistic.TotalValue, bestRun.TotalValue);
+        TrainingSession.AddValue(serverRunData.Symbol, Statistic.Drawdawn, bestRun.Drawdawn);
+        TrainingSession.AddValue(serverRunData.Symbol, Statistic.NumberOfTrades, bestRun.NumberOfTrades);
 
         if (isStartSymbol)
         {
@@ -626,17 +561,27 @@ namespace CouldComputingServer
 
         if (isStartSymbol)
         {
-          Labels.Add(BuyBotManager.Generation.ToString());
-          RaisePropertyChanged(nameof(Labels));
+          var folder = Path.Combine("Trainings", TrainingSession.Name);
+          Directory.CreateDirectory(folder);
+
+          var training = JsonSerializer.Serialize(TrainingSession);
+
+          File.WriteAllText(Path.Combine(folder, "session.txt"), training);
+
+          TrainingSession.AddLabel(BuyBotManager.Generation.ToString());
         }
       }
 
       FinishedCount = 0;
       ToStart = AgentCount;
 
-      SimulationAIPromptViewModel.SaveProgress(BuyBotManager, session, "BUY");
-      SimulationAIPromptViewModel.SaveProgress(SellBotManager, session, "SELL");
+      if (BuyBotManager.Generation % 10 == 0 && BuyBotManager.Generation > 0)
+      {
+        var generation = $"Generation {BuyBotManager.Generation}";
 
+        SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, Path.Combine(generation), "BUY.txt", "BEST_BUY.txt");
+        SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name, Path.Combine(generation), "SELL.txt", "BEST_SELL.txt");
+      }
 
       BuyBotManager.UpdateNEATGeneration();
       SellBotManager.UpdateNEATGeneration();
@@ -647,17 +592,12 @@ namespace CouldComputingServer
 
     #endregion
 
-
-    string[] symbolsToTest = new string[] { "ADAUSDT", "BTCUSDT", "ETHUSDT", "LTCUSDT", "BNBUSDT" };
-
-    List<RunData> runResults = new List<RunData>();
-
     #region IsRandom
 
     private int wholeRunsCount;
     private bool IsRandom()
     {
-      return wholeRunsCount % symbolsToTest.Length == 0 && BuyBotManager.Generation != 0;
+      return wholeRunsCount % TrainingSession.SymbolsToTest.Count == 0 && BuyBotManager.Generation != 0;
     }
 
     #endregion
@@ -744,7 +684,7 @@ namespace CouldComputingServer
 
             currentData = Encoding.Unicode.GetString(ms.ToArray()).Trim();
 
-            if(currentData.Contains(MessageContract.Error))
+            if (currentData.Contains(MessageContract.Error))
             {
               SendMessage(client, messages[client]);
               ms = new MemoryStream();
@@ -759,8 +699,6 @@ namespace CouldComputingServer
 
               lock (batton)
               {
-                Console.WriteLine($"Received message {++ind}");
-
                 runResults.Add(data);
 
                 if (!client.Done)
@@ -774,6 +712,9 @@ namespace CouldComputingServer
               ms.Dispose();
               ms = new MemoryStream();
               buffer.Clear();
+
+              if (client.Done)
+                Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
             }
           }
           catch (Exception ex)
@@ -842,11 +783,6 @@ namespace CouldComputingServer
         using (XmlReader xr = XmlReader.Create(tx))
         {
           sellGenomeList = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, sellManager.GetGenomeFactory());
-        }
-
-        foreach (var buyGene in buyGenomeList)
-        {
-          Console.WriteLine($"RECEIVED ID: {buyGene.Id}");
         }
 
         List<Tuple<NeatGenome, NeatGenome>> list = new List<Tuple<NeatGenome, NeatGenome>>();

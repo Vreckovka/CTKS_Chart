@@ -34,7 +34,7 @@
         <ColumnDefinition Width="200" />
       </Grid.ColumnDefinitions>
 
-      <Grid Grid.Column="0">
+      <Grid Grid.Column="0" DataContext="{Binding TrainingSession}">
         <Grid.RowDefinitions>
           <RowDefinition />
           <RowDefinition />
@@ -147,7 +147,7 @@
           Margin="10,0"
           DisableAnimations="True"
           LegendLocation="None"
-          Series="{Binding FullData}">
+          Series="{Binding TotalValueData}">
           <lvc:CartesianChart.AxisY>
             <lvc:Axis
               Title="Total Value"
@@ -397,10 +397,18 @@
           </TextBlock>
 
         </StackPanel>
+
+        <ItemsControl ItemsSource="{Binding TrainingSession.SymbolsToTest}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal" Margin="0 5">
+                <CheckBox Margin="0" IsChecked="{Binding IsEnabled}" />
+                <TextBlock Margin="0" Text="{Binding Name}" />
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
       </StackPanel>
-
-
     </Grid>
-
   </Grid>
 </Window>
