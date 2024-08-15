@@ -23,7 +23,7 @@ namespace CTKS_Chart.ViewModels
    
     #region Symbol
 
-    private string symbol;
+    private string symbol = "ADAUSDT";
 
     public string Symbol
     {

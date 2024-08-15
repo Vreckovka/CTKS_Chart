@@ -11,7 +11,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
   {
     public AIBot(INeuralNetwork neuralNetwork) : base(neuralNetwork)
     {
-     
+
     }
 
     public float[] Update(
@@ -60,7 +60,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       AddInput(strategy.IndicatorData.RangeFilterData.Upward ? 1 : -1, ref index, ref inputs);
       AddInput((float)strategy.IndicatorData.BBWP / 100.0f, ref index, ref inputs);
 
-      foreach(var extraInput in extraInputs)
+      foreach (var extraInput in extraInputs)
       {
         AddInput(extraInput, ref index, ref inputs);
       }
@@ -73,14 +73,18 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
     private void AddIntersectionInputs(
       IList<CtksIntersection> intersections,
-      decimal minPrice, 
+      decimal minPrice,
       decimal maxPrice,
       ref int index,
       ref float[] inputs)
     {
       for (int i = 0; i < intersections.Count; i++)
       {
-        AddInput(AddNormalizedInput(intersections[i].Value, minPrice, maxPrice), ref index, ref inputs);
+        var value = AddNormalizedInput(intersections[i].Value, minPrice, maxPrice);
+        var weight = AddNormalizedInput((double)(int)intersections[i].TimeFrame, 1, 7);
+
+        AddInput(value, ref index, ref inputs);
+        AddInput(weight, ref index, ref inputs);
       }
     }
 
@@ -92,7 +96,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
     protected float AddNormalizedInput(decimal? price, decimal minPrice, decimal maxPrice)
     {
-      if(price != null)
+      if (price != null)
       {
         decimal normalized = (price.Value - minPrice) / (maxPrice - minPrice);
 
@@ -100,6 +104,13 @@ namespace CTKS_Chart.Strategy.AIStrategy
       }
 
       return -1;
+    }
+
+    protected float AddNormalizedInput(double value, double min, double max)
+    {
+      var normalized = (value - min) / (max - min);
+
+      return (float)normalized;
     }
   }
 }

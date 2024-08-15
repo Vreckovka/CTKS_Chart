@@ -30,6 +30,7 @@ using VCore.Standard.Helpers;
 using VCore.WPF.Interfaces.Managers;
 using VCore.WPF.Managers;
 using VNeuralNetwork;
+using RunData = CloudComputing.Domains.RunData;
 
 namespace CloudComputingClient
 {
@@ -103,7 +104,7 @@ namespace CloudComputingClient
 
         var add = JsonSerializer.Deserialize<ServerAdress>(File.ReadAllText("server.txt"));
 
-        serverIp = add.IP;
+        serverIp = add.IP.Trim();
 #if DEBUG
         serverIp = "127.0.0.1";
 #endif
@@ -199,7 +200,7 @@ namespace CloudComputingClient
       }
 
 
-      RunBots(random,symbol,isRandom,splitTake,minutes);
+      RunBots(random, symbol, isRandom, splitTake, minutes);
     }
 
     #endregion
@@ -239,6 +240,8 @@ namespace CloudComputingClient
 
     #endregion
 
+    #region SendResult
+
     static object resultLock = new object();
     private static void SendResult()
     {
@@ -259,11 +262,13 @@ namespace CloudComputingClient
         data.TotalValue = best.TotalValue;
         data.NumberOfTrades = best.ClosedSellPositions.Count;
         data.OriginalFitness = (decimal)best.OriginalFitness;
-        data.Fitness = (decimal)best.OriginalFitness;
+        data.Fitness = (decimal)best.BuyAIBot.NeuralNetwork.Fitness;
 
-        SendMessage(tcpClient, data); 
+        SendMessage(tcpClient, data);
       }
     }
+
+    #endregion
 
     #region RunBots
 
@@ -292,7 +297,8 @@ namespace CloudComputingClient
           var asset = Bots.First().Asset;
           var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
 
-          fromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime;
+          //ignore filter starting values of indicators
+          fromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime.AddDays(30);
         }
 
         var candles = SimulationTradingBot.GetSimulationCandles(
@@ -423,7 +429,7 @@ namespace CloudComputingClient
         if (stream == null)
           return;
 
-        Span<byte> buffer = new byte[30485760];
+        Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE];
         MemoryStream ms = new MemoryStream();
 
 
@@ -449,18 +455,12 @@ namespace CloudComputingClient
               continue;
             }
 
-            var input2 = currentData;
 
-            var currentDatadd = Regex.Replace(input2, @"\\[Uu]([0-9A-Fa-f]{4})", m => char.ToString((char)ushort.Parse(m.Groups[1].Value, NumberStyles.AllowHexSpecifier)));
+            var split = currentData.Split(MessageContract.EndOfMessage);
 
+            var serverRunData = JsonSerializer.Deserialize<ServerRunData>(split[0]);
 
-            int index = currentDatadd.IndexOf(MessageContract.EndOfMessage);
-            currentDatadd = currentDatadd.Substring(0, index);
-
-            
-            var serverRunData = JsonSerializer.Deserialize<ServerRunData>(currentDatadd);
-
-            if(serverRunData != null)
+            if (serverRunData != null)
             {
               LastServerRunData = ServerRunData;
               ServerRunData = serverRunData;
@@ -508,13 +508,11 @@ namespace CloudComputingClient
 
                 UpdateUI();
               });
-
-
-              ms = new MemoryStream();
             }
           }
           catch (Exception ex)
           {
+            TCPHelper.SendMessage(tcpClient, MessageContract.Error);
             ms = new MemoryStream();
             Logger.Log(ex);
             buffer.Clear();
@@ -550,13 +548,7 @@ namespace CloudComputingClient
           {
             var json = JsonSerializer.Serialize(runData) + MessageContract.EndOfMessage;
 
-            using (StringWriter stringWriter = new StringWriter())
-            {
-              var data = Encoding.Unicode.GetBytes(json);
-
-              _stream.Write(data, 0, data.Length);
-              _stream.Flush();
-            }
+            TCPHelper.SendMessage(tcpClient, json); 
           }
         }
       }
@@ -598,6 +590,7 @@ namespace CloudComputingClient
 
 
       Console.WriteLine($"Symbol: {ServerRunData?.Symbol}");
+      Console.WriteLine($"Symbol: {ServerRunData?.Minutes}");
       Console.WriteLine();
       Console.WriteLine($"To Start: {ToStart} In Progress: {InProgress} Finished: {FinishedCount}");
       Console.WriteLine();
@@ -605,11 +598,12 @@ namespace CloudComputingClient
 
       Console.WriteLine($"----LAST GENERATION----");
       Console.WriteLine($"Symbol: {LastServerRunData?.Symbol}");
+      Console.WriteLine($"Symbol: {LastServerRunData?.Minutes}");
       Console.WriteLine($"BEST Fitness: {BestFitness.ToString("N2")}");
       Console.WriteLine($"AVG.Fitness: {AverageFitness.ToString("N2")}");
       Console.WriteLine();
-      Console.WriteLine($"Total Value: {TotalValue.ToString("N2")}$");
-      Console.WriteLine($"Drawdawn: {Drawdawn.ToString("N2")}%");
+      Console.WriteLine($"Total Value: {TotalValue.ToString("N2")} $");
+      Console.WriteLine($"Drawdawn: {Drawdawn.ToString("N2")} %");
       Console.WriteLine($"Number of Trades: {NumberOfTrades}");
 
       var connected = IsClientConnected(tcpClient);

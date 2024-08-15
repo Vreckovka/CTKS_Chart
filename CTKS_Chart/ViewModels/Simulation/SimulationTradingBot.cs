@@ -36,6 +36,8 @@ namespace CTKS_Chart.ViewModels
 
       if (minutes == 5)
         timeframe = TimeFrame.m5;
+      if (minutes == 1)
+        timeframe = TimeFrame.m1;
 
       var mainCandles = TradingViewHelper.ParseTradingView(timeframe, dataPath, symbol, saveData: true);
 

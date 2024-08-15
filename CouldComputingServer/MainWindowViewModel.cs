@@ -30,6 +30,7 @@ using VCore.WPF;
 using VCore.WPF.Misc;
 using VCore.WPF.ViewModels;
 using VNeuralNetwork;
+using RunData = CloudComputing.Domains.RunData;
 
 namespace CouldComputingServer
 {
@@ -65,6 +66,40 @@ namespace CouldComputingServer
     public NEATManager<AIBot> BuyBotManager { get; set; }
     public NEATManager<AIBot> SellBotManager { get; set; }
 
+
+
+    #region UseRandomizer
+
+    private bool useRandomizer = true;
+
+    public bool UseRandomizer
+    {
+      get { return useRandomizer; }
+      set
+      {
+        if (value != useRandomizer)
+        {
+          useRandomizer = value;
+
+          if(useRandomizer)
+          {
+           symbolsToTest = new string[] { "ADAUSDT", "BTCUSDT", "ETHUSDT", "LTCUSDT", "BNBUSDT" };
+          }
+          else
+          {
+            symbolsToTest = new string[] { "ADAUSDT" };
+          }
+
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
+
+
     #region AgentCount
 
 #if DEBUG
@@ -72,7 +107,7 @@ namespace CouldComputingServer
 #endif
 
 #if RELEASE
-    private int agentCount = 120;
+    private int agentCount = 80;
 #endif
 
     public int AgentCount
@@ -533,7 +568,18 @@ namespace CouldComputingServer
         ToStart -= agentsPerClient;
         InProgress += agentsPerClient;
 
-        SendMessage(client, JsonSerializer.Serialize(newData).Replace("\n", "") + MessageContract.EndOfMessage);
+        var message = JsonSerializer.Serialize(newData) + MessageContract.EndOfMessage;
+
+        if (messages.ContainsKey(client))
+        {
+          messages[client] = message;
+        }
+        else
+        {
+          messages.Add(client, message);
+        }
+
+        SendMessage(client, message);
       }
 
       if (!isRandom)
@@ -544,13 +590,15 @@ namespace CouldComputingServer
 
     #endregion
 
+    Dictionary<CloudClient, string> messages = new Dictionary<CloudClient, string>();
+
     #region UpdateGeneration
 
     private void UpdateGeneration(IEnumerable<RunData> runData)
     {
       GenerationRunTime = DateTime.Now - generationStart;
 
-      var addStats = !IsRandom() && CurrentSymbol == symbolsToTest[0];
+      var isStartSymbol = CurrentSymbol == symbolsToTest[0];
 
       var bestBuy = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
       var bestSell = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
@@ -568,7 +616,7 @@ namespace CouldComputingServer
         BestData[index.Value].Values.Add(bestRun.Fitness);
         AverageData[index.Value].Values.Add(bestRun.Average);
 
-        if (addStats)
+        if (isStartSymbol)
         {
           BestFitness = (float)bestRun.OriginalFitness;
           TotalValue = bestRun.TotalValue;
@@ -576,7 +624,7 @@ namespace CouldComputingServer
           NumberOfTrades = bestRun.NumberOfTrades;
         }
 
-        if (addStats)
+        if (isStartSymbol)
         {
           Labels.Add(BuyBotManager.Generation.ToString());
           RaisePropertyChanged(nameof(Labels));
@@ -655,16 +703,7 @@ namespace CouldComputingServer
     {
       try
       {
-        var _stream = client.Client.GetStream();
-
-        if (_stream != null)
-        {
-
-          var data = Encoding.Unicode.GetBytes(serverData);
-
-          _stream.Write(data, 0, data.Length);
-          _stream.Flush();
-        }
+        TCPHelper.SendMessage(client.Client, serverData);
       }
       catch (Exception ex)
       {
@@ -688,7 +727,7 @@ namespace CouldComputingServer
       try
       {
         NetworkStream stream = client.Client.GetStream();
-        Span<byte> buffer = new byte[10485760];
+        Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE];
 
         MemoryStream ms = new MemoryStream();
 
@@ -705,13 +744,18 @@ namespace CouldComputingServer
 
             currentData = Encoding.Unicode.GetString(ms.ToArray()).Trim();
 
+            if(currentData.Contains(MessageContract.Error))
+            {
+              SendMessage(client, messages[client]);
+              ms = new MemoryStream();
+              continue;
+            }
+
             if (currentData.Contains(MessageContract.EndOfMessage))
             {
-              var indexOf = currentData.IndexOf(MessageContract.EndOfMessage);
+              var split = currentData.Split(MessageContract.EndOfMessage);
 
-              currentData = currentData.Substring(0, indexOf);
-
-              var data = JsonSerializer.Deserialize<RunData>(currentData);
+              var data = JsonSerializer.Deserialize<RunData>(split[0]);
 
               lock (batton)
               {

@@ -25,6 +25,7 @@
 
     <StackPanel Width="250">
       <TextBlock Text="{Binding Clients.Count, Mode=OneWay}" />
+
     </StackPanel>
 
     <Grid Grid.Row="1">
@@ -263,6 +264,9 @@
           <TextBox Margin="0,5" Text="{Binding Minutes, UpdateSourceTrigger=PropertyChanged}" />
           <TextBox Margin="0,5" Text="{Binding AgentCount, UpdateSourceTrigger=PropertyChanged}" />
 
+
+          <CheckBox IsChecked="{Binding UseRandomizer, Mode=TwoWay}">Multiple symbols</CheckBox>
+
         </StackPanel>
 
         <TextBlock>
@@ -271,7 +275,7 @@
             Foreground="#858585"
             Text="Symbol: " />
           <Run
-            FontSize="14"
+            FontSize="13"
             FontWeight="Bold"
             Foreground="#858585"
             Text="{Binding CurrentSymbol}" />
@@ -283,7 +287,7 @@
             Foreground="#858585"
             Text="To Start: " />
           <Run
-            FontSize="14"
+            FontSize="13"
             FontWeight="Bold"
             Foreground="#858585"
             Text="{Binding ToStart}" />
@@ -295,13 +299,13 @@
             Foreground="#aae83f62"
             Text="In Progress: " />
           <Run
-            FontSize="14"
+            FontSize="13"
             FontWeight="Bold"
             Foreground="{StaticResource LightRedBrush}"
             Text="{Binding InProgress}" />
         </TextBlock>
 
-        <TextBlock FontSize="14">
+        <TextBlock FontSize="13">
           <Run
             FontSize="11"
             Foreground="#bbb"
@@ -319,7 +323,7 @@
           </Run>
         </TextBlock>
 
-        <TextBlock FontSize="14">
+        <TextBlock FontSize="13">
           <Run
             FontSize="11"
             Foreground="#80fec827"
@@ -332,7 +336,7 @@
 
 
         <StackPanel Margin="0,10">
-          <TextBlock FontSize="14">
+          <TextBlock FontSize="13">
             <Run
               FontSize="11"
               Foreground="#858585"
@@ -343,7 +347,7 @@
               Text="{Binding GenerationRunTime, StringFormat={}{0:hh\\:mm\\:ss}}" />
           </TextBlock>
 
-          <TextBlock FontSize="14">
+          <TextBlock FontSize="13">
             <Run
               FontSize="11"
               Foreground="#858585"
@@ -356,31 +360,40 @@
         </StackPanel>
 
         <StackPanel Margin="0,10">
-          <TextBlock FontSize="14">
+          <TextBlock FontSize="13">
             <Run
               FontSize="11"
               Foreground="#804278ff"
               Text="Best Fitness: " />
             <Run
-              FontWeight="Bold"
+              FontWeight="SemiBold"
               Foreground="#4278ff"
-              Text="{Binding BestFitness, StringFormat={}{0:N2}}" />
+              Text="{Binding BestFitness, StringFormat={}{0:N1}}" />
           </TextBlock>
 
 
-          <TextBlock FontSize="14" Foreground="{StaticResource GreenBrush}">
+          <TextBlock
+            Margin="0,1"
+            FontSize="13"
+            Foreground="{StaticResource GreenBrush}">
             <Run FontSize="11" Text="Total Value: " />
-            <Run FontWeight="Bold" Text="{Binding TotalValue, StringFormat={}{0:N2}$}" />
+            <Run FontWeight="SemiBold" Text="{Binding TotalValue, StringFormat={}{0:N1} $}" />
           </TextBlock>
 
-          <TextBlock FontSize="14" Foreground="{StaticResource DefaultRedBrush}">
+          <TextBlock
+            Margin="0,1"
+            FontSize="13"
+            Foreground="{StaticResource DefaultRedBrush}">
             <Run FontSize="11" Text="Drawdawn: " />
-            <Run FontWeight="Bold" Text="{Binding Drawdawn, StringFormat={}{0:N2}%}" />
+            <Run FontWeight="SemiBold" Text="{Binding Drawdawn, StringFormat={}{0:N2} %}" />
           </TextBlock>
 
-          <TextBlock FontSize="14" Foreground="{StaticResource OrangeBrush}">
+          <TextBlock
+            Margin="0,1"
+            FontSize="13"
+            Foreground="{StaticResource OrangeBrush}">
             <Run FontSize="11" Text="Number Of Trades: " />
-            <Run FontWeight="Bold" Text="{Binding NumberOfTrades, StringFormat={}{0:N0}}" />
+            <Run FontWeight="SemiBold" Text="{Binding NumberOfTrades, StringFormat={}{0:N0}}" />
           </TextBlock>
 
         </StackPanel>

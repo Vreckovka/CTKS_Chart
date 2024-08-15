@@ -1,4 +1,8 @@
-﻿namespace CloudComputing.Domains
+﻿using System;
+using System.Net.Sockets;
+using System.Text;
+
+namespace CloudComputing.Domains
 {
   public class ServerRunData
   {
@@ -12,5 +16,37 @@
     public bool IsRandom { get; set; }
 
     public string Symbol { get; set; }
+  }
+
+  public static class TCPHelper
+  {
+    public static void SendMessage(TcpClient client, string message)
+    {
+      var _stream = client.GetStream();
+
+      if (_stream != null)
+      {
+
+        var data = Encoding.Unicode.GetBytes(message);
+
+        // Define buffer size (e.g., 1024 bytes)
+        int bufferSize = MessageContract.BUFFER_SIZE;
+        int totalBytesSent = 0;
+
+        // Send data in chunks
+        while (totalBytesSent < data.Length)
+        {
+          // Calculate the number of bytes to send in this chunk
+          int bytesToSend = Math.Min(bufferSize, data.Length - totalBytesSent);
+
+          // Write the current chunk to the stream
+          _stream.Write(data, totalBytesSent, bytesToSend);
+          _stream.Flush(); // Ensure the data is sent immediately
+
+          // Update the total number of bytes sent
+          totalBytesSent += bytesToSend;
+        }
+      }
+    }
   }
 }

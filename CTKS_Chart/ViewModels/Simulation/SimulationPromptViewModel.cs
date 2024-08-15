@@ -472,7 +472,8 @@ namespace CTKS_Chart.ViewModels
       var asset = Bots.First().Asset;
       var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
 
-      adaAi.FromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime;
+      //ignore filter starting values of indicators
+      adaAi.FromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime.AddDays(30);
 
       adaAi.SaveResults = true;
       adaAi.DisplayName += " AI";

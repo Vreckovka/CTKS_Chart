@@ -557,22 +557,20 @@ namespace CTKS_Chart.ViewModels
 
     public static void AddFitness(AIStrategy strategy)
     {
-      float originalFitness = (float)((strategy.TotalValue - strategy.StartingBudget) / strategy.StartingBudget) * 1000;
+      strategy.OriginalFitness = (float)((strategy.TotalValue - strategy.StartingBudget) / strategy.StartingBudget) * 1000;
+      float fitness = strategy.OriginalFitness;
 
       var drawdawn = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
       var multi = drawdawn * 2;
 
-      if (multi <= 1 && originalFitness > 0)
-        originalFitness *= 1 - multi;
+      if (multi <= 1 && fitness > 0)
+        fitness *= 1 - multi;
       else
-        originalFitness = 0;
+        fitness = 0;
 
-      strategy.OriginalFitness = originalFitness < 0 ? 0 : originalFitness;
-      var fitness = strategy.OriginalFitness;
+      fitness *= (float)Math.Log(strategy.ClosedSellPositions.Count);
 
-      var numberOfTrades = strategy.ClosedSellPositions.Count / 1000.0;
-      fitness *= (float)numberOfTrades;
-
+      
       strategy.AddFitness(fitness < 0 ? 0 : fitness);
     }
 
@@ -763,7 +761,8 @@ namespace CTKS_Chart.ViewModels
           var asset = Bots.First().Asset;
           var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
 
-          fromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime;
+          //ignore filter starting values of indicators
+          fromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime.AddDays(30);
         }
 
         var candles = SimulationTradingBot.GetSimulationCandles(
@@ -859,7 +858,7 @@ namespace CTKS_Chart.ViewModels
       IViewModelsFactory viewModelsFactory,
       PositionSide positionSide)
     {
-      var inputCount = inputNumber + TakeIntersections;
+      var inputCount = inputNumber + (TakeIntersections * 2);
 
       switch (positionSide)
       {
