@@ -1,4 +1,5 @@
 ﻿using CTKS_Chart.Trading;
+using CTKS_Chart.ViewModels;
 using Logger;
 using System;
 using System.Collections.Generic;
@@ -29,7 +30,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
     {
       get
       {
-        return TotalValue / TakeIntersections;
+        return TotalValue / SimulationAIPromptViewModel.TakeIntersections;
         //return 20m;
       }
     }
@@ -39,9 +40,6 @@ namespace CTKS_Chart.Strategy.AIStrategy
       StartingBudget = 1000;
       Budget = StartingBudget;
     }
-
-    public int TakeIntersections { get; set; } = 15;
-
 
     public AIStrategy(AIBot buyBot, AIBot sellBot) : this()
     {
@@ -179,7 +177,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
                     .Where(x => x.Value < actualCandle.Close.Value &&
                                 x.Value < maxBuy)
                     .OrderByDescending(x => x.Value)
-                    .Take(TakeIntersections)
+                    .Take(SimulationAIPromptViewModel.TakeIntersections)
                     .ToList();
 
         var notIns = lastIntersections.Where(p => !inter.Any(p2 => p2.IsSame(p)));
@@ -198,7 +196,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
           GetLastPrices(takeLastDailyCandles));
 
         var indexes = output
-        .Take(TakeIntersections)
+        .Take(SimulationAIPromptViewModel.TakeIntersections)
         .Select((v, i) => new { prob = v, index = i });
 
         var toOpen = indexes.Where(x => x.prob > 0.75);
@@ -210,7 +208,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
           if (prob.index < inter.Count)
           {
             var intersection = inter[prob.index];
-            var weight = (decimal)output[prob.index + TakeIntersections];
+            var weight = (decimal)output[prob.index + SimulationAIPromptViewModel.TakeIntersections];
             var size = weight * PositionSize;
 
             var positionsOnIntersesction =
@@ -288,7 +286,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       var inter = Intersections
         .Where(x => x.Value > buyPosition.Price * 1.005m)
         .OrderBy(x => x.Value)
-        .Take(TakeIntersections)
+        .Take(SimulationAIPromptViewModel.TakeIntersections)
         .ToList();
 
       var output = SellAIBot.Update(

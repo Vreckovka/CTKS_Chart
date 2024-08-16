@@ -135,7 +135,8 @@ namespace CTKS_Chart.Trading
               UnixTime = unixTimestamp,
               IndicatorData = indicatorData,
               FileLineIndex = i,
-              FilePath = path
+              FilePath = path,
+              TimeFrame = timeFrame
             };
 
             if (dateDiff != null)

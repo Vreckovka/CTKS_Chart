@@ -53,7 +53,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 
-    public static int TakeIntersections = 7;
+    public static int TakeIntersections = 15;
     public const int inputNumber = 12;
 
     #region Constructors
@@ -845,8 +845,6 @@ namespace CTKS_Chart.ViewModels
 
       if (useRandom)
         bot.SplitTake = splitTake;
-
-      bot.TradingBot.Strategy.TakeIntersections = TakeIntersections;
 
       return bot;
     }

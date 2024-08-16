@@ -434,13 +434,18 @@ namespace CouldComputingServer
           var lastCreatedDirectory = directories
                                         .Select(dir => new DirectoryInfo(dir))
                                         .OrderByDescending(dir => dir.CreationTime)
+                                        .Where(x => x.FullName.Contains("Generation"))
                                         .FirstOrDefault();
 
-          // Call your method or do something with the selected folder path
-          TrainingSession.Load(File.ReadAllText(Path.Combine(selectedPath, "session.txt")));
+          if (lastCreatedDirectory == null)
+            lastCreatedDirectory = new DirectoryInfo(selectedPath);
 
-          BuyBotManager.LoadBestGenome(Path.Combine(lastCreatedDirectory.FullName, "BUY.txt"));
-          SellBotManager.LoadBestGenome(Path.Combine(lastCreatedDirectory.FullName, "SELL.txt"));
+          // Call your method or do something with the selected folder path
+          if (File.Exists(Path.Combine(selectedPath, "session.txt")))
+            TrainingSession.Load(File.ReadAllText(Path.Combine(selectedPath, "session.txt")));
+
+          BuyBotManager.LoadGeneration(Path.Combine(lastCreatedDirectory.FullName, "BUY.txt"));
+          SellBotManager.LoadGeneration(Path.Combine(lastCreatedDirectory.FullName, "SELL.txt"));
         }
       }
     }

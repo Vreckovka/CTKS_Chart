@@ -294,7 +294,7 @@ namespace CTKS_Chart.ViewModels
 
     #region AiPath
 
-    private string aiPath = @"Trainings\10_08_2024_07_56_37\ADA\BUY\25.txt";
+    private string aiPath = @"Trainings\Cloud Trainings\13_08_2024_21_30_57\ADA\BUY\3180.txt";
 
     public string AiPath
     {
@@ -496,6 +496,7 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion 
+
     #endregion
   }
 }

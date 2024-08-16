@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
@@ -200,6 +201,181 @@ namespace CTKS_Chart.ViewModels
 
     #region Methods
 
+
+    #region PreLoadCTks
+
+    static Dictionary<Tuple<string, TimeFrame>, List<CtksLayout>> preloadedLayots = new Dictionary<Tuple<string, TimeFrame>, List<CtksLayout>>();
+
+
+    static object batton = new object();
+
+    protected void PreLoadCTks(DateTime startTime)
+    {
+      lock (batton)
+      {
+        foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
+        {
+          var candles = TradingViewHelper.ParseTradingView(layoutData.Value, layoutData.Key, Asset.Symbol, saveData: true)
+            .Where(x => x.CloseTime > startTime);
+
+          if (preloadedLayots.TryGetValue(new Tuple<string, TimeFrame>(Asset.Symbol, layoutData.Value), out var data))
+          {
+            var loaded = data.FirstOrDefault(x => candles.First().OpenTime >= x.AllCandles.First().OpenTime);
+
+            if (loaded == null)
+            {
+              foreach (var candle in candles)
+              {
+                var layout = CreateCtks(layoutData.Key, layoutData.Value, candle.OpenTime);
+                layout.Asset = Asset;
+
+                data.Add(layout);
+              }
+            }
+          }
+          else
+          {
+            var newList = new List<CtksLayout>();
+
+            foreach (var candle in candles)
+            {
+              var layout = CreateCtks(layoutData.Key, layoutData.Value, candle.OpenTime);
+              layout.Asset = Asset;
+
+              var allCtks = new Ctks(new CtksLayout(), TimeFrame.W1, TradingBot.Asset);
+              allCtks.Epsilon = 0.0025m;
+
+              newList.Add(layout);
+            }
+
+            preloadedLayots.Add(new Tuple<string, TimeFrame>(Asset.Symbol, layoutData.Value), newList);
+          }
+        }
+
+
+      }
+    }
+
+    #endregion
+
+    #region PreloadCandles
+
+    static Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>> preloadedDaily = new Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>>();
+    static Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>> preloadedWeekly = new Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>>();
+
+    static object batton1 = new object();
+    private void PreloadCandles(IList<Candle> simulationCandles)
+    {
+      lock (batton1)
+      {
+        if (!preloadedDaily.ContainsKey(key))
+        {
+          var daily = new Dictionary<Candle, Candle>();
+          var weekly = new Dictionary<Candle, Candle>();
+
+          foreach (var candle in simulationCandles)
+          {
+            var dailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, candle);
+            var weeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, candle);
+
+            daily.Add(candle, dailyCandle);
+            weekly.Add(candle, weeklyCandle);
+          }
+
+          preloadedDaily.Add(key, daily);
+          preloadedWeekly.Add(key, weekly);
+        }
+        else
+        {
+          if (preloadedDaily[key].Count != simulationCandles.Count)
+          {
+            var daily = new Dictionary<Candle, Candle>();
+            var weekly = new Dictionary<Candle, Candle>();
+
+            Candle lastDailyCandle = null;
+            Candle lastWeeklyCandle = null;
+
+            foreach (var candle in simulationCandles)
+            {
+              var dailyCandle = lastDailyCandle;
+              var weeklyCandle = lastWeeklyCandle;
+
+              if (lastDailyCandle == null || (candle.OpenTime.Date != lastDailyCandle?.CloseTime.Date))
+              {
+                lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, candle);
+              }
+
+              if(lastWeeklyCandle != null)
+              {
+                DateTimeFormatInfo dfi = DateTimeFormatInfo.CurrentInfo;
+                var cal = dfi.Calendar;
+
+                var week = cal.GetWeekOfYear(candle.OpenTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek);
+
+                var lastweek = lastDailyCandle?.CloseTime != null ? cal.GetWeekOfYear(lastDailyCandle.CloseTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek) : -1;
+
+                if (week != lastweek)
+                  lastWeeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, candle);
+              }
+              else
+              {
+                lastWeeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, candle);
+              }
+
+
+              daily.Add(candle, dailyCandle);
+              weekly.Add(candle, weeklyCandle);
+            }
+
+            preloadedDaily[key] = daily;
+            preloadedWeekly[key] = weekly;
+          }
+        }
+      }
+    }
+
+    #endregion
+
+    #region GetCtks
+
+    protected override void GetCtks(CtksLayout ctksLayout, ref List<CtksLayout> secondaryLayouts, int lastCount)
+    {
+      if (preloadedLayots.TryGetValue(new Tuple<string, TimeFrame>(Asset.Symbol, ctksLayout.TimeFrame), out var list))
+      {
+        var newLayout = list.SingleOrDefault(x => x.Ctks.Candles.Count == lastCount + 1);
+
+        if (newLayout != null)
+        {
+          var secIndex = secondaryLayouts.IndexOf(ctksLayout);
+
+          secondaryLayouts[secIndex] = newLayout;
+          ctksLayout = newLayout;
+        }
+      }
+      else
+      {
+        base.GetCtks(ctksLayout, ref secondaryLayouts, lastCount);
+      }
+    }
+
+    #endregion
+
+    protected override Candle GetCandle(TimeFrame timeFrame, Candle actualCandle)
+    {
+      if (timeFrame == TimeFrame.D1)
+      {
+        return preloadedDaily[key][actualCandle];
+      }
+      else if (timeFrame == TimeFrame.W1)
+      {
+        return preloadedWeekly[key][actualCandle];
+      }
+
+      return null;
+    }
+
+    #region HeatBot
+
     public void HeatBot(IEnumerable<Candle> simulateCandles, AIStrategy aIStrategy)
     {
       var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{Asset.IndicatorDataPath}, 1D.csv", Asset.Symbol, saveData: true);
@@ -213,6 +389,10 @@ namespace CTKS_Chart.ViewModels
       aIStrategy.lastDailyCandle = lastDailyCandles.Last();
     }
 
+    #endregion
+
+    #region InitializeBot
+
     public void InitializeBot()
     {
       var mainCtks = new Ctks(MainLayout, MainLayout.TimeFrame, TradingBot.Asset);
@@ -224,16 +404,22 @@ namespace CTKS_Chart.ViewModels
       SelectedLayout = MainLayout;
     }
 
+    #endregion
+
+    public TimeFrame TimeFrame { get; set; }
+
+    private Tuple<string, TimeFrame> key = null;
+
     #region LoadLayouts
 
     protected override async Task LoadLayouts()
     {
-      InitializeBot();
-
       var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{Asset.IndicatorDataPath}, 1D.csv", Asset.Symbol, saveData: true);
       var allCandles = SimulationTradingBot.GetSimulationCandles(
          Minutes,
          DataPath, Asset.Symbol, FromDate);
+
+      TimeFrame = allCandles.allCandles.First().TimeFrame;
 
       var cutCandles = allCandles.cutCandles;
       var candles = allCandles.candles;
@@ -278,12 +464,17 @@ namespace CTKS_Chart.ViewModels
         HeatBot(cutCandles, aIStrategy);
       }
 
+      InitializeBot();
+
+      var timeFrame = simulateCandles.First().TimeFrame;
+      key = new Tuple<string, TimeFrame>(Asset.Symbol, timeFrame);
+
+      PreloadCandles(simulateCandles);
 
       Simulate(simulateCandles);
     }
 
     #endregion
-
 
     #region SimulateCandle
 
@@ -349,19 +540,6 @@ namespace CTKS_Chart.ViewModels
         disposable?.Dispose();
 
         lastElapsed = DateTime.Now;
-
-        if (Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
-          disposable = Observable.Interval(TimeSpan.FromSeconds(0.25))
-         .ObserveOnDispatcher()
-         .Subscribe((x) =>
-         {
-
-           TimeSpan diff = DateTime.Now - lastElapsed;
-
-           RunningTime = RunningTime.Add(diff);
-
-           lastElapsed = DateTime.Now;
-         });
 
         if (DrawChart)
         {
@@ -447,6 +625,10 @@ namespace CTKS_Chart.ViewModels
           result.TotalProfit = TradingBot.Strategy.TotalProfit;
           result.TotalNativeValue = TradingBot.Strategy.TotalNativeAssetValue;
           result.TotalNative = TradingBot.Strategy.TotalNativeAsset;
+          TimeSpan diff = DateTime.Now - lastElapsed;
+
+          RunningTime = RunningTime.Add(diff);
+
           result.RunTime = RunningTime;
           result.RunTimeTicks = RunningTime.Ticks;
           result.Date = DateTime.Now;
@@ -472,7 +654,7 @@ namespace CTKS_Chart.ViewModels
 
         Finished?.Invoke(this, null);
       }
-      catch(TaskCanceledException)
+      catch (TaskCanceledException)
       {
 
       }
@@ -481,7 +663,7 @@ namespace CTKS_Chart.ViewModels
         Logger.Log(ex);
       }
 
-      if(stopRequested)
+      if (stopRequested)
       {
 
         var simulationStrategy = new TStrategy();
@@ -514,6 +696,20 @@ namespace CTKS_Chart.ViewModels
       IsPaused = true;
       stopRequested = true;
 
+      var simulationStrategy = new TStrategy();
+
+      simulationStrategy.EnableRangeFilterStrategy = true;
+      simulationStrategy.Asset = TradingBot.Asset;
+      Layouts.Clear();
+      InnerLayouts.Clear();
+
+
+      if (simulationStrategy is AIStrategy aIStrategy)
+      {
+        aIStrategy.BuyAIBot = BUY_BOT;
+        aIStrategy.SellAIBot = SELL_BOT;
+      }
+      TradingBot.Strategy = simulationStrategy;
     }
 
     #endregion

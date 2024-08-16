@@ -29,6 +29,8 @@ namespace CTKS_Chart.Trading
     public DateTime OpenTime { get; set; }
     public DateTime CloseTime { get; set; }
 
+    public TimeFrame TimeFrame { get; set; }
+
     public IndicatorData IndicatorData { get; set; }
 
     public decimal Gain

@@ -674,7 +674,7 @@ namespace CTKS_Chart.ViewModels
 
     #region LoadLayouts
 
-    TimeFrame minTimeframe = TimeFrame.D1;
+    public TimeFrame minTimeframe = TimeFrame.D1;
     protected List<CtksLayout> InnerLayouts = new List<CtksLayout>();
 
     protected virtual async Task LoadLayouts()
@@ -774,59 +774,6 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region PreLoadCTks
-
-    static Dictionary<Tuple<string, TimeFrame>, List<CtksLayout>> preloadedLayots = new Dictionary<Tuple<string, TimeFrame>, List<CtksLayout>>();
-    static object batton = new object();
-
-    protected void PreLoadCTks(DateTime startTime)
-    {
-      lock (batton)
-      {
-        foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
-        {
-          var candles = TradingViewHelper.ParseTradingView(layoutData.Value, layoutData.Key, Asset.Symbol, saveData: true)
-            .Where(x => x.CloseTime > startTime);
-
-          if (preloadedLayots.TryGetValue(new Tuple<string, TimeFrame>(Asset.Symbol, layoutData.Value), out var data))
-          {
-            var loaded = data.FirstOrDefault(x => candles.First().OpenTime >= x.AllCandles.First().OpenTime);
-
-            if (loaded == null)
-            {
-              foreach (var candle in candles)
-              {
-                var layout = CreateCtks(layoutData.Key, layoutData.Value, candle.OpenTime);
-                layout.Asset = Asset;
-
-                data.Add(layout);
-              }
-            }
-          }
-          else
-          {
-            var newList = new List<CtksLayout>();
-
-
-            foreach (var candle in candles)
-            {
-              var layout = CreateCtks(layoutData.Key, layoutData.Value, candle.OpenTime);
-              layout.Asset = Asset;
-
-              var allCtks = new Ctks(new CtksLayout(), TimeFrame.W1, TradingBot.Asset);
-              allCtks.Epsilon = 0.0025m;
-
-              newList.Add(layout);
-            }
-
-            preloadedLayots.Add(new Tuple<string, TimeFrame>(Asset.Symbol, layoutData.Value), newList);
-          }
-        }
-      }
-    }
-
-    #endregion
-
     #region RenderLayout
 
     private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
@@ -852,6 +799,8 @@ namespace CTKS_Chart.ViewModels
         await semaphoreSlim.WaitAsync();
 
         List<CtksLayout> secondaryLayouts = InnerLayouts;
+
+        var lastDailyCandle = GetCandle(TimeFrame.D1, actual);
 
         for (int i = 0; i < secondaryLayouts.Count; i++)
         {
@@ -880,36 +829,16 @@ namespace CTKS_Chart.ViewModels
             if (!secondaryLayout.IsOutDated || (secondaryLayout.IsOutDated && fileCheck))
             {
               var lastCount = secondaryLayout.Ctks.Candles.Count;
+              var secIndex = secondaryLayouts.IndexOf(secondaryLayout);
 
-              if (IsSimulation)
-              {
-                if (preloadedLayots.TryGetValue(new Tuple<string, TimeFrame>(Asset.Symbol, secondaryLayout.TimeFrame), out var list))
-                {
-                  var newLayout = list.SingleOrDefault(x => x.Ctks.Candles.Count == lastCount + 1);
 
-                  if (newLayout != null)
-                  {
-                    var secIndex = secondaryLayouts.IndexOf(secondaryLayout);
+              GetCtks(secondaryLayout, ref secondaryLayouts, lastCount);
 
-                    secondaryLayouts[secIndex] = newLayout;
-                    secondaryLayout = newLayout;
-                  }
-                }
-              }
-              else
-              {
-                var innerCandles = TradingViewHelper.ParseTradingView(secondaryLayout.TimeFrame, secondaryLayout.DataLocation, Asset.Symbol, addNotClosedCandle: true, indexCut: lastCount + 1, saveData: true);
-
-                VSynchronizationContext.InvokeOnDispatcher(() => secondaryLayout.Ctks.CrateCtks(innerCandles));
-
-                secondaryLayout.IsOutDated = TradingViewHelper.IsOutDated(secondaryLayout.TimeFrame, innerCandles);
-              }
-
+              secondaryLayout = secondaryLayouts[secIndex];
 
               if (secondaryLayout.Ctks.Candles.Count > lastCount)
                 shouldUpdate = true;
             }
-
           }
         }
 
@@ -984,9 +913,13 @@ namespace CTKS_Chart.ViewModels
 
         TradingBot.Strategy.Intersections = ctksIntersections;
 
-        AddRangeFilterIntersections(TimeFrame.D1, actual);
-        AddRangeFilterIntersections(TimeFrame.W1, actual);
-       
+        //if(!IsSimulation)
+        {
+          AddRangeFilterIntersections(TimeFrame.D1, actual);
+          AddRangeFilterIntersections(TimeFrame.W1, actual);
+        }
+
+
         this.actual = actual;
 
         if (ctksIntersections.Count > 0)
@@ -996,18 +929,20 @@ namespace CTKS_Chart.ViewModels
             wasLoaded = true;
 
             TradingBot.Strategy.lastCandle = actual;
-            TradingBot.Strategy.lastDailyCandle = lastDailyClose;
+            TradingBot.Strategy.lastDailyCandle = lastDailyCandle;
 
             TradingBot.Strategy.LoadState();
             await TradingBot.Strategy.RefreshState();
-            VSynchronizationContext.InvokeOnDispatcher(() => MainWindow?.SortActualPositions());
+
+            if (!IsSimulation)
+              VSynchronizationContext.InvokeOnDispatcher(() => MainWindow?.SortActualPositions());
 
             if (ctksIntersections.Count > 0)
               TradingBot.Strategy.UpdateIntersections(ctksIntersections);
           }
 
           TradingBot.Strategy.ValidatePositions(actual);
-          TradingBot.Strategy.CreatePositions(actual, lastDailyClose);
+          TradingBot.Strategy.CreatePositions(actual, lastDailyCandle);
         }
         else
         {
@@ -1025,6 +960,19 @@ namespace CTKS_Chart.ViewModels
       {
         semaphoreSlim.Release();
       }
+    }
+
+    #endregion
+
+    #region GetCtks
+
+    protected virtual void GetCtks(CtksLayout ctksLayout, ref List<CtksLayout> secondaryLayouts, int lastCount)
+    {
+      var innerCandles = TradingViewHelper.ParseTradingView(ctksLayout.TimeFrame, ctksLayout.DataLocation, Asset.Symbol, addNotClosedCandle: true, indexCut: lastCount + 1);
+
+      VSynchronizationContext.InvokeOnDispatcher(() => ctksLayout.Ctks.CrateCtks(innerCandles));
+
+      ctksLayout.IsOutDated = TradingViewHelper.IsOutDated(ctksLayout.TimeFrame, innerCandles);
     }
 
     #endregion
@@ -1053,40 +1001,44 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region AddRangeFilterIntersections
+    #region GetCandle
 
-    Candle lastWeeklyClose = null;
-    Candle lastDailyClose = null;
+    Candle lastDailyCandle;
+    Candle lastWeeklyCandle;
 
-    private void AddRangeFilterIntersections(TimeFrame timeFrame, Candle actualCandle)
+    protected virtual Candle GetCandle(TimeFrame timeFrame, Candle actualCandle)
     {
-      Candle rangeCandle = null;
-
       if (timeFrame == TimeFrame.W1)
       {
         DateTimeFormatInfo dfi = DateTimeFormatInfo.CurrentInfo;
         var cal = dfi.Calendar;
-       
+
         var week = cal.GetWeekOfYear(actualCandle.OpenTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek);
 
-        var lastweek = lastWeeklyClose?.CloseTime != null ? cal.GetWeekOfYear(lastWeeklyClose.CloseTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek) : -1;
+        var lastweek = lastDailyCandle?.CloseTime != null ? cal.GetWeekOfYear(lastDailyCandle.CloseTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek) : -1;
 
         if (week != lastweek)
-          lastWeeklyClose = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, actualCandle);
+          lastWeeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, actualCandle);
+
+        return lastWeeklyCandle;
       }
-      if (timeFrame == TimeFrame.D1 && actualCandle.OpenTime.Date != lastDailyClose?.CloseTime.Date)
+      if (timeFrame == TimeFrame.D1 && actualCandle.OpenTime.Date != lastDailyCandle?.CloseTime.Date)
       {
-        lastDailyClose = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, actualCandle);
+        lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, actualCandle);
+
+        return lastDailyCandle;
       }
 
-      if (timeFrame == TimeFrame.W1)
-      {
-        rangeCandle = lastWeeklyClose;
-      }
-      else if (timeFrame == TimeFrame.D1)
-      {
-        rangeCandle = lastDailyClose;
-      }
+      return null;
+    }
+
+    #endregion
+
+    #region AddRangeFilterIntersections
+
+    private void AddRangeFilterIntersections(TimeFrame timeFrame, Candle actualCandle)
+    {
+      Candle rangeCandle = GetCandle(timeFrame, actualCandle);
 
       var rgL = TradingBot.Strategy.Intersections
          .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterLow && x.TimeFrame == timeFrame);
