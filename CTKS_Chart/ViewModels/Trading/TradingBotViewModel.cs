@@ -17,6 +17,7 @@ using Binance.Net.Enums;
 using Binance.Net.Interfaces;
 using CTKS_Chart.Binance;
 using CTKS_Chart.Strategy;
+using CTKS_Chart.Strategy.AIStrategy;
 using CTKS_Chart.Trading;
 using CTKS_Chart.Views;
 using CTKS_Chart.Views.Prompts;
@@ -911,14 +912,21 @@ namespace CTKS_Chart.ViewModels
           return;
         }
 
+
+        var lowest = actual.Close.Value * (decimal)0.3;
+        var highest = actual.Close.Value * (decimal)20;
+
+
+        ctksIntersections = ctksIntersections.Where(x => x.Value > lowest && x.Value < highest).ToList();
+
         TradingBot.Strategy.Intersections = ctksIntersections;
 
-        //if(!IsSimulation)
+        if(!(TradingBot.Strategy is AIStrategy))
         {
-          //AddRangeFilterIntersections(TimeFrame.D1, actual);
-          //AddRangeFilterIntersections(TimeFrame.W1, actual);
+          AddRangeFilterIntersections(TimeFrame.D1, actual);
+          AddRangeFilterIntersections(TimeFrame.W1, actual);
         }
-
+      
 
         this.actual = actual;
 
@@ -1036,9 +1044,28 @@ namespace CTKS_Chart.ViewModels
 
     #region AddRangeFilterIntersections
 
+    Candle lastDailyRangeCandle;
+    Candle lastWeeklyRangeCandle;
+
     private void AddRangeFilterIntersections(TimeFrame timeFrame, Candle actualCandle)
     {
       Candle rangeCandle = GetCandle(timeFrame, actualCandle);
+
+      if (timeFrame == TimeFrame.D1)
+      {
+        if (lastDailyRangeCandle == rangeCandle)
+          return;
+        else
+          lastDailyRangeCandle = rangeCandle;
+      }
+      else if(timeFrame == TimeFrame.W1)
+      {
+        if (lastWeeklyRangeCandle == rangeCandle)
+          return;
+        else
+          lastDailyRangeCandle = rangeCandle;
+      }
+
 
       var rgL = TradingBot.Strategy.Intersections
          .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterLow && x.TimeFrame == timeFrame);
@@ -1046,8 +1073,6 @@ namespace CTKS_Chart.ViewModels
         .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterHigh && x.TimeFrame == timeFrame);
       var rg = TradingBot.Strategy.Intersections
         .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.None && x.TimeFrame == timeFrame);
-
-
 
       if (rangeCandle != null)
       {
@@ -1111,6 +1136,91 @@ namespace CTKS_Chart.ViewModels
           TradingBot.Strategy.Intersections.Add(rgH);
         }
       }
+    }
+
+    #endregion
+
+    #region GetRangeFilterIntersections
+
+    protected IList<CtksIntersection> GetRangeFilterIntersections(
+      IList<CtksIntersection> intersections,
+      TimeFrame timeFrame,
+      Candle rangeCandle)
+    {
+      var rgL = intersections
+         .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterLow && x.TimeFrame == timeFrame);
+      var rgH = intersections
+        .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.RangeFilterHigh && x.TimeFrame == timeFrame);
+      var rg = intersections
+        .FirstOrDefault(x => x.IntersectionType == IntersectionType.RangeFilter && x.Tag == Tag.None && x.TimeFrame == timeFrame);
+
+      var list = new List<CtksIntersection>();
+
+      if (rangeCandle != null)
+      {
+        var minDiff = 0.05m;
+        var low = Math.Round(rangeCandle.IndicatorData.RangeFilterData.LowTarget, TradingBot.Asset.PriceRound);
+        var rf = Math.Round(rangeCandle.IndicatorData.RangeFilterData.RangeFilter, TradingBot.Asset.PriceRound);
+        var high = Math.Round(rangeCandle.IndicatorData.RangeFilterData.HighTarget, TradingBot.Asset.PriceRound);
+
+        if (rgL != null && rgL.Value > 0)
+        {
+          if (Math.Abs((rgL.Value - low) / rgL.Value) > minDiff)
+          {
+            rgL.Value = low;
+          }
+        }
+        else if (low > 0)
+        {
+          rgL = new CtksIntersection()
+          {
+            Value = low,
+            IntersectionType = IntersectionType.RangeFilter,
+            Tag = Tag.RangeFilterLow,
+            TimeFrame = timeFrame
+          };
+
+          list.Add(rgL);
+        }
+
+        if (rg != null)
+        {
+          rg.Value = rf;
+        }
+        else if (rf > 0)
+        {
+          rg = new CtksIntersection()
+          {
+            Value = rf,
+            IntersectionType = IntersectionType.RangeFilter,
+            TimeFrame = timeFrame
+          };
+
+          list.Add(rg);
+        }
+
+        if (rgH != null && rgH.Value > 0)
+        {
+          if (Math.Abs((rgH.Value - high) / rgH.Value) > minDiff)
+          {
+            rgH.Value = high;
+          }
+        }
+        else if (high > 0)
+        {
+          rgH = new CtksIntersection()
+          {
+            Value = high,
+            IntersectionType = IntersectionType.RangeFilter,
+            Tag = Tag.RangeFilterHigh,
+            TimeFrame = timeFrame
+          };
+
+          list.Add(rgH);
+        }
+      }
+
+      return list;
     }
 
     #endregion

@@ -23,6 +23,10 @@ namespace CTKS_Chart.Trading
     long maxUnix;
     long unixDiff;
 
+    public Ctks()
+    {
+
+    }
     public Ctks(CtksLayout layout, TimeFrame timeFrame, Asset asset)
     {
       this.layout = layout ?? throw new ArgumentNullException(nameof(layout));

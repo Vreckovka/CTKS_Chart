@@ -850,11 +850,6 @@ namespace CTKS_Chart.Strategy
                                 x.Value > minBuy &&
                                 x.Value < lastSell)
                     .ToList();
-#if DEBUG
-        var lowest = actualCandle.Close.Value * (decimal)0.3;
-
-        inter = inter.Where(x => x.Value > lowest).ToList();
-#endif
 
         var nonAutomaticIntersections = inter.Where(x => x.Value < maxBuy &&
                                                          x.Value < GetMaxBuy(actualCandle.Close.Value, x.TimeFrame));

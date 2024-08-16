@@ -242,9 +242,6 @@ namespace CTKS_Chart.ViewModels
               var layout = CreateCtks(layoutData.Key, layoutData.Value, candle.OpenTime);
               layout.Asset = Asset;
 
-              var allCtks = new Ctks(new CtksLayout(), TimeFrame.W1, TradingBot.Asset);
-              allCtks.Epsilon = 0.0025m;
-
               newList.Add(layout);
             }
 
@@ -272,11 +269,28 @@ namespace CTKS_Chart.ViewModels
         {
           var daily = new Dictionary<Candle, Candle>();
           var weekly = new Dictionary<Candle, Candle>();
+          var dailyLayout = new CtksLayout()
+          {
+            Ctks = new Ctks()
+          };
+
+          var weeklyLayout = new CtksLayout()
+          {
+            Ctks = new Ctks()
+          };
 
           foreach (var candle in simulationCandles)
           {
             var dailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, candle);
             var weeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, candle);
+
+
+            //var dailyRange = GetRangeFilterIntersections(dailyLayout.Ctks.Intersections, TimeFrame.D1, dailyCandle);
+            //var weeklyRange = GetRangeFilterIntersections(weeklyLayout.Ctks.Intersections, TimeFrame.W1, weeklyCandle);
+
+            //dailyLayout.Ctks.Intersections.AddRange(dailyRange);
+            //weeklyLayout.Ctks.Intersections.AddRange(weeklyRange);
+
 
             daily.Add(candle, dailyCandle);
             weekly.Add(candle, weeklyCandle);
@@ -700,7 +714,7 @@ namespace CTKS_Chart.ViewModels
       IsPaused = true;
       stopRequested = true;
 
-      if(!isRunning)
+      if (!isRunning)
       {
         var simulationStrategy = new TStrategy();
 
