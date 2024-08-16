@@ -561,7 +561,7 @@ namespace CouldComputingServer
         ToStart -= agentsPerClient;
         InProgress += agentsPerClient;
 
-        var message = JsonSerializer.Serialize(newData) + MessageContract.EndOfMessage;
+        var message = JsonSerializer.Serialize(newData);
 
         if (messages.ContainsKey(client))
         {
@@ -572,7 +572,7 @@ namespace CouldComputingServer
           messages.Add(client, message);
         }
 
-        SendMessage(client, message);
+        TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
       }
 
       Logger.Log(MessageType.Inform, "Generation distributed");
@@ -697,27 +697,6 @@ namespace CouldComputingServer
 
     #endregion
 
-    #region SendMessage
-
-    private void SendMessage(CloudClient client, string serverData)
-    {
-      try
-      {
-        TCPHelper.SendMessage(client.Client, serverData);
-      }
-      catch (Exception ex)
-      {
-        if (ex.ToString().Contains("An existing connection was forcibly closed by the remote host.."))
-        {
-          TryRemoveClient(client);
-        }
-
-        Console.WriteLine(ex);
-      }
-    }
-
-    #endregion
-
     #region HandleClient
 
     object batton = new object();
@@ -746,36 +725,40 @@ namespace CouldComputingServer
 
             if (currentData.Contains(MessageContract.Error))
             {
-              SendMessage(client, messages[client]);
+              TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(JsonSerializer.Serialize(messages[client])));
+
               ms = new MemoryStream();
               continue;
             }
 
-            if (currentData.Contains(MessageContract.EndOfMessage))
+            if (!MessageContract.IsDataMessage(currentData))
             {
-              var split = currentData.Split(MessageContract.EndOfMessage);
-
-              var data = JsonSerializer.Deserialize<RunData>(split[0]);
-
-              lock (batton)
-              {
-                runResults.Add(data);
-
-                if (!client.Done)
-                {
-                  UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
-                }
-              }
-
-              stream.Flush();
-              ms.Flush();
-              ms.Dispose();
-              ms = new MemoryStream();
-              buffer.Clear();
-
-              if (client.Done)
-                Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
+              continue;
             }
+
+            var split = MessageContract.GetDataMessageContent(currentData);
+
+            var data = JsonSerializer.Deserialize<RunData>(split);
+
+            lock (batton)
+            {
+              runResults.Add(data);
+
+              if (!client.Done)
+              {
+                UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
+              }
+            }
+
+            stream.Flush();
+            ms.Flush();
+            ms.Dispose();
+            ms = new MemoryStream();
+            buffer.Clear();
+
+            if (client.Done)
+              Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
+
           }
           catch (Exception ex)
           {
@@ -826,7 +809,7 @@ namespace CouldComputingServer
       {
         if (buyManger.NeatAlgorithm == null)
         {
-          SendMessage(tcpClient, MessageContract.Done);
+          TCPHelper.SendMessage(tcpClient.Client, MessageContract.Done);
           return;
         }
 
@@ -875,7 +858,7 @@ namespace CouldComputingServer
 
               if (tcpClient.Done)
               {
-                SendMessage(tcpClient, MessageContract.Done);
+                TCPHelper.SendMessage(tcpClient.Client, MessageContract.Done);
               }
             }
           }

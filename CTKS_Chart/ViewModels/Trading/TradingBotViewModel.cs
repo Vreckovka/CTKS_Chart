@@ -337,7 +337,7 @@ namespace CTKS_Chart.ViewModels
       var answer = windowManager.ShowQuestionPrompt("Do you really want to RESET bot?", "Reset Bot");
       if (answer == PromptResult.Ok)
       {
-        await TradingBot.Strategy.Reset(actual);
+        await TradingBot.Strategy.Reset(actualCachedCandle);
       }
 
     }
@@ -426,7 +426,7 @@ namespace CTKS_Chart.ViewModels
 
     protected async void OnOpenPositionSize()
     {
-      var vm = new PositionSizeViewModel<TPosition>(TradingBot.Strategy, actual, windowManager);
+      var vm = new PositionSizeViewModel<TPosition>(TradingBot.Strategy, actualCachedCandle, windowManager);
       var positionResult = windowManager.ShowQuestionPrompt<PositionSizeView, PositionSizeViewModel<TPosition>>(vm);
 
       if (positionResult == PromptResult.Ok)
@@ -779,12 +779,10 @@ namespace CTKS_Chart.ViewModels
 
     private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
 
-    private bool shouldUpdate = true;
     private bool wasLoaded = false;
-    List<CtksIntersection> ctksIntersections = new List<CtksIntersection>();
     DateTime lastFileCheck = DateTime.Now;
 
-    private Candle actual = null;
+    private Candle actualCachedCandle = null;
 
     public bool IsSimulation { get; set; } = false;
 
@@ -799,108 +797,10 @@ namespace CTKS_Chart.ViewModels
       {
         await semaphoreSlim.WaitAsync();
 
-        List<CtksLayout> secondaryLayouts = InnerLayouts;
-
         var lastDailyCandle = GetCandle(TimeFrame.D1, actual);
+        var ctksIntersections = GetIntersections(actual, out var outdated);
 
-        for (int i = 0; i < secondaryLayouts.Count; i++)
-        {
-          var secondaryLayout = secondaryLayouts[i];
-
-          var lastCandle = secondaryLayout.Ctks.Candles.Last();
-
-          var isOutDated = false;
-
-          if (IsSimulation)
-          {
-            isOutDated = actual.OpenTime > TradingViewHelper.GetNextTime(lastCandle.OpenTime, secondaryLayout.TimeFrame);
-          }
-          else
-          {
-            isOutDated = TradingViewHelper.IsOutDated(secondaryLayout.TimeFrame, secondaryLayout.AllCandles);
-          }
-
-          if (isOutDated)
-          {
-            var fileCheck = true;
-
-            if (!IsSimulation)
-              fileCheck = lastFileCheck < DateTime.Now.AddMinutes(1);
-
-            if (!secondaryLayout.IsOutDated || (secondaryLayout.IsOutDated && fileCheck))
-            {
-              var lastCount = secondaryLayout.Ctks.Candles.Count;
-              var secIndex = secondaryLayouts.IndexOf(secondaryLayout);
-
-
-              GetCtks(secondaryLayout, ref secondaryLayouts, lastCount);
-
-              secondaryLayout = secondaryLayouts[secIndex];
-
-              if (secondaryLayout.Ctks.Candles.Count > lastCount)
-                shouldUpdate = true;
-            }
-          }
-        }
-
-        foreach (var indicator in IndicatorLayouts)
-        {
-          indicator.IsOutDated = TradingViewHelper.IsOutDated(indicator.TimeFrame, indicator.AllCandles);
-          var lastCount = indicator.AllCandles.Count;
-
-          if (indicator.IsOutDated)
-          {
-            var innerCandles = TradingViewHelper.ParseTradingView
-              (indicator.TimeFrame, indicator.DataLocation, Asset.Symbol,
-              addNotClosedCandle: true, indexCut: lastCount + 1,
-              saveData: !IsSimulation && indicator.DataLocation.Contains(TradingBot.Asset.Symbol));
-
-            indicator.IsOutDated = TradingViewHelper.IsOutDated(indicator.TimeFrame, indicator.AllCandles);
-
-            if (innerCandles.Count > lastCount)
-            {
-              indicator.AllCandles = innerCandles;
-              shouldUpdate = true;
-            }
-          }
-        }
-
-        if (shouldUpdate)
-        {
-          ctksIntersections.Clear();
-
-          for (int y = 0; y < secondaryLayouts.Count; y++)
-          {
-            var intersections = secondaryLayouts[y].Ctks.Intersections;
-
-            var validIntersections = intersections
-              .Where(x => x.Value < decimal.MaxValue && x.Value > decimal.MinValue)
-              .Where(x => Math.Round(x.Value, TradingBot.Asset.PriceRound) > 0)
-              .ToList();
-
-            ctksIntersections.AddRange(validIntersections);
-          }
-
-          ctksIntersections = ctksIntersections.OrderByDescending(x => x.Value).ToList();
-
-
-          shouldUpdate = false;
-
-          if (ctksIntersections.Count > 0)
-            TradingBot.Strategy.UpdateIntersections(ctksIntersections);
-
-          var duplicates = ctksIntersections.GroupBy(x => x.Value);
-
-          foreach (var duplicate in duplicates.Where(x => x.Count() > 1))
-          {
-            var list = duplicate.ToList();
-
-            for (int i = 1; i < list.Count; i++)
-            {
-              ctksIntersections.Remove(list[i]);
-            }
-          }
-        }
+        actualCachedCandle = actual;
 
         if (ctksIntersections.Count == 0)
         {
@@ -912,23 +812,18 @@ namespace CTKS_Chart.ViewModels
           return;
         }
 
-
-        var lowest = actual.Close.Value * (decimal)0.3;
-        var highest = actual.Close.Value * (decimal)20;
-
-
-        ctksIntersections = ctksIntersections.Where(x => x.Value > lowest && x.Value < highest).ToList();
-
         TradingBot.Strategy.Intersections = ctksIntersections;
 
-        if(!(TradingBot.Strategy is AIStrategy))
+        if (!(TradingBot.Strategy is AIStrategy))
         {
           AddRangeFilterIntersections(TimeFrame.D1, actual);
           AddRangeFilterIntersections(TimeFrame.W1, actual);
         }
-      
 
-        this.actual = actual;
+
+        if (outdated)
+          TradingBot.Strategy.UpdateIntersections(ctksIntersections);
+
 
         if (ctksIntersections.Count > 0)
         {
@@ -972,13 +867,132 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    #region GetIntersections
+
+    List<CtksIntersection> ctksCachedIntersections = new List<CtksIntersection>();
+    protected virtual List<CtksIntersection> GetIntersections(Candle actual, out bool outdated)
+    {
+      List<CtksLayout> secondaryLayouts = InnerLayouts.ToList();
+      var shouldUpdate = false;
+      outdated = false;
+
+      for (int i = 0; i < secondaryLayouts.Count; i++)
+      {
+        var secondaryLayout = secondaryLayouts[i];
+
+        var lastCandle = secondaryLayout.Ctks.Candles.Last();
+
+        var isOutDated = false;
+
+        if (IsSimulation)
+        {
+          isOutDated = actual.OpenTime > TradingViewHelper.GetNextTime(lastCandle.OpenTime, secondaryLayout.TimeFrame);
+        }
+        else
+        {
+          isOutDated = TradingViewHelper.IsOutDated(secondaryLayout.TimeFrame, secondaryLayout.AllCandles);
+        }
+
+        if (isOutDated)
+        {
+          var fileCheck = true;
+
+          if (!IsSimulation)
+            fileCheck = lastFileCheck < DateTime.Now.AddMinutes(1);
+
+          if (!secondaryLayout.IsOutDated || (secondaryLayout.IsOutDated && fileCheck))
+          {
+            var lastCount = secondaryLayout.Ctks.Candles.Count;
+            var secIndex = secondaryLayouts.IndexOf(secondaryLayout);
+
+
+            GetCtks(secondaryLayout, ref secondaryLayouts, lastCount);
+
+            secondaryLayout = secondaryLayouts[secIndex];
+
+            if (secondaryLayout.Ctks.Candles.Count > lastCount)
+              shouldUpdate = true;
+          }
+        }
+      }
+
+      foreach (var indicator in IndicatorLayouts)
+      {
+        indicator.IsOutDated = TradingViewHelper.IsOutDated(indicator.TimeFrame, indicator.AllCandles);
+        var lastCount = indicator.AllCandles.Count;
+
+        if (indicator.IsOutDated)
+        {
+          var innerCandles = TradingViewHelper.ParseTradingView
+            (indicator.TimeFrame, indicator.DataLocation, Asset.Symbol,
+            addNotClosedCandle: true, indexCut: lastCount + 1,
+            saveData: !IsSimulation && indicator.DataLocation.Contains(TradingBot.Asset.Symbol));
+
+          indicator.IsOutDated = TradingViewHelper.IsOutDated(indicator.TimeFrame, indicator.AllCandles);
+
+          if (innerCandles.Count > lastCount)
+          {
+            indicator.AllCandles = innerCandles;
+            shouldUpdate = true;
+          }
+        }
+      }
+
+      var newInters = new List<CtksIntersection>();
+
+      if (shouldUpdate)
+      {
+        for (int y = 0; y < secondaryLayouts.Count; y++)
+        {
+          var intersections = secondaryLayouts[y].Ctks.Intersections;
+
+          var validIntersections = intersections
+            .Where(x => x.Value < decimal.MaxValue && x.Value > decimal.MinValue)
+            .Where(x => Math.Round(x.Value, TradingBot.Asset.PriceRound) > 0)
+            .ToList();
+
+          newInters.AddRange(validIntersections);
+        }
+
+        newInters = newInters.OrderByDescending(x => x.Value).ToList();
+
+        var duplicates = newInters.GroupBy(x => x.Value);
+
+        foreach (var duplicate in duplicates.Where(x => x.Count() > 1))
+        {
+          var list = duplicate.ToList();
+
+          for (int i = 1; i < list.Count; i++)
+          {
+            newInters.Remove(list[i]);
+          }
+        }
+
+        var lowest = actual.Close.Value * (decimal)0.3;
+        var highest = actual.Close.Value * (decimal)20;
+
+        newInters = newInters.Where(x => x.Value > lowest && x.Value < highest).ToList();
+      }
+
+
+      if (newInters.Count > 0)
+      {
+        ctksCachedIntersections = newInters;
+        outdated = true;
+      }
+       
+      return ctksCachedIntersections;
+    }
+
+    #endregion
+
     #region GetCtks
 
     protected virtual void GetCtks(CtksLayout ctksLayout, ref List<CtksLayout> secondaryLayouts, int lastCount)
     {
       var innerCandles = TradingViewHelper.ParseTradingView(ctksLayout.TimeFrame, ctksLayout.DataLocation, Asset.Symbol, addNotClosedCandle: true, indexCut: lastCount + 1);
 
-      VSynchronizationContext.InvokeOnDispatcher(() => ctksLayout.Ctks.CrateCtks(innerCandles));
+      ctksLayout.Ctks.CrateCtks(innerCandles);
 
       ctksLayout.IsOutDated = TradingViewHelper.IsOutDated(ctksLayout.TimeFrame, innerCandles);
     }
@@ -1058,7 +1072,7 @@ namespace CTKS_Chart.ViewModels
         else
           lastDailyRangeCandle = rangeCandle;
       }
-      else if(timeFrame == TimeFrame.W1)
+      else if (timeFrame == TimeFrame.W1)
       {
         if (lastWeeklyRangeCandle == rangeCandle)
           return;

@@ -454,15 +454,14 @@ namespace CloudComputingClient
               continue;
             }
 
-            if (!currentData.Contains(MessageContract.EndOfMessage))
+            if (!MessageContract.IsDataMessage(currentData))
             {
               continue;
             }
 
+            var split = MessageContract.GetDataMessageContent(currentData);
 
-            var split = currentData.Split(MessageContract.EndOfMessage);
-
-            var serverRunData = JsonSerializer.Deserialize<ServerRunData>(split[0]);
+            var serverRunData = JsonSerializer.Deserialize<ServerRunData>(split);
 
             if (serverRunData != null)
             {
@@ -542,18 +541,12 @@ namespace CloudComputingClient
     {
       try
       {
-
         lock (batton0)
         {
           var _stream = tcpClient?.GetStream();
-          Console.WriteLine($"SENDING {++asd}");
 
           if (_stream != null)
-          {
-            var json = JsonSerializer.Serialize(runData) + MessageContract.EndOfMessage;
-
-            TCPHelper.SendMessage(tcpClient, json); 
-          }
+            TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(JsonSerializer.Serialize(runData)));
         }
       }
       catch (Exception ex)
@@ -588,7 +581,7 @@ namespace CloudComputingClient
       lastElapsed = DateTime.Now;
 
       Console.WriteLine($"Generation: {ServerRunData?.Generation ?? -1}");
-      Console.WriteLine($"Run Time: {RunTime.ToString(@"hh\:mm\:ss")}"); 
+      Console.WriteLine($"Run Time: {RunTime.ToString(@"hh\:mm\:ss")}");
       Console.WriteLine();
 
       Console.WriteLine($"Symbol: {ServerRunData?.Symbol}");

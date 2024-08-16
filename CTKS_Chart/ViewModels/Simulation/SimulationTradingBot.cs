@@ -201,55 +201,29 @@ namespace CTKS_Chart.ViewModels
 
     #region Methods
 
+    #region PreLoadIntersections
 
-    #region PreLoadCTks
-
-    static Dictionary<Tuple<string, TimeFrame>, List<CtksLayout>> preloadedLayots = new Dictionary<Tuple<string, TimeFrame>, List<CtksLayout>>();
+    static Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Tuple<List<CtksIntersection>, bool>>> preloadedIntersections = new Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Tuple<List<CtksIntersection>, bool>>>();
 
 
-    static object batton = new object();
+    static object batton12 = new object();
 
-    protected void PreLoadCTks(DateTime startTime)
+    protected void PreLoadIntersections(IList<Candle> simulationCandles)
     {
-      lock (batton)
+      lock (batton12)
       {
-        foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
+        if (!preloadedIntersections.ContainsKey(key))
         {
-          var candles = TradingViewHelper.ParseTradingView(layoutData.Value, layoutData.Key, Asset.Symbol, saveData: true)
-            .Where(x => x.CloseTime > startTime);
+          var intersections = new Dictionary<Candle, Tuple<List<CtksIntersection>, bool>>();
 
-          if (preloadedLayots.TryGetValue(new Tuple<string, TimeFrame>(Asset.Symbol, layoutData.Value), out var data))
+          foreach (var candle in simulationCandles)
           {
-            var loaded = data.FirstOrDefault(x => candles.First().OpenTime >= x.AllCandles.First().OpenTime);
-
-            if (loaded == null)
-            {
-              foreach (var candle in candles)
-              {
-                var layout = CreateCtks(layoutData.Key, layoutData.Value, candle.OpenTime);
-                layout.Asset = Asset;
-
-                data.Add(layout);
-              }
-            }
+            var inters = base.GetIntersections(candle, out var outdated);
+            intersections.Add(candle, new Tuple<List<CtksIntersection>, bool>(inters, outdated));
           }
-          else
-          {
-            var newList = new List<CtksLayout>();
 
-            foreach (var candle in candles)
-            {
-              var layout = CreateCtks(layoutData.Key, layoutData.Value, candle.OpenTime);
-              layout.Asset = Asset;
-
-              newList.Add(layout);
-            }
-
-            preloadedLayots.Add(new Tuple<string, TimeFrame>(Asset.Symbol, layoutData.Value), newList);
-          }
+          preloadedIntersections.Add(key, intersections);
         }
-
-
       }
     }
 
@@ -269,28 +243,11 @@ namespace CTKS_Chart.ViewModels
         {
           var daily = new Dictionary<Candle, Candle>();
           var weekly = new Dictionary<Candle, Candle>();
-          var dailyLayout = new CtksLayout()
-          {
-            Ctks = new Ctks()
-          };
-
-          var weeklyLayout = new CtksLayout()
-          {
-            Ctks = new Ctks()
-          };
 
           foreach (var candle in simulationCandles)
           {
             var dailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, candle);
             var weeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, candle);
-
-
-            //var dailyRange = GetRangeFilterIntersections(dailyLayout.Ctks.Intersections, TimeFrame.D1, dailyCandle);
-            //var weeklyRange = GetRangeFilterIntersections(weeklyLayout.Ctks.Intersections, TimeFrame.W1, weeklyCandle);
-
-            //dailyLayout.Ctks.Intersections.AddRange(dailyRange);
-            //weeklyLayout.Ctks.Intersections.AddRange(weeklyRange);
-
 
             daily.Add(candle, dailyCandle);
             weekly.Add(candle, weeklyCandle);
@@ -299,80 +256,18 @@ namespace CTKS_Chart.ViewModels
           preloadedDaily.Add(key, daily);
           preloadedWeekly.Add(key, weekly);
         }
-        else
-        {
-          //if (preloadedDaily[key].Count != simulationCandles.Count)
-          //{
-          //  var daily = new Dictionary<Candle, Candle>();
-          //  var weekly = new Dictionary<Candle, Candle>();
-
-          //  Candle lastDailyCandle = null;
-          //  Candle lastWeeklyCandle = null;
-
-          //  foreach (var candle in simulationCandles)
-          //  {
-          //    var dailyCandle = lastDailyCandle;
-          //    var weeklyCandle = lastWeeklyCandle;
-
-          //    if (lastDailyCandle == null || (candle.OpenTime.Date != lastDailyCandle?.CloseTime.Date))
-          //    {
-          //      lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, candle);
-          //    }
-
-          //    if(lastWeeklyCandle != null)
-          //    {
-          //      DateTimeFormatInfo dfi = DateTimeFormatInfo.CurrentInfo;
-          //      var cal = dfi.Calendar;
-
-          //      var week = cal.GetWeekOfYear(candle.OpenTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek);
-
-          //      var lastweek = lastDailyCandle?.CloseTime != null ? cal.GetWeekOfYear(lastDailyCandle.CloseTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek) : -1;
-
-          //      if (week != lastweek)
-          //        lastWeeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, candle);
-          //    }
-          //    else
-          //    {
-          //      lastWeeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, candle);
-          //    }
-
-
-          //    daily.Add(candle, dailyCandle);
-          //    weekly.Add(candle, weeklyCandle);
-          //  }
-
-          //  preloadedDaily[key] = daily;
-          //  preloadedWeekly[key] = weekly;
-          //}
-        }
       }
     }
 
     #endregion
 
-    #region GetCtks
-
-    protected override void GetCtks(CtksLayout ctksLayout, ref List<CtksLayout> secondaryLayouts, int lastCount)
+    protected override List<CtksIntersection> GetIntersections(Candle actual, out bool isOutdated)
     {
-      if (preloadedLayots.TryGetValue(new Tuple<string, TimeFrame>(Asset.Symbol, ctksLayout.TimeFrame), out var list))
-      {
-        var newLayout = list.SingleOrDefault(x => x.Ctks.Candles.Count == lastCount + 1);
+      var inter = preloadedIntersections[key][actual];
 
-        if (newLayout != null)
-        {
-          var secIndex = secondaryLayouts.IndexOf(ctksLayout);
-
-          secondaryLayouts[secIndex] = newLayout;
-          ctksLayout = newLayout;
-        }
-      }
-      else
-      {
-        base.GetCtks(ctksLayout, ref secondaryLayouts, lastCount);
-      }
+      isOutdated = inter.Item2;
+      return inter.Item1;
     }
-
-    #endregion
 
     protected override Candle GetCandle(TimeFrame timeFrame, Candle actualCandle)
     {
@@ -417,7 +312,7 @@ namespace CTKS_Chart.ViewModels
       PreloadCandles(simulationCandles);
 
       LoadSecondaryLayouts(FromDate);
-      PreLoadCTks(FromDate);
+      PreLoadIntersections(simulationCandles);
 
       MainLayout.Ctks = mainCtks;
       SelectedLayout = MainLayout;
