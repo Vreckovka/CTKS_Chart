@@ -19,6 +19,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Forms;
 using System.Windows.Input;
 using System.Xml;
 using VCore.Standard.Factories.ViewModels;
@@ -43,9 +44,10 @@ namespace CouldComputingServer
 
 
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
-    {    
+    {
       TrainingSession = new TrainingSession(DateTime.Now.ToString("dd_MM_yyyy_HH_mm_ss"));
       TrainingSession.CreateSymbolsToTest(new string[] { "ADAUSDT", "BTCUSDT", "ETHUSDT", "LTCUSDT", "BNBUSDT" });
+
 
       BuyBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
       SellBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
@@ -398,6 +400,55 @@ namespace CouldComputingServer
 
     #endregion
 
+    #region Commands
+
+    #region LoadGeneration
+
+    protected ActionCommand loadGeneration;
+
+    public ICommand LoadGeneration
+    {
+      get
+      {
+        return loadGeneration ??= new ActionCommand(OnLoadGeneration).DisposeWith(this);
+      }
+    }
+
+    protected virtual void OnLoadGeneration()
+    {
+      using (FolderBrowserDialog folderBrowserDialog = new FolderBrowserDialog())
+      {
+        // Set properties for FolderBrowserDialog
+        folderBrowserDialog.Description = "Select a Folder";
+        folderBrowserDialog.ShowNewFolderButton = true;
+        folderBrowserDialog.SelectedPath = Path.GetFullPath("Trainings");
+
+        // Show the dialog and check if the user selected a folder
+        if (folderBrowserDialog.ShowDialog() == DialogResult.OK)
+        {
+          // Get the selected folder path
+          string selectedPath = folderBrowserDialog.SelectedPath;
+
+          var directories = Directory.GetDirectories(selectedPath);
+
+          var lastCreatedDirectory = directories
+                                        .Select(dir => new DirectoryInfo(dir))
+                                        .OrderByDescending(dir => dir.CreationTime)
+                                        .FirstOrDefault();
+
+          // Call your method or do something with the selected folder path
+          TrainingSession.Load(File.ReadAllText(Path.Combine(selectedPath, "session.txt")));
+
+          BuyBotManager.LoadBestGenome(Path.Combine(lastCreatedDirectory.FullName, "BUY.txt"));
+          SellBotManager.LoadBestGenome(Path.Combine(lastCreatedDirectory.FullName, "SELL.txt"));
+        }
+      }
+    }
+
+    #endregion
+
+    #endregion
+
     #region Methods
 
     #region Initialize
@@ -420,6 +471,8 @@ namespace CouldComputingServer
           UpdateGeneration(runResults);
         }
       });
+
+
     }
 
     #endregion
@@ -557,6 +610,8 @@ namespace CouldComputingServer
           TotalValue = bestRun.TotalValue;
           Drawdawn = bestRun.Drawdawn;
           NumberOfTrades = bestRun.NumberOfTrades;
+
+
         }
 
         if (isStartSymbol)
@@ -892,5 +947,5 @@ namespace CouldComputingServer
 
     #endregion
   }
-
 }
+

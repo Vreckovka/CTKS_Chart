@@ -205,7 +205,7 @@ namespace CTKS_Chart.ViewModels
       var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{Asset.IndicatorDataPath}, 1D.csv", Asset.Symbol, saveData: true);
 
       var lastDailyCandles = dailyCandles
-        .Where(x => x.CloseTime < simulateCandles.First().CloseTime)
+        .Where(x => x.CloseTime <= simulateCandles.First().CloseTime)
         .TakeLast(aIStrategy.takeLastDailyCandles)
         .ToList();
 

@@ -593,6 +593,7 @@ namespace CloudComputingClient
       Console.WriteLine($"Minutes: {LastServerRunData?.Minutes}");
       Console.WriteLine($"BEST Fitness: {LastData?.Fitness.ToString("N2")}");
       Console.WriteLine($"AVG.Fitness: {LastData?.Average.ToString("N2")}");
+      Console.WriteLine($"ORG.Fitness: {LastData?.OriginalFitness.ToString("N2")}");
       Console.WriteLine();
       Console.WriteLine($"Total Value: {LastData?.TotalValue.ToString("N2")} $");
       Console.WriteLine($"Drawdawn: {LastData?.Drawdawn.ToString("N2")} %");

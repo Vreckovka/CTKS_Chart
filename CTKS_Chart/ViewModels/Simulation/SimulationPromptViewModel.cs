@@ -440,6 +440,18 @@ namespace CTKS_Chart.ViewModels
             TimeFrames = timeFrames,
           };
           break;
+        case "EOSUSDT":
+          asset = new Asset()
+          {
+            Symbol = "EOSUSDT",
+            NativeRound = 1,
+            PriceRound = 4,
+            DataPath = path,
+            DataSymbol = "BINANCE EOSUSDT",
+            IndicatorDataPath = "BINANCE EOSUSDT",
+            TimeFrames = timeFrames,
+          };
+          break;
       }
 
 
@@ -469,8 +481,7 @@ namespace CTKS_Chart.ViewModels
 
       var adaAi = GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, RunData.Symbol, RunData.Minutes, logger, new AIStrategy(BuyBotManager.Agents[0], SellBotManager.Agents[0]));
 
-      var asset = Bots.First().Asset;
-      var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
+      var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{adaAi.Asset.IndicatorDataPath}, 1D.csv", adaAi.Asset.Symbol, saveData: true);
 
       //ignore filter starting values of indicators
       adaAi.FromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime.AddDays(30);

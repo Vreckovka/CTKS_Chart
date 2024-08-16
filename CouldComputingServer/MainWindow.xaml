@@ -256,6 +256,15 @@
             Start
           </Button>
 
+          <Button
+            Width="120"
+            Margin="0,5"
+            HorizontalAlignment="Left"
+            Command="{Binding LoadGeneration}">
+            Load Generation
+          </Button>
+
+
           <Grid
             Height="1"
             Margin="0,5"
@@ -401,9 +410,11 @@
         <ItemsControl ItemsSource="{Binding TrainingSession.SymbolsToTest}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <StackPanel Orientation="Horizontal" Margin="0 5">
-                <CheckBox Margin="0" IsChecked="{Binding IsEnabled}" />
-                <TextBlock Margin="0" Text="{Binding Name}" />
+              <StackPanel Margin="0,5" Orientation="Horizontal">
+                <CheckBox
+                  Margin="0"
+                  Content="{Binding Name}"
+                  IsChecked="{Binding IsEnabled}" />
               </StackPanel>
             </DataTemplate>
           </ItemsControl.ItemTemplate>

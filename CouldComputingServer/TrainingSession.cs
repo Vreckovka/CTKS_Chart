@@ -2,8 +2,10 @@
 using LiveCharts.Wpf;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Media;
@@ -15,6 +17,11 @@ namespace CouldComputingServer
 {
   public class TrainingSession : ViewModel
   {
+    public TrainingSession()
+    {
+
+    }
+
     public TrainingSession(string name)
     {
       Name = name;
@@ -122,7 +129,7 @@ namespace CouldComputingServer
         values.Add(key, new List<decimal>() { value });
       }
 
-      return Math.Round(values[key].TakeLast(20).Average(),2);
+      return Math.Round(values[key].TakeLast(20).Average(), 2);
     }
 
     public void AddLabel(string label)
@@ -173,6 +180,23 @@ namespace CouldComputingServer
       CreateCharts(FitnessData);
       CreateCharts(NumberOfTradesData);
 
+    }
+
+    public void Load(string path)
+    {
+      var session = JsonSerializer.Deserialize<TrainingSession>(path);
+
+      for (int i = 0; i < SymbolsToTest.Count; i++)
+      {
+        var symbol = SymbolsToTest[i];
+
+        session.AverageFitness[symbol.Name].ForEach(x => AddValue(symbol.Name, Statistic.AverageFitness, x));
+        session.BestFitness[symbol.Name].ForEach(x => AddValue(symbol.Name, Statistic.BestFitness, x));
+        session.Drawdawn[symbol.Name].ForEach(x => AddValue(symbol.Name, Statistic.Drawdawn, x));
+        session.OriginalFitness[symbol.Name].ForEach(x => AddValue(symbol.Name, Statistic.OriginalFitness, x));
+        session.NumberOfTrades[symbol.Name].ForEach(x => AddValue(symbol.Name, Statistic.NumberOfTrades, x));
+        session.TotalValue[symbol.Name].ForEach(x => AddValue(symbol.Name, Statistic.TotalValue, x));
+      }
     }
   }
 

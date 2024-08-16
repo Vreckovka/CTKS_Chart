@@ -84,7 +84,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
         var weight = AddNormalizedInput((double)(int)intersections[i].TimeFrame, 1, 7);
 
         AddInput(value, ref index, ref inputs);
-        AddInput(weight, ref index, ref inputs);
+        //AddInput(weight, ref index, ref inputs);
       }
     }
 

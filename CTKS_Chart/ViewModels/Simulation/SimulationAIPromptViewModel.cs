@@ -53,7 +53,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 
-    public static int TakeIntersections = 10;
+    public static int TakeIntersections = 7;
     public const int inputNumber = 12;
 
     #region Constructors
@@ -492,6 +492,7 @@ namespace CTKS_Chart.ViewModels
 
     private bool IsRandom()
     {
+      //return true;
       return BuyBotManager.Generation % 5 == 0 && BuyBotManager.Generation != 0;
     }
 
@@ -858,7 +859,7 @@ namespace CTKS_Chart.ViewModels
       IViewModelsFactory viewModelsFactory,
       PositionSide positionSide)
     {
-      var inputCount = inputNumber + (TakeIntersections * 2);
+      var inputCount = inputNumber + TakeIntersections;
 
       switch (positionSide)
       {

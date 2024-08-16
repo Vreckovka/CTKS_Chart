@@ -155,7 +155,7 @@ namespace CTKS_Chart.Trading
 
         if (saveData)
         {
-          if (LoadedData.TryGetValue(symbol, out var symbolData))
+          if (LoadedData.TryGetValue(symbol, out var symbolData) && list.Count > symbolData.Values.Count)
             LoadedData[symbol][timeFrame] = list;
           else
           {
