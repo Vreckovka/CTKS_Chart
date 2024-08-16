@@ -53,7 +53,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 
-    public static int TakeIntersections = 15;
+    public static int TakeIntersections = 7;
     public const int inputNumber = 12;
 
     #region Constructors
@@ -772,7 +772,7 @@ namespace CTKS_Chart.ViewModels
 
         foreach (var bot in Bots)
         {
-          bot.InitializeBot();
+          bot.InitializeBot(candles.cutCandles);
           bot.HeatBot(candles.cutCandles, bot.TradingBot.Strategy);
         }
 

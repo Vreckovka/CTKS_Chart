@@ -47,96 +47,6 @@ namespace CTKS_Chart.Strategy.AIStrategy
       SellAIBot = sellBot;
     }
 
-    //public override async void CreatePositions(Candle actualCandle, Candle dailyCandle)
-    //{
-    //  if (dailyCandle == null)
-    //  {
-    //    Logger.Log(MessageType.Warning, "No daily candle, doing nothing...");
-    //    return;
-    //  }
-
-    //  if (BuyAIBot == null)
-    //    return;
-
-    //  if (lastDailyCandle == null || lastDailyCandle.CloseTime < dailyCandle.CloseTime)
-    //  {
-    //    lastDailyCandles.Add(dailyCandle);
-    //  }
-
-    //  lastDailyCandle = dailyCandle;
-    //  lastCandle = actualCandle;
-
-    //  IndicatorData = dailyCandle.IndicatorData;
-
-    //  var maxBuy = actualCandle.Close.Value * 0.995m;
-
-    //  await CheckPositions(actualCandle, 0, maxBuy);
-
-    //  var inter = Intersections
-    //              .Where(x => x.IsEnabled)
-    //              .Where(x => x.Value < actualCandle.Close.Value &&
-    //                          x.Value < maxBuy)
-    //              .OrderByDescending(x => x.Value)
-    //              .Take(TakeIntersections)
-    //              .ToList();
-
-    //  var notIns = lastIntersections.Where(p => !inter.Any(p2 => p2.IsSame(p)));
-
-    //  var output = BuyAIBot.Update(
-    //      actualCandle,
-    //      this,
-    //      inter,
-    //      GetLastPrices(takeLastDailyCandles));
-
-    //  var buy = output[0];
-    //  var sell = output[1];
-    //  var hodl = output[2];
-
-    //  if (buy > sell && buy > hodl && ActualPositions.Count == 0 && Budget > 0)
-    //  {
-    //    var fees = Budget * 0.001m;
-    //    var positionSize = Budget - fees;
-
-    //    var newPosition = new AIPosition()
-    //    {
-    //      PositionSize = positionSize,
-    //      PositionSizeNative = positionSize / actualCandle.Close.Value,
-    //      CreatedDate = actualCandle.CloseTime,
-    //      Price = actualCandle.Close.Value,
-    //      Fees = fees,
-    //      FilledDate = actualCandle.CloseTime,
-    //      Side = PositionSide.Buy
-    //    };
-
-    //    Budget -= newPosition.PositionSize;
-
-    //    await CloseBuy(newPosition);
-    //  }
-    //  else if (sell > buy && sell > hodl && ActualPositions.Count > 0)
-    //  {
-    //    var actualBuy = ActualPositions[0];
-
-    //    var newSell = new AIPosition()
-    //    {
-    //      PositionSize = actualBuy.PositionSizeNative * actualCandle.Close.Value,
-    //      PositionSizeNative = actualBuy.PositionSizeNative,
-    //      OriginalPositionSize = actualBuy.PositionSize,
-    //      OriginalPositionSizeNative = actualBuy.PositionSizeNative,
-    //      CreatedDate = actualCandle.CloseTime,
-    //      Price = actualCandle.Close.Value,
-    //      Fees = Budget * 0.001m,
-    //      FilledDate = actualCandle.CloseTime,
-    //      Side = PositionSide.Sell
-    //    };
-
-    //    actualBuy.OpositPositions.Add(newSell);
-    //    newSell.OpositPositions.Add(actualBuy);
-
-    //    CloseSell(newSell);
-    //  }
-     
-    //}
-
     #region CreatePositions
 
     List<CtksIntersection> lastIntersections = new List<CtksIntersection>();
@@ -176,7 +86,6 @@ namespace CTKS_Chart.Strategy.AIStrategy
                     .Where(x => x.IsEnabled)
                     .Where(x => x.Value < actualCandle.Close.Value &&
                                 x.Value < maxBuy)
-                    .OrderByDescending(x => x.Value)
                     .Take(SimulationAIPromptViewModel.TakeIntersections)
                     .ToList();
 

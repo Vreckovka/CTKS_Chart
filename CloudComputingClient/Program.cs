@@ -292,14 +292,25 @@ namespace CloudComputingClient
           fromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime.AddDays(30);
         }
 
-        var candles = SimulationTradingBot.GetSimulationCandles(
+        var allCandles = SimulationTradingBot.GetSimulationCandles(
            minutes,
            SimulationPromptViewModel.GetSimulationDataPath(symbol, minutes.ToString()), symbol, fromDate);
 
+        var simulateCandles = allCandles.cutCandles;
+        var candles = allCandles.candles;
+        var mainCandles = allCandles.allCandles;
+
         foreach (var bot in Bots)
         {
-          bot.InitializeBot();
-          bot.HeatBot(candles.cutCandles, bot.TradingBot.Strategy);
+          if (splitTake != 0)
+          {
+            var take = (int)(mainCandles.Count / splitTake);
+
+            simulateCandles = simulateCandles.Take(take).ToList();
+          }
+
+          bot.InitializeBot(simulateCandles);
+          bot.HeatBot(simulateCandles, bot.TradingBot.Strategy);
         }
 
         ToStart = Bots.Count;
@@ -319,7 +330,7 @@ namespace CloudComputingClient
               InProgress += take.Count;
             }
 
-            foreach (var candle in candles.cutCandles)
+            foreach (var candle in simulateCandles)
             {
               if (take.Any(x => x.stopRequested))
                 return;

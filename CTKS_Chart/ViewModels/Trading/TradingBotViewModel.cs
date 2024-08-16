@@ -873,14 +873,14 @@ namespace CTKS_Chart.ViewModels
             var intersections = secondaryLayouts[y].Ctks.Intersections;
 
             var validIntersections = intersections
-              .Where(x => x.Value < decimal.MaxValue && x.Value > decimal.MinValue).ToList();
+              .Where(x => x.Value < decimal.MaxValue && x.Value > decimal.MinValue)
+              .Where(x => Math.Round(x.Value, TradingBot.Asset.PriceRound) > 0)
+              .ToList();
 
             ctksIntersections.AddRange(validIntersections);
           }
 
-          ctksIntersections = ctksIntersections
-            .Where(x => Math.Round(x.Value, TradingBot.Asset.PriceRound) > 0)
-            .OrderByDescending(x => x.Value).ToList();
+          ctksIntersections = ctksIntersections.OrderByDescending(x => x.Value).ToList();
 
 
           shouldUpdate = false;
@@ -915,8 +915,8 @@ namespace CTKS_Chart.ViewModels
 
         //if(!IsSimulation)
         {
-          AddRangeFilterIntersections(TimeFrame.D1, actual);
-          AddRangeFilterIntersections(TimeFrame.W1, actual);
+          //AddRangeFilterIntersections(TimeFrame.D1, actual);
+          //AddRangeFilterIntersections(TimeFrame.W1, actual);
         }
 
 

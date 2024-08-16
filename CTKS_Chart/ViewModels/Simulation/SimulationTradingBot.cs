@@ -287,49 +287,49 @@ namespace CTKS_Chart.ViewModels
         }
         else
         {
-          if (preloadedDaily[key].Count != simulationCandles.Count)
-          {
-            var daily = new Dictionary<Candle, Candle>();
-            var weekly = new Dictionary<Candle, Candle>();
+          //if (preloadedDaily[key].Count != simulationCandles.Count)
+          //{
+          //  var daily = new Dictionary<Candle, Candle>();
+          //  var weekly = new Dictionary<Candle, Candle>();
 
-            Candle lastDailyCandle = null;
-            Candle lastWeeklyCandle = null;
+          //  Candle lastDailyCandle = null;
+          //  Candle lastWeeklyCandle = null;
 
-            foreach (var candle in simulationCandles)
-            {
-              var dailyCandle = lastDailyCandle;
-              var weeklyCandle = lastWeeklyCandle;
+          //  foreach (var candle in simulationCandles)
+          //  {
+          //    var dailyCandle = lastDailyCandle;
+          //    var weeklyCandle = lastWeeklyCandle;
 
-              if (lastDailyCandle == null || (candle.OpenTime.Date != lastDailyCandle?.CloseTime.Date))
-              {
-                lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, candle);
-              }
+          //    if (lastDailyCandle == null || (candle.OpenTime.Date != lastDailyCandle?.CloseTime.Date))
+          //    {
+          //      lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, candle);
+          //    }
 
-              if(lastWeeklyCandle != null)
-              {
-                DateTimeFormatInfo dfi = DateTimeFormatInfo.CurrentInfo;
-                var cal = dfi.Calendar;
+          //    if(lastWeeklyCandle != null)
+          //    {
+          //      DateTimeFormatInfo dfi = DateTimeFormatInfo.CurrentInfo;
+          //      var cal = dfi.Calendar;
 
-                var week = cal.GetWeekOfYear(candle.OpenTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek);
+          //      var week = cal.GetWeekOfYear(candle.OpenTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek);
 
-                var lastweek = lastDailyCandle?.CloseTime != null ? cal.GetWeekOfYear(lastDailyCandle.CloseTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek) : -1;
+          //      var lastweek = lastDailyCandle?.CloseTime != null ? cal.GetWeekOfYear(lastDailyCandle.CloseTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek) : -1;
 
-                if (week != lastweek)
-                  lastWeeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, candle);
-              }
-              else
-              {
-                lastWeeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, candle);
-              }
+          //      if (week != lastweek)
+          //        lastWeeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, candle);
+          //    }
+          //    else
+          //    {
+          //      lastWeeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, candle);
+          //    }
 
 
-              daily.Add(candle, dailyCandle);
-              weekly.Add(candle, weeklyCandle);
-            }
+          //    daily.Add(candle, dailyCandle);
+          //    weekly.Add(candle, weeklyCandle);
+          //  }
 
-            preloadedDaily[key] = daily;
-            preloadedWeekly[key] = weekly;
-          }
+          //  preloadedDaily[key] = daily;
+          //  preloadedWeekly[key] = weekly;
+          //}
         }
       }
     }
@@ -393,9 +393,14 @@ namespace CTKS_Chart.ViewModels
 
     #region InitializeBot
 
-    public void InitializeBot()
+    public void InitializeBot(IList<Candle> simulationCandles)
     {
       var mainCtks = new Ctks(MainLayout, MainLayout.TimeFrame, TradingBot.Asset);
+
+      var timeFrame = simulationCandles.First().TimeFrame;
+      key = new Tuple<string, TimeFrame>(Asset.Symbol, timeFrame);
+
+      PreloadCandles(simulationCandles);
 
       LoadSecondaryLayouts(FromDate);
       PreLoadCTks(FromDate);
@@ -464,12 +469,8 @@ namespace CTKS_Chart.ViewModels
         HeatBot(cutCandles, aIStrategy);
       }
 
-      InitializeBot();
+      InitializeBot(simulateCandles);
 
-      var timeFrame = simulateCandles.First().TimeFrame;
-      key = new Tuple<string, TimeFrame>(Asset.Symbol, timeFrame);
-
-      PreloadCandles(simulateCandles);
 
       Simulate(simulateCandles);
     }
@@ -527,6 +528,7 @@ namespace CTKS_Chart.ViewModels
     public CancellationTokenSource cts;
     IDisposable disposable;
     DateTime lastElapsed;
+    bool isRunning;
 
     private async void Simulate(List<Candle> cutCandles)
     {
@@ -536,6 +538,7 @@ namespace CTKS_Chart.ViewModels
         cts?.Cancel();
         cts = new CancellationTokenSource();
         stopRequested = false;
+        isRunning = true;
 
         disposable?.Dispose();
 
@@ -665,7 +668,6 @@ namespace CTKS_Chart.ViewModels
 
       if (stopRequested)
       {
-
         var simulationStrategy = new TStrategy();
 
         simulationStrategy.EnableRangeFilterStrategy = true;
@@ -682,6 +684,8 @@ namespace CTKS_Chart.ViewModels
 
         TradingBot.Strategy = simulationStrategy;
       }
+
+      isRunning = false;
     }
 
     #endregion
@@ -696,20 +700,24 @@ namespace CTKS_Chart.ViewModels
       IsPaused = true;
       stopRequested = true;
 
-      var simulationStrategy = new TStrategy();
-
-      simulationStrategy.EnableRangeFilterStrategy = true;
-      simulationStrategy.Asset = TradingBot.Asset;
-      Layouts.Clear();
-      InnerLayouts.Clear();
-
-
-      if (simulationStrategy is AIStrategy aIStrategy)
+      if(!isRunning)
       {
-        aIStrategy.BuyAIBot = BUY_BOT;
-        aIStrategy.SellAIBot = SELL_BOT;
+        var simulationStrategy = new TStrategy();
+
+        simulationStrategy.EnableRangeFilterStrategy = true;
+        simulationStrategy.Asset = TradingBot.Asset;
+        Layouts.Clear();
+        InnerLayouts.Clear();
+
+
+        if (simulationStrategy is AIStrategy aIStrategy)
+        {
+          aIStrategy.BuyAIBot = BUY_BOT;
+          aIStrategy.SellAIBot = SELL_BOT;
+        }
+
+        TradingBot.Strategy = simulationStrategy;
       }
-      TradingBot.Strategy = simulationStrategy;
     }
 
     #endregion
