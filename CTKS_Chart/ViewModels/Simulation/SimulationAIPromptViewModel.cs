@@ -52,8 +52,9 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-
-    public static int TakeIntersections = 7;
+    //Less intersections make bot taking less trades, since position size is based on this 
+    //and it does not work for lower timeframes, since it has to make lot of trades
+    public static int TakeIntersections = 20;
     public const int inputNumber = 12;
 
     #region Constructors

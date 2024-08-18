@@ -167,7 +167,7 @@ namespace CTKS_Chart.ViewModels
 
       TotalValueSeries = new SeriesCollection(mapper);
 
-      TotalValueSeries.Add(new LineSeries() { Values = new ChartValues<decimal>(DataPoints.Select(x => x.TotalValue)), PointGeometrySize = 0 });
+      TotalValueSeries.Add(new LineSeries() { Values = new ChartValues<decimal>(DataPoints.Where(x => x.TotalValue > 0).Select(x => x.TotalValue)), PointGeometrySize = 0 });
 
       Formatter = value => Math.Pow(Base, value).ToString("N");
 
@@ -190,7 +190,7 @@ namespace CTKS_Chart.ViewModels
 
     private void CreateHODL()
     {
-      var firstPoint = DataPoints.First();
+      var firstPoint = DataPoints.Where(x => x.TotalValue > 0).First();
       var startingNative = firstPoint.TotalValue / firstPoint.Close;
       List<SimulationResult> results = new List<SimulationResult>();
 
@@ -206,7 +206,7 @@ namespace CTKS_Chart.ViewModels
         results.Add(newsd);
       }
 
-      TotalValueSeries.Add(new LineSeries() { Values = new ChartValues<decimal>(results.Select(x => x.TotalValue)), PointGeometrySize = 0 });
+      TotalValueSeries.Add(new LineSeries() { Values = new ChartValues<decimal>(results.Where(x => x.TotalValue > 0).Select(x => x.TotalValue)), PointGeometrySize = 0 });
     }
 
     #endregion

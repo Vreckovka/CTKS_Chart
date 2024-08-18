@@ -274,7 +274,7 @@
           <TextBox Margin="0,5" Text="{Binding AgentCount, UpdateSourceTrigger=PropertyChanged}" />
 
 
-          <CheckBox IsChecked="{Binding UseRandomizer, Mode=TwoWay}">Multiple symbols</CheckBox>
+          <CheckBox Margin="0,5" IsChecked="{Binding UseRandomizer, Mode=TwoWay}">Multiple symbols</CheckBox>
 
         </StackPanel>
 

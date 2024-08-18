@@ -132,9 +132,11 @@ namespace CouldComputingServer
       return Math.Round(values[key].TakeLast(20).Average(), 2);
     }
 
-    public void AddLabel(string label)
+    public void AddLabel()
     {
-      Labels.Add(label);
+      lastLabel += SymbolsToTest.Count + 1;
+
+      Labels.Add(lastLabel.ToString());
       RaisePropertyChanged(nameof(Labels));
     }
 
@@ -197,7 +199,17 @@ namespace CouldComputingServer
         session.NumberOfTrades[symbol.Name].ForEach(x => AddValue(symbol.Name, Statistic.NumberOfTrades, x));
         session.TotalValue[symbol.Name].ForEach(x => AddValue(symbol.Name, Statistic.TotalValue, x));
       }
+
+      for (int y = 0; y < TotalValue.Count; y++)
+      {
+        lastLabel = y * (SymbolsToTest.Count + 1);
+
+        Labels.Add(lastLabel.ToString());
+        RaisePropertyChanged(nameof(Labels));
+      }
     }
+
+    int lastLabel;
   }
 
 }

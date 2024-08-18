@@ -101,7 +101,7 @@ namespace CouldComputingServer
 #endif
 
 #if RELEASE
-    private int agentCount = 100;
+    private int agentCount = 150;
 #endif
 
     public int AgentCount
@@ -242,42 +242,6 @@ namespace CouldComputingServer
           RaisePropertyChanged();
         }
       }
-    }
-
-    #endregion
-
-    #region Distribute
-
-    protected ActionCommand distribute;
-
-    public ICommand Distribute
-    {
-      get
-      {
-        return distribute ??= new ActionCommand(OnDistribute);
-      }
-    }
-
-    SerialDisposable serialDisposable = new SerialDisposable();
-    DateTime lastElapsed;
-
-    protected virtual void OnDistribute()
-    {
-      lastElapsed = DateTime.Now;
-
-      BuyBotManager.InitializeManager(AgentCount);
-      SellBotManager.InitializeManager(AgentCount);
-
-      serialDisposable.Disposable = Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
-      {
-        TimeSpan diff = DateTime.Now - lastElapsed;
-
-        RunTime = RunTime.Add(diff);
-
-        lastElapsed = DateTime.Now;
-      });
-
-      DistributeGeneration();
     }
 
     #endregion
@@ -452,6 +416,49 @@ namespace CouldComputingServer
 
     #endregion
 
+
+    #region Distribute
+
+    protected ActionCommand distribute;
+
+    public ICommand Distribute
+    {
+      get
+      {
+        return distribute ??= new ActionCommand(OnDistribute);
+      }
+    }
+
+    SerialDisposable serialDisposable = new SerialDisposable();
+    DateTime lastElapsed;
+
+    protected virtual void OnDistribute()
+    {
+      lastElapsed = DateTime.Now;
+
+      BuyBotManager.InitializeManager(AgentCount);
+      SellBotManager.InitializeManager(AgentCount);
+
+      foreach (var client in Clients)
+      {
+        client.PopulationSize = AgentCount / Clients.Count;
+      }
+
+      serialDisposable.Disposable = Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
+      {
+        TimeSpan diff = DateTime.Now - lastElapsed;
+
+        RunTime = RunTime.Add(diff);
+
+        lastElapsed = DateTime.Now;
+      });
+
+      DistributeGeneration();
+    }
+
+    #endregion
+
+
     #endregion
 
     #region Methods
@@ -496,7 +503,7 @@ namespace CouldComputingServer
         return;
 
       int agentsToRun = AgentCount;
-      int agentsPerClient = AgentCount / Clients.Count;
+      //int agentsPerClient = AgentCount / Clients.Count;
       int runAgents = 0;
 
       ToStart = AgentCount;
@@ -522,18 +529,25 @@ namespace CouldComputingServer
         wasRandomPrevious = false;
       }
 
+      var ordered = Clients.OrderBy(x => x.LastGenerationTime).ToList();
 
+      var first = ordered.First();
+      var last = ordered.Last();
+
+      TimeSpan difference = last.LastGenerationTime - first.LastGenerationTime;
+      var sec = (int)difference.TotalSeconds;
+
+      if (sec >= 1)
+      {
+        last.PopulationSize -= sec;
+        first.PopulationSize += sec;
+      }
 
       foreach (var client in Clients.ToList())
       {
-        if (agentsToRun < agentsPerClient)
-        {
-          agentsPerClient = agentsToRun;
-        }
-
         var newData = new ServerRunData()
         {
-          AgentCount = agentsPerClient,
+          AgentCount = client.PopulationSize,
           Generation = BuyBotManager.Generation,
           IsRandom = isRandom,
           Minutes = Minutes,
@@ -543,8 +557,8 @@ namespace CouldComputingServer
 
         serverRunData = newData;
 
-        var buyGenomes = BuyBotManager.NeatAlgorithm.GenomeList.Skip(runAgents).Take(agentsPerClient).ToList();
-        var sellGenomes = SellBotManager.NeatAlgorithm.GenomeList.Skip(runAgents).Take(agentsPerClient).ToList();
+        var buyGenomes = BuyBotManager.NeatAlgorithm.GenomeList.Skip(runAgents).Take(client.PopulationSize).ToList();
+        var sellGenomes = SellBotManager.NeatAlgorithm.GenomeList.Skip(runAgents).Take(client.PopulationSize).ToList();
 
         buyGenomes.ForEach(x => client.SentBuyGenomes.Add(x.Id, false));
         sellGenomes.ForEach(x => client.SentSellGenomes.Add(x.Id, false));
@@ -555,11 +569,11 @@ namespace CouldComputingServer
         newData.BuyGenomes = buyDocument.OuterXml.Replace("\"", "'");
         newData.SellGenomes = sellDocument.OuterXml.Replace("\"", "'");
 
-        agentsToRun -= agentsPerClient;
-        runAgents += agentsPerClient;
+        agentsToRun -= client.PopulationSize;
+        runAgents += client.PopulationSize;
 
-        ToStart -= agentsPerClient;
-        InProgress += agentsPerClient;
+        ToStart -= client.PopulationSize;
+        InProgress += client.PopulationSize;
 
         var message = JsonSerializer.Serialize(newData);
 
@@ -611,7 +625,7 @@ namespace CouldComputingServer
 
         if (isStartSymbol)
         {
-          BestFitness = (float)bestRun.OriginalFitness;
+          BestFitness = (float)bestRun.Fitness;
           TotalValue = bestRun.TotalValue;
           Drawdawn = bestRun.Drawdawn;
           NumberOfTrades = bestRun.NumberOfTrades;
@@ -628,7 +642,7 @@ namespace CouldComputingServer
 
           File.WriteAllText(Path.Combine(folder, "session.txt"), training);
 
-          TrainingSession.AddLabel(BuyBotManager.Generation.ToString());
+          TrainingSession.AddLabel();
         }
       }
 
@@ -768,7 +782,7 @@ namespace CouldComputingServer
             ms = new MemoryStream();
             buffer.Clear();
 
-            Logger.Log(ex);
+            Logger.Log(MessageType.Error, $"ERROR TRANSIMITING DATA!", false, false);
           }
         }
 
@@ -807,6 +821,7 @@ namespace CouldComputingServer
     {
       lock (managerBatton)
       {
+      
         if (buyManger.NeatAlgorithm == null)
         {
           TCPHelper.SendMessage(tcpClient.Client, MessageContract.Done);
@@ -858,6 +873,7 @@ namespace CouldComputingServer
 
               if (tcpClient.Done)
               {
+                tcpClient.LastGenerationTime = DateTime.Now;
                 TCPHelper.SendMessage(tcpClient.Client, MessageContract.Done);
               }
             }

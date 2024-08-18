@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
 
 namespace CouldComputingServer
@@ -10,6 +11,9 @@ namespace CouldComputingServer
     public Dictionary<uint, bool> SentSellGenomes { get; set; } = new Dictionary<uint, bool>();
 
     public bool Done { get; set; }
+
+    public int PopulationSize { get; set; }
+    public DateTime LastGenerationTime { get; set; } 
   }
 
 }
