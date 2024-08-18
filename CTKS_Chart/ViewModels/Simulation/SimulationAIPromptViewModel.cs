@@ -784,12 +784,13 @@ namespace CTKS_Chart.ViewModels
         {
           bot.InitializeBot(candles.cutCandles);
           bot.HeatBot(candles.cutCandles, bot.TradingBot.Strategy);
+          bot.TradingBot.Strategy.Logger = logger;
         }
 
         ToStart = Bots.Count;
 
-
-        var splitTakeC = Bots.SplitList(Bots.Count / 10);
+        var min = Math.Min(Bots.Count, 10);
+        var splitTakeC = Bots.SplitList(Bots.Count / min);
         var tasks = new List<Task>();
 
         foreach (var take in splitTakeC)

@@ -969,9 +969,8 @@ namespace CTKS_Chart.ViewModels
         }
 
         var lowest = actual.Close.Value * (decimal)0.3;
-        var highest = actual.Close.Value * (decimal)20;
-
-        newInters = newInters.Where(x => x.Value > lowest && x.Value < highest).ToList();
+     
+        newInters = newInters.Where(x => x.Value > lowest).ToList();
       }
 
 

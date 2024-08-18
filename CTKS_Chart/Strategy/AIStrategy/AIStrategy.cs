@@ -78,7 +78,9 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
         IndicatorData = dailyCandle.IndicatorData;
 
-        var maxBuy = actualCandle.Close.Value * 0.995m;
+        var highest = Intersections[3].Value;
+
+        var maxBuy = (decimal)Math.Max((double)(actualCandle.Close.Value * 0.995m), (double)highest);
 
         await CheckPositions(actualCandle, 0, maxBuy);
 
@@ -242,6 +244,23 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
           break;
         }
+      }
+
+      if(newPosition == null)
+      {
+        newPosition = new AIPosition()
+        {
+          PositionSize = positionSize,
+          OriginalPositionSize = positionSize,
+          Price = inter[0].Value,
+          OriginalPositionSizeNative = roundedNativeSize,
+          PositionSizeNative = roundedNativeSize,
+          Side = PositionSide.Sell,
+          TimeFrame = inter[0].TimeFrame,
+          Intersection = inter[0],
+          State = PositionState.Open,
+          IsAutomatic = buyPosition.IsAutomatic
+        };
       }
 
       if (newPosition != null)
