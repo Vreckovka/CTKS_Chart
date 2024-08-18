@@ -85,6 +85,8 @@ namespace CloudComputingClient
         Kernel.Bind<ILogger>().To<Logger.Logger>();
         Kernel.Bind<IWindowManager>().To<WindowManager>();
 
+        SetupExceptionHandling();
+
         ViewModelsFactory = Kernel.Get<IViewModelsFactory>();
         Logger = Kernel.Get<ILogger>();
 
@@ -134,6 +136,24 @@ namespace CloudComputingClient
       {
         Console.WriteLine(ex);
       }
+    }
+
+    #endregion
+
+
+    #region SetupExceptionHandling
+
+    private static void SetupExceptionHandling()
+    {
+
+      //#if !DEBUG
+      AppDomain.CurrentDomain.UnhandledException += (s, e) => Logger.Log((Exception)e.ExceptionObject);
+
+      TaskScheduler.UnobservedTaskException += (s, e) =>
+      {
+        Logger.Log(e.Exception);
+        e.SetObserved();
+      };
     }
 
     #endregion
@@ -329,16 +349,23 @@ namespace CloudComputingClient
               ToStart -= take.Count;
               InProgress += take.Count;
             }
-
-            foreach (var candle in simulateCandles)
+            try
             {
-              if (take.Any(x => x.stopRequested))
-                return;
 
-              foreach (var bot in take)
+              foreach (var candle in simulateCandles)
               {
-                bot.SimulateCandle(candle);
+                if (take.Any(x => x.stopRequested))
+                  return;
+
+                foreach (var bot in take)
+                {
+                  bot.SimulateCandle(candle);
+                }
               }
+            }
+            catch (Exception ex)
+            {
+              Logger.Log(ex);
             }
 
             lock (batton)
@@ -582,22 +609,27 @@ namespace CloudComputingClient
 
       Console.WriteLine($"Generation: {ServerRunData?.Generation ?? -1}");
       Console.WriteLine($"Run Time: {RunTime.ToString(@"hh\:mm\:ss")}");
-      Console.WriteLine();
 
+      Console.WriteLine();
       Console.WriteLine($"Symbol: {ServerRunData?.Symbol}");
-      Console.WriteLine($"Symbol: {ServerRunData?.Minutes}");
+      Console.WriteLine($"Minutes: {ServerRunData?.Minutes}");
+      Console.WriteLine($"Random: {ServerRunData?.IsRandom}");
       Console.WriteLine();
       Console.WriteLine($"To Start: {ToStart} In Progress: {InProgress} Finished: {FinishedCount}");
+
+
       Console.WriteLine();
-
-
       Console.WriteLine($"----LAST GENERATION----");
       Console.WriteLine($"GEN.Run Time: {GenerationRunTime.ToString(@"hh\:mm\:ss")}");
       Console.WriteLine($"Symbol: {LastServerRunData?.Symbol}");
       Console.WriteLine($"Minutes: {LastServerRunData?.Minutes}");
+      Console.WriteLine($"Random: {LastServerRunData?.IsRandom}");
+
+      Console.WriteLine();
       Console.WriteLine($"BEST Fitness: {LastData?.Fitness.ToString("N2")}");
       Console.WriteLine($"AVG.Fitness: {LastData?.Average.ToString("N2")}");
       Console.WriteLine($"ORG.Fitness: {LastData?.OriginalFitness.ToString("N2")}");
+    
       Console.WriteLine();
       Console.WriteLine($"Total Value: {LastData?.TotalValue.ToString("N2")} $");
       Console.WriteLine($"Drawdawn: {LastData?.Drawdawn.ToString("N2")} %");

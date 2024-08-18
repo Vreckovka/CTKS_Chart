@@ -42,11 +42,11 @@ namespace CouldComputingServer
     Dictionary<CloudClient, string> messages = new Dictionary<CloudClient, string>();
     List<RunData> runResults = new List<RunData>();
 
-
+    string[] allSymbols = new string[] { "ADAUSDT", "BTCUSDT", "ETHUSDT", "LTCUSDT", "BNBUSDT", "EOSUSDT" };
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
     {
       TrainingSession = new TrainingSession(DateTime.Now.ToString("dd_MM_yyyy_HH_mm_ss"));
-      TrainingSession.CreateSymbolsToTest(new string[] { "ADAUSDT", "BTCUSDT", "ETHUSDT", "LTCUSDT", "BNBUSDT" });
+      TrainingSession.CreateSymbolsToTest(allSymbols);
 
 
       BuyBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
@@ -79,11 +79,11 @@ namespace CouldComputingServer
 
           if (useRandomizer)
           {
-            TrainingSession.CreateSymbolsToTest(new string[] { "ADAUSDT", "BTCUSDT", "ETHUSDT", "LTCUSDT", "BNBUSDT" });
+            TrainingSession.CreateSymbolsToTest(allSymbols);
           }
           else
           {
-            TrainingSession.CreateSymbolsToTest(new string[] { "ADAUSDT" });
+            TrainingSession.CreateSymbolsToTest(allSymbols[0]);
           }
 
 

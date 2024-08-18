@@ -54,7 +54,7 @@ namespace CTKS_Chart.ViewModels
 
     //Less intersections make bot taking less trades, since position size is based on this 
     //and it does not work for lower timeframes, since it has to make lot of trades
-    public static int TakeIntersections = 20;
+    public static int TakeIntersections = 15;
     public const int inputNumber = 12;
 
     #region Constructors
@@ -559,20 +559,29 @@ namespace CTKS_Chart.ViewModels
 
     public static void AddFitness(AIStrategy strategy)
     {
+      // Calculate the initial fitness based on the strategy's total value and starting budget.
       strategy.OriginalFitness = (float)((strategy.TotalValue - strategy.StartingBudget) / strategy.StartingBudget) * 1000;
       float fitness = strategy.OriginalFitness;
 
-      var drawdawn = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
-      var multi = drawdawn * 2;
+      // Calculate the drawdown multiplier
+      var drawdown = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
 
-      if (multi <= 1 && fitness > 0)
-        fitness *= 1 - multi;
-      else
-        fitness = 0;
+      // Apply a power function to penalize more for larger drawdowns
+      float exponent = 4.0f;  // Increase the exponent to make the penalty harsher
+      var multiplier = (float)Math.Pow(1 - drawdown, exponent);
 
-      fitness *= (float)Math.Log(strategy.ClosedSellPositions.Count);
+      // Ensure the multiplier is within a reasonable range (0 to 1)
+      if (multiplier < 0) multiplier = 0;
 
-      
+      // Adjust fitness only if it's greater than 0
+      if (fitness > 0)
+        fitness *= multiplier;
+
+      // Apply a log function based on the count of closed sell positions
+      if (strategy.ClosedSellPositions.Count > 0)
+        fitness *= (float)Math.Log(strategy.ClosedSellPositions.Count);
+
+      // Ensure fitness is not negative
       strategy.AddFitness(fitness < 0 ? 0 : fitness);
     }
 
