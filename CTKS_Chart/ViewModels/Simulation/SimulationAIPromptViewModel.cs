@@ -493,7 +493,7 @@ namespace CTKS_Chart.ViewModels
 
     private bool IsRandom()
     {
-      //return true;
+      return false;
       return BuyBotManager.Generation % 5 == 0 && BuyBotManager.Generation != 0;
     }
 
@@ -559,27 +559,33 @@ namespace CTKS_Chart.ViewModels
 
     public static void AddFitness(AIStrategy strategy)
     {
-      // Calculate the initial fitness based on the strategy's total value and starting budget.
       strategy.OriginalFitness = (float)((strategy.TotalValue - strategy.StartingBudget) / strategy.StartingBudget) * 1000;
       float fitness = strategy.OriginalFitness;
 
-      // Calculate the drawdown multiplier
+      // 2. Calculate the drawdown multiplier
       var drawdown = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
-
-      // Apply a power function to penalize more for larger drawdowns
-      float exponent = 4.0f;  // Increase the exponent to make the penalty harsher
-      var multiplier = (float)Math.Pow(1 - drawdown, exponent);
+      float exponent = 2.0f;  // Power function exponent to penalize more for larger drawdowns
+      var drawdownMultiplier = (float)Math.Pow(1 - drawdown, exponent);
 
       // Ensure the multiplier is within a reasonable range (0 to 1)
-      if (multiplier < 0) multiplier = 0;
+      drawdownMultiplier = Math.Max(drawdownMultiplier, 0);
 
       // Adjust fitness only if it's greater than 0
       if (fitness > 0)
-        fitness *= multiplier;
+      {
+        fitness *= drawdownMultiplier;
+      }
 
-      // Apply a log function based on the count of closed sell positions
+      // 3. Apply a log function based on the count of closed sell positions
       if (strategy.ClosedSellPositions.Count > 0)
-        fitness *= (float)Math.Log(strategy.ClosedSellPositions.Count);
+      {
+        double maxTrades = 1440;
+        double normalizedTrades = Math.Min(strategy.ClosedSellPositions.Count / maxTrades, 1.0);
+
+        double tradesInfluence = Math.Pow(1 + Math.Log(1 + normalizedTrades),2);
+
+        fitness *= (float)tradesInfluence;
+      }
 
       // Ensure fitness is not negative
       strategy.AddFitness(fitness < 0 ? 0 : fitness);

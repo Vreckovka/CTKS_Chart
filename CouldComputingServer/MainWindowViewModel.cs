@@ -48,7 +48,6 @@ namespace CouldComputingServer
       TrainingSession = new TrainingSession(DateTime.Now.ToString("dd_MM_yyyy_HH_mm_ss"));
       TrainingSession.CreateSymbolsToTest(allSymbols);
 
-
       BuyBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
       SellBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
 
@@ -101,7 +100,7 @@ namespace CouldComputingServer
 #endif
 
 #if RELEASE
-    private int agentCount = 150;
+    private int agentCount = 120;
 #endif
 
     public int AgentCount
@@ -362,6 +361,45 @@ namespace CouldComputingServer
 
     #endregion
 
+    #region Cycle
+
+    private int cycle;
+
+    public int Cycle
+    {
+      get { return cycle; }
+      set
+      {
+        if (value != cycle)
+        {
+          cycle = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+    #region CycleRunTime
+
+    private TimeSpan cycleRunTime;
+
+    public TimeSpan CycleRunTime
+    {
+      get { return cycleRunTime; }
+      set
+      {
+        if (value != cycleRunTime)
+        {
+          cycleRunTime = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
+
     #endregion
 
     #region Commands
@@ -431,6 +469,7 @@ namespace CouldComputingServer
 
     SerialDisposable serialDisposable = new SerialDisposable();
     DateTime lastElapsed;
+    DateTime cycleLastElapsed;
 
     protected virtual void OnDistribute()
     {
@@ -630,7 +669,14 @@ namespace CouldComputingServer
           Drawdawn = bestRun.Drawdawn;
           NumberOfTrades = bestRun.NumberOfTrades;
 
+          if (BuyBotManager.Generation > 1)
+          {
+            Cycle++;
+            CycleRunTime = DateTime.Now - cycleLastElapsed;
+          }
+           
 
+          cycleLastElapsed = DateTime.Now;
         }
 
         if (isStartSymbol)
@@ -671,7 +717,8 @@ namespace CouldComputingServer
     private int wholeRunsCount;
     private bool IsRandom()
     {
-      return wholeRunsCount % TrainingSession.SymbolsToTest.Count == 0 && BuyBotManager.Generation != 0;
+      return false;
+      //return wholeRunsCount % TrainingSession.SymbolsToTest.Count == 0 && BuyBotManager.Generation != 0;
     }
 
     #endregion
@@ -691,6 +738,12 @@ namespace CouldComputingServer
         while (true)
         {
           TcpClient client = _listener.AcceptTcpClient();
+
+          int receiveBufferSize = MessageContract.BUFFER_SIZE_CLIENT;
+          int sendBufferSize = MessageContract.BUFFER_SIZE_CLIENT; 
+
+          client.ReceiveBufferSize = receiveBufferSize;
+          client.SendBufferSize = sendBufferSize;
 
           VSynchronizationContext.InvokeOnDispatcher(() =>
           {
@@ -821,7 +874,7 @@ namespace CouldComputingServer
     {
       lock (managerBatton)
       {
-      
+
         if (buyManger.NeatAlgorithm == null)
         {
           TCPHelper.SendMessage(tcpClient.Client, MessageContract.Done);

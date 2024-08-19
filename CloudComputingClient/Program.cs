@@ -394,6 +394,9 @@ namespace CloudComputingClient
         {
           tcpClient = new TcpClient(serverIp, port);
 
+          tcpClient.ReceiveBufferSize = MessageContract.BUFFER_SIZE_CLIENT;
+          tcpClient.SendBufferSize = MessageContract.BUFFER_SIZE_CLIENT;
+
           Logger.Log(MessageType.Inform2, $"Connectted to: {serverIp}\n");
         }
 

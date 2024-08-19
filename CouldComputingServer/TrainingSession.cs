@@ -8,10 +8,12 @@ using System.Reactive.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using VCore.ItemsCollections;
 using VCore.Standard;
 using VCore.Standard.Helpers;
+using VCore.WPF.Misc;
 
 namespace CouldComputingServer
 {
@@ -88,6 +90,25 @@ namespace CouldComputingServer
 
     #endregion
 
+
+    #region Commands
+
+    #region ClearDataCommand
+
+    protected ActionCommand clearDataCommand;
+
+    public ICommand ClearDataCommand
+    {
+      get
+      {
+        return clearDataCommand ??= new ActionCommand(ClearData).DisposeWith(this);
+      }
+    }
+
+    #endregion
+
+    #endregion
+
     public void AddValue(string symbol, Statistic statistics, decimal value)
     {
       var symbolIndex = SymbolsToTest.IndexOf(x => x.Name == symbol);
@@ -134,7 +155,7 @@ namespace CouldComputingServer
 
     public void AddLabel()
     {
-      lastLabel += SymbolsToTest.Count + 1;
+      lastLabel++;
 
       Labels.Add(lastLabel.ToString());
       RaisePropertyChanged(nameof(Labels));
@@ -200,16 +221,37 @@ namespace CouldComputingServer
         session.TotalValue[symbol.Name].ForEach(x => AddValue(symbol.Name, Statistic.TotalValue, x));
       }
 
-      for (int y = 0; y < TotalValue.Count; y++)
+      for (int y = SymbolsToTest.Count; y < TotalValue.Count; y += SymbolsToTest.Count)
       {
-        lastLabel = y * (SymbolsToTest.Count + 1);
-
+        lastLabel = y;
         Labels.Add(lastLabel.ToString());
+
         RaisePropertyChanged(nameof(Labels));
       }
     }
 
     int lastLabel;
+
+    public void ClearData()
+    {
+      BestFitness = new Dictionary<string, List<decimal>>();
+      OriginalFitness = new Dictionary<string, List<decimal>>();
+      AverageFitness = new Dictionary<string, List<decimal>>();
+      TotalValue = new Dictionary<string, List<decimal>>();
+      Drawdawn = new Dictionary<string, List<decimal>>();
+      NumberOfTrades = new Dictionary<string, List<decimal>>();
+
+
+      AverageData.ForEach(x => x.Values.Clear());
+      TotalValueData.ForEach(x => x.Values.Clear());
+      BestData.ForEach(x => x.Values.Clear());
+      DrawdawnData.ForEach(x => x.Values.Clear());
+      FitnessData.ForEach(x => x.Values.Clear());
+      NumberOfTradesData.ForEach(x => x.Values.Clear());
+
+      Labels.Clear();
+      RaisePropertyChanged(nameof(Labels));
+    }
   }
 
 }

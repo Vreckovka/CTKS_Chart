@@ -30,7 +30,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
     {
       get
       {
-        return (TotalValue * 1.5m) / SimulationAIPromptViewModel.TakeIntersections;
+        return (TotalValue * 2m) / SimulationAIPromptViewModel.TakeIntersections;
         //return 20m;
       }
     }
@@ -149,7 +149,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       }
       catch (Exception ex)
       {
-        Logger.Log(ex);
+        Logger?.Log(ex);
       }
       finally
       {
