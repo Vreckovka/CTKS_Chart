@@ -237,7 +237,7 @@ namespace CloudComputingClient
 
       SendResult();
 
-      serialDisposable.Disposable = Observable.Interval(TimeSpan.FromSeconds(5)).Subscribe((x) =>
+      serialDisposable.Disposable = Observable.Interval(TimeSpan.FromSeconds(1)).Subscribe((x) =>
       {
         SendResult();
       });
@@ -549,6 +549,7 @@ namespace CloudComputingClient
             ms = new MemoryStream();
             Logger.Log(ex);
             buffer.Clear();
+            stream.Flush();
           }
         }
       }

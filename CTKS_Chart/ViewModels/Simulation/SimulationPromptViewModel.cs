@@ -452,6 +452,18 @@ namespace CTKS_Chart.ViewModels
             TimeFrames = timeFrames,
           };
           break;
+        case "ALGOUSDT":
+          asset = new Asset()
+          {
+            Symbol = "ALGOUSDT",
+            NativeRound = 3,
+            PriceRound = 2,
+            DataPath = path,
+            DataSymbol = "BINANCE ALGOUSDT",
+            IndicatorDataPath = "BINANCE ALGOUSDT",
+            TimeFrames = timeFrames,
+          };
+          break;
       }
 
 

@@ -708,9 +708,12 @@ namespace CTKS_Chart.ViewModels
 
     protected void LoadSecondaryLayouts(DateTime? maxTime = null)
     {
+      InnerLayouts.Clear();
+      Layouts.Clear();
+
       foreach (var layoutData in TradingBot.TimeFrames.Where(x => x.Value >= minTimeframe))
       {
-        var layout = CreateCtks(layoutData.Key, layoutData.Value, maxTime, saveData: !IsSimulation);
+        var layout = CreateCtks(layoutData.Key, layoutData.Value, maxTime);
 
         Layouts.Add(layout);
         InnerLayouts.Add(layout);
@@ -880,7 +883,10 @@ namespace CTKS_Chart.ViewModels
       {
         var secondaryLayout = secondaryLayouts[i];
 
-        var lastCandle = secondaryLayout.Ctks.Candles.Last();
+        var lastCandle = secondaryLayout.Ctks.Candles?.LastOrDefault();
+
+        if (lastCandle == null)
+          continue;
 
         var isOutDated = false;
 
@@ -969,7 +975,7 @@ namespace CTKS_Chart.ViewModels
         }
 
         var lowest = actual.Close.Value * (decimal)0.3;
-     
+
         newInters = newInters.Where(x => x.Value > lowest).ToList();
       }
 
@@ -979,7 +985,7 @@ namespace CTKS_Chart.ViewModels
         ctksCachedIntersections = newInters;
         outdated = true;
       }
-       
+
       return ctksCachedIntersections;
     }
 
@@ -1043,9 +1049,10 @@ namespace CTKS_Chart.ViewModels
 
         return lastWeeklyCandle;
       }
-      if (timeFrame == TimeFrame.D1 && actualCandle.OpenTime.Date != lastDailyCandle?.CloseTime.Date)
+      if (timeFrame == TimeFrame.D1)
       {
-        lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, actualCandle);
+        if (actualCandle.OpenTime.Date != lastDailyCandle?.OpenTime.Date)
+          lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, actualCandle);
 
         return lastDailyCandle;
       }

@@ -499,29 +499,7 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    #region StartBots
-
     DateTime generationStart;
-    private void StartBots()
-    {
-      Task.Run(() =>
-      {
-        foreach (var bot in Bots)
-        {
-          bot.Finished += Bot_Finished;
-
-          bot.Start();
-
-          VSynchronizationContext.InvokeOnDispatcher(() =>
-          {
-            InProgress++;
-            ToStart--;
-          });
-        }
-      });
-    }
-
-    #endregion
 
     #region Bot_Finished
 
@@ -579,12 +557,9 @@ namespace CTKS_Chart.ViewModels
       // 3. Apply a log function based on the count of closed sell positions
       if (strategy.ClosedSellPositions.Count > 0)
       {
-        double maxTrades = 1440;
-        double normalizedTrades = Math.Min(strategy.ClosedSellPositions.Count / maxTrades, 1.0);
+        var tradesInfluence = GetTradesInfluance(strategy.ClosedSellPositions.Count);
 
-        double tradesInfluence = Math.Pow(1 + Math.Log(1 + normalizedTrades),2);
-
-        fitness *= (float)tradesInfluence;
+        fitness *= tradesInfluence;
       }
 
       // Ensure fitness is not negative
@@ -592,6 +567,17 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
+
+    private static float GetTradesInfluance(double tradeCount)
+    {
+      // Apply logarithm to reduce influence as trade count grows
+      double logarithmicInfluence = Math.Log10(tradeCount);
+
+      if (tradeCount < 400)
+        logarithmicInfluence = 1;
+
+      return (float)logarithmicInfluence;
+    }
 
     #region UpdateGeneration
 

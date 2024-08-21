@@ -232,7 +232,7 @@ namespace CTKS_Chart.ViewModels
     #region PreloadCandles
 
     static Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>> preloadedDaily = new Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>>();
-    static Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>> preloadedWeekly = new Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>>();
+    //static Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>> preloadedWeekly = new Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>>();
 
     static object batton1 = new object();
     private void PreloadCandles(IList<Candle> simulationCandles)
@@ -246,15 +246,15 @@ namespace CTKS_Chart.ViewModels
 
           foreach (var candle in simulationCandles)
           {
-            var dailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, candle);
-            var weeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, candle);
+            var dailyCandle = base.GetCandle(TimeFrame.D1, candle);
+            //var weeklyCandle = base.GetCandle(TimeFrame.W1, candle);
 
             daily.Add(candle, dailyCandle);
-            weekly.Add(candle, weeklyCandle);
+            //weekly.Add(candle, weeklyCandle);
           }
 
           preloadedDaily.Add(key, daily);
-          preloadedWeekly.Add(key, weekly);
+         // preloadedWeekly.Add(key, weekly);
         }
       }
     }
@@ -277,7 +277,7 @@ namespace CTKS_Chart.ViewModels
       }
       else if (timeFrame == TimeFrame.W1)
       {
-        return preloadedWeekly[key][actualCandle];
+        //return preloadedWeekly[key][actualCandle];
       }
 
       return null;

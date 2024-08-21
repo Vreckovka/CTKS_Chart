@@ -156,16 +156,24 @@ namespace CTKS_Chart.Trading
 
         if (saveData)
         {
-          if (LoadedData.TryGetValue(symbol, out var symbolData) && list.Count > symbolData.Values.Count)
+          var existingSymbol = LoadedData.TryGetValue(symbol, out var symbolData);
+
+          if (existingSymbol && symbolData.Any(x => x.Key == timeFrame))
             LoadedData[symbol][timeFrame] = list;
           else
           {
             var data = new Dictionary<TimeFrame, List<Candle>>();
-            data.Add(timeFrame, list);
 
-            LoadedData.Add(symbol, data);
+            if(existingSymbol)
+            {
+              LoadedData[symbol].Add(timeFrame, list);
+            }
+            else
+            {
+              data.Add(timeFrame,list);
+              LoadedData.Add(symbol, data);
+            }
           }
-
         }
 
         return list;

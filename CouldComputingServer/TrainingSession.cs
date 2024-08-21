@@ -155,7 +155,7 @@ namespace CouldComputingServer
 
     public void AddLabel()
     {
-      lastLabel++;
+      ++lastLabel;
 
       Labels.Add(lastLabel.ToString());
       RaisePropertyChanged(nameof(Labels));
