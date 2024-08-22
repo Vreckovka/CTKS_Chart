@@ -706,7 +706,7 @@ namespace CTKS_Chart.ViewModels
 
     #region LoadSecondaryLayouts
 
-    protected void LoadSecondaryLayouts(DateTime? maxTime = null)
+    public void LoadSecondaryLayouts(DateTime? maxTime = null)
     {
       InnerLayouts.Clear();
       Layouts.Clear();
@@ -899,7 +899,7 @@ namespace CTKS_Chart.ViewModels
           isOutDated = TradingViewHelper.IsOutDated(secondaryLayout.TimeFrame, secondaryLayout.AllCandles);
         }
 
-        if (isOutDated)
+        if (isOutDated || ctksCachedIntersections.Count == 0)
         {
           var fileCheck = true;
 

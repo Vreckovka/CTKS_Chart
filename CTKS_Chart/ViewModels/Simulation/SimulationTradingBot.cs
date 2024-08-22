@@ -208,7 +208,7 @@ namespace CTKS_Chart.ViewModels
 
     static object batton12 = new object();
 
-    protected void PreLoadIntersections(IList<Candle> simulationCandles)
+    public void PreLoadIntersections(Tuple<string, TimeFrame> key, IList<Candle> simulationCandles)
     {
       lock (batton12)
       {
@@ -221,6 +221,8 @@ namespace CTKS_Chart.ViewModels
             var inters = base.GetIntersections(candle, out var outdated);
             intersections.Add(candle, new Tuple<List<CtksIntersection>, bool>(inters, outdated));
           }
+
+          var counts = intersections.Select(x => x.Value.Item1.Count);
 
           preloadedIntersections.Add(key, intersections);
         }
@@ -235,7 +237,7 @@ namespace CTKS_Chart.ViewModels
     //static Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>> preloadedWeekly = new Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>>();
 
     static object batton1 = new object();
-    private void PreloadCandles(IList<Candle> simulationCandles)
+    public void PreloadCandles(Tuple<string, TimeFrame>  key, IList<Candle> simulationCandles)
     {
       lock (batton1)
       {
@@ -263,7 +265,7 @@ namespace CTKS_Chart.ViewModels
 
     protected override List<CtksIntersection> GetIntersections(Candle actual, out bool isOutdated)
     {
-      var inter = preloadedIntersections[key][actual];
+      var inter = preloadedIntersections[botKey][actual];
 
       isOutdated = inter.Item2;
       return inter.Item1;
@@ -273,7 +275,7 @@ namespace CTKS_Chart.ViewModels
     {
       if (timeFrame == TimeFrame.D1)
       {
-        return preloadedDaily[key][actualCandle];
+        return preloadedDaily[botKey][actualCandle];
       }
       else if (timeFrame == TimeFrame.W1)
       {
@@ -301,18 +303,15 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
     #region InitializeBot
-
+    Tuple<string, TimeFrame> botKey;
     public void InitializeBot(IList<Candle> simulationCandles)
     {
       var mainCtks = new Ctks(MainLayout, MainLayout.TimeFrame, TradingBot.Asset);
 
       var timeFrame = simulationCandles.First().TimeFrame;
-      key = new Tuple<string, TimeFrame>(Asset.Symbol, timeFrame);
-
-      PreloadCandles(simulationCandles);
+      botKey = new Tuple<string, TimeFrame>(Asset.Symbol, timeFrame);
 
       LoadSecondaryLayouts(FromDate);
-      PreLoadIntersections(simulationCandles);
 
       MainLayout.Ctks = mainCtks;
       SelectedLayout = MainLayout;
@@ -321,8 +320,6 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
     public TimeFrame TimeFrame { get; set; }
-
-    private Tuple<string, TimeFrame> key = null;
 
     #region LoadLayouts
 
@@ -338,6 +335,9 @@ namespace CTKS_Chart.ViewModels
       var cutCandles = allCandles.cutCandles;
       var candles = allCandles.candles;
       var mainCandles = allCandles.allCandles;
+
+      if (candles.Count == 0)
+        candles = mainCandles;
 
       DrawingViewModel.ActualCandles = candles;
 
@@ -378,7 +378,10 @@ namespace CTKS_Chart.ViewModels
         HeatBot(cutCandles, aIStrategy);
       }
 
+
       InitializeBot(simulateCandles);
+      PreloadCandles(botKey, simulateCandles);
+      PreLoadIntersections(botKey, simulateCandles);
 
 
       Simulate(simulateCandles);

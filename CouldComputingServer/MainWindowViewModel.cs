@@ -532,7 +532,7 @@ namespace CouldComputingServer
 
     DateTime generationStart;
     Random random = new Random();
-    bool wasRandomPrevious = false;
+    //bool wasRandomPrevious = false;
     private ServerRunData serverRunData;
     private void DistributeGeneration()
     {
@@ -550,23 +550,23 @@ namespace CouldComputingServer
       Clients.ForEach(x => x.SentBuyGenomes.Clear());
       Clients.ForEach(x => x.SentSellGenomes.Clear());
 
-      CurrentSymbol = TrainingSession.SymbolsToTest[wholeRunsCount % TrainingSession.SymbolsToTest.Count].Name;
-      bool isRandom = false;
+      CurrentSymbol = TrainingSession.SymbolsToTest[BuyBotManager.Generation % TrainingSession.SymbolsToTest.Count].Name;
+      //bool isRandom = IsRandom();
+      //bool isRandom = false;
+      //if (!wasRandomPrevious)
+      //{
+      //  isRandom = IsRandom();
 
-      if (!wasRandomPrevious)
-      {
-        isRandom = IsRandom();
-
-        if (isRandom)
-        {
-          wasRandomPrevious = true;
-          CurrentSymbol = TrainingSession.SymbolsToTest[random.Next(0, TrainingSession.SymbolsToTest.Count)].Name;
-        }
-      }
-      else
-      {
-        wasRandomPrevious = false;
-      }
+      //  if (isRandom)
+      //  {
+      //    wasRandomPrevious = true;
+      //    CurrentSymbol = TrainingSession.SymbolsToTest[random.Next(0, TrainingSession.SymbolsToTest.Count)].Name;
+      //  }
+      //}
+      //else
+      //{
+      //  wasRandomPrevious = false;
+      //}
 
       var ordered = Clients.OrderBy(x => x.LastGenerationTime).ToList();
 
@@ -576,6 +576,7 @@ namespace CouldComputingServer
       TimeSpan difference = last.LastGenerationTime - first.LastGenerationTime;
       var sec = (int)difference.TotalSeconds;
 
+      sec = Math.Min(sec, last.PopulationSize / 3);
       if (sec >= 1)
       {
         last.PopulationSize -= sec;
@@ -588,7 +589,7 @@ namespace CouldComputingServer
         {
           AgentCount = client.PopulationSize,
           Generation = BuyBotManager.Generation,
-          IsRandom = isRandom,
+          IsRandom = false,
           Minutes = Minutes,
           Split = SplitTake,
           Symbol = CurrentSymbol,
@@ -630,10 +631,10 @@ namespace CouldComputingServer
 
       Logger.Log(MessageType.Inform, "Generation distributed");
 
-      if (!isRandom)
-      {
-        wholeRunsCount++;
-      }
+      //if (!isRandom)
+      //{
+      //  wholeRunsCount++;
+      //}
     }
 
     #endregion
@@ -651,7 +652,8 @@ namespace CouldComputingServer
 
       var index = TrainingSession.SymbolsToTest.IndexOf((x) => x.Name == serverRunData.Symbol);
 
-      if (index != null && !wasRandomPrevious)
+      if (index != null)
+      //if (index != null)
       {
         var bestRun = runData.OrderByDescending(x => x.Fitness).First();
 
@@ -662,7 +664,9 @@ namespace CouldComputingServer
         TrainingSession.AddValue(serverRunData.Symbol, Statistic.Drawdawn, bestRun.Drawdawn);
         TrainingSession.AddValue(serverRunData.Symbol, Statistic.NumberOfTrades, bestRun.NumberOfTrades);
 
-        if (isStartSymbol)
+        var fullCycle = BuyBotManager.Generation % TrainingSession.SymbolsToTest.Count == 0 ;
+
+        if (fullCycle)
         {
           BestFitness = (float)bestRun.Fitness;
           TotalValue = bestRun.TotalValue;
@@ -677,10 +681,7 @@ namespace CouldComputingServer
            
 
           cycleLastElapsed = DateTime.Now;
-        }
 
-        if (isStartSymbol)
-        {
           var folder = Path.Combine("Trainings", TrainingSession.Name);
           Directory.CreateDirectory(folder);
 
@@ -714,12 +715,12 @@ namespace CouldComputingServer
 
     #region IsRandom
 
-    private int wholeRunsCount;
-    private bool IsRandom()
-    {
-      return false;
+    //private int wholeRunsCount;
+    //private bool IsRandom()
+    //{
+      //return true;
       //return wholeRunsCount % TrainingSession.SymbolsToTest.Count == 0 && BuyBotManager.Generation != 0;
-    }
+    //}
 
     #endregion
 

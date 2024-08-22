@@ -61,7 +61,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
         if (dailyCandle == null)
         {
-          Logger.Log(MessageType.Warning, "No daily candle, doing nothing...");
+          Logger.Log(MessageType.Warning, $"No daily candle {actualCandle.OpenTime.Date}, doing nothing...");
           return;
         }
 

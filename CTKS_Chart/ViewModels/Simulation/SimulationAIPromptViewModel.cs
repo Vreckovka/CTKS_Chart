@@ -557,9 +557,9 @@ namespace CTKS_Chart.ViewModels
       // 3. Apply a log function based on the count of closed sell positions
       if (strategy.ClosedSellPositions.Count > 0)
       {
-        var tradesInfluence = GetTradesInfluance(strategy.ClosedSellPositions.Count);
+        //var tradesInfluence = GetTradesInfluance(strategy.ClosedSellPositions.Count);
 
-        fitness *= tradesInfluence;
+        //fitness *= tradesInfluence;
       }
 
       // Ensure fitness is not negative
@@ -571,10 +571,10 @@ namespace CTKS_Chart.ViewModels
     private static float GetTradesInfluance(double tradeCount)
     {
       // Apply logarithm to reduce influence as trade count grows
-      double logarithmicInfluence = Math.Log10(tradeCount);
+      double logarithmicInfluence = Math.Log(tradeCount,20);
 
-      if (tradeCount < 400)
-        logarithmicInfluence = 1;
+      //if (tradeCount < 400)
+      //  logarithmicInfluence = 1;
 
       return (float)logarithmicInfluence;
     }

@@ -464,6 +464,30 @@ namespace CTKS_Chart.ViewModels
             TimeFrames = timeFrames,
           };
           break;
+        case "LINKUSDT":
+          asset = new Asset()
+          {
+            Symbol = "LINKUSDT",
+            NativeRound = 2,
+            PriceRound = 2,
+            DataPath = path,
+            DataSymbol = "BINANCE LINKUSDT",
+            IndicatorDataPath = "BINANCE LINKUSDT",
+            TimeFrames = timeFrames,
+          };
+          break;
+        case "COTIUSDT":
+          asset = new Asset()
+          {
+            Symbol = "COTIUSD",
+            NativeRound = 0,
+            PriceRound = 5,
+            DataPath = path,
+            DataSymbol = "BINANCE COTIUSD",
+            IndicatorDataPath = "BINANCE COTIUSD",
+            TimeFrames = timeFrames,
+          };
+          break;
       }
 
 

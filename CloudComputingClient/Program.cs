@@ -297,28 +297,39 @@ namespace CloudComputingClient
         DateTime fromDate = DateTime.Now;
         double splitTake = 0;
 
+        var asset = Bots.First().Asset;
+        var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
+
+        //ignore filter starting values of indicators
+        var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime.AddDays(30);
+        var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime.AddDays(-1);
+
         if (useRandomDate)
         {
-          var year = random.Next(2019, 2023);
+          var year = random.Next(2020, 2023);
           fromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
           splitTake = pSpliTake;
         }
         else
         {
-          var asset = Bots.First().Asset;
-          var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
-
-          //ignore filter starting values of indicators
-          fromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime.AddDays(30);
+          fromDate = firstValidDate;
         }
 
         var allCandles = SimulationTradingBot.GetSimulationCandles(
            minutes,
            SimulationPromptViewModel.GetSimulationDataPath(symbol, minutes.ToString()), symbol, fromDate);
 
-        var simulateCandles = allCandles.cutCandles;
+        var simulateCandles = allCandles.cutCandles.Where(x => x.OpenTime.Date > firstValidDate.Date && x.OpenTime.Date < lastValidDate.Date).ToList();
         var candles = allCandles.candles;
-        var mainCandles = allCandles.allCandles;
+        var mainCandles = allCandles.allCandles.Where(x => x.OpenTime.Date > firstValidDate.Date).ToList();
+
+
+        var timeFrame = simulateCandles.First().TimeFrame;
+        var key = new Tuple<string, TimeFrame>(Bots[0].Asset.Symbol, timeFrame);
+
+        Bots[0].LoadSecondaryLayouts(firstValidDate);
+        Bots[0].PreloadCandles(key, mainCandles);
+        Bots[0].PreLoadIntersections(key, mainCandles);
 
         foreach (var bot in Bots)
         {
@@ -332,6 +343,8 @@ namespace CloudComputingClient
           bot.InitializeBot(simulateCandles);
           bot.HeatBot(simulateCandles, bot.TradingBot.Strategy);
         }
+
+
 
         ToStart = Bots.Count;
 
@@ -633,7 +646,7 @@ namespace CloudComputingClient
       Console.WriteLine($"BEST Fitness: {LastData?.Fitness.ToString("N2")}");
       Console.WriteLine($"AVG.Fitness: {LastData?.Average.ToString("N2")}");
       Console.WriteLine($"ORG.Fitness: {LastData?.OriginalFitness.ToString("N2")}");
-    
+
       Console.WriteLine();
       Console.WriteLine($"Total Value: {LastData?.TotalValue.ToString("N2")} $");
       Console.WriteLine($"Drawdawn: {LastData?.Drawdawn.ToString("N2")} %");
