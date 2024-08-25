@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 
 namespace CouldComputingServer
@@ -14,6 +15,16 @@ namespace CouldComputingServer
 
     public int PopulationSize { get; set; }
     public DateTime LastGenerationTime { get; set; } 
+
+    public string IP
+    {
+      get
+      {
+        IPEndPoint remoteIpEndPoint = (IPEndPoint)Client.Client.RemoteEndPoint;
+
+        return remoteIpEndPoint.ToString();
+      }
+    }
   }
 
 }

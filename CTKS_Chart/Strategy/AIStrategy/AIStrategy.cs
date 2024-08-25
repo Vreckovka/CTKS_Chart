@@ -103,7 +103,6 @@ namespace CTKS_Chart.Strategy.AIStrategy
         var output = BuyAIBot.Update(
           actualCandle,
           this,
-          inter,
           GetLastPrices(takeLastDailyCandles));
 
         var indexes = output
@@ -203,7 +202,6 @@ namespace CTKS_Chart.Strategy.AIStrategy
       var output = SellAIBot.Update(
         lastCandle,
         this,
-        inter,
         GetLastPrices(takeLastDailyCandles),
         (float)(buyPosition.PositionSize / PositionSize));
 

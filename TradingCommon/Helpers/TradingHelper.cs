@@ -158,7 +158,7 @@ namespace CTKS_Chart.Trading
 
       if (TradingViewHelper.LoadedData[symbol].TryGetValue(timeFrame, out var candles))
       {
-        candles = candles.Where(x => x.IndicatorData?.RangeFilterData?.RangeFilter > 0).ToList();
+        candles = candles.Where(x => x.IndicatorData?.RangeFilter?.RangeFilter > 0).ToList();
 
 
         var equivalentDataCandle = candles

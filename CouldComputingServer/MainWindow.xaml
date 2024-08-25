@@ -392,7 +392,7 @@
             <Run
               FontWeight="Bold"
               Foreground="#858585"
-              Text="{Binding RunTime, StringFormat={}{0:hh\\:mm\\:ss}}" />
+              Text="{Binding RunTime, StringFormat={}{0:d\\:hh\\:mm\\:ss}}" />
           </TextBlock>
         </StackPanel>
 

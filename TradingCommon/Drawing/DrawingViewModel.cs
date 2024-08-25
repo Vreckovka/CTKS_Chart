@@ -1004,7 +1004,7 @@ namespace CTKS_Chart.ViewModels
       {
         if (TradingViewHelper.LoadedData[Symbol].TryGetValue(indicatorSettings.TimeFrame, out var candles))
         {
-          candles = candles.Where(x => x.IndicatorData?.RangeFilterData?.RangeFilter > 0).ToList();
+          candles = candles.Where(x => x.IndicatorData?.RangeFilter?.RangeFilter > 0).ToList();
 
           if (candles.Count > 1)
           {
@@ -1033,7 +1033,7 @@ namespace CTKS_Chart.ViewModels
 
       foreach (var candle in validCandles)
       {
-        var indicatorData = candle.IndicatorData.RangeFilterData;
+        var indicatorData = candle.IndicatorData.RangeFilter;
 
         var selectedBrush = indicatorData.Upward ? DrawingHelper.GetBrushFromHex("#80eb34") : DrawingHelper.GetBrushFromHex("#eb4034");
         var max = CanvasHeight - TradingHelper.GetCanvasValue(CanvasHeight, indicatorData.HighTarget, MaxValue, MinValue);

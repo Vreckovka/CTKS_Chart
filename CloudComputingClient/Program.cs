@@ -301,8 +301,8 @@ namespace CloudComputingClient
         var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
 
         //ignore filter starting values of indicators
-        var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime.AddDays(30);
-        var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime.AddDays(-1);
+        var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(30);
+        var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(-1);
 
         if (useRandomDate)
         {
@@ -340,6 +340,7 @@ namespace CloudComputingClient
             simulateCandles = simulateCandles.Take(take).ToList();
           }
 
+          bot.FromDate = fromDate;
           bot.InitializeBot(simulateCandles);
           bot.HeatBot(simulateCandles, bot.TradingBot.Strategy);
         }

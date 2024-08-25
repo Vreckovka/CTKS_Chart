@@ -55,6 +55,13 @@ namespace CTKS_Chart.Trading
 
         var lines = File.ReadAllLines(path);
 
+        if (!lines.Any())
+        {
+          return new List<Candle>();
+        }
+
+        var header = lines[0].Split(",");
+
         CultureInfo.CurrentCulture = new CultureInfo("en-US");
         int index = 0;
 
@@ -107,22 +114,11 @@ namespace CTKS_Chart.Trading
 
             if (data.Length > 8)
             {
-              decimal.TryParse(data[5], out var rangeFilter);
-              decimal.TryParse(data[6], out var highTarget);
-              decimal.TryParse(data[7], out var lowTarget);
-              decimal.TryParse(data[8], out var upward);
-              decimal.TryParse(data[9], out var bbwp);
-
-
-              var rangeData = new RangeFilterData();
-
-              rangeData.RangeFilter = rangeFilter;
-              rangeData.HighTarget = highTarget;
-              rangeData.LowTarget = lowTarget;
-              rangeData.Upward = upward != 0;
-
-              indicatorData.RangeFilterData = rangeData;
-              indicatorData.BBWP = bbwp;
+              indicatorData.RangeFilter = GetRangeFilter(data, header);
+              indicatorData.BBWP = GetBBWP(data, header);
+              indicatorData.IchimokuCloud = GetIchimoku(data, header);
+              indicatorData.StochRSI = GetStochRSI(data, header);
+              indicatorData.RSI = GetRSI(data, header);
             }
 
             var newCandle = new Candle()
@@ -164,13 +160,13 @@ namespace CTKS_Chart.Trading
           {
             var data = new Dictionary<TimeFrame, List<Candle>>();
 
-            if(existingSymbol)
+            if (existingSymbol)
             {
               LoadedData[symbol].Add(timeFrame, list);
             }
             else
             {
-              data.Add(timeFrame,list);
+              data.Add(timeFrame, list);
               LoadedData.Add(symbol, data);
             }
           }
@@ -246,6 +242,147 @@ namespace CTKS_Chart.Trading
       {
         return false;
       }
+    }
+
+    #endregion
+
+    #region GetRangeFilter
+
+    private static RangeFilterData GetRangeFilter(string[] data, string[] header)
+    {
+      var startIndex = header.IndexOf(x => x == "Range Filter") ?? -1;
+
+      if (startIndex >= 0)
+      {
+        decimal.TryParse(data[startIndex], out var rangeFilter);
+        decimal.TryParse(data[startIndex + 1], out var highTarget);
+        decimal.TryParse(data[startIndex + 2], out var lowTarget);
+        decimal.TryParse(data[startIndex + 3], out var upward);
+
+
+        var rangeData = new RangeFilterData();
+
+        rangeData.RangeFilter = rangeFilter;
+        rangeData.HighTarget = highTarget;
+        rangeData.LowTarget = lowTarget;
+        rangeData.Upward = upward != 0;
+
+        return rangeData;
+      }
+
+      return null;
+    }
+
+    #endregion
+
+    #region GetBBWP
+
+    private static BBWPData GetBBWP(string[] data, string[] header)
+    {
+      var startIndex = header.IndexOf(x => x == "BBWP") ?? -1;
+
+      if (startIndex >= 0)
+      {
+        decimal.TryParse(data[startIndex], out var bbwp);
+        decimal.TryParse(data[startIndex + 1], out var hi);
+        decimal.TryParse(data[startIndex + 2], out var low);
+        decimal.TryParse(data[startIndex + 3], out var ma1);
+        decimal.TryParse(data[startIndex + 4], out var ma2);
+
+        var bbwpData = new BBWPData();
+
+        bbwpData.BBWP = bbwp;
+        bbwpData.ExtremeHi = hi;
+        bbwpData.ExtremeLo = low;
+        bbwpData.MA1 = ma1;
+        bbwpData.MA2 = ma2;
+
+        return bbwpData;
+      }
+
+      return null;
+    }
+
+    #endregion
+
+
+    #region GetIchimoku
+
+    private static IchimokuCloud GetIchimoku(string[] data, string[] header)
+    {
+      var startIndex = header.IndexOf(x => x == "Conversion Line") ?? -1;
+
+      if (startIndex >= 0)
+      {
+        decimal.TryParse(data[startIndex], out var conversionLine);
+        decimal.TryParse(data[startIndex + 1], out var baseLine);
+        decimal.TryParse(data[startIndex + 2], out var lagging);
+        decimal.TryParse(data[startIndex + 3], out var a);
+        decimal.TryParse(data[startIndex + 4], out var b);
+
+        var indicatorData = new IchimokuCloud()
+        {
+          ConversionLine = conversionLine,
+          BaseLine = baseLine,
+          LaggingSpan = lagging,
+          LeadingSpanA = a,
+          LeadingSpanB = b
+        };
+
+        return indicatorData;
+      }
+
+      return null;
+    }
+
+    #endregion
+
+    #region GetStochRSI
+
+    private static StochRSI GetStochRSI(string[] data, string[] header)
+    {
+      var startIndex = header.IndexOf(x => x == "K") ?? -1;
+
+      if (startIndex >= 0)
+      {
+        decimal.TryParse(data[startIndex], out var k);
+        decimal.TryParse(data[startIndex + 1], out var d);
+
+        var indicatorData = new StochRSI()
+        {
+          K = k,
+          D = d,
+        };
+
+        return indicatorData;
+      }
+
+      return null;
+    }
+
+    #endregion
+
+    #region GetRSI
+
+    private static RSIData GetRSI(string[] data, string[] header)
+    {
+      var startIndex = header.IndexOf(x => x == "RSI") ?? -1;
+
+      if (startIndex >= 0)
+      {
+        decimal.TryParse(data[startIndex], out var rsi);
+        decimal.TryParse(data[startIndex + 1], out var ma);
+
+        var indicatorData = new RSIData()
+        {
+          RSI = rsi,
+          RSIMA = ma,
+        };
+
+        return indicatorData;
+      }
+
+      return null;
     }
 
     #endregion

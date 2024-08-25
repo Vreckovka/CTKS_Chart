@@ -287,7 +287,7 @@ namespace CTKS_Chart.ViewModels
     {
       var vm = viewModelsFactory.Create<DownloadSymbolViewModel>();
 
-      windowManager.ShowPrompt<DownloadSymbolView>(vm, 350, 350);
+      windowManager.ShowPrompt<DownloadSymbolView>(vm, 350, 350,false);
     }
 
     #endregion
@@ -488,6 +488,18 @@ namespace CTKS_Chart.ViewModels
             TimeFrames = timeFrames,
           };
           break;
+        case "SOLUSDT":
+          asset = new Asset()
+          {
+            Symbol = "SOLUSDT",
+            NativeRound = 3,
+            PriceRound = 2,
+            DataPath = path,
+            DataSymbol = "BINANCE SOLUSDT",
+            IndicatorDataPath = "BINANCE SOLUSDT",
+            TimeFrames = timeFrames,
+          };
+          break;
       }
 
 
@@ -520,7 +532,7 @@ namespace CTKS_Chart.ViewModels
       var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{adaAi.Asset.IndicatorDataPath}, 1D.csv", adaAi.Asset.Symbol, saveData: true);
 
       //ignore filter starting values of indicators
-      adaAi.FromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime.AddDays(30);
+      adaAi.FromDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(30);
 
       adaAi.SaveResults = true;
       adaAi.DisplayName += " AI";

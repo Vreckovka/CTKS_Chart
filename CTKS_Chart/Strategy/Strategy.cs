@@ -829,10 +829,10 @@ namespace CTKS_Chart.Strategy
         {
           if (lastDailyCandle != null)
           {
-            MaxBuyPrice = lastDailyCandle.IndicatorData.RangeFilterData.RangeFilter;
-            maxBuy = lastDailyCandle.IndicatorData.RangeFilterData.RangeFilter;
+            MaxBuyPrice = lastDailyCandle.IndicatorData.RangeFilter.RangeFilter;
+            maxBuy = lastDailyCandle.IndicatorData.RangeFilter.RangeFilter;
 
-            StrategyPosition = lastDailyCandle.IndicatorData.RangeFilterData.Upward ? StrategyPosition.Bullish : StrategyPosition.Bearish;
+            StrategyPosition = lastDailyCandle.IndicatorData.RangeFilter.Upward ? StrategyPosition.Bullish : StrategyPosition.Bearish;
           }
         }
 
@@ -870,10 +870,10 @@ namespace CTKS_Chart.Strategy
 
           if (lastDailyCandle != null)
           {
-            if (!lastDailyCandle.IndicatorData.RangeFilterData.Upward)
+            if (!lastDailyCandle.IndicatorData.RangeFilter.Upward)
               autoIntersections = autoIntersections.Where(x => x.Value < lastDailyCandle.Open.Value);
 
-            autoIntersections = autoIntersections.Where(x => x.Value < lastDailyCandle.IndicatorData.RangeFilterData.HighTarget);
+            autoIntersections = autoIntersections.Where(x => x.Value < lastDailyCandle.IndicatorData.RangeFilter.HighTarget);
           }
 
           foreach (var intersection in autoIntersections)
@@ -969,7 +969,7 @@ namespace CTKS_Chart.Strategy
 
         if (data != null)
         {
-          lastSell = data.IndicatorData.RangeFilterData.HighTarget;
+          lastSell = data.IndicatorData.RangeFilter.HighTarget;
         }
       }
 

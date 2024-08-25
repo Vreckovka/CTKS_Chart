@@ -1097,9 +1097,9 @@ namespace CTKS_Chart.ViewModels
       if (rangeCandle != null)
       {
         var minDiff = 0.05m;
-        var low = Math.Round(rangeCandle.IndicatorData.RangeFilterData.LowTarget, TradingBot.Asset.PriceRound);
-        var rf = Math.Round(rangeCandle.IndicatorData.RangeFilterData.RangeFilter, TradingBot.Asset.PriceRound);
-        var high = Math.Round(rangeCandle.IndicatorData.RangeFilterData.HighTarget, TradingBot.Asset.PriceRound);
+        var low = Math.Round(rangeCandle.IndicatorData.RangeFilter.LowTarget, TradingBot.Asset.PriceRound);
+        var rf = Math.Round(rangeCandle.IndicatorData.RangeFilter.RangeFilter, TradingBot.Asset.PriceRound);
+        var high = Math.Round(rangeCandle.IndicatorData.RangeFilter.HighTarget, TradingBot.Asset.PriceRound);
 
         if (rgL != null && rgL.Value > 0)
         {
@@ -1179,9 +1179,9 @@ namespace CTKS_Chart.ViewModels
       if (rangeCandle != null)
       {
         var minDiff = 0.05m;
-        var low = Math.Round(rangeCandle.IndicatorData.RangeFilterData.LowTarget, TradingBot.Asset.PriceRound);
-        var rf = Math.Round(rangeCandle.IndicatorData.RangeFilterData.RangeFilter, TradingBot.Asset.PriceRound);
-        var high = Math.Round(rangeCandle.IndicatorData.RangeFilterData.HighTarget, TradingBot.Asset.PriceRound);
+        var low = Math.Round(rangeCandle.IndicatorData.RangeFilter.LowTarget, TradingBot.Asset.PriceRound);
+        var rf = Math.Round(rangeCandle.IndicatorData.RangeFilter.RangeFilter, TradingBot.Asset.PriceRound);
+        var high = Math.Round(rangeCandle.IndicatorData.RangeFilter.HighTarget, TradingBot.Asset.PriceRound);
 
         if (rgL != null && rgL.Value > 0)
         {

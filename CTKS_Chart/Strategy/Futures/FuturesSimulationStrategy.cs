@@ -41,7 +41,7 @@ namespace CTKS_Chart.Strategy.Futures
         }
       }
 
-      RangeFilterData = TradingHelper.GetActualEqivalentCandle(Asset.Symbol,TimeFrame.D1, actualCandle)?.IndicatorData.RangeFilterData;
+      RangeFilterData = TradingHelper.GetActualEqivalentCandle(Asset.Symbol,TimeFrame.D1, actualCandle)?.IndicatorData.RangeFilter;
 
       //if (RangeFilterData == null || RangeFilterData.Upward)
       {

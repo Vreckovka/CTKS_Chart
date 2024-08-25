@@ -42,7 +42,13 @@ namespace CouldComputingServer
     Dictionary<CloudClient, string> messages = new Dictionary<CloudClient, string>();
     List<RunData> runResults = new List<RunData>();
 
-    string[] allSymbols = new string[] { "ADAUSDT", "BTCUSDT", "ETHUSDT", "LTCUSDT", "BNBUSDT", "EOSUSDT" };
+    string[] allSymbols = new string[] {
+      "ADAUSDT", "BTCUSDT",
+      "ETHUSDT", "LTCUSDT",
+      "BNBUSDT", "EOSUSDT",
+      "LINKUSDT", "COTIUSDT",
+      "SOLUSDT", "ALGOUSDT"};
+
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
     {
       TrainingSession = new TrainingSession(DateTime.Now.ToString("dd_MM_yyyy_HH_mm_ss"));
@@ -478,10 +484,6 @@ namespace CouldComputingServer
       BuyBotManager.InitializeManager(AgentCount);
       SellBotManager.InitializeManager(AgentCount);
 
-      foreach (var client in Clients)
-      {
-        client.PopulationSize = AgentCount / Clients.Count;
-      }
 
       serialDisposable.Disposable = Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
       {
@@ -551,37 +553,27 @@ namespace CouldComputingServer
       Clients.ForEach(x => x.SentSellGenomes.Clear());
 
       CurrentSymbol = TrainingSession.SymbolsToTest[BuyBotManager.Generation % TrainingSession.SymbolsToTest.Count].Name;
-      //bool isRandom = IsRandom();
-      //bool isRandom = false;
-      //if (!wasRandomPrevious)
-      //{
-      //  isRandom = IsRandom();
 
-      //  if (isRandom)
-      //  {
-      //    wasRandomPrevious = true;
-      //    CurrentSymbol = TrainingSession.SymbolsToTest[random.Next(0, TrainingSession.SymbolsToTest.Count)].Name;
-      //  }
-      //}
-      //else
-      //{
-      //  wasRandomPrevious = false;
-      //}
+
+      foreach (var client in Clients)
+      {
+        client.PopulationSize = AgentCount / Clients.Count;
+      }
 
       var ordered = Clients.OrderBy(x => x.LastGenerationTime).ToList();
 
       var first = ordered.First();
       var last = ordered.Last();
 
-      TimeSpan difference = last.LastGenerationTime - first.LastGenerationTime;
-      var sec = (int)difference.TotalSeconds;
+      //TimeSpan difference = last.LastGenerationTime - first.LastGenerationTime;
+      //var sec = (int)difference.TotalSeconds;
 
-      sec = Math.Min(sec, last.PopulationSize / 3);
-      if (sec >= 1)
-      {
-        last.PopulationSize -= sec;
-        first.PopulationSize += sec;
-      }
+      //sec = Math.Min(sec, last.PopulationSize / 3);
+      //if (sec >= 1)
+      //{
+      //  last.PopulationSize--;
+      //  first.PopulationSize++;
+      //}
 
       foreach (var client in Clients.ToList())
       {
@@ -630,11 +622,6 @@ namespace CouldComputingServer
       }
 
       Logger.Log(MessageType.Inform, "Generation distributed");
-
-      //if (!isRandom)
-      //{
-      //  wholeRunsCount++;
-      //}
     }
 
     #endregion
@@ -793,7 +780,7 @@ namespace CouldComputingServer
 
             if (currentData.Contains(MessageContract.Error))
             {
-              TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(JsonSerializer.Serialize(messages[client])));
+              TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
 
               ms = new MemoryStream();
               continue;

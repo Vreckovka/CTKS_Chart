@@ -64,18 +64,18 @@ namespace CTKS_Chart.Strategy
       var intersections = strategy.Intersections;
       intersections.ForEach(x => x.IsEnabled = true);
       int nStep = 1;
-      var bullish = actualAssetCandle.IndicatorData.RangeFilterData.Upward;
+      var bullish = actualAssetCandle.IndicatorData.RangeFilter.Upward;
 
       if (positionSide == PositionSide.Buy)
       {
-        if (!actualAssetCandle.IndicatorData.RangeFilterData.Upward)
+        if (!actualAssetCandle.IndicatorData.RangeFilter.Upward)
         {
           nStep++;
         }
       }
       else if (positionSide == PositionSide.Sell)
       {
-        if (actualAssetCandle.IndicatorData.RangeFilterData.Upward)
+        if (actualAssetCandle.IndicatorData.RangeFilter.Upward)
         {
           nStep++;
         }
@@ -98,16 +98,16 @@ namespace CTKS_Chart.Strategy
 
       //var bullish = actualAssetCandle.IndicatorData.Upward;
       //var bullish = actualBtcCandle.IndicatorData.Upward;
-      var bullish = actualBtcCandle.IndicatorData.RangeFilterData.Upward || actualAssetCandle.IndicatorData.RangeFilterData.Upward;
+      var bullish = actualBtcCandle.IndicatorData.RangeFilter.Upward || actualAssetCandle.IndicatorData.RangeFilter.Upward;
       //var bullish = actualBtcCandle.IndicatorData.Upward && actualAssetCandle.IndicatorData.Upward;
 
       var size = 0.025m;
 
-      if (actualBtcCandle.IndicatorData.RangeFilterData.Upward && actualAssetCandle.IndicatorData.RangeFilterData.Upward)
+      if (actualBtcCandle.IndicatorData.RangeFilter.Upward && actualAssetCandle.IndicatorData.RangeFilter.Upward)
       {
         size = 0.2m;
       }
-      else if (!actualBtcCandle.IndicatorData.RangeFilterData.Upward && !actualAssetCandle.IndicatorData.RangeFilterData.Upward)
+      else if (!actualBtcCandle.IndicatorData.RangeFilter.Upward && !actualAssetCandle.IndicatorData.RangeFilter.Upward)
       {
         size = 0.2m;
       }

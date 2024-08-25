@@ -55,7 +55,7 @@ namespace CTKS_Chart.ViewModels
     //Less intersections make bot taking less trades, since position size is based on this 
     //and it does not work for lower timeframes, since it has to make lot of trades
     public static int TakeIntersections = 15;
-    public const int inputNumber = 12;
+    public const int inputNumber = 25;
 
     #region Constructors
 
@@ -542,7 +542,7 @@ namespace CTKS_Chart.ViewModels
 
       // 2. Calculate the drawdown multiplier
       var drawdown = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
-      float exponent = 2.0f;  // Power function exponent to penalize more for larger drawdowns
+      float exponent = 3.0f;  // Power function exponent to penalize more for larger drawdowns
       var drawdownMultiplier = (float)Math.Pow(1 - drawdown, exponent);
 
       // Ensure the multiplier is within a reasonable range (0 to 1)
@@ -557,9 +557,9 @@ namespace CTKS_Chart.ViewModels
       // 3. Apply a log function based on the count of closed sell positions
       if (strategy.ClosedSellPositions.Count > 0)
       {
-        //var tradesInfluence = GetTradesInfluance(strategy.ClosedSellPositions.Count);
+        var tradesInfluence = GetTradesInfluance(strategy.ClosedSellPositions.Count);
 
-        //fitness *= tradesInfluence;
+        fitness *= tradesInfluence;
       }
 
       // Ensure fitness is not negative
@@ -571,7 +571,7 @@ namespace CTKS_Chart.ViewModels
     private static float GetTradesInfluance(double tradeCount)
     {
       // Apply logarithm to reduce influence as trade count grows
-      double logarithmicInfluence = Math.Log(tradeCount,20);
+      double logarithmicInfluence = Math.Log(tradeCount, 15);
 
       //if (tradeCount < 400)
       //  logarithmicInfluence = 1;
@@ -748,40 +748,66 @@ namespace CTKS_Chart.ViewModels
       double pSpliTake,
       int minutes)
     {
+      generationStart = DateTime.Now;
       Task.Run(() =>
       {
         DateTime fromDate = DateTime.Now;
         double splitTake = 0;
 
+        var asset = Bots.First().Asset;
+        var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
+
+        //ignore filter starting values of indicators
+        var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(30);
+        var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(-1);
+
         if (useRandomDate)
         {
-          var year = random.Next(2019, 2023);
+          var year = random.Next(2020, 2023);
           fromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
           splitTake = pSpliTake;
         }
         else
         {
-          var asset = Bots.First().Asset;
-          var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
-
-          //ignore filter starting values of indicators
-          fromDate = dailyCandles.First(x => x.IndicatorData.RangeFilterData.HighTarget > 0).CloseTime.AddDays(30);
+          fromDate = firstValidDate;
         }
 
-        var candles = SimulationTradingBot.GetSimulationCandles(
+        var allCandles = SimulationTradingBot.GetSimulationCandles(
            minutes,
            SimulationPromptViewModel.GetSimulationDataPath(symbol, minutes.ToString()), symbol, fromDate);
 
+        var simulateCandles = allCandles.cutCandles.Where(x => x.OpenTime.Date > firstValidDate.Date && x.OpenTime.Date < lastValidDate.Date).ToList();
+        var candles = allCandles.candles;
+        var mainCandles = allCandles.allCandles.Where(x => x.OpenTime.Date > firstValidDate.Date).ToList();
+
+
+        var timeFrame = simulateCandles.First().TimeFrame;
+        var key = new Tuple<string, TimeFrame>(Bots[0].Asset.Symbol, timeFrame);
+
+        Bots[0].LoadSecondaryLayouts(firstValidDate);
+        Bots[0].PreloadCandles(key, mainCandles);
+        Bots[0].PreLoadIntersections(key, mainCandles);
+
         foreach (var bot in Bots)
         {
-          bot.InitializeBot(candles.cutCandles);
-          bot.HeatBot(candles.cutCandles, bot.TradingBot.Strategy);
-          bot.TradingBot.Strategy.Logger = logger;
+          if (splitTake != 0)
+          {
+            var take = (int)(mainCandles.Count / splitTake);
+
+            simulateCandles = simulateCandles.Take(take).ToList();
+          }
+
+          bot.FromDate = fromDate;
+          bot.InitializeBot(simulateCandles);
+          bot.HeatBot(simulateCandles, bot.TradingBot.Strategy);
         }
+
+
 
         ToStart = Bots.Count;
 
         var min = Math.Min(Bots.Count, 10);
+
         var splitTakeC = Bots.SplitList(Bots.Count / min);
         var tasks = new List<Task>();
 
@@ -789,20 +815,33 @@ namespace CTKS_Chart.ViewModels
         {
           tasks.Add(Task.Run(() =>
           {
-            VSynchronizationContext.InvokeOnDispatcher(() => { ToStart -= take.Count; InProgress += take.Count; });
 
-            foreach (var candle in candles.cutCandles)
+            ToStart -= take.Count;
+            InProgress += take.Count;
+
+            //try
             {
-              if (take.Any(x => x.stopRequested))
-                return;
 
-              foreach (var bot in take)
+              foreach (var candle in simulateCandles)
               {
-                bot.SimulateCandle(candle);
+                if (take.Any(x => x.stopRequested))
+                  return;
+
+                foreach (var bot in take)
+                {
+                  bot.SimulateCandle(candle);
+                }
               }
             }
+            //catch (Exception ex)
+            {
+              //Logger.Logger.Log(ex);
+            }
 
-            VSynchronizationContext.InvokeOnDispatcher(() => { FinishedCount += take.Count; InProgress -= take.Count; });
+
+            FinishedCount += take.Count;
+            InProgress -= take.Count;
+
           }));
         }
 
@@ -860,8 +899,6 @@ namespace CTKS_Chart.ViewModels
       IViewModelsFactory viewModelsFactory,
       PositionSide positionSide)
     {
-      var inputCount = inputNumber + TakeIntersections;
-
       switch (positionSide)
       {
         case PositionSide.Neutral:
@@ -870,14 +907,14 @@ namespace CTKS_Chart.ViewModels
           return new NEATManager<AIBot>(
          viewModelsFactory,
          NetworkActivationScheme.CreateAcyclicScheme(),
-         inputCount,
+         inputNumber,
          TakeIntersections * 2,
          QuadraticSigmoid.__DefaultInstance);
         case PositionSide.Sell:
           return new NEATManager<AIBot>(
         viewModelsFactory,
         NetworkActivationScheme.CreateAcyclicScheme(),
-        inputCount + 1,
+        inputNumber + 1,
         TakeIntersections,
         QuadraticSigmoid.__DefaultInstance);
       }
@@ -905,8 +942,8 @@ namespace CTKS_Chart.ViewModels
     #region SaveProgress
 
     public static void SaveGeneration(
-      NEATManager<AIBot> manager, 
-      string session, 
+      NEATManager<AIBot> manager,
+      string session,
       string folderName,
       string fileName,
       string bestGenomeFileName)
