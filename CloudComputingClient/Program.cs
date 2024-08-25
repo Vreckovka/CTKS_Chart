@@ -298,7 +298,7 @@ namespace CloudComputingClient
         double splitTake = 0;
 
         var asset = Bots.First().Asset;
-        var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
+        var dailyCandles = SimulationTradingBot.GetIndicatorData(asset);
 
         //ignore filter starting values of indicators
         var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(30);

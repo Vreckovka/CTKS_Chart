@@ -48,6 +48,11 @@ namespace CTKS_Chart.ViewModels
 
       return (candles, cutCandles, mainCandles);
     }
+
+    public static List<Candle> GetIndicatorData(Asset asset)
+    {
+      return TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
+    }
   }
 
   public class SimulationTradingBot<TPosition, TStrategy> : TradingBotViewModel<TPosition, TStrategy>, ISimulationTradingBot
@@ -289,7 +294,7 @@ namespace CTKS_Chart.ViewModels
 
     public void HeatBot(IEnumerable<Candle> simulateCandles, AIStrategy aIStrategy)
     {
-      var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{Asset.IndicatorDataPath}, 1D.csv", Asset.Symbol, saveData: true);
+      var dailyCandles = SimulationTradingBot.GetIndicatorData(Asset);
 
       var lastDailyCandles = dailyCandles
         .Where(x => x.CloseTime <= simulateCandles.First().CloseTime)
@@ -297,7 +302,7 @@ namespace CTKS_Chart.ViewModels
         .ToList();
 
       aIStrategy.lastDailyCandles = lastDailyCandles;
-      aIStrategy.lastDailyCandle = lastDailyCandles.Last();
+      aIStrategy.indicatorsCandle = lastDailyCandles.Last();
     }
 
     #endregion
@@ -325,7 +330,7 @@ namespace CTKS_Chart.ViewModels
 
     protected override async Task LoadLayouts()
     {
-      var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{Asset.IndicatorDataPath}, 1D.csv", Asset.Symbol, saveData: true);
+      var dailyCandles = SimulationTradingBot.GetIndicatorData(Asset);
       var allCandles = SimulationTradingBot.GetSimulationCandles(
          Minutes,
          DataPath, Asset.Symbol, FromDate);

@@ -46,8 +46,9 @@ namespace CouldComputingServer
       "ADAUSDT", "BTCUSDT",
       "ETHUSDT", "LTCUSDT",
       "BNBUSDT", "EOSUSDT",
-      "LINKUSDT", "COTIUSDT",
-      "SOLUSDT", "ALGOUSDT"};
+      //"LINKUSDT", "COTIUSDT",
+      //"SOLUSDT", "ALGOUSDT"
+    };
 
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
     {
@@ -106,7 +107,7 @@ namespace CouldComputingServer
 #endif
 
 #if RELEASE
-    private int agentCount = 120;
+    private int agentCount = 240;
 #endif
 
     public int AgentCount
@@ -195,7 +196,7 @@ namespace CouldComputingServer
 #endif
 
 #if RELEASE
-    private int minutes = 480;
+    private int minutes = 240;
 #endif
 
     public int Minutes

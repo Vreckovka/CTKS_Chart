@@ -571,7 +571,9 @@ namespace CTKS_Chart.ViewModels
     private static float GetTradesInfluance(double tradeCount)
     {
       // Apply logarithm to reduce influence as trade count grows
-      double logarithmicInfluence = Math.Log(tradeCount, 15);
+      //double logarithmicInfluence = Math.Log(tradeCount);
+
+      var logarithmicInfluence = tradeCount / 500 ;
 
       //if (tradeCount < 400)
       //  logarithmicInfluence = 1;
@@ -755,7 +757,7 @@ namespace CTKS_Chart.ViewModels
         double splitTake = 0;
 
         var asset = Bots.First().Asset;
-        var dailyCandles = TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
+        var dailyCandles = SimulationTradingBot.GetIndicatorData(asset);
 
         //ignore filter starting values of indicators
         var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(30);

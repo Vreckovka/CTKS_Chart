@@ -68,12 +68,12 @@ namespace CTKS_Chart.Strategy.AIStrategy
         if (BuyAIBot == null)
           return;
 
-        if (lastDailyCandle == null || lastDailyCandle.CloseTime < dailyCandle.CloseTime)
+        if (indicatorsCandle == null || indicatorsCandle.CloseTime < dailyCandle.CloseTime)
         {
           lastDailyCandles.Add(dailyCandle);
         }
 
-        lastDailyCandle = dailyCandle;
+        indicatorsCandle = dailyCandle;
         lastCandle = actualCandle;
 
         IndicatorData = dailyCandle.IndicatorData;

@@ -800,7 +800,7 @@ namespace CTKS_Chart.ViewModels
       {
         await semaphoreSlim.WaitAsync();
 
-        var lastDailyCandle = GetCandle(TimeFrame.D1, actual);
+        var indicatorsCandle = GetCandle(TimeFrame.D1, actual);
         var ctksIntersections = GetIntersections(actual, out var outdated);
 
         actualCachedCandle = actual;
@@ -835,7 +835,7 @@ namespace CTKS_Chart.ViewModels
             wasLoaded = true;
 
             TradingBot.Strategy.lastCandle = actual;
-            TradingBot.Strategy.lastDailyCandle = lastDailyCandle;
+            TradingBot.Strategy.indicatorsCandle = indicatorsCandle;
 
             TradingBot.Strategy.LoadState();
             await TradingBot.Strategy.RefreshState();
@@ -848,7 +848,7 @@ namespace CTKS_Chart.ViewModels
           }
 
           TradingBot.Strategy.ValidatePositions(actual);
-          TradingBot.Strategy.CreatePositions(actual, lastDailyCandle);
+          TradingBot.Strategy.CreatePositions(actual, indicatorsCandle);
         }
         else
         {
@@ -1053,6 +1053,13 @@ namespace CTKS_Chart.ViewModels
       {
         if (actualCandle.OpenTime.Date != lastDailyCandle?.OpenTime.Date)
           lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, actualCandle);
+
+        return lastDailyCandle;
+      }
+      else if (timeFrame == TimeFrame.H4)
+      {
+
+        lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.H4, actualCandle);
 
         return lastDailyCandle;
       }
