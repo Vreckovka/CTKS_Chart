@@ -112,7 +112,7 @@ namespace CTKS_Chart.Trading
           {
             IndicatorData indicatorData = new IndicatorData();
 
-            if (data.Length > 8)
+            if (timeFrame == TimeFrame.D1)
             {
               indicatorData.RangeFilter = GetRangeFilter(data, header);
               indicatorData.BBWP = GetBBWP(data, header);

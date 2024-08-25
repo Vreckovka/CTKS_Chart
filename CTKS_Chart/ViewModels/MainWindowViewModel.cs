@@ -248,6 +248,7 @@ namespace CTKS_Chart.ViewModels
     private void SetTradingBot(ITradingBotViewModel tradingBot)
     {
       TradingBotViewModel.MainWindow = (MainWindow)Window;
+      TradingBotViewModel.Start();
 
 #if !DEBUG
       TradingBotViewModel.Start();

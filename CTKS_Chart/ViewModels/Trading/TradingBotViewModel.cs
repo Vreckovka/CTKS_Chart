@@ -946,7 +946,7 @@ namespace CTKS_Chart.ViewModels
 
       var newInters = new List<CtksIntersection>();
 
-      if (shouldUpdate)
+      if (shouldUpdate || ctksCachedIntersections.Count == 0)
       {
         for (int y = 0; y < secondaryLayouts.Count; y++)
         {
