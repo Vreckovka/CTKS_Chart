@@ -61,9 +61,9 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
         var dailyCandle = indicatorCandles.FirstOrDefault();
 
-        if (dailyCandle == null)
+        if (indicatorCandles.Any(x => x == null))
         {
-          Logger.Log(MessageType.Warning, $"No daily candle {actualCandle.OpenTime.Date}, doing nothing...");
+          Logger.Log(MessageType.Warning, $"No indicator candle {actualCandle.OpenTime.Date}, doing nothing...");
           return;
         }
 
@@ -111,8 +111,8 @@ namespace CTKS_Chart.Strategy.AIStrategy
         .Take(SimulationAIPromptViewModel.TakeIntersections)
         .Select((v, i) => new { prob = v, index = i });
 
-        var toOpen = indexes.Where(x => x.prob > 0.75);
-        var toClose = indexes.Where(x => x.prob < 0.25);
+        var toOpen = indexes.Where(x => x.prob > 0.6);
+        var toClose = indexes.Where(x => x.prob < 0.4);
 
 
         foreach (var prob in toOpen)

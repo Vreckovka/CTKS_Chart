@@ -161,9 +161,12 @@ namespace CTKS_Chart.Trading
         candles = candles.Where(x => x.IndicatorData?.RangeFilter?.RangeFilter > 0).ToList();
 
 
-        var equivalentDataCandle = candles
-       .Where(x => x.UnixTime <= actualCandle.UnixTime &&
-       ((DateTimeOffset)x.CloseTime).ToUnixTimeSeconds() >= actualCandle.UnixTime).FirstOrDefault();
+        var equivalentDataCandles = candles
+       .Where(x => 
+       x.UnixTime <= actualCandle.UnixTime &&
+       x.CloseTime >= actualCandle.CloseTime).ToList();
+
+        var equivalentDataCandle = equivalentDataCandles.FirstOrDefault();
 
         if (equivalentDataCandle != null)
         {
