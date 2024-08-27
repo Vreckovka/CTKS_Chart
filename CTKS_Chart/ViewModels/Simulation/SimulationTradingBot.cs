@@ -91,15 +91,6 @@ namespace CTKS_Chart.ViewModels
   }
   public static class SimulationTradingBot
   {
-
-
-    public static TimeFrameData IndicatorTimeframe = new TimeFrameData() { TimeFrame = TimeFrame.H4, Name = "240" };
-
-
-    //#if RELEASE
-    //  public static TimeFrameData IndicatorTimeframe = new TimeFrameData() { TimeFrame = TimeFrame.D1, Name = "1D" };
-    //#endif
-
     public static (List<Candle> candles, List<Candle> cutCandles, List<Candle> allCandles) GetSimulationCandles(
       int minutes,
       string dataPath,
@@ -122,14 +113,14 @@ namespace CTKS_Chart.ViewModels
       return (candles, cutCandles, mainCandles);
     }
 
-    public static List<Candle> GetIndicatorData(Asset asset)
+    public static List<Candle> GetIndicatorData(TimeFrameData timeFrameData, Asset asset)
     {
-      return TradingViewHelper.ParseTradingView(IndicatorTimeframe.TimeFrame, $"Data\\Indicators\\{asset.IndicatorDataPath}, {IndicatorTimeframe.Name}.csv", asset.Symbol, saveData: true);
+      return TradingViewHelper.ParseTradingView(timeFrameData.TimeFrame, $"Data\\Indicators\\{asset.IndicatorDataPath}, {timeFrameData.Name}.csv", asset.Symbol, saveData: true);
     }
 
-    public static string GetIndicatorDataPath(Asset asset)
+    public static string GetIndicatorDataPath(TimeFrameData timeFrameData, Asset asset)
     {
-      return $"Data\\Indicators\\{asset.IndicatorDataPath}, {IndicatorTimeframe.Name}.csv";
+      return $"Data\\Indicators\\{asset.IndicatorDataPath}, {timeFrameData.Name}.csv";
     }
   }
 
@@ -314,46 +305,58 @@ namespace CTKS_Chart.ViewModels
 
     #region PreloadCandles
 
-    static Dictionary<Tuple<string, TimeFrame>, Dictionary<long, Candle>> preloadedTimeframeCandles = new Dictionary<Tuple<string, TimeFrame>, Dictionary<long, Candle>>();
+    static Dictionary<TimeFrame, Dictionary<Tuple<string, TimeFrame>, Dictionary<long, Candle>>> preloadedIndicatorCandles = new Dictionary<TimeFrame, Dictionary<Tuple<string, TimeFrame>, Dictionary<long, Candle>>>();
 
     static object batton1 = new object();
-    public void PreloadCandles(Tuple<string, TimeFrame> key, IList<Candle> simulationCandles)
+    public void PreloadCandles(
+      Tuple<string, TimeFrame> key,
+      IList<Candle> simulationCandles)
     {
       lock (batton1)
       {
-        if (!preloadedTimeframeCandles.ContainsKey(key))
+        foreach (var indicatorTimeframe in IndicatorTimeframes)
         {
-          var dir = "Preloaded simulation data";
-          var fileName = Path.Combine(dir, $"{Asset.Symbol}-{key.Item2}-{SimulationTradingBot.IndicatorTimeframe.TimeFrame}_preloaded.txt");
-          var indicatorCandles = new Dictionary<long, Candle>();
-
-          if (File.Exists(fileName))
+          if (!preloadedIndicatorCandles.ContainsKey(indicatorTimeframe))
           {
-            var json = File.ReadAllText(fileName);
-            var options = new JsonSerializerOptions();
-            options.Converters.Add(new CandleDictionaryJsonConverter());
-
-            indicatorCandles = JsonSerializer.Deserialize<Dictionary<long, Candle>>(json, options);
+            preloadedIndicatorCandles.Add(indicatorTimeframe, new Dictionary<Tuple<string, TimeFrame>, Dictionary<long, Candle>>());
           }
-          else
-          {
-            foreach (var candle in simulationCandles)
-            {
-              var dailyCandle = base.GetCandle(SimulationTradingBot.IndicatorTimeframe.TimeFrame, candle);
 
-              indicatorCandles.Add(candle.UnixTime, dailyCandle); 
+          var preloadecandles = preloadedIndicatorCandles[indicatorTimeframe];
+
+          if (!preloadecandles.ContainsKey(key))
+          {
+            var dir = "Preloaded simulation data";
+            var fileName = Path.Combine(dir, $"{Asset.Symbol}-{key.Item2}-{indicatorTimeframe}_preloaded.txt");
+            var indicatorCandles = new Dictionary<long, Candle>();
+
+            if (File.Exists(fileName))
+            {
+              var json = File.ReadAllText(fileName);
+              var options = new JsonSerializerOptions();
+              options.Converters.Add(new CandleDictionaryJsonConverter());
+
+              indicatorCandles = JsonSerializer.Deserialize<Dictionary<long, Candle>>(json, options);
+            }
+            else
+            {
+              foreach (var candle in simulationCandles)
+              {
+                var dailyCandle = base.GetCandle(new List<TimeFrame>() { indicatorTimeframe }, candle).FirstOrDefault();
+
+                indicatorCandles.Add(candle.UnixTime, dailyCandle);
+              }
+
+              Directory.CreateDirectory(dir);
+
+              var options = new JsonSerializerOptions();
+              options.WriteIndented = true;
+              options.Converters.Add(new CandleDictionaryJsonConverter());
+
+              File.WriteAllText(fileName, JsonSerializer.Serialize(indicatorCandles, options));
             }
 
-            Directory.CreateDirectory(dir);
-
-            var options = new JsonSerializerOptions();
-            options.WriteIndented = true;
-            options.Converters.Add(new CandleDictionaryJsonConverter());
-
-            File.WriteAllText(fileName, JsonSerializer.Serialize(indicatorCandles, options));
+            preloadecandles.Add(key, indicatorCandles);
           }
-
-          preloadedTimeframeCandles.Add(key, indicatorCandles);
         }
       }
     }
@@ -368,21 +371,23 @@ namespace CTKS_Chart.ViewModels
       return inter.Item1;
     }
 
-    protected override Candle GetCandle(TimeFrame timeFrame, Candle actualCandle)
+    protected override IList<Candle> GetCandle(IList<TimeFrame> indicatorTimeframes, Candle actualCandle)
     {
-      if (timeFrame == SimulationTradingBot.IndicatorTimeframe.TimeFrame)
+      var list = new List<Candle>();
+
+      foreach (var timeFrame in indicatorTimeframes)
       {
-        return preloadedTimeframeCandles[botKey][actualCandle.UnixTime];
+        list.Add(preloadedIndicatorCandles[timeFrame][botKey][actualCandle.UnixTime]);
       }
 
-      return null;
+      return list;
     }
 
     #region HeatBot
 
     public void HeatBot(IEnumerable<Candle> simulateCandles, AIStrategy aIStrategy)
     {
-      var dailyCandles = SimulationTradingBot.GetIndicatorData(Asset);
+      var dailyCandles = SimulationTradingBot.GetIndicatorData(timeFrameDatas[TimeFrame.D1], Asset);
 
       var lastDailyCandles = dailyCandles
         .Where(x => x.CloseTime <= simulateCandles.First().CloseTime)
@@ -390,7 +395,7 @@ namespace CTKS_Chart.ViewModels
         .ToList();
 
       aIStrategy.lastDailyCandles = lastDailyCandles;
-      aIStrategy.indicatorsCandle = lastDailyCandles.Last();
+      aIStrategy.indicatorsCandles = new List<Candle>() { lastDailyCandles.Last() };
     }
 
     #endregion
@@ -414,11 +419,16 @@ namespace CTKS_Chart.ViewModels
 
     public TimeFrame TimeFrame { get; set; }
 
+    public Dictionary<TimeFrame, TimeFrameData> timeFrameDatas = new Dictionary<TimeFrame, TimeFrameData>()
+    {
+      {TimeFrame.H4, new TimeFrameData() { TimeFrame = TimeFrame.H4, Name = "240" } },
+      {TimeFrame.D1, new TimeFrameData() { TimeFrame = TimeFrame.D1, Name = "1D" } }
+    };
+
     #region LoadLayouts
 
     protected override async Task LoadLayouts()
     {
-      var dailyCandles = SimulationTradingBot.GetIndicatorData(Asset);
       var allCandles = SimulationTradingBot.GetSimulationCandles(
          Minutes,
          DataPath, Asset.Symbol, FromDate);

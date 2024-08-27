@@ -298,7 +298,12 @@ namespace CloudComputingClient
         double splitTake = 0;
 
         var asset = Bots.First().Asset;
-        var dailyCandles = SimulationTradingBot.GetIndicatorData(asset);
+        var dailyCandles = SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[TimeFrame.D1], asset);
+
+        foreach (var indiFrame in Bots[0].IndicatorTimeframes)
+        {
+          SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[indiFrame], asset);
+        }
 
         //ignore filter starting values of indicators
         var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime;
@@ -550,7 +555,7 @@ namespace CloudComputingClient
                            buyGenomes,
                            sellGenomes);
 
-                UpdateUI(); 
+                UpdateUI();
               }
             }
           }

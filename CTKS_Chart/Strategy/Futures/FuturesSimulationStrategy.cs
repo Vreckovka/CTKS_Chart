@@ -15,41 +15,41 @@ namespace CTKS_Chart.Strategy.Futures
   {
     public RangeFilterData RangeFilterData { get; set; }
 
-    public async override void CreatePositions(Candle actualCandle, Candle dailyCandle)
-    {
-      await CheckPositions(actualCandle, 0, decimal.MaxValue);
-      CalculatePositions(actualCandle);
+    //public async override void CreatePositions(Candle actualCandle, Candle dailyCandle)
+    //{
+    //  await CheckPositions(actualCandle, 0, decimal.MaxValue);
+    //  CalculatePositions(actualCandle);
 
-      var validIntersections = Intersections;
+    //  var validIntersections = Intersections;
 
-      var inter = validIntersections
-                   .Where(x => x.IsEnabled)
-                   .Where(x => x.Value < actualCandle.Close.Value * 0.95m)
-                   .ToList();
+    //  var inter = validIntersections
+    //               .Where(x => x.IsEnabled)
+    //               .Where(x => x.Value < actualCandle.Close.Value * 0.95m)
+    //               .ToList();
 
-      var intersection = inter.FirstOrDefault();
+    //  var intersection = inter.FirstOrDefault();
 
-      var fistBuy = OpenBuyPositions.FirstOrDefault();
-      if (intersection != fistBuy?.Intersection && fistBuy != null && intersection != null)
-      {
-        var diff = Math.Abs(((intersection.Value - fistBuy.Intersection.Value) / intersection.Value));
+    //  var fistBuy = OpenBuyPositions.FirstOrDefault();
+    //  if (intersection != fistBuy?.Intersection && fistBuy != null && intersection != null)
+    //  {
+    //    var diff = Math.Abs(((intersection.Value - fistBuy.Intersection.Value) / intersection.Value));
 
-        if (diff > 0.05m)
-        {
-          OpenBuyPositions.Remove(fistBuy);
-          Budget += fistBuy.PositionSize;
-        }
-      }
+    //    if (diff > 0.05m)
+    //    {
+    //      OpenBuyPositions.Remove(fistBuy);
+    //      Budget += fistBuy.PositionSize;
+    //    }
+    //  }
 
-      RangeFilterData = TradingHelper.GetActualEqivalentCandle(Asset.Symbol,TimeFrame.D1, actualCandle)?.IndicatorData.RangeFilter;
+    //  RangeFilterData = TradingHelper.GetActualEqivalentCandle(Asset.Symbol,TimeFrame.D1, actualCandle)?.IndicatorData.RangeFilter;
 
-      //if (RangeFilterData == null || RangeFilterData.Upward)
-      {
-        if (OpenBuyPositions.Count == 0 && intersection != null && ActualPositions.Count == 0)
-          await CreateBuyPositionFromIntersection(intersection);
-      }
+    //  //if (RangeFilterData == null || RangeFilterData.Upward)
+    //  {
+    //    if (OpenBuyPositions.Count == 0 && intersection != null && ActualPositions.Count == 0)
+    //      await CreateBuyPositionFromIntersection(intersection);
+    //  }
 
-    }
+    //}
 
     protected async override Task CreateBuyPositionFromIntersection(CtksIntersection intersection, bool automatic = false)
     {

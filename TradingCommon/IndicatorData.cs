@@ -40,7 +40,7 @@
 
     public override decimal[] GetData()
     {
-      return new decimal[] { K / 100.0m, D / 100.0m  };
+      return new decimal[] { K / 100.0m, D / 100.0m };
     }
   }
 
@@ -65,16 +65,29 @@
 
     public override decimal[] GetData()
     {
-      return new decimal[] { RSI / 1000.0m, RSIMA / 100.0m};
+      return new decimal[] { RSI / 1000.0m, RSIMA / 100.0m };
     }
   }
 
   public class IndicatorData
   {
-    public RangeFilterData RangeFilter { get; set; }
-    public BBWPData BBWP { get; set; }
-    public IchimokuCloud IchimokuCloud { get; set; }
-    public StochRSI StochRSI { get; set; }
-    public RSIData RSI { get; set; }
+    public RangeFilterData RangeFilter { get; set; } = new RangeFilterData();
+    public BBWPData BBWP { get; set; } = new BBWPData();
+    public IchimokuCloud IchimokuCloud { get; set; } = new IchimokuCloud();
+    public StochRSI StochRSI { get; set; } = new StochRSI();
+    public RSIData RSI { get; set; } = new RSIData();
+
+    public int NumberOfInputs
+    {
+      get
+      {
+        return
+          RangeFilter.GetData().Length +
+          BBWP.GetData().Length +
+          IchimokuCloud.GetData().Length +
+          StochRSI.GetData().Length +
+          RSI.GetData().Length;
+      }
+    }
   }
 }

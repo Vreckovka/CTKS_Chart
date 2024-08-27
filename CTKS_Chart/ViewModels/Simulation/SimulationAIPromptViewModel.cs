@@ -35,7 +35,7 @@ namespace CTKS_Chart.ViewModels
 
     #region AgentCount
 
-    private int agentCount = 10;
+    private int agentCount = 1;
 
     public int AgentCount
     {
@@ -55,7 +55,19 @@ namespace CTKS_Chart.ViewModels
     //Less intersections make bot taking less trades, since position size is based on this 
     //and it does not work for lower timeframes, since it has to make lot of trades
     public static int TakeIntersections = 15;
-    public const int inputNumber = 26;
+    public static int inputNumber
+    {
+
+      get
+      {
+        var strategyInputs = 3;
+        var actualCandle = 4;
+       
+        var indicatorData = new IndicatorData().NumberOfInputs * 2;
+
+        return strategyInputs + actualCandle + indicatorData;
+      }
+    }
 
     #region Constructors
 
@@ -303,7 +315,7 @@ namespace CTKS_Chart.ViewModels
 
     #region Minutes
 
-    private int minutes = 720;
+    private int minutes = 120;
 
     public int Minutes
     {
@@ -571,7 +583,7 @@ namespace CTKS_Chart.ViewModels
     private static float GetTradesInfluance(double tradeCount)
     {
       // Apply logarithm to reduce influence as trade count grows
-      double logarithmicInfluence = Math.Log(tradeCount,5);
+      double logarithmicInfluence = Math.Log(tradeCount, 5);
 
       //var logarithmicInfluence = tradeCount / 500 ;
 
@@ -757,7 +769,12 @@ namespace CTKS_Chart.ViewModels
         double splitTake = 0;
 
         var asset = Bots.First().Asset;
-        var dailyCandles = SimulationTradingBot.GetIndicatorData(asset);
+        var dailyCandles = SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[TimeFrame.D1], asset);
+
+        foreach (var indiFrame in Bots[0].IndicatorTimeframes)
+        {
+          SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[indiFrame], asset);
+        }
 
         //ignore filter starting values of indicators
         var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime;

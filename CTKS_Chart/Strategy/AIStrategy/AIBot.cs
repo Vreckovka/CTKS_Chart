@@ -50,11 +50,14 @@ namespace CTKS_Chart.Strategy.AIStrategy
       AddInput(AddNormalizedInput(actualCandle.High, minPrice, maxPrice), ref index, ref inputs);
       AddInput(AddNormalizedInput(actualCandle.Low, minPrice, maxPrice), ref index, ref inputs);
 
-      AddIndicator(strategy.IndicatorData.RangeFilter, ref index, ref inputs, minPrice, maxPrice, true);
-      AddIndicator(strategy.IndicatorData.BBWP, ref index, ref inputs, minPrice, maxPrice);
-      AddIndicator(strategy.IndicatorData.IchimokuCloud, ref index, ref inputs, minPrice, maxPrice, true);
-      AddIndicator(strategy.IndicatorData.StochRSI, ref index, ref inputs, minPrice, maxPrice);
-      AddIndicator(strategy.IndicatorData.RSI, ref index, ref inputs, minPrice, maxPrice);
+      foreach(var indicatorData in strategy.IndicatorDatas)
+      {
+        AddIndicator(indicatorData.RangeFilter, ref index, ref inputs, minPrice, maxPrice, true);
+        AddIndicator(indicatorData.BBWP, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.IchimokuCloud, ref index, ref inputs, minPrice, maxPrice, true);
+        AddIndicator(indicatorData.StochRSI, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.RSI, ref index, ref inputs, minPrice, maxPrice);
+      }
 
       foreach (var extraInput in extraInputs)
       {

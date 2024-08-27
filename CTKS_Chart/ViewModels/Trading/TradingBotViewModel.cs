@@ -789,6 +789,8 @@ namespace CTKS_Chart.ViewModels
 
     public bool IsSimulation { get; set; } = false;
 
+    public List<TimeFrame> IndicatorTimeframes { get; set; } = new List<TimeFrame>() { TimeFrame.D1, TimeFrame.H4 };
+
     public async void RenderLayout(Candle actual)
     {
       if (IsPaused)
@@ -800,7 +802,7 @@ namespace CTKS_Chart.ViewModels
       {
         await semaphoreSlim.WaitAsync();
 
-        var indicatorsCandle = GetCandle(SimulationTradingBot.IndicatorTimeframe.TimeFrame, actual);
+        var indicatorsCandle = GetCandle(IndicatorTimeframes, actual);
         var ctksIntersections = GetIntersections(actual, out var outdated);
 
         actualCachedCandle = actual;
@@ -835,7 +837,7 @@ namespace CTKS_Chart.ViewModels
             wasLoaded = true;
 
             TradingBot.Strategy.lastCandle = actual;
-            TradingBot.Strategy.indicatorsCandle = indicatorsCandle;
+            TradingBot.Strategy.indicatorsCandles = indicatorsCandle;
 
             TradingBot.Strategy.LoadState();
             await TradingBot.Strategy.RefreshState();
@@ -1033,37 +1035,41 @@ namespace CTKS_Chart.ViewModels
     Candle lastDailyCandle;
     Candle lastWeeklyCandle;
 
-    protected virtual Candle GetCandle(TimeFrame timeFrame, Candle actualCandle)
+    protected virtual IList<Candle> GetCandle(IList<TimeFrame> timeFrames, Candle actualCandle)
     {
-      if (timeFrame == TimeFrame.W1)
+      var list = new List<Candle>();
+
+      foreach (var timeFrame in timeFrames)
       {
-        DateTimeFormatInfo dfi = DateTimeFormatInfo.CurrentInfo;
-        var cal = dfi.Calendar;
+        if (timeFrame == TimeFrame.W1)
+        {
+          DateTimeFormatInfo dfi = DateTimeFormatInfo.CurrentInfo;
+          var cal = dfi.Calendar;
 
-        var week = cal.GetWeekOfYear(actualCandle.OpenTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek);
+          var week = cal.GetWeekOfYear(actualCandle.OpenTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek);
 
-        var lastweek = lastDailyCandle?.CloseTime != null ? cal.GetWeekOfYear(lastDailyCandle.CloseTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek) : -1;
+          var lastweek = lastDailyCandle?.CloseTime != null ? cal.GetWeekOfYear(lastDailyCandle.CloseTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek) : -1;
 
-        if (week != lastweek)
-          lastWeeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, actualCandle);
+          if (week != lastweek)
+            lastWeeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, actualCandle);
 
-        return lastWeeklyCandle;
+          list.Add(lastWeeklyCandle);
+        }
+        if (timeFrame == TimeFrame.D1)
+        {
+          if (actualCandle.OpenTime.Date != lastDailyCandle?.OpenTime.Date)
+            lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, actualCandle);
+
+          list.Add(lastDailyCandle);
+        }
+        else 
+        {
+          list.Add(TradingHelper.GetActualEqivalentCandle(Asset.Symbol, timeFrame, actualCandle));
+        }
       }
-      if (timeFrame == TimeFrame.D1)
-      {
-        if (actualCandle.OpenTime.Date != lastDailyCandle?.OpenTime.Date)
-          lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, actualCandle);
 
-        return lastDailyCandle;
-      }
-      else if (timeFrame == SimulationTradingBot.IndicatorTimeframe.TimeFrame)
-      {
-        lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.H4, actualCandle);
 
-        return lastDailyCandle;
-      }
-
-      return null;
+      return list;
     }
 
     #endregion
@@ -1075,7 +1081,7 @@ namespace CTKS_Chart.ViewModels
 
     private void AddRangeFilterIntersections(TimeFrame timeFrame, Candle actualCandle)
     {
-      Candle rangeCandle = GetCandle(timeFrame, actualCandle);
+      Candle rangeCandle = GetCandle(new List<TimeFrame>() { timeFrame }, actualCandle).FirstOrDefault();
 
       if (timeFrame == TimeFrame.D1)
       {

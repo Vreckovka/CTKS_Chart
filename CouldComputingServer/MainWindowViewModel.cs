@@ -107,7 +107,7 @@ namespace CouldComputingServer
 #endif
 
 #if RELEASE
-    private int agentCount = 240;
+    private int agentCount = 150;
 #endif
 
     public int AgentCount
@@ -196,7 +196,7 @@ namespace CouldComputingServer
 #endif
 
 #if RELEASE
-    private int minutes = 240;
+    private int minutes = 60;
 #endif
 
     public int Minutes

@@ -12,7 +12,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
   public class AIStrategy : BaseSimulationStrategy<AIPosition>
   {
-    public IndicatorData IndicatorData { get; set; }
+    public IList<IndicatorData> IndicatorDatas { get; set; }
     public AIBot BuyAIBot { get; set; }
     public AIBot SellAIBot { get; set; }
     public float OriginalFitness { get; set; }
@@ -53,11 +53,13 @@ namespace CTKS_Chart.Strategy.AIStrategy
     public List<Candle> lastDailyCandles = new List<Candle>();
     public int takeLastDailyCandles = 100;
 
-    public override async void CreatePositions(Candle actualCandle, Candle dailyCandle)
+    public override async void CreatePositions(Candle actualCandle, IList<Candle> indicatorCandles)
     {
       try
       {
         await buyLock.WaitAsync();
+
+        var dailyCandle = indicatorCandles.FirstOrDefault();
 
         if (dailyCandle == null)
         {
@@ -68,15 +70,15 @@ namespace CTKS_Chart.Strategy.AIStrategy
         if (BuyAIBot == null)
           return;
 
-        if (indicatorsCandle == null || indicatorsCandle.CloseTime < dailyCandle.CloseTime)
+        if (dailyCandle == null || dailyCandle.CloseTime < dailyCandle.CloseTime)
         {
           lastDailyCandles.Add(dailyCandle);
         }
 
-        indicatorsCandle = dailyCandle;
+        indicatorsCandles = indicatorCandles;
         lastCandle = actualCandle;
 
-        IndicatorData = dailyCandle.IndicatorData;
+        IndicatorDatas = indicatorCandles.Select(x => x.IndicatorData).ToList();
 
         var highest = Intersections[3].Value;
 
