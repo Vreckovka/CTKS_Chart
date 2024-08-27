@@ -50,6 +50,9 @@ namespace TradingManager.ViewModels
       var screener = viewModelsFactory.Create<ScreenerViewModel>();
       NavigationViewModel.Items.Add(new NavigationItem(screener));
 
+      var fileMerger = viewModelsFactory.Create<FileMergerViewModel>();
+      NavigationViewModel.Items.Add(new NavigationItem(fileMerger));
+
       filesManager.IsActive = true;
     }
   }

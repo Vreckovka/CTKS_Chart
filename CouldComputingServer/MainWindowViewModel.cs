@@ -518,11 +518,14 @@ namespace CouldComputingServer
 
       Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe(async (x) =>
       {
-        if (IsGenerationEnded())
+        lock (batton)
         {
-          Clients.ForEach(x => x.Done = false);
+          if (IsGenerationEnded())
+          {
+            Clients.ForEach(x => x.Done = false);
 
-          UpdateGeneration(runResults);
+            UpdateGeneration(runResults);
+          }
         }
       });
 
@@ -534,8 +537,7 @@ namespace CouldComputingServer
     #region DistributeGeneration
 
     DateTime generationStart;
-    Random random = new Random();
-    //bool wasRandomPrevious = false;
+
     private ServerRunData serverRunData;
     private void DistributeGeneration()
     {
@@ -566,15 +568,6 @@ namespace CouldComputingServer
       var first = ordered.First();
       var last = ordered.Last();
 
-      //TimeSpan difference = last.LastGenerationTime - first.LastGenerationTime;
-      //var sec = (int)difference.TotalSeconds;
-
-      //sec = Math.Min(sec, last.PopulationSize / 3);
-      //if (sec >= 1)
-      //{
-      //  last.PopulationSize--;
-      //  first.PopulationSize++;
-      //}
 
       foreach (var client in Clients.ToList())
       {
@@ -641,7 +634,6 @@ namespace CouldComputingServer
       var index = TrainingSession.SymbolsToTest.IndexOf((x) => x.Name == serverRunData.Symbol);
 
       if (index != null)
-      //if (index != null)
       {
         var bestRun = runData.OrderByDescending(x => x.Fitness).First();
 
@@ -652,7 +644,7 @@ namespace CouldComputingServer
         TrainingSession.AddValue(serverRunData.Symbol, Statistic.Drawdawn, bestRun.Drawdawn);
         TrainingSession.AddValue(serverRunData.Symbol, Statistic.NumberOfTrades, bestRun.NumberOfTrades);
 
-        var fullCycle = BuyBotManager.Generation % TrainingSession.SymbolsToTest.Count == 0 ;
+        var fullCycle = BuyBotManager.Generation % TrainingSession.SymbolsToTest.Count == 0;
 
         if (fullCycle)
         {
@@ -666,7 +658,7 @@ namespace CouldComputingServer
             Cycle++;
             CycleRunTime = DateTime.Now - cycleLastElapsed;
           }
-           
+
 
           cycleLastElapsed = DateTime.Now;
 
@@ -701,17 +693,6 @@ namespace CouldComputingServer
 
     #endregion
 
-    #region IsRandom
-
-    //private int wholeRunsCount;
-    //private bool IsRandom()
-    //{
-      //return true;
-      //return wholeRunsCount % TrainingSession.SymbolsToTest.Count == 0 && BuyBotManager.Generation != 0;
-    //}
-
-    #endregion
-
     #region StartListening
 
     private void StartListening()
@@ -729,7 +710,7 @@ namespace CouldComputingServer
           TcpClient client = _listener.AcceptTcpClient();
 
           int receiveBufferSize = MessageContract.BUFFER_SIZE_CLIENT;
-          int sendBufferSize = MessageContract.BUFFER_SIZE_CLIENT; 
+          int sendBufferSize = MessageContract.BUFFER_SIZE_CLIENT;
 
           client.ReceiveBufferSize = receiveBufferSize;
           client.SendBufferSize = sendBufferSize;
@@ -756,7 +737,7 @@ namespace CouldComputingServer
     #region HandleClient
 
     object batton = new object();
-    int ind = 0;
+
     private void HandleClient(CloudClient client)
     {
       try
@@ -770,51 +751,52 @@ namespace CouldComputingServer
         int bytesRead;
         string currentData = "";
 
-        // Read the stream until all data is received.
         while ((bytesRead = stream.Read(buffer)) > 0)
         {
           try
           {
-            ms.Write(buffer);
-
-            currentData = Encoding.Unicode.GetString(ms.ToArray()).Trim();
-
-            if (currentData.Contains(MessageContract.Error))
-            {
-              TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
-
-              ms = new MemoryStream();
-              continue;
-            }
-
-            if (!MessageContract.IsDataMessage(currentData))
-            {
-              continue;
-            }
-
-            var split = MessageContract.GetDataMessageContent(currentData);
-
-            var data = JsonSerializer.Deserialize<RunData>(split);
-
             lock (batton)
             {
+              ms.Write(buffer);
+
+              currentData = Encoding.Unicode.GetString(ms.ToArray()).Trim();
+
+              if (currentData.Contains(MessageContract.Error))
+              {
+                TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
+                Logger.Log(MessageType.Warning, "Error from client reseding data");
+                ms = new MemoryStream();
+                continue;
+              }
+
+              if (!MessageContract.IsDataMessage(currentData))
+              {
+                continue;
+              }
+
+              var split = MessageContract.GetDataMessageContent(currentData);
+
+              var data = JsonSerializer.Deserialize<RunData>(split);
+
+
               runResults.Add(data);
 
               if (!client.Done)
               {
                 UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
               }
+
+
+              stream.Flush();
+              ms.Flush();
+              ms.Dispose();
+              ms = new MemoryStream();
+              buffer.Clear();
+
+              if (client.Done)
+                Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
+
             }
-
-            stream.Flush();
-            ms.Flush();
-            ms.Dispose();
-            ms = new MemoryStream();
-            buffer.Clear();
-
-            if (client.Done)
-              Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
-
           }
           catch (Exception ex)
           {
@@ -826,6 +808,7 @@ namespace CouldComputingServer
 
             Logger.Log(MessageType.Error, $"ERROR TRANSIMITING DATA!", false, false);
           }
+
         }
 
         TryRemoveClient(client);

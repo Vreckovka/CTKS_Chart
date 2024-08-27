@@ -301,7 +301,7 @@ namespace CloudComputingClient
         var dailyCandles = SimulationTradingBot.GetIndicatorData(asset);
 
         //ignore filter starting values of indicators
-        var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(30);
+        var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime;
         var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(-1);
 
         if (useRandomDate)
@@ -468,6 +468,7 @@ namespace CloudComputingClient
 
     #region HandleIncomingMessage
 
+    object baton = new object();
     private static void HandleIncomingMessage(TcpClient tcpClient)
     {
       try
@@ -487,36 +488,37 @@ namespace CloudComputingClient
         {
           try
           {
-            serialDisposable.Disposable?.Dispose();
-            ms.Write(buffer);
-
-            string currentData = Encoding.Unicode.GetString(ms.ToArray());
-
-            if (currentData.Contains(MessageContract.Done))
+            lock (batton)
             {
-              ms = new MemoryStream();
-              continue;
-            }
+              serialDisposable.Disposable?.Dispose();
+              ms.Write(buffer);
 
-            if (!MessageContract.IsDataMessage(currentData))
-            {
-              continue;
-            }
+              string currentData = Encoding.Unicode.GetString(ms.ToArray());
 
-            var split = MessageContract.GetDataMessageContent(currentData);
-
-            var serverRunData = JsonSerializer.Deserialize<ServerRunData>(split);
-
-            if (serverRunData != null)
-            {
-              LastServerRunData = ServerRunData;
-              ServerRunData = serverRunData;
-            }
-
-            if (ServerRunData != null)
-            {
-              Task.Run(() =>
+              if (currentData.Contains(MessageContract.Done))
               {
+                ms = new MemoryStream();
+                continue;
+              }
+
+              if (!MessageContract.IsDataMessage(currentData))
+              {
+                continue;
+              }
+
+              var split = MessageContract.GetDataMessageContent(currentData);
+
+              var serverRunData = JsonSerializer.Deserialize<ServerRunData>(split);
+
+              if (serverRunData != null)
+              {
+                LastServerRunData = ServerRunData;
+                ServerRunData = serverRunData;
+              }
+
+              if (ServerRunData != null)
+              {
+
                 List<NeatGenome> buyGenomes = new List<NeatGenome>();
                 List<NeatGenome> sellGenomes = new List<NeatGenome>();
 
@@ -534,11 +536,6 @@ namespace CloudComputingClient
                   sellGenomes = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, sellManager.GetGenomeFactory());
                 }
 
-                foreach (var buyGene in buyGenomes)
-                {
-                  Debug.WriteLine($"RECEIVED IDs: {buyGene.Id}");
-                }
-
                 buyManager.NeatAlgorithm.UpdateNetworks(buyGenomes);
                 sellManager.NeatAlgorithm.UpdateNetworks(sellGenomes);
 
@@ -553,8 +550,8 @@ namespace CloudComputingClient
                            buyGenomes,
                            sellGenomes);
 
-                UpdateUI();
-              });
+                UpdateUI(); 
+              }
             }
           }
           catch (Exception ex)

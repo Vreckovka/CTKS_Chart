@@ -55,7 +55,7 @@ namespace CTKS_Chart.ViewModels
     //Less intersections make bot taking less trades, since position size is based on this 
     //and it does not work for lower timeframes, since it has to make lot of trades
     public static int TakeIntersections = 15;
-    public const int inputNumber = 25;
+    public const int inputNumber = 26;
 
     #region Constructors
 
@@ -571,9 +571,9 @@ namespace CTKS_Chart.ViewModels
     private static float GetTradesInfluance(double tradeCount)
     {
       // Apply logarithm to reduce influence as trade count grows
-      //double logarithmicInfluence = Math.Log(tradeCount);
+      double logarithmicInfluence = Math.Log(tradeCount,5);
 
-      var logarithmicInfluence = tradeCount / 500 ;
+      //var logarithmicInfluence = tradeCount / 500 ;
 
       //if (tradeCount < 400)
       //  logarithmicInfluence = 1;
@@ -760,7 +760,7 @@ namespace CTKS_Chart.ViewModels
         var dailyCandles = SimulationTradingBot.GetIndicatorData(asset);
 
         //ignore filter starting values of indicators
-        var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(30);
+        var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime;
         var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(-1);
 
         if (useRandomDate)

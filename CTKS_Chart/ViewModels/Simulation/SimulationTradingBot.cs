@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -28,10 +29,82 @@ using VCore.WPF.Misc;
 
 namespace CTKS_Chart.ViewModels
 {
+  public class CandleDictionaryJsonConverter : JsonConverter<Dictionary<long, Candle>>
+  {
+    public override Dictionary<long, Candle> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+      var result = new Dictionary<long, Candle>();
+
+      // Ensure the reader is at the StartObject token
+      if (reader.TokenType != JsonTokenType.StartObject)
+      {
+        throw new JsonException();
+      }
+
+      while (reader.Read())
+      {
+        if (reader.TokenType == JsonTokenType.EndObject)
+        {
+          return result;
+        }
+
+        // Read the key as a string
+        string keyJson = reader.GetString();
+        var key = JsonSerializer.Deserialize<long>(keyJson, options);
+
+        // Move to the value
+        reader.Read();
+
+        // Deserialize the value
+        var value = JsonSerializer.Deserialize<Candle>(ref reader, options);
+
+        // Add to dictionary
+        result.Add(key, value);
+      }
+
+      throw new JsonException("Invalid JSON format for Dictionary<Candle, Candle>.");
+    }
+
+    public override void Write(Utf8JsonWriter writer, Dictionary<long, Candle> value, JsonSerializerOptions options)
+    {
+      writer.WriteStartObject();
+
+      foreach (var kvp in value)
+      {
+        // Serialize the key as a string
+        string keyJson = JsonSerializer.Serialize(kvp.Key, options);
+        writer.WritePropertyName(keyJson);
+
+        // Serialize the value
+        JsonSerializer.Serialize(writer, kvp.Value, options);
+      }
+
+      writer.WriteEndObject();
+    }
+  }
+
+  public class TimeFrameData
+  {
+    public TimeFrame TimeFrame { get; set; }
+
+    public string Name { get; set; }
+  }
   public static class SimulationTradingBot
   {
 
-    public static (List<Candle> candles, List<Candle> cutCandles, List<Candle> allCandles) GetSimulationCandles(int minutes, string dataPath, string symbol, DateTime fromDate)
+
+    public static TimeFrameData IndicatorTimeframe = new TimeFrameData() { TimeFrame = TimeFrame.H4, Name = "240" };
+
+
+    //#if RELEASE
+    //  public static TimeFrameData IndicatorTimeframe = new TimeFrameData() { TimeFrame = TimeFrame.D1, Name = "1D" };
+    //#endif
+
+    public static (List<Candle> candles, List<Candle> cutCandles, List<Candle> allCandles) GetSimulationCandles(
+      int minutes,
+      string dataPath,
+      string symbol,
+      DateTime fromDate)
     {
       var timeframe = (TimeFrame)minutes;
 
@@ -51,7 +124,12 @@ namespace CTKS_Chart.ViewModels
 
     public static List<Candle> GetIndicatorData(Asset asset)
     {
-      return TradingViewHelper.ParseTradingView(TimeFrame.D1, $"Data\\Indicators\\{asset.IndicatorDataPath}, 1D.csv", asset.Symbol, saveData: true);
+      return TradingViewHelper.ParseTradingView(IndicatorTimeframe.TimeFrame, $"Data\\Indicators\\{asset.IndicatorDataPath}, {IndicatorTimeframe.Name}.csv", asset.Symbol, saveData: true);
+    }
+
+    public static string GetIndicatorDataPath(Asset asset)
+    {
+      return $"Data\\Indicators\\{asset.IndicatorDataPath}, {IndicatorTimeframe.Name}.csv";
     }
   }
 
@@ -81,8 +159,6 @@ namespace CTKS_Chart.ViewModels
       DrawChart = false;
 
       results = $"{TradingBot.Asset.Symbol}_simulation_results.txt";
-
-      //DownloadCandles(TradingBot.Asset.Symbol, TimeSpan.FromMinutes(15));
 
       if (string.IsNullOrEmpty(DisplayName))
       {
@@ -208,7 +284,7 @@ namespace CTKS_Chart.ViewModels
 
     #region PreLoadIntersections
 
-    static Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Tuple<List<CtksIntersection>, bool>>> preloadedIntersections = new Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Tuple<List<CtksIntersection>, bool>>>();
+    static Dictionary<Tuple<string, TimeFrame>, Dictionary<long, Tuple<List<CtksIntersection>, bool>>> preloadedIntersections = new Dictionary<Tuple<string, TimeFrame>, Dictionary<long, Tuple<List<CtksIntersection>, bool>>>();
 
 
     static object batton12 = new object();
@@ -219,12 +295,12 @@ namespace CTKS_Chart.ViewModels
       {
         if (!preloadedIntersections.ContainsKey(key))
         {
-          var intersections = new Dictionary<Candle, Tuple<List<CtksIntersection>, bool>>();
+          var intersections = new Dictionary<long, Tuple<List<CtksIntersection>, bool>>();
 
           foreach (var candle in simulationCandles)
           {
             var inters = base.GetIntersections(candle, out var outdated);
-            intersections.Add(candle, new Tuple<List<CtksIntersection>, bool>(inters, outdated));
+            intersections.Add(candle.UnixTime, new Tuple<List<CtksIntersection>, bool>(inters, outdated));
           }
 
           var counts = intersections.Select(x => x.Value.Item1.Count);
@@ -238,30 +314,46 @@ namespace CTKS_Chart.ViewModels
 
     #region PreloadCandles
 
-    static Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>> preloadedDaily = new Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>>();
-    //static Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>> preloadedWeekly = new Dictionary<Tuple<string, TimeFrame>, Dictionary<Candle, Candle>>();
+    static Dictionary<Tuple<string, TimeFrame>, Dictionary<long, Candle>> preloadedTimeframeCandles = new Dictionary<Tuple<string, TimeFrame>, Dictionary<long, Candle>>();
 
     static object batton1 = new object();
-    public void PreloadCandles(Tuple<string, TimeFrame>  key, IList<Candle> simulationCandles)
+    public void PreloadCandles(Tuple<string, TimeFrame> key, IList<Candle> simulationCandles)
     {
       lock (batton1)
       {
-        if (!preloadedDaily.ContainsKey(key))
+        if (!preloadedTimeframeCandles.ContainsKey(key))
         {
-          var daily = new Dictionary<Candle, Candle>();
-          var weekly = new Dictionary<Candle, Candle>();
+          var dir = "Preloaded simulation data";
+          var fileName = Path.Combine(dir, $"{Asset.Symbol}-{key.Item2}-{SimulationTradingBot.IndicatorTimeframe.TimeFrame}_preloaded.txt");
+          var indicatorCandles = new Dictionary<long, Candle>();
 
-          foreach (var candle in simulationCandles)
+          if (File.Exists(fileName))
           {
-            var dailyCandle = base.GetCandle(TimeFrame.D1, candle);
-            //var weeklyCandle = base.GetCandle(TimeFrame.W1, candle);
+            var json = File.ReadAllText(fileName);
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(new CandleDictionaryJsonConverter());
 
-            daily.Add(candle, dailyCandle);
-            //weekly.Add(candle, weeklyCandle);
+            indicatorCandles = JsonSerializer.Deserialize<Dictionary<long, Candle>>(json, options);
+          }
+          else
+          {
+            foreach (var candle in simulationCandles)
+            {
+              var dailyCandle = base.GetCandle(SimulationTradingBot.IndicatorTimeframe.TimeFrame, candle);
+
+              indicatorCandles.Add(candle.UnixTime, dailyCandle); 
+            }
+
+            Directory.CreateDirectory(dir);
+
+            var options = new JsonSerializerOptions();
+            options.WriteIndented = true;
+            options.Converters.Add(new CandleDictionaryJsonConverter());
+
+            File.WriteAllText(fileName, JsonSerializer.Serialize(indicatorCandles, options));
           }
 
-          preloadedDaily.Add(key, daily);
-         // preloadedWeekly.Add(key, weekly);
+          preloadedTimeframeCandles.Add(key, indicatorCandles);
         }
       }
     }
@@ -270,7 +362,7 @@ namespace CTKS_Chart.ViewModels
 
     protected override List<CtksIntersection> GetIntersections(Candle actual, out bool isOutdated)
     {
-      var inter = preloadedIntersections[botKey][actual];
+      var inter = preloadedIntersections[botKey][actual.UnixTime];
 
       isOutdated = inter.Item2;
       return inter.Item1;
@@ -278,13 +370,9 @@ namespace CTKS_Chart.ViewModels
 
     protected override Candle GetCandle(TimeFrame timeFrame, Candle actualCandle)
     {
-      if (timeFrame == TimeFrame.D1)
+      if (timeFrame == SimulationTradingBot.IndicatorTimeframe.TimeFrame)
       {
-        return preloadedDaily[botKey][actualCandle];
-      }
-      else if (timeFrame == TimeFrame.W1)
-      {
-        //return preloadedWeekly[key][actualCandle];
+        return preloadedTimeframeCandles[botKey][actualCandle.UnixTime];
       }
 
       return null;

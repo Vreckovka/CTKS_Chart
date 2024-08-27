@@ -800,7 +800,7 @@ namespace CTKS_Chart.ViewModels
       {
         await semaphoreSlim.WaitAsync();
 
-        var indicatorsCandle = GetCandle(TimeFrame.D1, actual);
+        var indicatorsCandle = GetCandle(SimulationTradingBot.IndicatorTimeframe.TimeFrame, actual);
         var ctksIntersections = GetIntersections(actual, out var outdated);
 
         actualCachedCandle = actual;
@@ -1056,9 +1056,8 @@ namespace CTKS_Chart.ViewModels
 
         return lastDailyCandle;
       }
-      else if (timeFrame == TimeFrame.H4)
+      else if (timeFrame == SimulationTradingBot.IndicatorTimeframe.TimeFrame)
       {
-
         lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.H4, actualCandle);
 
         return lastDailyCandle;

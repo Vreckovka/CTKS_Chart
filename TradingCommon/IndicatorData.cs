@@ -22,13 +22,14 @@
   {
     public decimal ConversionLine { get; set; }
     public decimal BaseLine { get; set; }
-    public decimal LaggingSpan { get; set; }
+    public decimal UpperCloud { get; set; }
+    public decimal LowerCloud { get; set; }
     public decimal LeadingSpanA { get; set; }
     public decimal LeadingSpanB { get; set; }
 
     public override decimal[] GetData()
     {
-      return new decimal[] { ConversionLine, BaseLine, LaggingSpan, LeadingSpanA, LeadingSpanB };
+      return new decimal[] { ConversionLine, BaseLine, UpperCloud, LowerCloud, LeadingSpanA, LeadingSpanB };
     }
   }
 

@@ -172,7 +172,7 @@ namespace CTKS_Chart.Trading
           }
         }
 
-        return list;
+        return list.DistinctBy(x => x.UnixTime).ToList();
       }
     }
 
@@ -316,15 +316,17 @@ namespace CTKS_Chart.Trading
       {
         decimal.TryParse(data[startIndex], out var conversionLine);
         decimal.TryParse(data[startIndex + 1], out var baseLine);
-        decimal.TryParse(data[startIndex + 2], out var lagging);
-        decimal.TryParse(data[startIndex + 3], out var a);
-        decimal.TryParse(data[startIndex + 4], out var b);
+        decimal.TryParse(data[startIndex + 2], out var a);
+        decimal.TryParse(data[startIndex + 3], out var b);
+        decimal.TryParse(data[startIndex + 4], out var upper);
+        decimal.TryParse(data[startIndex + 5], out var lower);
 
         var indicatorData = new IchimokuCloud()
         {
           ConversionLine = conversionLine,
           BaseLine = baseLine,
-          LaggingSpan = lagging,
+          UpperCloud = upper,
+          LowerCloud = lower,
           LeadingSpanA = a,
           LeadingSpanB = b
         };
