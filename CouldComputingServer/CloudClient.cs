@@ -7,6 +7,7 @@ namespace CouldComputingServer
 {
   public class CloudClient
   {
+    public int ErrorCount { get; set; }
     public TcpClient Client { get; set; }
     public Dictionary<uint, bool> SentBuyGenomes { get; set; } = new Dictionary<uint, bool>();
     public Dictionary<uint, bool> SentSellGenomes { get; set; } = new Dictionary<uint, bool>();

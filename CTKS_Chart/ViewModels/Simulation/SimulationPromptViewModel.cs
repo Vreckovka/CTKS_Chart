@@ -484,7 +484,7 @@ namespace CTKS_Chart.ViewModels
             PriceRound = 5,
             DataPath = path,
             DataSymbol = "BINANCE COTIUSD",
-            IndicatorDataPath = "BINANCE COTIUSD",
+            IndicatorDataPath = "BINANCE COTIUSDT",
             TimeFrames = timeFrames,
           };
           break;

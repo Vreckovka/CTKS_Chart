@@ -107,7 +107,7 @@ namespace CouldComputingServer
 #endif
 
 #if RELEASE
-    private int agentCount = 150;
+    private int agentCount = 240;
 #endif
 
     public int AgentCount
@@ -196,7 +196,7 @@ namespace CouldComputingServer
 #endif
 
 #if RELEASE
-    private int minutes = 60;
+    private int minutes = 240;
 #endif
 
     public int Minutes
@@ -495,7 +495,7 @@ namespace CouldComputingServer
         lastElapsed = DateTime.Now;
       });
 
-      DistributeGeneration();
+      ResetGeneration();
     }
 
     #endregion
@@ -534,6 +534,28 @@ namespace CouldComputingServer
 
     #endregion
 
+    private async void ResetGeneration()
+    {
+      foreach(var client in Clients)
+      {
+        TCPHelper.SendMessage(client.Client, MessageContract.Done);
+      }
+
+      await Task.Delay(3000);
+
+      VSynchronizationContext.InvokeOnDispatcher(() =>
+      {
+        Logger.Log(MessageType.Warning, "Reseting generation!");
+        ToStart = 0;
+        InProgress = 0;
+        FinishedCount = 0;
+      });
+
+      Clients.ForEach(x => x.Done = false);
+      DistributeGeneration();
+
+    }
+
     #region DistributeGeneration
 
     DateTime generationStart;
@@ -568,6 +590,15 @@ namespace CouldComputingServer
       var first = ordered.First();
       var last = ordered.Last();
 
+      TimeSpan difference = last.LastGenerationTime - first.LastGenerationTime;
+      var sec = (int)difference.TotalSeconds;
+
+      sec = Math.Min(sec, last.PopulationSize / 3);
+      if (sec >= 1)
+      {
+        last.PopulationSize--;
+        first.PopulationSize++;
+      }
 
       foreach (var client in Clients.ToList())
       {
@@ -765,7 +796,15 @@ namespace CouldComputingServer
               {
                 TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
                 Logger.Log(MessageType.Warning, "Error from client reseding data");
+
+                client.ErrorCount++;
                 ms = new MemoryStream();
+
+                if (client.ErrorCount >= 10)
+                {
+                  ResetGeneration();
+                }
+
                 continue;
               }
 
@@ -774,10 +813,10 @@ namespace CouldComputingServer
                 continue;
               }
 
+              client.ErrorCount = 0;
+
               var split = MessageContract.GetDataMessageContent(currentData);
-
               var data = JsonSerializer.Deserialize<RunData>(split);
-
 
               runResults.Add(data);
 
@@ -805,6 +844,12 @@ namespace CouldComputingServer
             ms.Dispose();
             ms = new MemoryStream();
             buffer.Clear();
+
+            client.ErrorCount++;
+            if (client.ErrorCount >= 10)
+            {
+              ResetGeneration();
+            }
 
             Logger.Log(MessageType.Error, $"ERROR TRANSIMITING DATA!", false, false);
           }
@@ -836,7 +881,6 @@ namespace CouldComputingServer
     #region UpdateManager
 
     object managerBatton = new object();
-    bool broken = false;
 
     private void UpdateManager(
       CloudClient tcpClient,
@@ -905,9 +949,8 @@ namespace CouldComputingServer
           }
           else
           {
-            broken = true;
-            Console.WriteLine($"------------------NOT FOUND GENOME WITH ID: {receivedGenome.Item1.Id}------------------");
-            Console.WriteLine($"------------------NOT FOUND GENOME WITH ID: {receivedGenome.Item2.Id}------------------");
+            Logger.Log(MessageType.Error, $"NOT FOUND GENOME WITH ID: {receivedGenome.Item1.Id}", true);
+            ResetGeneration();
           }
         }
       }
