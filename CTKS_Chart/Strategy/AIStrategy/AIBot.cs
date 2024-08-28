@@ -17,12 +17,14 @@ namespace CTKS_Chart.Strategy.AIStrategy
     public float[] Update(
       Candle actualCandle,
       AIStrategy strategy,
+       IList<CtksIntersection> intersections,
       IList<decimal> lastPrices,
       params float[] extraInputs)
     {
       float[] inputs = GetInputs(
         actualCandle,
         strategy,
+        intersections,
         lastPrices,
         extraInputs);
 
@@ -32,6 +34,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
     public virtual float[] GetInputs(
       Candle actualCandle,
       AIStrategy strategy,
+       IList<CtksIntersection> intersections,
       IList<decimal> lastPrices,
       params float[] extraInputs)
     {
@@ -54,7 +57,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       {
         AddIndicator(indicatorData.RangeFilter, ref index, ref inputs, minPrice, maxPrice, true);
         AddIndicator(indicatorData.BBWP, ref index, ref inputs, minPrice, maxPrice);
-        AddIndicator(indicatorData.IchimokuCloud, ref index, ref inputs, minPrice, maxPrice, true);
+        //AddIndicator(indicatorData.IchimokuCloud, ref index, ref inputs, minPrice, maxPrice, true);
         AddIndicator(indicatorData.StochRSI, ref index, ref inputs, minPrice, maxPrice);
         AddIndicator(indicatorData.RSI, ref index, ref inputs, minPrice, maxPrice);
       }
@@ -63,6 +66,8 @@ namespace CTKS_Chart.Strategy.AIStrategy
       {
         AddInput(extraInput, ref index, ref inputs);
       }
+
+      //AddIntersectionInputs(intersections, minPrice, maxPrice, ref index, ref inputs);
 
       return inputs;
     }

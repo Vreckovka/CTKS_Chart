@@ -103,7 +103,7 @@ namespace CouldComputingServer
     #region AgentCount
 
 #if DEBUG
-    private int agentCount = 10;
+    private int agentCount = 1;
 #endif
 
 #if RELEASE
@@ -192,7 +192,7 @@ namespace CouldComputingServer
     #region Minutes
 
 #if DEBUG
-    private int minutes = 720;
+    private int minutes = 240;
 #endif
 
 #if RELEASE
@@ -495,7 +495,7 @@ namespace CouldComputingServer
         lastElapsed = DateTime.Now;
       });
 
-      ResetGeneration();
+      DistributeGeneration();
     }
 
     #endregion
@@ -536,7 +536,7 @@ namespace CouldComputingServer
 
     private async void ResetGeneration()
     {
-      foreach(var client in Clients)
+      foreach (var client in Clients)
       {
         TCPHelper.SendMessage(client.Client, MessageContract.Done);
       }
@@ -551,9 +551,7 @@ namespace CouldComputingServer
         FinishedCount = 0;
       });
 
-      Clients.ForEach(x => x.Done = false);
-      DistributeGeneration();
-
+      DistributeGeneration(BuyBotManager.Generation + 1);
     }
 
     #region DistributeGeneration
@@ -561,92 +559,99 @@ namespace CouldComputingServer
     DateTime generationStart;
 
     private ServerRunData serverRunData;
-    private void DistributeGeneration()
+    private object dbaton = new object();
+    private void DistributeGeneration(int? generation = null)
     {
-      generationStart = DateTime.Now;
-
-      if (Clients.Count == 0)
-        return;
-
-      int agentsToRun = AgentCount;
-      //int agentsPerClient = AgentCount / Clients.Count;
-      int runAgents = 0;
-
-      ToStart = AgentCount;
-
-      Clients.ForEach(x => x.SentBuyGenomes.Clear());
-      Clients.ForEach(x => x.SentSellGenomes.Clear());
-
-      CurrentSymbol = TrainingSession.SymbolsToTest[BuyBotManager.Generation % TrainingSession.SymbolsToTest.Count].Name;
-
-
-      foreach (var client in Clients)
+      lock (dbaton)
       {
-        client.PopulationSize = AgentCount / Clients.Count;
-      }
+        generationStart = DateTime.Now;
 
-      var ordered = Clients.OrderBy(x => x.LastGenerationTime).ToList();
+        if (Clients.Count == 0)
+          return;
 
-      var first = ordered.First();
-      var last = ordered.Last();
+        int agentsToRun = AgentCount;
+        //int agentsPerClient = AgentCount / Clients.Count;
+        int runAgents = 0;
 
-      TimeSpan difference = last.LastGenerationTime - first.LastGenerationTime;
-      var sec = (int)difference.TotalSeconds;
+        ToStart = AgentCount;
 
-      sec = Math.Min(sec, last.PopulationSize / 3);
-      if (sec >= 1)
-      {
-        last.PopulationSize--;
-        first.PopulationSize++;
-      }
+        Clients.ForEach(x => x.SentBuyGenomes.Clear());
+        Clients.ForEach(x => x.SentSellGenomes.Clear());
 
-      foreach (var client in Clients.ToList())
-      {
-        var newData = new ServerRunData()
+        var gen = generation ?? BuyBotManager.Generation;
+
+        CurrentSymbol = TrainingSession.SymbolsToTest[gen % TrainingSession.SymbolsToTest.Count].Name;
+
+        Clients.ForEach(x => { x.Done = false; x.ErrorCount = 0; });
+
+        foreach (var client in Clients)
         {
-          AgentCount = client.PopulationSize,
-          Generation = BuyBotManager.Generation,
-          IsRandom = false,
-          Minutes = Minutes,
-          Split = SplitTake,
-          Symbol = CurrentSymbol,
-        };
-
-        serverRunData = newData;
-
-        var buyGenomes = BuyBotManager.NeatAlgorithm.GenomeList.Skip(runAgents).Take(client.PopulationSize).ToList();
-        var sellGenomes = SellBotManager.NeatAlgorithm.GenomeList.Skip(runAgents).Take(client.PopulationSize).ToList();
-
-        buyGenomes.ForEach(x => client.SentBuyGenomes.Add(x.Id, false));
-        sellGenomes.ForEach(x => client.SentSellGenomes.Add(x.Id, false));
-
-        var buyDocument = NeatGenomeXmlIO.SaveComplete(buyGenomes, false);
-        var sellDocument = NeatGenomeXmlIO.SaveComplete(sellGenomes, false);
-
-        newData.BuyGenomes = buyDocument.OuterXml.Replace("\"", "'");
-        newData.SellGenomes = sellDocument.OuterXml.Replace("\"", "'");
-
-        agentsToRun -= client.PopulationSize;
-        runAgents += client.PopulationSize;
-
-        ToStart -= client.PopulationSize;
-        InProgress += client.PopulationSize;
-
-        var message = JsonSerializer.Serialize(newData);
-
-        if (messages.ContainsKey(client))
-        {
-          messages[client] = message;
-        }
-        else
-        {
-          messages.Add(client, message);
+          client.PopulationSize = AgentCount / Clients.Count;
         }
 
-        TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
-      }
+        var ordered = Clients.OrderBy(x => x.LastGenerationTime).ToList();
 
-      Logger.Log(MessageType.Inform, "Generation distributed");
+        var first = ordered.First();
+        var last = ordered.Last();
+
+        TimeSpan difference = last.LastGenerationTime - first.LastGenerationTime;
+        var sec = (int)difference.TotalSeconds;
+
+        sec = Math.Min(sec, last.PopulationSize / 3);
+        if (sec >= 1)
+        {
+          last.PopulationSize--;
+          first.PopulationSize++;
+        }
+
+        foreach (var client in Clients.ToList())
+        {
+          var newData = new ServerRunData()
+          {
+            AgentCount = client.PopulationSize,
+            Generation = BuyBotManager.Generation,
+            IsRandom = false,
+            Minutes = Minutes,
+            Split = SplitTake,
+            Symbol = CurrentSymbol,
+          };
+
+          serverRunData = newData;
+
+          var buyGenomes = BuyBotManager.NeatAlgorithm.GenomeList.Skip(runAgents).Take(client.PopulationSize).ToList();
+          var sellGenomes = SellBotManager.NeatAlgorithm.GenomeList.Skip(runAgents).Take(client.PopulationSize).ToList();
+
+          buyGenomes.ForEach(x => client.SentBuyGenomes.Add(x.Id, false));
+          sellGenomes.ForEach(x => client.SentSellGenomes.Add(x.Id, false));
+
+          var buyDocument = NeatGenomeXmlIO.SaveComplete(buyGenomes, false);
+          var sellDocument = NeatGenomeXmlIO.SaveComplete(sellGenomes, false);
+
+          newData.BuyGenomes = buyDocument.OuterXml.Replace("\"", "'");
+          newData.SellGenomes = sellDocument.OuterXml.Replace("\"", "'");
+
+          agentsToRun -= client.PopulationSize;
+          runAgents += client.PopulationSize;
+
+          ToStart -= client.PopulationSize;
+          InProgress += client.PopulationSize;
+
+          var message = JsonSerializer.Serialize(newData);
+
+          if (messages.ContainsKey(client))
+          {
+            messages[client] = message;
+          }
+          else
+          {
+            messages.Add(client, message);
+          }
+
+          TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
+        }
+
+        Logger.Log(MessageType.Inform, "Generation distributed"); 
+      }
     }
 
     #endregion
@@ -800,7 +805,7 @@ namespace CouldComputingServer
                 client.ErrorCount++;
                 ms = new MemoryStream();
 
-                if (client.ErrorCount >= 10)
+                if (client.ErrorCount == 10)
                 {
                   ResetGeneration();
                 }
@@ -846,7 +851,7 @@ namespace CouldComputingServer
             buffer.Clear();
 
             client.ErrorCount++;
-            if (client.ErrorCount >= 10)
+            if (client.ErrorCount == 10)
             {
               ResetGeneration();
             }

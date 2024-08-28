@@ -73,7 +73,7 @@
   {
     public RangeFilterData RangeFilter { get; set; } = new RangeFilterData();
     public BBWPData BBWP { get; set; } = new BBWPData();
-    public IchimokuCloud IchimokuCloud { get; set; } = new IchimokuCloud();
+    //public IchimokuCloud IchimokuCloud { get; set; } = new IchimokuCloud();
     public StochRSI StochRSI { get; set; } = new StochRSI();
     public RSIData RSI { get; set; } = new RSIData();
 
@@ -84,7 +84,7 @@
         return
           RangeFilter.GetData().Length +
           BBWP.GetData().Length +
-          IchimokuCloud.GetData().Length +
+          //IchimokuCloud.GetData().Length +
           StochRSI.GetData().Length +
           RSI.GetData().Length;
       }

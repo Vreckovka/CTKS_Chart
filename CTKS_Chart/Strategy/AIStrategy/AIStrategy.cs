@@ -105,14 +105,15 @@ namespace CTKS_Chart.Strategy.AIStrategy
         var output = BuyAIBot.Update(
           actualCandle,
           this,
+          inter,
           GetLastPrices(takeLastDailyCandles));
 
         var indexes = output
         .Take(SimulationAIPromptViewModel.TakeIntersections)
         .Select((v, i) => new { prob = v, index = i });
 
-        var toOpen = indexes.Where(x => x.prob > 0.6);
-        var toClose = indexes.Where(x => x.prob < 0.4);
+        var toOpen = indexes.Where(x => x.prob > 0.75);
+        var toClose = indexes.Where(x => x.prob < 0.25);
 
 
         foreach (var prob in toOpen)
@@ -158,7 +159,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       }
     }
 
-#endregion
+    #endregion
 
     #region CancelPositionOnIntersection
 
@@ -204,6 +205,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       var output = SellAIBot.Update(
         lastCandle,
         this,
+        inter,
         GetLastPrices(takeLastDailyCandles),
         (float)(buyPosition.PositionSize / PositionSize));
 
@@ -246,7 +248,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
         }
       }
 
-      if(newPosition == null)
+      if (newPosition == null)
       {
         newPosition = new AIPosition()
         {

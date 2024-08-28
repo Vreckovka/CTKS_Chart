@@ -65,6 +65,7 @@ namespace CTKS_Chart.ViewModels
        
         var indicatorData = new IndicatorData().NumberOfInputs * 2;
 
+        //return strategyInputs + actualCandle + indicatorData + TakeIntersections;
         return strategyInputs + actualCandle + indicatorData;
       }
     }

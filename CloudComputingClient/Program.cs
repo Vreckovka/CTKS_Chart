@@ -104,7 +104,7 @@ namespace CloudComputingClient
 
         serverIp = add.IP.Trim();
 #if DEBUG
-        serverIp = "127.0.0.1";
+        // serverIp = "127.0.0.1";
 #endif
         port = add.Port;
 
@@ -160,6 +160,8 @@ namespace CloudComputingClient
 
     #region RunGeneration
 
+    static bool canRunGeneration = true;
+
     private static void RunGeneration(
       int agentCount,
       int minutes,
@@ -169,10 +171,14 @@ namespace CloudComputingClient
       List<NeatGenome> buyGenomes,
       List<NeatGenome> sellGenomes)
     {
-      serialDisposable.Disposable?.Dispose();
+      if(canRunGeneration)
+      {
+        canRunGeneration = false;
 
-      CreateStrategies(agentCount, minutes, split, symbol, isRandom, buyGenomes, sellGenomes);
+        serialDisposable.Disposable?.Dispose();
 
+        CreateStrategies(agentCount, minutes, split, symbol, isRandom, buyGenomes, sellGenomes);
+      }
     }
 
     #endregion
@@ -245,6 +251,8 @@ namespace CloudComputingClient
       FinishedCount = 0;
 
       UpdateUI();
+
+      canRunGeneration = true;
     }
 
     #endregion
@@ -473,7 +481,6 @@ namespace CloudComputingClient
 
     #region HandleIncomingMessage
 
-    object baton = new object();
     private static void HandleIncomingMessage(TcpClient tcpClient)
     {
       try
@@ -502,6 +509,8 @@ namespace CloudComputingClient
 
               if (currentData.Contains(MessageContract.Done))
               {
+                buffer.Clear();
+                stream.Flush();
                 ms = new MemoryStream();
                 continue;
               }
@@ -520,6 +529,13 @@ namespace CloudComputingClient
                 LastServerRunData = ServerRunData;
                 ServerRunData = serverRunData;
               }
+
+
+              if (ServerRunData?.Symbol == "EOSUSDT")
+              {
+                TCPHelper.SendMessage(tcpClient, MessageContract.Error);
+              }
+
 
               if (ServerRunData != null)
               {

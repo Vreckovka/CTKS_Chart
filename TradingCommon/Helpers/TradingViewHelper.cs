@@ -116,7 +116,7 @@ namespace CTKS_Chart.Trading
             {
               indicatorData.RangeFilter = GetRangeFilter(data, header);
               indicatorData.BBWP = GetBBWP(data, header);
-              indicatorData.IchimokuCloud = GetIchimoku(data, header);
+              //indicatorData.IchimokuCloud = GetIchimoku(data, header);
               indicatorData.StochRSI = GetStochRSI(data, header);
               indicatorData.RSI = GetRSI(data, header);
             }
