@@ -690,19 +690,18 @@ namespace CouldComputingServer
           TotalValue = bestRun.TotalValue;
           Drawdawn = bestRun.Drawdawn;
           NumberOfTrades = bestRun.NumberOfTrades;
+          
+          TrainingSession.AddLabel();
+        }
 
+        if (isLastSymbol)
+        {
           var folder = Path.Combine("Trainings", TrainingSession.Name);
           Directory.CreateDirectory(folder);
 
           var training = JsonSerializer.Serialize(TrainingSession);
 
           File.WriteAllText(Path.Combine(folder, "session.txt"), training);
-
-          TrainingSession.AddLabel();
-        }
-
-        if (isLastSymbol)
-        {
 
           CycleRunTime = DateTime.Now - cycleLastElapsed;
 

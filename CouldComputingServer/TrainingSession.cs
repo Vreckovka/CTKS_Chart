@@ -220,7 +220,8 @@ namespace CouldComputingServer
       newSeries.Fill = Brushes.Transparent;
       newSeries.Title = "Median Fitness";
       newSeries.PointForeground = Brushes.Transparent;
-
+      newSeries.Stroke = Brushes.OrangeRed;
+      
       MedianFitnessData.Add(newSeries);
 
     }

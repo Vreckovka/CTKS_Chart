@@ -8,7 +8,7 @@
   xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
   Title="MainWindow"
-  Width="700"
+  Width="1200"
   Height="1000"
   mc:Ignorable="d">
 
@@ -23,7 +23,7 @@
       <RowDefinition />
     </Grid.RowDefinitions>
 
-    <StackPanel Width="250">
+    <StackPanel Width="350">
       <TextBlock Text="{Binding Clients.Count, Mode=OneWay}" />
 
     </StackPanel>
@@ -31,249 +31,210 @@
     <Grid Grid.Row="1">
       <Grid.ColumnDefinitions>
         <ColumnDefinition />
-        <ColumnDefinition Width="200" />
+        <ColumnDefinition Width="300" />
       </Grid.ColumnDefinitions>
 
       <Grid Grid.Column="0" DataContext="{Binding TrainingSession}">
-        <Grid.RowDefinitions>
-          <RowDefinition />
-          <RowDefinition />
-          <RowDefinition />
-          <RowDefinition />
-          <RowDefinition />
-          <RowDefinition />
-          <RowDefinition />
-        </Grid.RowDefinitions>
 
-        <lvc:CartesianChart
-          Margin="10,0"
-          DisableAnimations="True"
-          LegendLocation="None"
-          Series="{Binding AverageData}">
-          <lvc:CartesianChart.AxisY>
-            <lvc:Axis
-              Title="Average Fitness"
-              LabelFormatter="{Binding YFormatter}"
-              MinValue="0">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisY>
+        <UniformGrid Grid.Column="1" Columns="2" Margin="5">
+          <lvc:CartesianChart
+            Margin="10,0"
+            DisableAnimations="True"
+            LegendLocation="None"
+            Series="{Binding AverageData}">
+            <lvc:CartesianChart.AxisY>
+              <lvc:Axis
+                Title="Average Fitness"
+                LabelFormatter="{Binding YFormatter}"
+                MinValue="0">
+                <lvc:Axis.Separator>
+                  <lvc:Separator Stroke="#252525" />
+                </lvc:Axis.Separator>
+              </lvc:Axis>
+            </lvc:CartesianChart.AxisY>
 
-          <lvc:CartesianChart.AxisX>
-            <lvc:Axis Title="Generation" Labels="{Binding Labels}">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisX>
+            <lvc:CartesianChart.AxisX>
+              <lvc:Axis Title="Generation" Labels="{Binding Labels}">
+                <lvc:Axis.Separator>
+                  <lvc:Separator Stroke="#252525" />
+                </lvc:Axis.Separator>
+              </lvc:Axis>
+            </lvc:CartesianChart.AxisX>
 
-          <lvc:CartesianChart.DataTooltip>
-            <lvc:DefaultTooltip
-              Background="#252525"
-              BorderBrush="#35ffffff"
-              BorderThickness="1" />
-          </lvc:CartesianChart.DataTooltip>
-        </lvc:CartesianChart>
+            <lvc:CartesianChart.DataTooltip>
+              <lvc:DefaultTooltip
+                Background="#252525"
+                BorderBrush="#35ffffff"
+                BorderThickness="1" />
+            </lvc:CartesianChart.DataTooltip>
+          </lvc:CartesianChart>
 
-        <lvc:CartesianChart
-          Grid.Row="1"
-          Margin="10,0"
-          DisableAnimations="True"
-          LegendLocation="None"
-          Series="{Binding BestData}">
-          <lvc:CartesianChart.AxisY>
-            <lvc:Axis
-              Title="Max Fitness"
-              LabelFormatter="{Binding YFormatter}"
-              MinValue="0">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisY>
+          <lvc:CartesianChart
+            Grid.Row="3"
+            Margin="10,0"
+            DisableAnimations="True"
+            LegendLocation="None"
+            Series="{Binding TotalValueData}">
+            <lvc:CartesianChart.AxisY>
+              <lvc:Axis
+                Title="Total Value"
+                LabelFormatter="{Binding YFormatter}"
+                MinValue="0">
+                <lvc:Axis.Separator>
+                  <lvc:Separator Stroke="#252525" />
+                </lvc:Axis.Separator>
+              </lvc:Axis>
+            </lvc:CartesianChart.AxisY>
 
-          <lvc:CartesianChart.AxisX>
-            <lvc:Axis Title="Generation" Labels="{Binding Labels}">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisX>
+            <lvc:CartesianChart.AxisX>
+              <lvc:Axis Title="Generation" Labels="{Binding Labels}">
+                <lvc:Axis.Separator>
+                  <lvc:Separator Stroke="#252525" />
+                </lvc:Axis.Separator>
+              </lvc:Axis>
+            </lvc:CartesianChart.AxisX>
 
-          <lvc:CartesianChart.DataTooltip>
-            <lvc:DefaultTooltip
-              Background="#252525"
-              BorderBrush="#35ffffff"
-              BorderThickness="1" />
-          </lvc:CartesianChart.DataTooltip>
-        </lvc:CartesianChart>
+            <lvc:CartesianChart.DataTooltip>
+              <lvc:DefaultTooltip
+                Background="#252525"
+                BorderBrush="#35ffffff"
+                BorderThickness="1" />
+            </lvc:CartesianChart.DataTooltip>
+          </lvc:CartesianChart>
 
-        <lvc:CartesianChart
-          Grid.Row="2"
-          Margin="10,0"
-          DisableAnimations="True"
-          LegendLocation="None"
-          Series="{Binding FitnessData}">
-          <lvc:CartesianChart.AxisY>
-            <lvc:Axis
-              Title="Fitness"
-              LabelFormatter="{Binding YFormatter}"
-              MinValue="0">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisY>
+          <lvc:CartesianChart
+            Grid.Row="1"
+            Margin="10,0"
+            DisableAnimations="True"
+            LegendLocation="None"
+            Series="{Binding BestData}">
+            <lvc:CartesianChart.AxisY>
+              <lvc:Axis
+                Title="Max Fitness"
+                LabelFormatter="{Binding YFormatter}"
+                MinValue="0">
+                <lvc:Axis.Separator>
+                  <lvc:Separator Stroke="#252525" />
+                </lvc:Axis.Separator>
+              </lvc:Axis>
+            </lvc:CartesianChart.AxisY>
 
-          <lvc:CartesianChart.AxisX>
-            <lvc:Axis Title="Generation" Labels="{Binding Labels}">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisX>
+            <lvc:CartesianChart.AxisX>
+              <lvc:Axis Title="Generation" Labels="{Binding Labels}">
+                <lvc:Axis.Separator>
+                  <lvc:Separator Stroke="#252525" />
+                </lvc:Axis.Separator>
+              </lvc:Axis>
+            </lvc:CartesianChart.AxisX>
 
-          <lvc:CartesianChart.DataTooltip>
-            <lvc:DefaultTooltip
-              Background="#252525"
-              BorderBrush="#35ffffff"
-              BorderThickness="1" />
-          </lvc:CartesianChart.DataTooltip>
-        </lvc:CartesianChart>
+            <lvc:CartesianChart.DataTooltip>
+              <lvc:DefaultTooltip
+                Background="#252525"
+                BorderBrush="#35ffffff"
+                BorderThickness="1" />
+            </lvc:CartesianChart.DataTooltip>
+          </lvc:CartesianChart>
 
-        <lvc:CartesianChart
-          Grid.Row="3"
-          Margin="10,0"
-          DisableAnimations="True"
-          LegendLocation="None"
-          Series="{Binding TotalValueData}">
-          <lvc:CartesianChart.AxisY>
-            <lvc:Axis
-              Title="Total Value"
-              LabelFormatter="{Binding YFormatter}"
-              MinValue="0">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisY>
+          <lvc:CartesianChart
+            Grid.Row="4"
+            Margin="10,0"
+            DisableAnimations="True"
+            LegendLocation="None"
+            Series="{Binding DrawdawnData}">
+            <lvc:CartesianChart.AxisY>
+              <lvc:Axis
+                Title="Max Drawdawn"
+                LabelFormatter="{Binding PercFormatter}"
+                MaxValue="0">
+                <lvc:Axis.Separator>
+                  <lvc:Separator Stroke="#252525" />
+                </lvc:Axis.Separator>
+              </lvc:Axis>
+            </lvc:CartesianChart.AxisY>
 
-          <lvc:CartesianChart.AxisX>
-            <lvc:Axis Title="Generation" Labels="{Binding Labels}">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisX>
+            <lvc:CartesianChart.AxisX>
+              <lvc:Axis Title="Generation" Labels="{Binding Labels}">
+                <lvc:Axis.Separator>
+                  <lvc:Separator Stroke="#252525" />
+                </lvc:Axis.Separator>
+              </lvc:Axis>
+            </lvc:CartesianChart.AxisX>
 
-          <lvc:CartesianChart.DataTooltip>
-            <lvc:DefaultTooltip
-              Background="#252525"
-              BorderBrush="#35ffffff"
-              BorderThickness="1" />
-          </lvc:CartesianChart.DataTooltip>
-        </lvc:CartesianChart>
+            <lvc:CartesianChart.DataTooltip>
+              <lvc:DefaultTooltip
+                Background="#252525"
+                BorderBrush="#35ffffff"
+                BorderThickness="1" />
+            </lvc:CartesianChart.DataTooltip>
+          </lvc:CartesianChart>
 
-        <lvc:CartesianChart
-          Grid.Row="4"
-          Margin="10,0"
-          DisableAnimations="True"
-          LegendLocation="None"
-          Series="{Binding DrawdawnData}">
-          <lvc:CartesianChart.AxisY>
-            <lvc:Axis
-              Title="Max Drawdawn"
-              LabelFormatter="{Binding PercFormatter}"
-              MaxValue="0">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisY>
+          <lvc:CartesianChart
+            Grid.Row="2"
+            Margin="10,0"
+            DisableAnimations="True"
+            LegendLocation="None"
+            Series="{Binding FitnessData}">
+            <lvc:CartesianChart.AxisY>
+              <lvc:Axis
+                Title="Fitness"
+                LabelFormatter="{Binding YFormatter}"
+                MinValue="0">
+                <lvc:Axis.Separator>
+                  <lvc:Separator Stroke="#252525" />
+                </lvc:Axis.Separator>
+              </lvc:Axis>
+            </lvc:CartesianChart.AxisY>
 
-          <lvc:CartesianChart.AxisX>
-            <lvc:Axis Title="Generation" Labels="{Binding Labels}">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisX>
+            <lvc:CartesianChart.AxisX>
+              <lvc:Axis Title="Generation" Labels="{Binding Labels}">
+                <lvc:Axis.Separator>
+                  <lvc:Separator Stroke="#252525" />
+                </lvc:Axis.Separator>
+              </lvc:Axis>
+            </lvc:CartesianChart.AxisX>
 
-          <lvc:CartesianChart.DataTooltip>
-            <lvc:DefaultTooltip
-              Background="#252525"
-              BorderBrush="#35ffffff"
-              BorderThickness="1" />
-          </lvc:CartesianChart.DataTooltip>
-        </lvc:CartesianChart>
+            <lvc:CartesianChart.DataTooltip>
+              <lvc:DefaultTooltip
+                Background="#252525"
+                BorderBrush="#35ffffff"
+                BorderThickness="1" />
+            </lvc:CartesianChart.DataTooltip>
+          </lvc:CartesianChart>
 
-        <lvc:CartesianChart
-          Grid.Row="5"
-          Margin="10,0"
-          DisableAnimations="True"
-          LegendLocation="None"
-          Series="{Binding NumberOfTradesData}">
-          <lvc:CartesianChart.AxisY>
-            <lvc:Axis
-              Title="Number of trades"
-              LabelFormatter="{Binding YFormatter}"
-              MinValue="0">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisY>
+          <lvc:CartesianChart
+            Grid.Row="5"
+            Margin="10,0"
+            DisableAnimations="True"
+            LegendLocation="None"
+            Series="{Binding NumberOfTradesData}">
+            <lvc:CartesianChart.AxisY>
+              <lvc:Axis
+                Title="Number of trades"
+                LabelFormatter="{Binding YFormatter}"
+                MinValue="0">
+                <lvc:Axis.Separator>
+                  <lvc:Separator Stroke="#252525" />
+                </lvc:Axis.Separator>
+              </lvc:Axis>
+            </lvc:CartesianChart.AxisY>
 
-          <lvc:CartesianChart.AxisX>
-            <lvc:Axis Title="Generation" Labels="{Binding Labels}">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisX>
+            <lvc:CartesianChart.AxisX>
+              <lvc:Axis Title="Generation" Labels="{Binding Labels}">
+                <lvc:Axis.Separator>
+                  <lvc:Separator Stroke="#252525" />
+                </lvc:Axis.Separator>
+              </lvc:Axis>
+            </lvc:CartesianChart.AxisX>
 
-          <lvc:CartesianChart.DataTooltip>
-            <lvc:DefaultTooltip
-              Background="#252525"
-              BorderBrush="#35ffffff"
-              BorderThickness="1" />
-          </lvc:CartesianChart.DataTooltip>
-        </lvc:CartesianChart>
+            <lvc:CartesianChart.DataTooltip>
+              <lvc:DefaultTooltip
+                Background="#252525"
+                BorderBrush="#35ffffff"
+                BorderThickness="1" />
+            </lvc:CartesianChart.DataTooltip>
+          </lvc:CartesianChart>
+        </UniformGrid>
 
-        <lvc:CartesianChart
-          Grid.Row="6"
-          Margin="10,0"
-          DisableAnimations="True"
-          LegendLocation="None"
-          Series="{Binding MedianFitnessData}">
-          <lvc:CartesianChart.AxisY>
-            <lvc:Axis
-              Title="Median Fitness"
-              LabelFormatter="{Binding YFormatter}"
-              MinValue="0">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisY>
-
-          <lvc:CartesianChart.AxisX>
-            <lvc:Axis Title="Generation" Labels="{Binding Labels}">
-              <lvc:Axis.Separator>
-                <lvc:Separator Stroke="#252525" />
-              </lvc:Axis.Separator>
-            </lvc:Axis>
-          </lvc:CartesianChart.AxisX>
-
-          <lvc:CartesianChart.DataTooltip>
-            <lvc:DefaultTooltip
-              Background="#252525"
-              BorderBrush="#35ffffff"
-              BorderThickness="1" />
-          </lvc:CartesianChart.DataTooltip>
-        </lvc:CartesianChart>
 
       </Grid>
 
@@ -486,6 +447,42 @@
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>
+
+
+
+        <lvc:CartesianChart
+          Height="200"
+          Margin="5,20,10,0"
+          DataContext="{Binding TrainingSession}"
+          DisableAnimations="True"
+          LegendLocation="None"
+          Series="{Binding MedianFitnessData}">
+          <lvc:CartesianChart.AxisY>
+            <lvc:Axis
+              Title="Median Fitness"
+              LabelFormatter="{Binding YFormatter}"
+              MinValue="0">
+              <lvc:Axis.Separator>
+                <lvc:Separator Stroke="#252525" />
+              </lvc:Axis.Separator>
+            </lvc:Axis>
+          </lvc:CartesianChart.AxisY>
+
+          <lvc:CartesianChart.AxisX>
+            <lvc:Axis Title="Generation" Labels="{Binding Labels}">
+              <lvc:Axis.Separator>
+                <lvc:Separator Stroke="#252525" />
+              </lvc:Axis.Separator>
+            </lvc:Axis>
+          </lvc:CartesianChart.AxisX>
+
+          <lvc:CartesianChart.DataTooltip>
+            <lvc:DefaultTooltip
+              Background="#252525"
+              BorderBrush="#35ffffff"
+              BorderThickness="1" />
+          </lvc:CartesianChart.DataTooltip>
+        </lvc:CartesianChart>
       </StackPanel>
     </Grid>
   </Grid>
