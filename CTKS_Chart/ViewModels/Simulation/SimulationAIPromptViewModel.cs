@@ -63,7 +63,7 @@ namespace CTKS_Chart.ViewModels
         var strategyInputs = 3;
         var actualCandle = 4;
        
-        var indicatorData = new IndicatorData().NumberOfInputs * 2;
+        var indicatorData = new IndicatorData().NumberOfInputs * TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes.Count;
 
         //return strategyInputs + actualCandle + indicatorData + TakeIntersections;
         return strategyInputs + actualCandle + indicatorData;
@@ -316,7 +316,7 @@ namespace CTKS_Chart.ViewModels
 
     #region Minutes
 
-    private int minutes = 120;
+    private int minutes = 240;
 
     public int Minutes
     {
@@ -772,7 +772,7 @@ namespace CTKS_Chart.ViewModels
         var asset = Bots.First().Asset;
         var dailyCandles = SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[TimeFrame.D1], asset);
 
-        foreach (var indiFrame in Bots[0].IndicatorTimeframes)
+        foreach (var indiFrame in TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes)
         {
           SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[indiFrame], asset);
         }

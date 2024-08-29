@@ -435,9 +435,14 @@ namespace CTKS_Chart.ViewModels
 
       TimeFrame = allCandles.allCandles.First().TimeFrame;
 
-      var cutCandles = allCandles.cutCandles;
+      var dailyCandles = SimulationTradingBot.GetIndicatorData(timeFrameDatas[TimeFrame.D1], Asset);
+
+      var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(1);
+      var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(-1);
+
+      var cutCandles = allCandles.cutCandles.Where(x => x.OpenTime.Date > firstValidDate.Date && x.OpenTime.Date < lastValidDate.Date).ToList();
       var candles = allCandles.candles;
-      var mainCandles = allCandles.allCandles;
+      var mainCandles = allCandles.allCandles.Where(x => x.OpenTime.Date > firstValidDate.Date).ToList();
 
       if (candles.Count == 0)
         candles = mainCandles;
@@ -526,10 +531,19 @@ namespace CTKS_Chart.ViewModels
 
         foreach (var line in content)
         {
-          var result = JsonSerializer.Deserialize<SimulationResult>(line);
+          if(line.Contains("}{\"TotalValue\""))
+          {
+            
+          }
+          else
+          {
 
-          result.RunTime = TimeSpan.FromTicks(result.RunTimeTicks);
-          SimulationResults.Add(result);
+            var result = JsonSerializer.Deserialize<SimulationResult>(line);
+
+            result.RunTime = TimeSpan.FromTicks(result.RunTimeTicks);
+            SimulationResults.Add(result);
+          }
+
         }
 
         SimulationResults.LinqSortDescending(x => x.Date);
@@ -658,7 +672,7 @@ namespace CTKS_Chart.ViewModels
           {
             using (StreamWriter w = File.AppendText(results))
             {
-              w.WriteLine(JsonSerializer.Serialize(result));
+              w.WriteLine(json);
             }
           }
           else

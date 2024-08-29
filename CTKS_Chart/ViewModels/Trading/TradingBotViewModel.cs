@@ -789,7 +789,7 @@ namespace CTKS_Chart.ViewModels
 
     public bool IsSimulation { get; set; } = false;
 
-    public List<TimeFrame> IndicatorTimeframes { get; set; } = new List<TimeFrame>() { TimeFrame.D1, TimeFrame.H4 };
+    public static List<TimeFrame> IndicatorTimeframes { get; set; } = new List<TimeFrame>() { TimeFrame.D1, TimeFrame.H4};
 
     public async void RenderLayout(Candle actual)
     {

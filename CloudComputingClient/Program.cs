@@ -308,13 +308,13 @@ namespace CloudComputingClient
         var asset = Bots.First().Asset;
         var dailyCandles = SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[TimeFrame.D1], asset);
 
-        foreach (var indiFrame in Bots[0].IndicatorTimeframes)
+        foreach (var indiFrame in TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes)
         {
           SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[indiFrame], asset);
         }
 
         //ignore filter starting values of indicators
-        var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime;
+        var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(1);
         var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(-1);
 
         if (useRandomDate)
@@ -529,13 +529,6 @@ namespace CloudComputingClient
                 LastServerRunData = ServerRunData;
                 ServerRunData = serverRunData;
               }
-
-
-              if (ServerRunData?.Symbol == "EOSUSDT")
-              {
-                TCPHelper.SendMessage(tcpClient, MessageContract.Error);
-              }
-
 
               if (ServerRunData != null)
               {

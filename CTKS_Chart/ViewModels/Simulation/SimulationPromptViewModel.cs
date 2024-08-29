@@ -530,7 +530,7 @@ namespace CTKS_Chart.ViewModels
       var adaAi = GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, RunData.Symbol, RunData.Minutes, logger, new AIStrategy(BuyBotManager.Agents[0], SellBotManager.Agents[0]));
 
 
-      foreach (var indiFrame in adaAi.IndicatorTimeframes)
+      foreach (var indiFrame in TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes)
       {
         SimulationTradingBot.GetIndicatorData(adaAi.timeFrameDatas[indiFrame], adaAi.Asset);
       }
@@ -538,7 +538,7 @@ namespace CTKS_Chart.ViewModels
       var dailyCandles = SimulationTradingBot.GetIndicatorData(adaAi.timeFrameDatas[TimeFrame.D1], adaAi.Asset);
 
       //ignore filter starting values of indicators
-      adaAi.FromDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime;
+      adaAi.FromDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(1);
 
       adaAi.SaveResults = true;
       adaAi.DisplayName += " AI";

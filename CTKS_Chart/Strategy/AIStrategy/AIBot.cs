@@ -57,7 +57,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       {
         AddIndicator(indicatorData.RangeFilter, ref index, ref inputs, minPrice, maxPrice, true);
         AddIndicator(indicatorData.BBWP, ref index, ref inputs, minPrice, maxPrice);
-        //AddIndicator(indicatorData.IchimokuCloud, ref index, ref inputs, minPrice, maxPrice, true);
+        AddIndicator(indicatorData.IchimokuCloud, ref index, ref inputs, minPrice, maxPrice, true);
         AddIndicator(indicatorData.StochRSI, ref index, ref inputs, minPrice, maxPrice);
         AddIndicator(indicatorData.RSI, ref index, ref inputs, minPrice, maxPrice);
       }

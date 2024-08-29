@@ -552,6 +552,7 @@ namespace CouldComputingServer
       });
 
       DistributeGeneration(BuyBotManager.Generation + 1);
+
     }
 
     #region DistributeGeneration
@@ -650,7 +651,7 @@ namespace CouldComputingServer
           TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
         }
 
-        Logger.Log(MessageType.Inform, "Generation distributed"); 
+        Logger.Log(MessageType.Inform, "Generation distributed");
       }
     }
 
@@ -693,8 +694,12 @@ namespace CouldComputingServer
           {
             Cycle++;
             CycleRunTime = DateTime.Now - cycleLastElapsed;
-          }
 
+            var generation = $"Cycle {Cycle}";
+
+            SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, Path.Combine(generation), "BUY.txt", "BEST_BUY.txt");
+            SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name, Path.Combine(generation), "SELL.txt", "BEST_SELL.txt");
+          }
 
           cycleLastElapsed = DateTime.Now;
 
@@ -711,14 +716,6 @@ namespace CouldComputingServer
 
       FinishedCount = 0;
       ToStart = AgentCount;
-
-      if (BuyBotManager.Generation % 10 == 0 && BuyBotManager.Generation > 0)
-      {
-        var generation = $"Generation {BuyBotManager.Generation}";
-
-        SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, Path.Combine(generation), "BUY.txt", "BEST_BUY.txt");
-        SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name, Path.Combine(generation), "SELL.txt", "BEST_SELL.txt");
-      }
 
       BuyBotManager.UpdateNEATGeneration();
       SellBotManager.UpdateNEATGeneration();
@@ -805,7 +802,7 @@ namespace CouldComputingServer
                 client.ErrorCount++;
                 ms = new MemoryStream();
 
-                if (client.ErrorCount == 10)
+                if (client.ErrorCount == 10 && Clients.Where(x => x != client).All(x => x.ErrorCount < 10))
                 {
                   ResetGeneration();
                 }
@@ -851,7 +848,7 @@ namespace CouldComputingServer
             buffer.Clear();
 
             client.ErrorCount++;
-            if (client.ErrorCount == 10)
+            if (client.ErrorCount == 10 && Clients.Where(x => x != client).All(x => x.ErrorCount < 10))
             {
               ResetGeneration();
             }
@@ -955,7 +952,14 @@ namespace CouldComputingServer
           else
           {
             Logger.Log(MessageType.Error, $"NOT FOUND GENOME WITH ID: {receivedGenome.Item1.Id}", true);
-            ResetGeneration();
+
+            if (tcpClient.ErrorCount < 10)
+            {
+              tcpClient.ErrorCount = 10;
+              ResetGeneration();
+            }
+
+            tcpClient.ErrorCount++;
           }
         }
       }

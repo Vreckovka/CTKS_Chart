@@ -52,6 +52,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
     List<CtksIntersection> lastIntersections = new List<CtksIntersection>();
     public List<Candle> lastDailyCandles = new List<Candle>();
     public int takeLastDailyCandles = 100;
+    Candle lastDailyCandle = null;
 
     public override async void CreatePositions(Candle actualCandle, IList<Candle> indicatorCandles)
     {
@@ -70,13 +71,14 @@ namespace CTKS_Chart.Strategy.AIStrategy
         if (BuyAIBot == null)
           return;
 
-        if (dailyCandle == null || dailyCandle.CloseTime < dailyCandle.CloseTime)
+        if (lastDailyCandle == null || dailyCandle.CloseTime > lastDailyCandle.CloseTime)
         {
           lastDailyCandles.Add(dailyCandle);
         }
 
         indicatorsCandles = indicatorCandles;
         lastCandle = actualCandle;
+        lastDailyCandle = dailyCandle;
 
         IndicatorDatas = indicatorCandles.Select(x => x.IndicatorData).ToList();
 
