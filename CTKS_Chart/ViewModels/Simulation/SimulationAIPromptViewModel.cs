@@ -65,8 +65,8 @@ namespace CTKS_Chart.ViewModels
        
         var indicatorData = new IndicatorData().NumberOfInputs * TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes.Count;
 
-        //return strategyInputs + actualCandle + indicatorData + TakeIntersections;
-        return strategyInputs + actualCandle + indicatorData;
+        return strategyInputs + actualCandle + indicatorData + TakeIntersections;
+        //return strategyInputs + actualCandle + indicatorData;
       }
     }
 

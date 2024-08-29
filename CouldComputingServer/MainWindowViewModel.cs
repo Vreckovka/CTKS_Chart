@@ -551,7 +551,7 @@ namespace CouldComputingServer
         FinishedCount = 0;
       });
 
-      DistributeGeneration(BuyBotManager.Generation + 1);
+      DistributeGeneration(Cycle + 1);
 
     }
 
@@ -579,7 +579,7 @@ namespace CouldComputingServer
         Clients.ForEach(x => x.SentBuyGenomes.Clear());
         Clients.ForEach(x => x.SentSellGenomes.Clear());
 
-        var gen = generation ?? BuyBotManager.Generation;
+        var gen = generation ?? Cycle;
 
         CurrentSymbol = TrainingSession.SymbolsToTest[gen % TrainingSession.SymbolsToTest.Count].Name;
 
@@ -610,7 +610,7 @@ namespace CouldComputingServer
           var newData = new ServerRunData()
           {
             AgentCount = client.PopulationSize,
-            Generation = BuyBotManager.Generation,
+            Generation = Cycle,
             IsRandom = false,
             Minutes = Minutes,
             Split = SplitTake,
@@ -663,7 +663,7 @@ namespace CouldComputingServer
     {
       GenerationRunTime = DateTime.Now - generationStart;
 
-      var isStartSymbol = CurrentSymbol == TrainingSession.SymbolsToTest[0].Name;
+      var isLastSymbol = CurrentSymbol == TrainingSession.SymbolsToTest.Last().Name;
 
       var bestBuy = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
       var bestSell = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
@@ -681,7 +681,8 @@ namespace CouldComputingServer
         TrainingSession.AddValue(serverRunData.Symbol, Statistic.Drawdawn, bestRun.Drawdawn);
         TrainingSession.AddValue(serverRunData.Symbol, Statistic.NumberOfTrades, bestRun.NumberOfTrades);
 
-        var fullCycle = BuyBotManager.Generation % TrainingSession.SymbolsToTest.Count == 0;
+        var fullCycle = Cycle % TrainingSession.SymbolsToTest.Count == 0;
+
 
         if (fullCycle)
         {
@@ -689,19 +690,6 @@ namespace CouldComputingServer
           TotalValue = bestRun.TotalValue;
           Drawdawn = bestRun.Drawdawn;
           NumberOfTrades = bestRun.NumberOfTrades;
-
-          if (BuyBotManager.Generation > 1)
-          {
-            Cycle++;
-            CycleRunTime = DateTime.Now - cycleLastElapsed;
-
-            var generation = $"Cycle {Cycle}";
-
-            SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, Path.Combine(generation), "BUY.txt", "BEST_BUY.txt");
-            SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name, Path.Combine(generation), "SELL.txt", "BEST_SELL.txt");
-          }
-
-          cycleLastElapsed = DateTime.Now;
 
           var folder = Path.Combine("Trainings", TrainingSession.Name);
           Directory.CreateDirectory(folder);
@@ -712,13 +700,30 @@ namespace CouldComputingServer
 
           TrainingSession.AddLabel();
         }
+
+        if (isLastSymbol)
+        {
+
+          CycleRunTime = DateTime.Now - cycleLastElapsed;
+
+          var generation = $"Cycle {Cycle}";
+
+          SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, Path.Combine(generation), "BUY.txt", "BEST_BUY.txt");
+          SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name, Path.Combine(generation), "SELL.txt", "BEST_SELL.txt");
+
+          cycleLastElapsed = DateTime.Now;
+
+          BuyBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
+          SellBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
+
+          BuyBotManager.UpdateNEATGeneration();
+          SellBotManager.UpdateNEATGeneration();
+        }
       }
 
+      Cycle++;
       FinishedCount = 0;
       ToStart = AgentCount;
-
-      BuyBotManager.UpdateNEATGeneration();
-      SellBotManager.UpdateNEATGeneration();
 
       runResults.Clear();
       DistributeGeneration();
@@ -802,7 +807,7 @@ namespace CouldComputingServer
                 client.ErrorCount++;
                 ms = new MemoryStream();
 
-                if (client.ErrorCount == 10 && Clients.Where(x => x != client).All(x => x.ErrorCount < 10))
+                if (client.ErrorCount == 10)
                 {
                   ResetGeneration();
                 }
@@ -848,7 +853,7 @@ namespace CouldComputingServer
             buffer.Clear();
 
             client.ErrorCount++;
-            if (client.ErrorCount == 10 && Clients.Where(x => x != client).All(x => x.ErrorCount < 10))
+            if (client.ErrorCount == 10)
             {
               ResetGeneration();
             }
@@ -931,8 +936,8 @@ namespace CouldComputingServer
           {
             if (!tcpClient.SentBuyGenomes[existingBuy.Id] && !tcpClient.SentSellGenomes[existingSell.Id])
             {
-              buyManger.NeatAlgorithm.GenomeList[buyManger.NeatAlgorithm.GenomeList.IndexOf(existingBuy)].AddFitness(receivedGenome.Item1.Fitness);
-              sellManager.NeatAlgorithm.GenomeList[sellManager.NeatAlgorithm.GenomeList.IndexOf(existingSell)].AddFitness(receivedGenome.Item2.Fitness);
+              buyManger.NeatAlgorithm.GenomeList[buyManger.NeatAlgorithm.GenomeList.IndexOf(existingBuy)].AddSequentialFitness(receivedGenome.Item1.Fitness);
+              sellManager.NeatAlgorithm.GenomeList[sellManager.NeatAlgorithm.GenomeList.IndexOf(existingSell)].AddSequentialFitness(receivedGenome.Item2.Fitness);
 
               FinishedCount += 1;
               InProgress -= 1;

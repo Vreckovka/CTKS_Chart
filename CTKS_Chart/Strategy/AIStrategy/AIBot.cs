@@ -67,7 +67,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
         AddInput(extraInput, ref index, ref inputs);
       }
 
-      //AddIntersectionInputs(intersections, minPrice, maxPrice, ref index, ref inputs);
+      AddIntersectionInputs(intersections, minPrice, maxPrice, ref index, ref inputs);
 
       return inputs;
     }

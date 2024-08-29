@@ -150,6 +150,8 @@ namespace CTKS_Chart.Strategy.AIStrategy
             await CancelPositionOnIntersection(intersection);
           }
         }
+
+        //CheckSellPositions();
       }
       catch (Exception ex)
       {
@@ -162,6 +164,25 @@ namespace CTKS_Chart.Strategy.AIStrategy
     }
 
     #endregion
+
+    private async void CheckSellPositions()
+    {
+      foreach(var position in OpenSellPositions.ToList())
+      {
+        var buy = (AIPosition)position.OpositPositions[0];
+        var probs = GetSellProbs(buy);
+
+        var index = probs.inter.IndexOf(position.Intersection);
+        var newProb = probs.indexes.SingleOrDefault(x => x.index == index);
+
+        if(newProb.prob < 0.25)
+        {
+          await CancelPosition(position);
+
+          await CreateSellPositionForBuy(buy);
+        }
+      }
+    }
 
     #region CancelPositionOnIntersection
 
@@ -194,15 +215,13 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
     #endregion
 
-    #region CreateSellPositionForBuy
-
-    protected override async Task CreateSellPositionForBuy(AIPosition buyPosition, decimal minForcePrice = 0)
+    private (IEnumerable<(float prob, int index)> indexes, IList<CtksIntersection> inter) GetSellProbs(AIPosition buyPosition)
     {
       var inter = Intersections
-        .Where(x => x.Value > buyPosition.Price * 1.005m)
-        .OrderBy(x => x.Value)
-        .Take(SimulationAIPromptViewModel.TakeIntersections)
-        .ToList();
+      .Where(x => x.Value > lastCandle.Close * 1.005m)
+      .OrderBy(x => x.Value)
+      .Take(SimulationAIPromptViewModel.TakeIntersections)
+      .ToList();
 
       var output = SellAIBot.Update(
         lastCandle,
@@ -210,18 +229,29 @@ namespace CTKS_Chart.Strategy.AIStrategy
         inter,
         GetLastPrices(takeLastDailyCandles),
         (float)(buyPosition.PositionSize / PositionSize));
+    
 
+      var indexes = output
+        .Select((prob, index) => (prob, index))
+        .OrderByDescending(x => x.prob);
+
+      return (indexes, inter);
+    }
+
+    #region CreateSellPositionForBuy
+
+    protected override async Task CreateSellPositionForBuy(AIPosition buyPosition, decimal minForcePrice = 0)
+    {
+      var result = GetSellProbs(buyPosition);
+
+      var indexes = result.indexes;
+      var inter = result.inter;
+
+      AIPosition newPosition = null;
 
       var positionSize = buyPosition.PositionSize;
 
       var roundedNativeSize = Math.Round(positionSize / buyPosition.Price, Asset.NativeRound);
-
-      var indexes = output
-        .Select((v, i) => new { prob = v, index = i })
-        .OrderByDescending(x => x.prob);
-
-
-      AIPosition newPosition = null;
 
       foreach (var indexProb in indexes)
       {
@@ -243,7 +273,8 @@ namespace CTKS_Chart.Strategy.AIStrategy
             TimeFrame = intersection.TimeFrame,
             Intersection = intersection,
             State = PositionState.Open,
-            IsAutomatic = buyPosition.IsAutomatic
+            IsAutomatic = buyPosition.IsAutomatic,
+            Prob = indexProb.prob
           };
 
           break;
