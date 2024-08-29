@@ -683,6 +683,14 @@ namespace CouldComputingServer
 
         var fullCycle = Cycle % TrainingSession.SymbolsToTest.Count == 0;
 
+        var generation = $"Generation {BuyBotManager.Generation}";
+
+        cycleLastElapsed = DateTime.Now;
+
+        var path = SimulationAIPromptViewModel.GetTrainingPath($"{serverRunData.Symbol}_BUY.txt", TrainingSession.Name, generation);
+
+        File.WriteAllText(path, bestRun.BuyGenomes);
+        File.WriteAllText(path.Replace("_BUY", "_SELL"), bestRun.SellGenomes);
 
         if (fullCycle)
         {
@@ -705,7 +713,6 @@ namespace CouldComputingServer
 
           CycleRunTime = DateTime.Now - cycleLastElapsed;
 
-          var generation = $"Generation {BuyBotManager.Generation}";
 
           cycleLastElapsed = DateTime.Now;
 
@@ -714,8 +721,8 @@ namespace CouldComputingServer
 
           TrainingSession.AddValue(serverRunData.Symbol, Statistic.MedianFitness, (decimal)BuyBotManager.NeatAlgorithm.GenomeList.Max(x => x.Fitness));
 
-          SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, Path.Combine(generation), "BUY.txt", "BEST_BUY.txt");
-          SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name, Path.Combine(generation), "SELL.txt", "BEST_SELL.txt");
+          SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, generation, "BUY.txt", "MEDIAN_BUY.txt");
+          SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name,generation, "SELL.txt", "MEDIAN_SELL.txt");
 
           BuyBotManager.UpdateNEATGeneration();
           SellBotManager.UpdateNEATGeneration();

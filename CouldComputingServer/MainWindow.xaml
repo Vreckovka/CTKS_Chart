@@ -36,7 +36,10 @@
 
       <Grid Grid.Column="0" DataContext="{Binding TrainingSession}">
 
-        <UniformGrid Grid.Column="1" Columns="2" Margin="5">
+        <UniformGrid
+          Grid.Column="1"
+          Margin="5"
+          Columns="2">
           <lvc:CartesianChart
             Margin="10,0"
             DisableAnimations="True"
@@ -45,8 +48,7 @@
             <lvc:CartesianChart.AxisY>
               <lvc:Axis
                 Title="Average Fitness"
-                LabelFormatter="{Binding YFormatter}"
-                MinValue="0">
+                LabelFormatter="{Binding YFormatter}">
                 <lvc:Axis.Separator>
                   <lvc:Separator Stroke="#252525" />
                 </lvc:Axis.Separator>
@@ -78,8 +80,7 @@
             <lvc:CartesianChart.AxisY>
               <lvc:Axis
                 Title="Total Value"
-                LabelFormatter="{Binding YFormatter}"
-                MinValue="0">
+                LabelFormatter="{Binding YFormatter}">
                 <lvc:Axis.Separator>
                   <lvc:Separator Stroke="#252525" />
                 </lvc:Axis.Separator>
@@ -111,8 +112,7 @@
             <lvc:CartesianChart.AxisY>
               <lvc:Axis
                 Title="Max Fitness"
-                LabelFormatter="{Binding YFormatter}"
-                MinValue="0">
+                LabelFormatter="{Binding YFormatter}">
                 <lvc:Axis.Separator>
                   <lvc:Separator Stroke="#252525" />
                 </lvc:Axis.Separator>
@@ -177,8 +177,7 @@
             <lvc:CartesianChart.AxisY>
               <lvc:Axis
                 Title="Fitness"
-                LabelFormatter="{Binding YFormatter}"
-                MinValue="0">
+                LabelFormatter="{Binding YFormatter}">
                 <lvc:Axis.Separator>
                   <lvc:Separator Stroke="#252525" />
                 </lvc:Axis.Separator>
@@ -210,8 +209,7 @@
             <lvc:CartesianChart.AxisY>
               <lvc:Axis
                 Title="Number of trades"
-                LabelFormatter="{Binding YFormatter}"
-                MinValue="0">
+                LabelFormatter="{Binding YFormatter}">
                 <lvc:Axis.Separator>
                   <lvc:Separator Stroke="#252525" />
                 </lvc:Axis.Separator>
@@ -461,7 +459,7 @@
             <lvc:Axis
               Title="Median Fitness"
               LabelFormatter="{Binding YFormatter}"
-              MinValue="0">
+            >
               <lvc:Axis.Separator>
                 <lvc:Separator Stroke="#252525" />
               </lvc:Axis.Separator>

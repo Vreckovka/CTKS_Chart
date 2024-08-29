@@ -564,7 +564,7 @@ namespace CTKS_Chart.ViewModels
       // Adjust fitness only if it's greater than 0
       if (fitness > 0)
       {
-        fitness *= drawdownMultiplier;
+        //fitness *= drawdownMultiplier;
       }
 
       // 3. Apply a log function based on the count of closed sell positions
@@ -959,6 +959,15 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    public static string GetTrainingPath(string fileName, string session,string folderName)
+    {
+      var gfolder = Path.Combine("Trainings", session, folderName);
+
+      Directory.CreateDirectory(gfolder);
+
+      return  Path.Combine(gfolder, fileName);
+    }
+
     #region SaveProgress
 
     public static void SaveGeneration(
@@ -968,11 +977,7 @@ namespace CTKS_Chart.ViewModels
       string fileName,
       string bestGenomeFileName)
     {
-      var gfolder = Path.Combine("Trainings", session, folderName);
-
-      Directory.CreateDirectory(gfolder);
-
-      manager.SavePopulation(Path.Combine(gfolder, fileName), Path.Combine(gfolder, bestGenomeFileName));
+      manager.SavePopulation(GetTrainingPath(fileName, session, folderName), GetTrainingPath(bestGenomeFileName, session, folderName));
     }
 
     #endregion
