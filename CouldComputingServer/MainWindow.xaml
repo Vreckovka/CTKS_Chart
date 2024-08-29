@@ -42,6 +42,7 @@
           <RowDefinition />
           <RowDefinition />
           <RowDefinition />
+          <RowDefinition />
         </Grid.RowDefinitions>
 
         <lvc:CartesianChart
@@ -217,6 +218,39 @@
           <lvc:CartesianChart.AxisY>
             <lvc:Axis
               Title="Number of trades"
+              LabelFormatter="{Binding YFormatter}"
+              MinValue="0">
+              <lvc:Axis.Separator>
+                <lvc:Separator Stroke="#252525" />
+              </lvc:Axis.Separator>
+            </lvc:Axis>
+          </lvc:CartesianChart.AxisY>
+
+          <lvc:CartesianChart.AxisX>
+            <lvc:Axis Title="Generation" Labels="{Binding Labels}">
+              <lvc:Axis.Separator>
+                <lvc:Separator Stroke="#252525" />
+              </lvc:Axis.Separator>
+            </lvc:Axis>
+          </lvc:CartesianChart.AxisX>
+
+          <lvc:CartesianChart.DataTooltip>
+            <lvc:DefaultTooltip
+              Background="#252525"
+              BorderBrush="#35ffffff"
+              BorderThickness="1" />
+          </lvc:CartesianChart.DataTooltip>
+        </lvc:CartesianChart>
+
+        <lvc:CartesianChart
+          Grid.Row="6"
+          Margin="10,0"
+          DisableAnimations="True"
+          LegendLocation="None"
+          Series="{Binding MedianFitnessData}">
+          <lvc:CartesianChart.AxisY>
+            <lvc:Axis
+              Title="Median Fitness"
               LabelFormatter="{Binding YFormatter}"
               MinValue="0">
               <lvc:Axis.Separator>

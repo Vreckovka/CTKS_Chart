@@ -7,7 +7,8 @@
     AverageFitness,
     TotalValue,
     Drawdawn,
-    NumberOfTrades
+    NumberOfTrades,
+    MedianFitness
   }
 
 }

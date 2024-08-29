@@ -706,15 +706,17 @@ namespace CouldComputingServer
 
           CycleRunTime = DateTime.Now - cycleLastElapsed;
 
-          var generation = $"Cycle {Cycle}";
-
-          SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, Path.Combine(generation), "BUY.txt", "BEST_BUY.txt");
-          SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name, Path.Combine(generation), "SELL.txt", "BEST_SELL.txt");
+          var generation = $"Generation {BuyBotManager.Generation}";
 
           cycleLastElapsed = DateTime.Now;
 
           BuyBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
           SellBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
+
+          TrainingSession.AddValue(serverRunData.Symbol, Statistic.MedianFitness, (decimal)BuyBotManager.NeatAlgorithm.GenomeList.Max(x => x.Fitness));
+
+          SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, Path.Combine(generation), "BUY.txt", "BEST_BUY.txt");
+          SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name, Path.Combine(generation), "SELL.txt", "BEST_SELL.txt");
 
           BuyBotManager.UpdateNEATGeneration();
           SellBotManager.UpdateNEATGeneration();

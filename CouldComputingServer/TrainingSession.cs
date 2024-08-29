@@ -57,6 +57,7 @@ namespace CouldComputingServer
     public Dictionary<string, List<decimal>> TotalValue { get; set; } = new Dictionary<string, List<decimal>>();
     public Dictionary<string, List<decimal>> Drawdawn { get; set; } = new Dictionary<string, List<decimal>>();
     public Dictionary<string, List<decimal>> NumberOfTrades { get; set; } = new Dictionary<string, List<decimal>>();
+    public List<decimal> MedianFitness { get; set; } = new List<decimal>();
 
     [JsonIgnore]
     public SeriesCollection AverageData { get; set; } = new SeriesCollection();
@@ -70,6 +71,9 @@ namespace CouldComputingServer
     public SeriesCollection FitnessData { get; set; } = new SeriesCollection();
     [JsonIgnore]
     public SeriesCollection NumberOfTradesData { get; set; } = new SeriesCollection();
+
+    [JsonIgnore]
+    public SeriesCollection MedianFitnessData { get; set; } = new SeriesCollection();
 
     #region Labels
 
@@ -134,6 +138,10 @@ namespace CouldComputingServer
             break;
           case Statistic.NumberOfTrades:
             NumberOfTradesData[symbolIndex.Value].Values.Add(AddValue(NumberOfTrades, symbol, value));
+            break;
+          case Statistic.MedianFitness:
+            MedianFitness.Add(value);
+            MedianFitnessData[0].Values.Add(Math.Round(MedianFitness.TakeLast(20).Average(), 2));
             break;
         }
       }
@@ -203,6 +211,18 @@ namespace CouldComputingServer
       CreateCharts(FitnessData);
       CreateCharts(NumberOfTradesData);
 
+      var newSeries = new LineSeries()
+      {
+        Values = new ChartValues<decimal>(),
+        PointGeometrySize = 0
+      };
+
+      newSeries.Fill = Brushes.Transparent;
+      newSeries.Title = "Median Fitness";
+      newSeries.PointForeground = Brushes.Transparent;
+
+      MedianFitnessData.Add(newSeries);
+
     }
 
     public void Load(string path)
@@ -220,6 +240,8 @@ namespace CouldComputingServer
         session.NumberOfTrades[symbol.Name].ForEach(x => AddValue(symbol.Name, Statistic.NumberOfTrades, x));
         session.TotalValue[symbol.Name].ForEach(x => AddValue(symbol.Name, Statistic.TotalValue, x));
       }
+
+      session.MedianFitness.ForEach(x => AddValue(SymbolsToTest[0].Name, Statistic.MedianFitness, x));
 
       for (int y = SymbolsToTest.Count; y < TotalValue.Count; y += SymbolsToTest.Count)
       {
