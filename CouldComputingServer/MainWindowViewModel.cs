@@ -675,8 +675,8 @@ namespace CouldComputingServer
       {
         if(bestMeanGenome != null)
         {
-          var bestClient = runData.SingleOrDefault(x => x.BuyGenomes.Contains($"Network id=\"{bestMeanGenome.Id}\""));
-          var bestRun = bestClient.GenomeData.SingleOrDefault(x => x.BuyGenome.Contains($"Network id=\"{bestMeanGenome.Id}\""));
+          var bestClient = runData.FirstOrDefault(x => x.BuyGenomes.Contains($"Network id=\"{bestMeanGenome.Id}\""));
+          var bestRun = bestClient.GenomeData.FirstOrDefault(x => x.BuyGenome.Contains($"Network id=\"{bestMeanGenome.Id}\""));
 
           TrainingSession.AddValue(serverRunData.Symbol, Statistic.AverageFitness, bestClient.Average);
           TrainingSession.AddValue(serverRunData.Symbol, Statistic.BestFitness, bestRun.Fitness);
@@ -818,7 +818,7 @@ namespace CouldComputingServer
                 client.ErrorCount++;
                 ms = new MemoryStream();
 
-                if (client.ErrorCount == 10)
+                if (client.ErrorCount % 10 == 0)
                 {
                   ResetGeneration();
                 }
@@ -864,7 +864,7 @@ namespace CouldComputingServer
             buffer.Clear();
 
             client.ErrorCount++;
-            if (client.ErrorCount == 10)
+            if (client.ErrorCount % 10 == 0)
             {
               ResetGeneration();
             }
