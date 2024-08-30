@@ -534,6 +534,8 @@ namespace CouldComputingServer
 
     #endregion
 
+    #region ResetGeneration
+
     private void ResetGeneration()
     {
       Task.Run(async () =>
@@ -556,6 +558,8 @@ namespace CouldComputingServer
         DistributeGeneration(Cycle + 1);
       });
     }
+
+    #endregion
 
     #region DistributeGeneration
 
@@ -724,6 +728,8 @@ namespace CouldComputingServer
           SellBotManager.NeatAlgorithm.UpdateGenerationWithoutFitnessReset();
 
           bestMeanGenome = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).FirstOrDefault();
+          var bestMeanSellGenome = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).FirstOrDefault();
+
           TrainingSession.AddValue(serverRunData.Symbol, Statistic.MedianFitness, (decimal)bestMeanGenome.Fitness);
 
           SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, generation, "BUY.txt", "MEDIAN_BUY.txt");
@@ -731,6 +737,8 @@ namespace CouldComputingServer
 
           BuyBotManager.ResetFitness();
           SellBotManager.ResetFitness();
+
+          StartTest(bestMeanGenome, bestMeanSellGenome);
         }
       }
 
@@ -1002,6 +1010,51 @@ namespace CouldComputingServer
           Logger.Log(ex);
         }
       });
+    }
+
+    #endregion
+
+    #region StartTest
+
+    SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+
+    private async void StartTest(NeatGenome buy, NeatGenome sell)
+    {
+      try
+      {
+        await semaphoreSlim.WaitAsync();
+
+        var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
+
+        var symbolsToTest = new string[] { "ALGOUSDT", "COTIUSDT", "SOLUSDT", "LINKUSDT" };
+        var fitness = new List<float>();
+
+        foreach (var symbol in symbolsToTest)
+        {
+          await aIBotRunner.RunGeneration(
+            1,
+            Minutes,
+            SplitTake,
+            symbol,
+            false,
+            new List<NeatGenome>() { buy },
+            new List<NeatGenome>() { sell }
+            );
+
+          var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
+
+          fitness.Add(neat.Fitness);
+          neat.ResetFitness();
+        }
+
+        var meanFitness = MathHelper.GeometricMean(fitness);
+
+        TrainingSession.AddValue(CurrentSymbol, Statistic.BackTestMean, (decimal)meanFitness);
+      }
+      finally
+      {
+        semaphoreSlim.Release();
+      }
     }
 
     #endregion

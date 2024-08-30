@@ -8,7 +8,8 @@
     TotalValue,
     Drawdawn,
     NumberOfTrades,
-    MedianFitness
+    MedianFitness,
+    BackTestMean
   }
 
 }

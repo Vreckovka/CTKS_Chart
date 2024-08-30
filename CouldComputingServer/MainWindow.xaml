@@ -46,9 +46,7 @@
             LegendLocation="None"
             Series="{Binding AverageData}">
             <lvc:CartesianChart.AxisY>
-              <lvc:Axis
-                Title="Average Fitness"
-                LabelFormatter="{Binding YFormatter}">
+              <lvc:Axis Title="Average Fitness" LabelFormatter="{Binding YFormatter}">
                 <lvc:Axis.Separator>
                   <lvc:Separator Stroke="#252525" />
                 </lvc:Axis.Separator>
@@ -78,9 +76,7 @@
             LegendLocation="None"
             Series="{Binding TotalValueData}">
             <lvc:CartesianChart.AxisY>
-              <lvc:Axis
-                Title="Total Value"
-                LabelFormatter="{Binding YFormatter}">
+              <lvc:Axis Title="Total Value" LabelFormatter="{Binding YFormatter}">
                 <lvc:Axis.Separator>
                   <lvc:Separator Stroke="#252525" />
                 </lvc:Axis.Separator>
@@ -110,9 +106,7 @@
             LegendLocation="None"
             Series="{Binding BestData}">
             <lvc:CartesianChart.AxisY>
-              <lvc:Axis
-                Title="Max Fitness"
-                LabelFormatter="{Binding YFormatter}">
+              <lvc:Axis Title="Max Fitness" LabelFormatter="{Binding YFormatter}">
                 <lvc:Axis.Separator>
                   <lvc:Separator Stroke="#252525" />
                 </lvc:Axis.Separator>
@@ -175,9 +169,7 @@
             LegendLocation="None"
             Series="{Binding FitnessData}">
             <lvc:CartesianChart.AxisY>
-              <lvc:Axis
-                Title="Fitness"
-                LabelFormatter="{Binding YFormatter}">
+              <lvc:Axis Title="Fitness" LabelFormatter="{Binding YFormatter}">
                 <lvc:Axis.Separator>
                   <lvc:Separator Stroke="#252525" />
                 </lvc:Axis.Separator>
@@ -207,9 +199,7 @@
             LegendLocation="None"
             Series="{Binding NumberOfTradesData}">
             <lvc:CartesianChart.AxisY>
-              <lvc:Axis
-                Title="Number of trades"
-                LabelFormatter="{Binding YFormatter}">
+              <lvc:Axis Title="Number of trades" LabelFormatter="{Binding YFormatter}">
                 <lvc:Axis.Separator>
                   <lvc:Separator Stroke="#252525" />
                 </lvc:Axis.Separator>
@@ -456,10 +446,38 @@
           LegendLocation="None"
           Series="{Binding MedianFitnessData}">
           <lvc:CartesianChart.AxisY>
-            <lvc:Axis
-              Title="Median Fitness"
-              LabelFormatter="{Binding YFormatter}"
-            >
+            <lvc:Axis Title="Median Fitness" LabelFormatter="{Binding YFormatter}">
+              <lvc:Axis.Separator>
+                <lvc:Separator Stroke="#252525" />
+              </lvc:Axis.Separator>
+            </lvc:Axis>
+          </lvc:CartesianChart.AxisY>
+
+          <lvc:CartesianChart.AxisX>
+            <lvc:Axis Title="Generation" Labels="{Binding Labels}">
+              <lvc:Axis.Separator>
+                <lvc:Separator Stroke="#252525" />
+              </lvc:Axis.Separator>
+            </lvc:Axis>
+          </lvc:CartesianChart.AxisX>
+
+          <lvc:CartesianChart.DataTooltip>
+            <lvc:DefaultTooltip
+              Background="#252525"
+              BorderBrush="#35ffffff"
+              BorderThickness="1" />
+          </lvc:CartesianChart.DataTooltip>
+        </lvc:CartesianChart>
+
+        <lvc:CartesianChart
+          Height="200"
+          Margin="5,20,10,0"
+          DataContext="{Binding TrainingSession}"
+          DisableAnimations="True"
+          LegendLocation="None"
+          Series="{Binding BackTestFitnessData}">
+          <lvc:CartesianChart.AxisY>
+            <lvc:Axis Title="Backtest Mean Fitness" LabelFormatter="{Binding YFormatter}">
               <lvc:Axis.Separator>
                 <lvc:Separator Stroke="#252525" />
               </lvc:Axis.Separator>

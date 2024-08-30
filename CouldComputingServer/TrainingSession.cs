@@ -58,6 +58,7 @@ namespace CouldComputingServer
     public Dictionary<string, List<decimal>> Drawdawn { get; set; } = new Dictionary<string, List<decimal>>();
     public Dictionary<string, List<decimal>> NumberOfTrades { get; set; } = new Dictionary<string, List<decimal>>();
     public List<decimal> MedianFitness { get; set; } = new List<decimal>();
+    public List<decimal> BackTestFitness { get; set; } = new List<decimal>();
 
     [JsonIgnore]
     public SeriesCollection AverageData { get; set; } = new SeriesCollection();
@@ -74,6 +75,9 @@ namespace CouldComputingServer
 
     [JsonIgnore]
     public SeriesCollection MedianFitnessData { get; set; } = new SeriesCollection();
+
+    [JsonIgnore]
+    public SeriesCollection BackTestFitnessData { get; set; } = new SeriesCollection();
 
     #region Labels
 
@@ -94,7 +98,6 @@ namespace CouldComputingServer
 
     #endregion
 
-
     #region Commands
 
     #region ClearDataCommand
@@ -112,6 +115,95 @@ namespace CouldComputingServer
     #endregion
 
     #endregion
+
+    #region Methods
+
+    #region CreateSymbolsToTest
+
+    public void CreateSymbolsToTest(params string[] symbols)
+    {
+      SymbolsToTest.Clear();
+
+      foreach (var symbol in symbols)
+      {
+        SymbolsToTest.Add(new SymbolToTest() { Name = symbol });
+      }
+
+
+      CreateCharts(AverageData);
+      CreateCharts(TotalValueData);
+      CreateCharts(BestData);
+      CreateCharts(DrawdawnData);
+      CreateCharts(FitnessData);
+      CreateCharts(NumberOfTradesData);
+
+      CreateMeanChart();
+      CreateBacktestMeanChart();
+    }
+
+    #endregion
+
+    #region CreateMeanChart
+
+    private void CreateMeanChart()
+    {
+      var newSeries = new LineSeries()
+      {
+        Values = new ChartValues<decimal>(),
+        PointGeometrySize = 0
+      };
+
+      newSeries.Fill = Brushes.Transparent;
+      newSeries.Title = "Median Fitness";
+      newSeries.PointForeground = Brushes.Transparent;
+      newSeries.Stroke = Brushes.OrangeRed;
+
+      MedianFitnessData.Add(newSeries);
+    }
+
+    #endregion
+
+    private void CreateBacktestMeanChart()
+    {
+      var newSeries = new LineSeries()
+      {
+        Values = new ChartValues<decimal>(),
+        PointGeometrySize = 0
+      };
+
+      newSeries.Fill = Brushes.Transparent;
+      newSeries.Title = "Back Test Median Fitness";
+      newSeries.PointForeground = Brushes.Transparent;
+      newSeries.Stroke = Brushes.Purple;
+
+      BackTestFitnessData.Add(newSeries);
+    }
+
+
+    #region CreateCharts
+
+    private void CreateCharts(SeriesCollection series)
+    {
+      for (int i = 0; i < SymbolsToTest.Count; i++)
+      {
+        var newSeries = new LineSeries()
+        {
+          Values = new ChartValues<decimal>(),
+          PointGeometrySize = 0
+        };
+
+
+        newSeries.Fill = Brushes.Transparent;
+        newSeries.Title = SymbolsToTest[i].Name;
+        newSeries.PointForeground = Brushes.Transparent;
+
+        series.Add(newSeries);
+      }
+    }
+
+    #endregion
+
+    #region AddValue
 
     public void AddValue(string symbol, Statistic statistics, decimal value)
     {
@@ -143,6 +235,10 @@ namespace CouldComputingServer
             MedianFitness.Add(value);
             MedianFitnessData[0].Values.Add(Math.Round(MedianFitness.TakeLast(20).Average(), 2));
             break;
+          case Statistic.BackTestMean:
+            BackTestFitness.Add(value);
+            BackTestFitnessData[0].Values.Add(Math.Round(BackTestFitness.TakeLast(20).Average(), 2));
+            break;
         }
       }
     }
@@ -161,6 +257,10 @@ namespace CouldComputingServer
       return Math.Round(values[key].TakeLast(20).Average(), 2);
     }
 
+    #endregion
+
+    #region AddLabel
+
     public void AddLabel()
     {
       ++lastLabel;
@@ -169,62 +269,9 @@ namespace CouldComputingServer
       RaisePropertyChanged(nameof(Labels));
     }
 
-
-    #region CreateCharts
-
-    private void CreateCharts(SeriesCollection series)
-    {
-      for (int i = 0; i < SymbolsToTest.Count; i++)
-      {
-        var newSeries = new LineSeries()
-        {
-          Values = new ChartValues<decimal>(),
-          PointGeometrySize = 0
-        };
-
-
-        newSeries.Fill = Brushes.Transparent;
-        newSeries.Title = SymbolsToTest[i].Name;
-        newSeries.PointForeground = Brushes.Transparent;
-
-        series.Add(newSeries);
-      }
-    }
-
     #endregion
 
-
-    public void CreateSymbolsToTest(params string[] symbols)
-    {
-      SymbolsToTest.Clear();
-
-      foreach (var symbol in symbols)
-      {
-        SymbolsToTest.Add(new SymbolToTest() { Name = symbol });
-      }
-
-
-      CreateCharts(AverageData);
-      CreateCharts(TotalValueData);
-      CreateCharts(BestData);
-      CreateCharts(DrawdawnData);
-      CreateCharts(FitnessData);
-      CreateCharts(NumberOfTradesData);
-
-      var newSeries = new LineSeries()
-      {
-        Values = new ChartValues<decimal>(),
-        PointGeometrySize = 0
-      };
-
-      newSeries.Fill = Brushes.Transparent;
-      newSeries.Title = "Median Fitness";
-      newSeries.PointForeground = Brushes.Transparent;
-      newSeries.Stroke = Brushes.OrangeRed;
-      
-      MedianFitnessData.Add(newSeries);
-
-    }
+    #region Load
 
     public void Load(string path)
     {
@@ -244,14 +291,15 @@ namespace CouldComputingServer
 
       session.MedianFitness.ForEach(x => AddValue(SymbolsToTest[0].Name, Statistic.MedianFitness, x));
 
-      for (int y = SymbolsToTest.Count; y < TotalValue.Count; y += SymbolsToTest.Count)
+      foreach (var value in session.MedianFitness)
       {
-        lastLabel = y;
-        Labels.Add(lastLabel.ToString());
-
-        RaisePropertyChanged(nameof(Labels));
+        AddLabel();
       }
     }
+
+    #endregion
+
+    #region ClearData
 
     int lastLabel;
 
@@ -276,6 +324,10 @@ namespace CouldComputingServer
       Labels.Clear();
       RaisePropertyChanged(nameof(Labels));
     }
+
+    #endregion
+
+    #endregion
   }
 
 }

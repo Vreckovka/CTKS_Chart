@@ -144,7 +144,7 @@ namespace CTKS_Chart.ViewModels
     bool canRunGeneration = true;
     IDisposable intervalDisposable;
 
-    public void RunGeneration(
+    public Task RunGeneration(
       int agentCount,
       int minutes,
       double split,
@@ -153,33 +153,37 @@ namespace CTKS_Chart.ViewModels
       List<NeatGenome> buyGenomes,
       List<NeatGenome> sellGenomes)
     {
+      if (intervalDisposable == null)
+      {
+        lastElapsed = DateTime.Now;
+
+        intervalDisposable = Observable.Interval(TimeSpan.FromSeconds(1)).Subscribe((x) =>
+        {
+          TimeSpan diff = DateTime.Now - lastElapsed;
+
+          RunTime.Add(diff);
+
+          lastElapsed = DateTime.Now;
+        });
+      }
+
       if (canRunGeneration)
       {
         canRunGeneration = false;
 
         serialDisposable.Disposable?.Dispose();
 
-        CreateStrategies(agentCount, minutes, split, symbol, isRandom, buyGenomes, sellGenomes);
+        return CreateStrategies(agentCount, minutes, split, symbol, isRandom, buyGenomes, sellGenomes);
       }
 
-      if(intervalDisposable == null)
-      {
-        lastElapsed = DateTime.Now;
-
-        intervalDisposable = Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
-        {
-          TimeSpan diff = DateTime.Now - lastElapsed;
-
-          lastElapsed = DateTime.Now;
-        });
-      }
+      return Task.CompletedTask;
     }
 
     #endregion
 
     #region CreateStrategies
 
-    private void CreateStrategies(
+    private Task CreateStrategies(
       int agentCount,
       int minutes,
       double splitTake,
@@ -216,7 +220,7 @@ namespace CTKS_Chart.ViewModels
       }
 
 
-      RunBots(random, symbol, isRandom, splitTake, minutes);
+     return RunBots(random, symbol, isRandom, splitTake, minutes);
     }
 
     #endregion
@@ -226,7 +230,7 @@ namespace CTKS_Chart.ViewModels
     object batton = new object();
     object batton1 = new object();
 
-    private void RunBots(
+    private Task RunBots(
               Random random,
               string symbol,
               bool useRandomDate,
@@ -235,7 +239,7 @@ namespace CTKS_Chart.ViewModels
     {
       generationStart = DateTime.Now;
 
-      Task.Run(() =>
+      return Task.Run(() =>
       {
         lock (batton1)
         {
