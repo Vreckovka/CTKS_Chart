@@ -264,26 +264,39 @@ namespace CloudComputingClient
     {
       lock (resultLock)
       {
-        var data = new RunData();
+        var clientData = new ClientData();
 
-        var best = Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First().TradingBot.Strategy;
+        foreach(var bot in Bots)
+        {
+          var data = new RunData();
+          var strat = bot.TradingBot.Strategy;
+
+          var buyGenome = (NeatGenome)strat.BuyAIBot.NeuralNetwork;
+          var sellGenome = (NeatGenome)strat.SellAIBot.NeuralNetwork;
+
+          data.BuyGenome = NeatGenomeXmlIO.SaveComplete(buyGenome, false).OuterXml;
+          data.SellGenome = NeatGenomeXmlIO.SaveComplete(sellGenome, false).OuterXml;
+
+          data.Drawdawn = strat.MaxDrawdawnFromMaxTotalValue;
+          data.TotalValue = strat.TotalValue;
+          data.NumberOfTrades = strat.ClosedSellPositions.Count;
+          data.OriginalFitness = (decimal)strat.OriginalFitness;
+          data.Fitness = (decimal)strat.BuyAIBot.NeuralNetwork.Fitness;
+
+          clientData.GenomeData.Add(data);
+        }
+       
 
         var buyGenomes = Bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
         var sellGenomes = Bots.Select(x => x.TradingBot.Strategy.SellAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
+        clientData.Average = (decimal)buyGenomes.Average(x => x.Fitness);
 
-        data.BuyGenomes = NeatGenomeXmlIO.SaveComplete(buyGenomes, false).OuterXml;
-        data.SellGenomes = NeatGenomeXmlIO.SaveComplete(sellGenomes, false).OuterXml;
+        clientData.BuyGenomes = NeatGenomeXmlIO.SaveComplete(buyGenomes, false).OuterXml;
+        clientData.SellGenomes = NeatGenomeXmlIO.SaveComplete(sellGenomes, false).OuterXml;
 
-        data.Average = (decimal)buyGenomes.Average(x => x.Fitness);
-        data.Drawdawn = best.MaxDrawdawnFromMaxTotalValue;
-        data.TotalValue = best.TotalValue;
-        data.NumberOfTrades = best.ClosedSellPositions.Count;
-        data.OriginalFitness = (decimal)best.OriginalFitness;
-        data.Fitness = (decimal)best.BuyAIBot.NeuralNetwork.Fitness;
+        SendMessage(tcpClient, clientData);
 
-        SendMessage(tcpClient, data);
-
-        LastData = data;
+        LastData = clientData.GenomeData.OrderByDescending(x => x.Fitness).FirstOrDefault();
       }
     }
 
@@ -593,7 +606,7 @@ namespace CloudComputingClient
 
     static object batton0 = new object();
     static int asd = 0;
-    private static void SendMessage(TcpClient tcpClient, RunData runData)
+    private static void SendMessage(TcpClient tcpClient, ClientData runData)
     {
       try
       {
@@ -656,7 +669,7 @@ namespace CloudComputingClient
 
       Console.WriteLine();
       Console.WriteLine($"BEST Fitness: {LastData?.Fitness.ToString("N2")}");
-      Console.WriteLine($"AVG.Fitness: {LastData?.Average.ToString("N2")}");
+      //Console.WriteLine($"AVG.Fitness: {LastData?.Average.ToString("N2")}");
       Console.WriteLine($"ORG.Fitness: {LastData?.OriginalFitness.ToString("N2")}");
 
       Console.WriteLine();

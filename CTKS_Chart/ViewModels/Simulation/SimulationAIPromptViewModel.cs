@@ -553,21 +553,17 @@ namespace CTKS_Chart.ViewModels
       strategy.OriginalFitness = (float)((strategy.TotalValue - strategy.StartingBudget) / strategy.StartingBudget) * 1000;
       float fitness = strategy.OriginalFitness;
 
-      // 2. Calculate the drawdown multiplier
       var drawdown = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
-      float exponent = 3.0f;  // Power function exponent to penalize more for larger drawdowns
+      float exponent = 2.25f; 
       var drawdownMultiplier = (float)Math.Pow(1 - drawdown, exponent);
 
-      // Ensure the multiplier is within a reasonable range (0 to 1)
       drawdownMultiplier = Math.Max(drawdownMultiplier, 0);
 
-      // Adjust fitness only if it's greater than 0
       if (fitness > 0)
       {
-        //fitness *= drawdownMultiplier;
+        fitness *= drawdownMultiplier;
       }
 
-      // 3. Apply a log function based on the count of closed sell positions
       if (strategy.ClosedSellPositions.Count > 0)
       {
         var tradesInfluence = GetTradesInfluance(strategy.ClosedSellPositions.Count);

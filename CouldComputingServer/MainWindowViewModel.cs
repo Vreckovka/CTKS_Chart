@@ -40,7 +40,7 @@ namespace CouldComputingServer
     private Thread _listenerThread;
 
     Dictionary<CloudClient, string> messages = new Dictionary<CloudClient, string>();
-    List<RunData> runResults = new List<RunData>();
+    List<ClientData> runResults = new List<ClientData>();
 
     string[] allSymbols = new string[] {
       "ADAUSDT", "BTCUSDT",
@@ -659,7 +659,8 @@ namespace CouldComputingServer
 
     #region UpdateGeneration
 
-    private void UpdateGeneration(IEnumerable<RunData> runData)
+    NeatGenome bestMeanGenome;
+    private void UpdateGeneration(IEnumerable<ClientData> runData)
     {
       GenerationRunTime = DateTime.Now - generationStart;
 
@@ -672,38 +673,36 @@ namespace CouldComputingServer
 
       if (index != null)
       {
-        var bestRun = runData.OrderByDescending(x => x.Fitness).First();
-
-        TrainingSession.AddValue(serverRunData.Symbol, Statistic.AverageFitness, bestRun.Average);
-        TrainingSession.AddValue(serverRunData.Symbol, Statistic.BestFitness, bestRun.Fitness);
-        TrainingSession.AddValue(serverRunData.Symbol, Statistic.OriginalFitness, bestRun.OriginalFitness);
-        TrainingSession.AddValue(serverRunData.Symbol, Statistic.TotalValue, bestRun.TotalValue);
-        TrainingSession.AddValue(serverRunData.Symbol, Statistic.Drawdawn, bestRun.Drawdawn);
-        TrainingSession.AddValue(serverRunData.Symbol, Statistic.NumberOfTrades, bestRun.NumberOfTrades);
-
-        var fullCycle = Cycle % TrainingSession.SymbolsToTest.Count == 0;
-
-        var generation = $"Generation {BuyBotManager.Generation}";
-
-        cycleLastElapsed = DateTime.Now;
-
-        var path = SimulationAIPromptViewModel.GetTrainingPath($"{serverRunData.Symbol}_BUY.txt", TrainingSession.Name, generation);
-
-        File.WriteAllText(path, bestRun.BuyGenomes);
-        File.WriteAllText(path.Replace("_BUY", "_SELL"), bestRun.SellGenomes);
-
-        if (fullCycle)
+        if(bestMeanGenome != null)
         {
-          BestFitness = (float)bestRun.Fitness;
-          TotalValue = bestRun.TotalValue;
-          Drawdawn = bestRun.Drawdawn;
-          NumberOfTrades = bestRun.NumberOfTrades;
-          
-          TrainingSession.AddLabel();
+          var bestClient = runData.SingleOrDefault(x => x.BuyGenomes.Contains($"Network id=\"{bestMeanGenome.Id}\""));
+          var bestRun = bestClient.GenomeData.SingleOrDefault(x => x.BuyGenome.Contains($"Network id=\"{bestMeanGenome.Id}\""));
+
+          TrainingSession.AddValue(serverRunData.Symbol, Statistic.AverageFitness, bestClient.Average);
+          TrainingSession.AddValue(serverRunData.Symbol, Statistic.BestFitness, bestRun.Fitness);
+          TrainingSession.AddValue(serverRunData.Symbol, Statistic.OriginalFitness, bestRun.OriginalFitness);
+          TrainingSession.AddValue(serverRunData.Symbol, Statistic.TotalValue, bestRun.TotalValue);
+          TrainingSession.AddValue(serverRunData.Symbol, Statistic.Drawdawn, bestRun.Drawdawn);
+          TrainingSession.AddValue(serverRunData.Symbol, Statistic.NumberOfTrades, bestRun.NumberOfTrades);
+
+          var fullCycle = Cycle % TrainingSession.SymbolsToTest.Count == 0;
+
+          cycleLastElapsed = DateTime.Now;
+
+          if (fullCycle)
+          {
+            BestFitness = (float)bestRun.Fitness;
+            TotalValue = bestRun.TotalValue;
+            Drawdawn = bestRun.Drawdawn;
+            NumberOfTrades = bestRun.NumberOfTrades;
+
+            TrainingSession.AddLabel();
+          }
         }
 
         if (isLastSymbol)
         {
+          var generation = $"Generation {BuyBotManager.Generation}";
           var folder = Path.Combine("Trainings", TrainingSession.Name);
           Directory.CreateDirectory(folder);
 
@@ -718,14 +717,18 @@ namespace CouldComputingServer
 
           BuyBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
           SellBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
+ 
+          BuyBotManager.NeatAlgorithm.UpdateGenerationWithoutFitnessReset();
+          SellBotManager.NeatAlgorithm.UpdateGenerationWithoutFitnessReset();
 
-          TrainingSession.AddValue(serverRunData.Symbol, Statistic.MedianFitness, (decimal)BuyBotManager.NeatAlgorithm.GenomeList.Max(x => x.Fitness));
+          bestMeanGenome = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).FirstOrDefault();
+          TrainingSession.AddValue(serverRunData.Symbol, Statistic.MedianFitness, (decimal)bestMeanGenome.Fitness);
 
           SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, generation, "BUY.txt", "MEDIAN_BUY.txt");
-          SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name,generation, "SELL.txt", "MEDIAN_SELL.txt");
+          SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name, generation, "SELL.txt", "MEDIAN_SELL.txt");
 
-          BuyBotManager.UpdateNEATGeneration();
-          SellBotManager.UpdateNEATGeneration();
+          BuyBotManager.ResetFitness();
+          SellBotManager.ResetFitness();
         }
       }
 
@@ -831,7 +834,7 @@ namespace CouldComputingServer
               client.ErrorCount = 0;
 
               var split = MessageContract.GetDataMessageContent(currentData);
-              var data = JsonSerializer.Deserialize<RunData>(split);
+              var data = JsonSerializer.Deserialize<ClientData>(split);
 
               runResults.Add(data);
 
@@ -970,6 +973,7 @@ namespace CouldComputingServer
             {
               tcpClient.ErrorCount = 10;
               ResetGeneration();
+              break;
             }
 
             tcpClient.ErrorCount++;
