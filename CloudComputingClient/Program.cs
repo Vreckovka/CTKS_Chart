@@ -41,19 +41,6 @@ namespace CloudComputingClient
     static IKernel Kernel { get; set; }
     static IViewModelsFactory ViewModelsFactory { get; set; }
 
-
-    static List<SimulationTradingBot<AIPosition, AIStrategy>> Bots { get; set; } = new List<SimulationTradingBot<AIPosition, AIStrategy>>();
-
-    static int ToStart { get; set; }
-    static int InProgress { get; set; }
-    static int FinishedCount { get; set; }
-    static TimeSpan RunTime { get; set; }
-    static TimeSpan GenerationRunTime { get; set; }
-
-    static DateTime lastElapsed;
-    static DateTime generationStart;
-    static Random random = new Random();
-
     public static bool Connected { get; set; }
     static RunData LastData { get; set; }
 
@@ -65,6 +52,8 @@ namespace CloudComputingClient
 
     static NEATManager<AIBot> buyManager;
     static NEATManager<AIBot> sellManager;
+
+    static AIBotRunner aIBotRunner;
 
     static ILogger Logger { get; set; }
 
@@ -94,11 +83,12 @@ namespace CloudComputingClient
 
         buyManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
         sellManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
+        aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
+
+        aIBotRunner.OnGenerationCompleted += (x, y) => GenerationCompleted();
 
         buyManager.InitializeManager(1);
         sellManager.InitializeManager(1);
-
-        lastElapsed = DateTime.Now;
 
         var add = JsonSerializer.Deserialize<ServerAdress>(File.ReadAllText("server.txt"));
 
@@ -158,88 +148,13 @@ namespace CloudComputingClient
 
     #endregion
 
-    #region RunGeneration
-
-    static bool canRunGeneration = true;
-
-    private static void RunGeneration(
-      int agentCount,
-      int minutes,
-      double split,
-      string symbol,
-      bool isRandom,
-      List<NeatGenome> buyGenomes,
-      List<NeatGenome> sellGenomes)
-    {
-      if(canRunGeneration)
-      {
-        canRunGeneration = false;
-
-        serialDisposable.Disposable?.Dispose();
-
-        CreateStrategies(agentCount, minutes, split, symbol, isRandom, buyGenomes, sellGenomes);
-      }
-    }
-
-    #endregion
-
-    #region CreateStrategies
-
-    private static void CreateStrategies(
-      int agentCount,
-      int minutes,
-      double splitTake,
-      string symbol,
-      bool isRandom,
-      List<NeatGenome> buyGenomes,
-      List<NeatGenome> sellGenomes)
-    {
-      Bots.Clear();
-
-      ToStart = 0;
-
-
-      for (int i = 0; i < agentCount; i++)
-      {
-        buyGenomes[i].InputCount = buyGenomes[i].NodeList.Count(x => x.NodeType == SharpNeat.Network.NodeType.Input);
-        sellGenomes[i].InputCount = sellGenomes[i].NodeList.Count(x => x.NodeType == SharpNeat.Network.NodeType.Input);
-
-
-        var bot = SimulationAIPromptViewModel.GetBot(
-          symbol,
-          new AIBot(buyGenomes[i]),
-          new AIBot(sellGenomes[i]),
-          minutes,
-          splitTake,
-          random,
-          ViewModelsFactory,
-          Logger,
-          isRandom);
-
-        ToStart++;
-
-        Bots.Add(bot);
-      }
-
-
-      RunBots(random, symbol, isRandom, splitTake, minutes);
-    }
-
-    #endregion
-
     #region GenerationCompleted
+
     static SerialDisposable serialDisposable = new SerialDisposable();
 
     private static void GenerationCompleted()
     {
-      GenerationRunTime = DateTime.Now - generationStart;
-
-      Bots.ForEach(x =>
-      {
-        SimulationAIPromptViewModel.AddFitness(x.TradingBot.Strategy);
-      });
-
-      var aIStrategy = Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First().TradingBot.Strategy;
+      var aIStrategy = aIBotRunner.Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First().TradingBot.Strategy;
 
       SendResult();
 
@@ -248,11 +163,8 @@ namespace CloudComputingClient
         SendResult();
       });
 
-      FinishedCount = 0;
 
       UpdateUI();
-
-      canRunGeneration = true;
     }
 
     #endregion
@@ -266,7 +178,7 @@ namespace CloudComputingClient
       {
         var clientData = new ClientData();
 
-        foreach(var bot in Bots)
+        foreach(var bot in aIBotRunner.Bots)
         {
           var data = new RunData();
           var strat = bot.TradingBot.Strategy;
@@ -287,8 +199,8 @@ namespace CloudComputingClient
         }
        
 
-        var buyGenomes = Bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
-        var sellGenomes = Bots.Select(x => x.TradingBot.Strategy.SellAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
+        var buyGenomes = aIBotRunner.Bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
+        var sellGenomes = aIBotRunner.Bots.Select(x => x.TradingBot.Strategy.SellAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
         clientData.Average = (decimal)buyGenomes.Average(x => x.Fitness);
 
         clientData.BuyGenomes = NeatGenomeXmlIO.SaveComplete(buyGenomes, false).OuterXml;
@@ -298,128 +210,6 @@ namespace CloudComputingClient
 
         LastData = clientData.GenomeData.OrderByDescending(x => x.Fitness).FirstOrDefault();
       }
-    }
-
-    #endregion
-
-    #region RunBots
-
-    static object batton = new object();
-    public static void RunBots(
-              Random random,
-              string symbol,
-              bool useRandomDate,
-              double pSpliTake,
-              int minutes)
-    {
-      generationStart = DateTime.Now;
-      Task.Run(() =>
-      {
-        DateTime fromDate = DateTime.Now;
-        double splitTake = 0;
-
-        var asset = Bots.First().Asset;
-        var dailyCandles = SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[TimeFrame.D1], asset);
-
-        foreach (var indiFrame in TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes)
-        {
-          SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[indiFrame], asset);
-        }
-
-        //ignore filter starting values of indicators
-        var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(1);
-        var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(-1);
-
-        if (useRandomDate)
-        {
-          var year = random.Next(2020, 2023);
-          fromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
-          splitTake = pSpliTake;
-        }
-        else
-        {
-          fromDate = firstValidDate;
-        }
-
-        var allCandles = SimulationTradingBot.GetSimulationCandles(
-           minutes,
-           SimulationPromptViewModel.GetSimulationDataPath(symbol, minutes.ToString()), symbol, fromDate);
-
-        var simulateCandles = allCandles.cutCandles.Where(x => x.OpenTime.Date > firstValidDate.Date && x.OpenTime.Date < lastValidDate.Date).ToList();
-        var candles = allCandles.candles;
-        var mainCandles = allCandles.allCandles.Where(x => x.OpenTime.Date > firstValidDate.Date).ToList();
-
-
-        var timeFrame = simulateCandles.First().TimeFrame;
-        var key = new Tuple<string, TimeFrame>(Bots[0].Asset.Symbol, timeFrame);
-
-        Bots[0].LoadSecondaryLayouts(firstValidDate);
-        Bots[0].PreloadCandles(key, mainCandles);
-        Bots[0].PreLoadIntersections(key, mainCandles);
-
-        foreach (var bot in Bots)
-        {
-          if (splitTake != 0)
-          {
-            var take = (int)(mainCandles.Count / splitTake);
-
-            simulateCandles = simulateCandles.Take(take).ToList();
-          }
-
-          bot.FromDate = fromDate;
-          bot.InitializeBot(simulateCandles);
-          bot.HeatBot(simulateCandles, bot.TradingBot.Strategy);
-        }
-
-
-
-        ToStart = Bots.Count;
-
-        var min = Math.Min(Bots.Count, 10);
-
-        var splitTakeC = Bots.SplitList(Bots.Count / min);
-        var tasks = new List<Task>();
-
-        foreach (var take in splitTakeC)
-        {
-          tasks.Add(Task.Run(() =>
-          {
-            lock (batton)
-            {
-              ToStart -= take.Count;
-              InProgress += take.Count;
-            }
-            try
-            {
-
-              foreach (var candle in simulateCandles)
-              {
-                if (take.Any(x => x.stopRequested))
-                  return;
-
-                foreach (var bot in take)
-                {
-                  bot.SimulateCandle(candle);
-                }
-              }
-            }
-            catch (Exception ex)
-            {
-              Logger.Log(ex);
-            }
-
-            lock (batton)
-            {
-              FinishedCount += take.Count;
-              InProgress -= take.Count;
-            }
-          }));
-        }
-
-        Task.WaitAll(tasks.ToArray());
-
-        GenerationCompleted();
-      });
     }
 
     #endregion
@@ -493,6 +283,7 @@ namespace CloudComputingClient
     #endregion
 
     #region HandleIncomingMessage
+    static object batton = new object();
 
     private static void HandleIncomingMessage(TcpClient tcpClient)
     {
@@ -568,7 +359,7 @@ namespace CloudComputingClient
 
                 UpdateUI();
 
-                RunGeneration(
+                aIBotRunner.RunGeneration(
                            ServerRunData.AgentCount,
                            ServerRunData.Minutes,
                            ServerRunData.Split,
@@ -643,26 +434,20 @@ namespace CloudComputingClient
     {
       Console.Clear();
 
-      TimeSpan diff = DateTime.Now - lastElapsed;
-
-      RunTime = RunTime.Add(diff);
-
-      lastElapsed = DateTime.Now;
-
       Console.WriteLine($"Generation: {ServerRunData?.Generation ?? -1}");
-      Console.WriteLine($"Run Time: {RunTime.ToString(@"hh\:mm\:ss")}");
+      Console.WriteLine($"Run Time: {aIBotRunner.RunTime.ToString(@"hh\:mm\:ss")}");
 
       Console.WriteLine();
       Console.WriteLine($"Symbol: {ServerRunData?.Symbol}");
       Console.WriteLine($"Minutes: {ServerRunData?.Minutes}");
       Console.WriteLine($"Random: {ServerRunData?.IsRandom}");
       Console.WriteLine();
-      Console.WriteLine($"To Start: {ToStart} In Progress: {InProgress} Finished: {FinishedCount}");
+      Console.WriteLine($"To Start: {aIBotRunner.ToStart} In Progress: {aIBotRunner.InProgress} Finished: {aIBotRunner.FinishedCount}");
 
 
       Console.WriteLine();
       Console.WriteLine($"----LAST GENERATION----");
-      Console.WriteLine($"GEN.Run Time: {GenerationRunTime.ToString(@"hh\:mm\:ss")}");
+      Console.WriteLine($"GEN.Run Time: {aIBotRunner.GenerationRunTime.ToString(@"hh\:mm\:ss")}");
       Console.WriteLine($"Symbol: {LastServerRunData?.Symbol}");
       Console.WriteLine($"Minutes: {LastServerRunData?.Minutes}");
       Console.WriteLine($"Random: {LastServerRunData?.IsRandom}");

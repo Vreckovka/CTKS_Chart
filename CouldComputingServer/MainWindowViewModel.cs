@@ -534,25 +534,27 @@ namespace CouldComputingServer
 
     #endregion
 
-    private async void ResetGeneration()
+    private void ResetGeneration()
     {
-      foreach (var client in Clients)
+      Task.Run(async () =>
       {
-        TCPHelper.SendMessage(client.Client, MessageContract.Done);
-      }
+        foreach (var client in Clients)
+        {
+          TCPHelper.SendMessage(client.Client, MessageContract.Done);
+        }
 
-      await Task.Delay(3000);
+        await Task.Delay(3000);
 
-      VSynchronizationContext.InvokeOnDispatcher(() =>
-      {
-        Logger.Log(MessageType.Warning, "Reseting generation!");
-        ToStart = 0;
-        InProgress = 0;
-        FinishedCount = 0;
+        VSynchronizationContext.InvokeOnDispatcher(() =>
+        {
+          Logger.Log(MessageType.Warning, "Reseting generation!");
+          ToStart = 0;
+          InProgress = 0;
+          FinishedCount = 0;
+        });
+
+        DistributeGeneration(Cycle + 1);
       });
-
-      DistributeGeneration(Cycle + 1);
-
     }
 
     #region DistributeGeneration

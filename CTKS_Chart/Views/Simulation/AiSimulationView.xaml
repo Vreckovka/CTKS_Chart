@@ -63,92 +63,94 @@
 
       </StackPanel>
 
-
-      <TextBlock>
-        <Run
-          FontSize="11"
-          Foreground="#858585"
-          Text="To Start: " />
-        <Run
-          FontWeight="Bold"
-          Foreground="#858585"
-          Text="{Binding ToStart}" />
-      </TextBlock>
-
-      <TextBlock>
-        <Run
-          FontSize="11"
-          Foreground="#aae83f62"
-          Text="In Progress: " />
-        <Run
-          FontWeight="Bold"
-          Foreground="{StaticResource LightRedBrush}"
-          Text="{Binding InProgress}" />
-      </TextBlock>
-
-      <TextBlock>
-        <Run
-          FontSize="11"
-          Foreground="#bbb"
-          Text="Current Done: " />
-        <Run FontWeight="Bold" Text="{Binding FinishedCount}" />
-        <Run FontWeight="Bold" Text="/" />
-        <Run FontWeight="Bold" Text="{Binding Bots.Count, Mode=OneWay}" />
-        <Run FontSize="11" Foreground="#bbbbbb">
-          <Run.Text>
-            <MultiBinding Converter="{converters:PercentageConverter}" StringFormat="{}({0:N0}%)">
-              <Binding Path="FinishedCount" />
-              <Binding Mode="OneWay" Path="AgentCount" />
-            </MultiBinding>
-          </Run.Text>
-        </Run>
-      </TextBlock>
-
-      <TextBlock>
-        <Run
-          FontSize="11"
-          Foreground="#80fec827"
-          Text="Generation: " />
-        <Run
-          FontWeight="Bold"
-          Foreground="{StaticResource YellowBrush}"
-          Text="{Binding BuyBotManager.Generation, Mode=OneWay}" />
-      </TextBlock>
-
-      <TextBlock>
-        <Run
-          FontSize="11"
-          Foreground="#804278ff"
-          Text="Best Fitness: " />
-        <Run
-          FontWeight="Bold"
-          Foreground="#4278ff"
-          Text="{Binding BestFitness, StringFormat={}{0:N2}}" />
-      </TextBlock>
-
-      <StackPanel Margin="0,10">
-        <TextBlock>
+      <StackPanel>
+        <TextBlock DataContext="{Binding AIBotRunner}">
           <Run
             FontSize="11"
             Foreground="#858585"
-            Text="Generation time: " />
+            Text="To Start: " />
           <Run
             FontWeight="Bold"
             Foreground="#858585"
-            Text="{Binding GenerationRunTime, StringFormat={}{0:mm\\:ss}}" />
+            Text="{Binding ToStart}" />
+        </TextBlock>
+
+        <TextBlock DataContext="{Binding AIBotRunner}">
+          <Run
+            FontSize="11"
+            Foreground="#aae83f62"
+            Text="In Progress: " />
+          <Run
+            FontWeight="Bold"
+            Foreground="{StaticResource LightRedBrush}"
+            Text="{Binding InProgress}" />
+        </TextBlock>
+
+        <TextBlock DataContext="{Binding AIBotRunner}">
+          <Run
+            FontSize="11"
+            Foreground="#bbb"
+            Text="Current Done: " />
+          <Run FontWeight="Bold" Text="{Binding FinishedCount}" />
+          <Run FontWeight="Bold" Text="/" />
+          <Run FontWeight="Bold" Text="{Binding Bots.Count, Mode=OneWay}" />
+          <Run FontSize="11" Foreground="#bbbbbb">
+            <Run.Text>
+              <MultiBinding Converter="{converters:PercentageConverter}" StringFormat="{}({0:N0}%)">
+                <Binding Path="FinishedCount" />
+                <Binding Mode="OneWay" Path="AgentCount" />
+              </MultiBinding>
+            </Run.Text>
+          </Run>
         </TextBlock>
 
         <TextBlock>
           <Run
             FontSize="11"
-            Foreground="#858585"
-            Text="Run Time: " />
+            Foreground="#80fec827"
+            Text="Generation: " />
           <Run
             FontWeight="Bold"
-            Foreground="#858585"
-            Text="{Binding RunTime, StringFormat={}{0:hh\\:mm\\:ss}}" />
+            Foreground="{StaticResource YellowBrush}"
+            Text="{Binding BuyBotManager.Generation, Mode=OneWay}" />
         </TextBlock>
+
+        <TextBlock>
+          <Run
+            FontSize="11"
+            Foreground="#804278ff"
+            Text="Best Fitness: " />
+          <Run
+            FontWeight="Bold"
+            Foreground="#4278ff"
+            Text="{Binding BestFitness, StringFormat={}{0:N2}}" />
+        </TextBlock>
+
+        <StackPanel Margin="0,10" DataContext="{Binding AIBotRunner}">
+          <TextBlock>
+            <Run
+              FontSize="11"
+              Foreground="#858585"
+              Text="Generation time: " />
+            <Run
+              FontWeight="Bold"
+              Foreground="#858585"
+              Text="{Binding GenerationRunTime, StringFormat={}{0:mm\\:ss}}" />
+          </TextBlock>
+
+          <TextBlock>
+            <Run
+              FontSize="11"
+              Foreground="#858585"
+              Text="Run Time: " />
+            <Run
+              FontWeight="Bold"
+              Foreground="#858585"
+              Text="{Binding RunTime, StringFormat={}{0:hh\\:mm\\:ss}}" />
+          </TextBlock>
+        </StackPanel>
       </StackPanel>
+
     </StackPanel>
 
 

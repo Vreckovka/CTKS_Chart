@@ -8,7 +8,6 @@ using SharpNeat.Genomes.Neat;
 using SharpNeat.Network;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -27,6 +26,7 @@ using VNeuralNetwork;
 
 namespace CTKS_Chart.ViewModels
 {
+
   public class SimulationAIPromptViewModel : BasePromptViewModel
   {
     private readonly IViewModelsFactory viewModelsFactory;
@@ -70,6 +70,8 @@ namespace CTKS_Chart.ViewModels
       }
     }
 
+
+
     #region Constructors
 
     public SimulationAIPromptViewModel(IViewModelsFactory viewModelsFactory, ILogger logger)
@@ -83,34 +85,18 @@ namespace CTKS_Chart.ViewModels
 
       session = DateTime.Now.ToString("dd_MM_yyyy_HH_mm_ss");
 
+      AIBotRunner = new AIBotRunner(logger, viewModelsFactory);
+
+      AIBotRunner.OnGenerationCompleted += (x, y) => UpdateGeneration();
     }
 
     #endregion
 
     #region Properties
 
-    #region Bots
-
-    private ObservableCollection<SimulationTradingBot<AIPosition, AIStrategy>> bots = new ObservableCollection<SimulationTradingBot<AIPosition, AIStrategy>>();
-
-    public ObservableCollection<SimulationTradingBot<AIPosition, AIStrategy>> Bots
-    {
-      get { return bots; }
-      set
-      {
-        if (value != bots)
-        {
-          bots = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
     public NEATManager<AIBot> BuyBotManager { get; set; }
     public NEATManager<AIBot> SellBotManager { get; set; }
-
+    public AIBotRunner AIBotRunner { get; set; }
 
     public ChartValues<float> ChartData { get; set; } = new ChartValues<float>();
     public ChartValues<decimal> FullData { get; set; } = new ChartValues<decimal>();
@@ -140,8 +126,6 @@ namespace CTKS_Chart.ViewModels
 
     public Func<double, string> PercFormatter { get; set; } = value => value.ToString("N2");
     public Func<double, string> YFormatter { get; set; } = value => value.ToString("N0");
-
-
 
     #region BestFitness
 
@@ -193,101 +177,6 @@ namespace CTKS_Chart.ViewModels
         if (value != selectedBot)
         {
           selectedBot = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region ToStart
-
-    private int toStart;
-
-    public int ToStart
-    {
-      get { return toStart; }
-      set
-      {
-        if (value != toStart)
-        {
-          toStart = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region InProgress
-
-    private int inProgress;
-
-    public int InProgress
-    {
-      get { return inProgress; }
-      set
-      {
-        if (value != inProgress)
-        {
-          inProgress = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region FinishedCount
-
-    private int finishedCount;
-
-    public int FinishedCount
-    {
-      get { return finishedCount; }
-      set
-      {
-        if (value != finishedCount)
-        {
-          finishedCount = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region RunTime
-
-    private TimeSpan runTime;
-
-    public TimeSpan RunTime
-    {
-      get { return runTime; }
-      set
-      {
-        if (value != runTime)
-        {
-          runTime = value;
-          RaisePropertyChanged();
-        }
-      }
-    }
-
-    #endregion
-
-    #region GenerationRunTime
-
-    private TimeSpan generationRunTime;
-
-    public TimeSpan GenerationRunTime
-    {
-      get { return generationRunTime; }
-      set
-      {
-        if (value != generationRunTime)
-        {
-          generationRunTime = value;
           RaisePropertyChanged();
         }
       }
@@ -429,7 +318,7 @@ namespace CTKS_Chart.ViewModels
 
     public void OnStop()
     {
-      Bots.ForEach(x => x.Stop());
+      AIBotRunner.Bots.ForEach(x => x.Stop());
     }
 
     #endregion
@@ -441,63 +330,19 @@ namespace CTKS_Chart.ViewModels
 
     #region CreateBots
 
-    DateTime lastElapsed;
-
     public void CreateBots()
     {
-      lastElapsed = DateTime.Now;
-
       BuyBotManager.InitializeManager(AgentCount);
       SellBotManager.InitializeManager(AgentCount);
 
-      Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe((x) =>
-      {
-        TimeSpan diff = DateTime.Now - lastElapsed;
-
-        RunTime = RunTime.Add(diff);
-
-        lastElapsed = DateTime.Now;
-      });
-
-      CreateStrategies();
-    }
-
-    #endregion
-
-    #region CreateStrategies
-
-    Random random = new Random();
-
-    private void CreateStrategies()
-    {
-      Bots.Clear();
-      generationStart = DateTime.Now;
-      BuyBotManager.CreateAgents();
-      SellBotManager.CreateAgents();
-
-      if (ChangeSymbol)
-      {
-        Symbol = BuyBotManager.Generation % 2 == 0 ? "ADAUSDT" : "BTCUSDT";
-      }
-
-      for (int i = 0; i < BuyBotManager.Agents.Count; i++)
-      {
-        var bot = GetBot(
-          Symbol,
-          BuyBotManager.Agents[i],
-          SellBotManager.Agents[i],
-          Minutes,
-          SplitTake,
-          random,
-          viewModelsFactory,
-          logger,
-          IsRandom());
-        ToStart++;
-
-        Bots.Add(bot);
-      }
-
-      RunGeneration(random, Symbol, IsRandom(), SplitTake, minutes);
+      AIBotRunner.RunGeneration(
+        AgentCount,
+        Minutes,
+        SplitTake,
+        Symbol,
+        IsRandom(),
+        BuyBotManager.NeatAlgorithm.GenomeList.ToList(),
+        SellBotManager.NeatAlgorithm.GenomeList.ToList());
     }
 
     #endregion
@@ -507,101 +352,15 @@ namespace CTKS_Chart.ViewModels
     private bool IsRandom()
     {
       return false;
-      return BuyBotManager.Generation % 5 == 0 && BuyBotManager.Generation != 0;
     }
 
     #endregion
-
-    DateTime generationStart;
-
-    #region Bot_Finished
-
-    private void Bot_Finished(object sender, EventArgs e)
-    {
-      lock (this)
-      {
-        if (sender is SimulationTradingBot<AIPosition, AIStrategy> sim)
-        {
-          InProgress--;
-          FinishedCount++;
-
-          if (FinishedCount == Bots.Count)
-          {
-            foreach (var bot in Bots)
-            {
-              bot.Finished -= Bot_Finished;
-            }
-
-            VSynchronizationContext.InvokeOnDispatcher(() =>
-            {
-              RaisePropertyChanged(nameof(InProgress));
-              RaisePropertyChanged(nameof(FinishedCount));
-
-              UpdateGeneration();
-            });
-          }
-        }
-      }
-    }
-
-    #endregion
-
-    #region AddFitness
-
-    public static void AddFitness(AIStrategy strategy)
-    {
-      strategy.OriginalFitness = (float)((strategy.TotalValue - strategy.StartingBudget) / strategy.StartingBudget) * 1000;
-      float fitness = strategy.OriginalFitness;
-
-      var drawdown = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
-      float exponent = 2.25f; 
-      var drawdownMultiplier = (float)Math.Pow(1 - drawdown, exponent);
-
-      drawdownMultiplier = Math.Max(drawdownMultiplier, 0);
-
-      if (fitness > 0)
-      {
-        fitness *= drawdownMultiplier;
-      }
-
-      if (strategy.ClosedSellPositions.Count > 0)
-      {
-        var tradesInfluence = GetTradesInfluance(strategy.ClosedSellPositions.Count);
-
-        fitness *= tradesInfluence;
-      }
-
-      // Ensure fitness is not negative
-      strategy.AddFitness(fitness < 0 ? 0 : fitness);
-    }
-
-    #endregion
-
-    private static float GetTradesInfluance(double tradeCount)
-    {
-      // Apply logarithm to reduce influence as trade count grows
-      double logarithmicInfluence = Math.Log(tradeCount, 5);
-
-      //var logarithmicInfluence = tradeCount / 500 ;
-
-      //if (tradeCount < 400)
-      //  logarithmicInfluence = 1;
-
-      return (float)logarithmicInfluence;
-    }
 
     #region UpdateGeneration
 
     private async void UpdateGeneration()
     {
-      GenerationRunTime = DateTime.Now - generationStart;
-
-      Bots.ForEach(x =>
-      {
-        AddFitness(x.TradingBot.Strategy);
-      });
-
-      var best = Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First();
+      var best = AIBotRunner.Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First();
 
       var addStats = !IsRandom() && BuyBotManager.Generation + 1 % 10 > 1;
 
@@ -609,7 +368,7 @@ namespace CTKS_Chart.ViewModels
 
       if (addStats)
       {
-        ChartData.Add(Bots.Average(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness));
+        ChartData.Add(AIBotRunner.Bots.Average(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness));
         BestData.Add(best.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness);
 
         Labels.Add(BuyBotManager.Generation.ToString());
@@ -645,12 +404,26 @@ namespace CTKS_Chart.ViewModels
       if (SelectedBot != null)
         await task;
 
-      FinishedCount = 0;
+      for (int i = 0; i < AIBotRunner.Bots.Count; i++)
+      {
+        var strat = AIBotRunner.Bots[i].TradingBot.Strategy;
 
-      BuyBotManager.UpdateGeneration();
-      SellBotManager.UpdateGeneration();
+        BuyBotManager.NeatAlgorithm.GenomeList[i] = (NeatGenome)strat.BuyAIBot.NeuralNetwork;
+        SellBotManager.NeatAlgorithm.GenomeList[i] = (NeatGenome)strat.SellAIBot.NeuralNetwork;
+      }
+     
 
-      CreateStrategies();
+      BuyBotManager.UpdateNEATGeneration();
+      SellBotManager.UpdateNEATGeneration();
+
+      AIBotRunner.RunGeneration(
+       AgentCount,
+       Minutes,
+       SplitTake,
+       Symbol,
+       IsRandom(),
+       BuyBotManager.NeatAlgorithm.GenomeList.ToList(),
+       SellBotManager.NeatAlgorithm.GenomeList.ToList());
     }
 
     #endregion
@@ -659,11 +432,10 @@ namespace CTKS_Chart.ViewModels
 
     TaskCompletionSource<bool> taskCompletionSource;
 
+    Random random = new Random();
     private Task RunTest(AIStrategy strategy)
     {
       taskCompletionSource = new TaskCompletionSource<bool>();
-
-      InProgress++;
 
       var testBot = GetBot(TestSymbol,
         new AIBot(new NeatGenome((NeatGenome)strategy.BuyAIBot.NeuralNetwork, 0, 0)),
@@ -706,7 +478,6 @@ namespace CTKS_Chart.ViewModels
           });
       }
 
-      ToStart--;
 
       return taskCompletionSource.Task;
     }
@@ -725,13 +496,11 @@ namespace CTKS_Chart.ViewModels
 
           var simStrategy = sim.TradingBot.Strategy;
 
-          AddFitness(simStrategy);
+          AIBotRunner.AddFitness(simStrategy);
           AddTestData(simStrategy);
 
-          InProgress--;
         });
       }
-
     }
 
     #endregion
@@ -746,127 +515,6 @@ namespace CTKS_Chart.ViewModels
 
       BestFitness = aIStrategy.OriginalFitness;
       FitnessData.Add(BestFitness);
-    }
-
-    #endregion
-
-    #region RunGeneration
-
-    public void RunGeneration(
-      Random random,
-      string symbol,
-      bool useRandomDate,
-      double pSpliTake,
-      int minutes)
-    {
-      generationStart = DateTime.Now;
-      Task.Run(() =>
-      {
-        DateTime fromDate = DateTime.Now;
-        double splitTake = 0;
-
-        var asset = Bots.First().Asset;
-        var dailyCandles = SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[TimeFrame.D1], asset);
-
-        foreach (var indiFrame in TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes)
-        {
-          SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[indiFrame], asset);
-        }
-
-        //ignore filter starting values of indicators
-        var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(1);
-        var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(-1);
-
-        if (useRandomDate)
-        {
-          var year = random.Next(2020, 2023);
-          fromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
-          splitTake = pSpliTake;
-        }
-        else
-        {
-          fromDate = firstValidDate;
-        }
-
-        var allCandles = SimulationTradingBot.GetSimulationCandles(
-           minutes,
-           SimulationPromptViewModel.GetSimulationDataPath(symbol, minutes.ToString()), symbol, fromDate);
-
-        var simulateCandles = allCandles.cutCandles.Where(x => x.OpenTime.Date > firstValidDate.Date && x.OpenTime.Date < lastValidDate.Date).ToList();
-        var candles = allCandles.candles;
-        var mainCandles = allCandles.allCandles.Where(x => x.OpenTime.Date > firstValidDate.Date).ToList();
-
-
-        var timeFrame = simulateCandles.First().TimeFrame;
-        var key = new Tuple<string, TimeFrame>(Bots[0].Asset.Symbol, timeFrame);
-
-        Bots[0].LoadSecondaryLayouts(firstValidDate);
-        Bots[0].PreloadCandles(key, mainCandles);
-        Bots[0].PreLoadIntersections(key, mainCandles);
-
-        foreach (var bot in Bots)
-        {
-          if (splitTake != 0)
-          {
-            var take = (int)(mainCandles.Count / splitTake);
-
-            simulateCandles = simulateCandles.Take(take).ToList();
-          }
-
-          bot.FromDate = fromDate;
-          bot.InitializeBot(simulateCandles);
-          bot.HeatBot(simulateCandles, bot.TradingBot.Strategy);
-        }
-
-
-
-        ToStart = Bots.Count;
-
-        var min = Math.Min(Bots.Count, 10);
-
-        var splitTakeC = Bots.SplitList(Bots.Count / min);
-        var tasks = new List<Task>();
-
-        foreach (var take in splitTakeC)
-        {
-          tasks.Add(Task.Run(() =>
-          {
-
-            ToStart -= take.Count;
-            InProgress += take.Count;
-
-            //try
-            {
-
-              foreach (var candle in simulateCandles)
-              {
-                if (take.Any(x => x.stopRequested))
-                  return;
-
-                foreach (var bot in take)
-                {
-                  bot.SimulateCandle(candle);
-                }
-              }
-            }
-            //catch (Exception ex)
-            {
-              //Logger.Logger.Log(ex);
-            }
-
-
-            FinishedCount += take.Count;
-            InProgress -= take.Count;
-
-          }));
-        }
-
-        Task.WaitAll(tasks.ToArray());
-
-        if (!closing)
-          UpdateGeneration();
-      });
-
     }
 
     #endregion
@@ -955,14 +603,18 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
-    public static string GetTrainingPath(string fileName, string session,string folderName)
+    #region GetTrainingPath
+
+    public static string GetTrainingPath(string fileName, string session, string folderName)
     {
       var gfolder = Path.Combine("Trainings", session, folderName);
 
       Directory.CreateDirectory(gfolder);
 
-      return  Path.Combine(gfolder, fileName);
+      return Path.Combine(gfolder, fileName);
     }
+
+    #endregion
 
     #region SaveProgress
 
