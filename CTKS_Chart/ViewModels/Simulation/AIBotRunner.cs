@@ -255,8 +255,8 @@ namespace CTKS_Chart.ViewModels
           }
 
           //ignore filter starting values of indicators
-          var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(1);
-          var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(-1);
+          var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(10);
+          var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(-10);
 
           if (useRandomDate)
           {
@@ -317,6 +317,7 @@ namespace CTKS_Chart.ViewModels
                 ToStart -= take.Count;
                 InProgress += take.Count;
               }
+
               try
               {
 

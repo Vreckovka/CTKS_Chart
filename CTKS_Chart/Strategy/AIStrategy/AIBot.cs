@@ -31,6 +31,9 @@ namespace CTKS_Chart.Strategy.AIStrategy
       return NeuralNetwork.FeedForward(inputs);
     }
 
+    decimal minPrice;
+    decimal maxPrice;
+
     public virtual float[] GetInputs(
       Candle actualCandle,
       AIStrategy strategy,
@@ -41,16 +44,19 @@ namespace CTKS_Chart.Strategy.AIStrategy
       var inputs = new float[NeuralNetwork.InputCount];
       var index = 0;
 
+      minPrice = lastPrices.Min() * 0.25m;
+      maxPrice = lastPrices.Max() * 10m;
+
       AddInput((float)(strategy.Budget / strategy.TotalValue), ref index, ref inputs);
       AddInput((float)(strategy.OpenBuyPositions.Sum(x => x.PositionSize) / strategy.TotalValue), ref index, ref inputs);
       AddInput((float)(strategy.DrawdawnFromMaxTotalValue / 100.0m), ref index, ref inputs);
 
-      AddInput(NormalizeZScore(actualCandle.Open, lastPrices), ref index, ref inputs);
-      AddInput(NormalizeZScore(actualCandle.Close, lastPrices), ref index, ref inputs);
-      AddInput(NormalizeZScore(actualCandle.High, lastPrices), ref index, ref inputs);
-      AddInput(NormalizeZScore(actualCandle.Low, lastPrices), ref index, ref inputs);
+      AddInput(GetNormalizedInput(actualCandle.Open), ref index, ref inputs);
+      AddInput(GetNormalizedInput(actualCandle.Close), ref index, ref inputs);
+      AddInput(GetNormalizedInput(actualCandle.High), ref index, ref inputs);
+      AddInput(GetNormalizedInput(actualCandle.Low), ref index, ref inputs);
 
-      foreach(var indicatorData in strategy.IndicatorDatas.Take(2))
+      foreach (var indicatorData in strategy.IndicatorDatas.Take(2))
       {
         AddIndicator(indicatorData.RangeFilter, ref index, ref inputs, lastPrices);
         AddIndicator(indicatorData.IchimokuCloud, ref index, ref inputs, lastPrices);
@@ -90,11 +96,9 @@ namespace CTKS_Chart.Strategy.AIStrategy
     {
       for (int i = 0; i < intersections.Count; i++)
       {
-        var value = NormalizeZScore(intersections[i].Value, intersections.Select(x => x.Value));
-        var weight = AddNormalizedInput((double)(int)intersections[i].TimeFrame, 1, 7);
+        var value = GetNormalizedInput(intersections[i].Value);
 
         AddInput(value, ref index, ref inputs);
-        //AddInput(weight, ref index, ref inputs);
       }
     }
 
@@ -104,47 +108,16 @@ namespace CTKS_Chart.Strategy.AIStrategy
       index++;
     }
 
-    //protected float AddNormalizedInput(decimal? price, decimal minPrice, decimal maxPrice)
-    //{
-    //  if (price != null)
-    //  {
-    //    decimal normalized = (price.Value - minPrice) / (maxPrice - minPrice);
-
-    //    return (float)normalized;
-    //  }
-
-    //  return -1;
-    //}
-
-    public float NormalizeZScore(decimal? value, IEnumerable<decimal> historicalValues)
+    protected float GetNormalizedInput(decimal? price)
     {
-      decimal mean = CalculateMean(historicalValues);
-      decimal stdDev = CalculateStdDev(historicalValues, mean);
+      if (price != null)
+      {
+       return (float)MathHelper.NormalizedValue(price.Value, minPrice, maxPrice);
+      }
 
-      // Avoid division by zero in case of very small standard deviation
-      if (stdDev == 0) return 0;
-
-      return (float)((value - mean) / stdDev);
+      return 0;
     }
 
-    public decimal CalculateStdDev(IEnumerable<decimal> values, decimal mean)
-    {
-      decimal sumSquaredDiffs = values.Sum(value => (value - mean) * (value - mean));
-      return (decimal)Math.Sqrt((double)(sumSquaredDiffs / values.Count()));
-    }
-
-    public decimal CalculateMean(IEnumerable<decimal> values)
-    {
-      return values.Sum() / values.Count();
-    }
-
-
-    protected float AddNormalizedInput(double value, double min, double max)
-    {
-      var normalized = (value - min) / (max - min);
-
-      return (float)normalized;
-    }
 
     private void AddIndicator(
       Indicator indicatorData,
@@ -165,7 +138,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
           }
           else
           {
-            AddInput(NormalizeZScore(value, historicalValues), ref index, ref inputs);
+            AddInput(GetNormalizedInput(value), ref index, ref inputs);
           }
         }
         else

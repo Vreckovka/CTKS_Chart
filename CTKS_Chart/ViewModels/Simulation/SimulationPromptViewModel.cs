@@ -562,7 +562,7 @@ namespace CTKS_Chart.ViewModels
       var dailyCandles = SimulationTradingBot.GetIndicatorData(adaAi.timeFrameDatas[TimeFrame.D3], adaAi.Asset);
 
       //ignore filter starting values of indicators
-      adaAi.FromDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(1);
+      adaAi.FromDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(10);
 
       adaAi.SaveResults = true;
       adaAi.DisplayName += " AI";

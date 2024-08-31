@@ -846,10 +846,12 @@ namespace CTKS_Chart.ViewModels
             TradingBot.Strategy.indicatorsCandles = indicatorsCandle;
 
             TradingBot.Strategy.LoadState();
-            await TradingBot.Strategy.RefreshState();
 
             if (!IsSimulation)
+            {
+              await TradingBot.Strategy.RefreshState();
               VSynchronizationContext.InvokeOnDispatcher(() => MainWindow?.SortActualPositions());
+            }
 
             if (ctksIntersections.Count > 0)
               TradingBot.Strategy.UpdateIntersections(ctksIntersections);

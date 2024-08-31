@@ -1,4 +1,5 @@
 ﻿using System;
+using VCore.Standard.Helpers;
 
 namespace CTKS_Chart.Trading
 {
@@ -16,7 +17,7 @@ namespace CTKS_Chart.Trading
 
     public override decimal[] GetData()
     {
-      return new decimal[] { RangeFilter, HighTarget, LowTarget, Upward ? 1 : -1 };
+      return new decimal[] { RangeFilter, HighTarget, LowTarget, Upward ? 1 : 0 };
     }
   }
 
@@ -54,7 +55,7 @@ namespace CTKS_Chart.Trading
 
     public override decimal[] GetData()
     {
-      return new decimal[] { BBWP / 100.0m,  MA1 / 100.0m, MA2 / 100.0m };
+      return new decimal[] { BBWP / 100.0m, MA1 / 100.0m, MA2 / 100.0m };
     }
   }
 
@@ -86,7 +87,7 @@ namespace CTKS_Chart.Trading
 
     public override decimal[] GetData()
     {
-      return new decimal[] { VIPlus, VIMinus };
+      return new decimal[] { MathHelper.NormalizedValue(VIPlus, 0, 1.5m), MathHelper.NormalizedValue(VIMinus, 0, 1.5m) };
     }
   }
 
@@ -116,7 +117,7 @@ namespace CTKS_Chart.Trading
 
     public override decimal[] GetData()
     {
-      return new decimal[] { Plot };
+      return new decimal[] { MathHelper.NormalizedValue(Plot, -1, 1) };
     }
   }
 
@@ -128,7 +129,7 @@ namespace CTKS_Chart.Trading
 
     public override decimal[] GetData()
     {
-      return new decimal[] { Histogram, MACD, EMA };
+      return new decimal[] { MathHelper.NormalizedValue(Histogram, -1, 1), MathHelper.NormalizedValue(MACD, -1, 1), MathHelper.NormalizedValue(EMA, -1, 1) };
     }
   }
 
@@ -159,7 +160,7 @@ namespace CTKS_Chart.Trading
     public RangeFilterData RangeFilter { get; set; } = new RangeFilterData();
     public IchimokuCloud IchimokuCloud { get; set; } = new IchimokuCloud();
     public ATRData ATR { get; set; } = new ATRData();
-    
+
     public BBWPData BBWP { get; set; } = new BBWPData();
     public VortexIndicatorData VI { get; set; } = new VortexIndicatorData();
     public ADXData ADX { get; set; } = new ADXData();
@@ -175,7 +176,7 @@ namespace CTKS_Chart.Trading
           RangeFilter.GetData().Length +
           IchimokuCloud.GetData().Length +
           ATR.GetData().Length +
-          
+
           BBWP.GetData().Length +
           VI.GetData().Length +
           ADX.GetData().Length +

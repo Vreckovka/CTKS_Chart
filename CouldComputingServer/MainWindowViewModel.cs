@@ -496,6 +496,8 @@ namespace CouldComputingServer
       });
 
       DistributeGeneration();
+
+      TrainingSession.SymbolsToTest.Skip(1).ForEach(x => x.IsEnabled = false);
     }
 
     #endregion
@@ -575,7 +577,7 @@ namespace CouldComputingServer
 
         generationStart = DateTime.Now;
 
-        if (Clients.Count == 0)
+        if (Clients.Count == 0 || !BuyBotManager.NeatAlgorithm.GenomeList.Any())
           return;
 
         int agentsToRun = AgentCount;
@@ -849,7 +851,6 @@ namespace CouldComputingServer
                     continue;
                   }
 
-                  client.ErrorCount = 0;
 
                   var split = MessageContract.GetDataMessageContent(currentData);
                   var data = JsonSerializer.Deserialize<ClientData>(split);
@@ -861,6 +862,7 @@ namespace CouldComputingServer
                     UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
                   }
 
+                  client.ErrorCount = 0;
 
                   stream.Flush();
                   ms.Flush();
@@ -1025,7 +1027,7 @@ namespace CouldComputingServer
     #region StartTest
 
     SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
-
+    object baat = new object();
     private void StartTest(NeatGenome buy, NeatGenome sell)
     {
       Task.Run(async () =>
@@ -1034,14 +1036,40 @@ namespace CouldComputingServer
         {
           await semaphoreSlim.WaitAsync();
 
-          var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
-
           var symbolsToTest = new string[] { "ALGOUSDT", "COTIUSDT", "SOLUSDT", "LINKUSDT" };
           var fitness = new List<float>();
 
           foreach (var symbol in symbolsToTest)
           {
-            await aIBotRunner.RunGeneration(
+            var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
+
+            aIBotRunner.OnGenerationCompleted += (x, y) =>
+            {
+              lock (baat)
+              {
+                var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
+
+                fitness.Add(neat.Fitness);
+
+                Logger.Log(MessageType.Inform, $"{aIBotRunner.Bots[0].Asset.Symbol} - {neat.Fitness}");
+
+                neat.ResetFitness();
+
+                if (fitness.Count == symbolsToTest.Count())
+                {
+                  var meanFitness = MathHelper.GeometricMean(fitness);
+
+                  Logger.Log(MessageType.Inform, $"MEAN - {meanFitness}");
+
+                  VSynchronizationContext.InvokeOnDispatcher(() =>
+                  {
+                    TrainingSession.AddValue(CurrentSymbol, Statistic.BackTestMean, (decimal)meanFitness);
+                  });
+                }
+              }
+            };
+
+            _ = aIBotRunner.RunGeneration(
               1,
               Minutes,
               SplitTake,
@@ -1050,25 +1078,13 @@ namespace CouldComputingServer
               new List<NeatGenome>() { buy },
               new List<NeatGenome>() { sell }
               );
-
-            var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
-
-            fitness.Add(neat.Fitness);
-            neat.ResetFitness();
           }
-
-          var meanFitness = MathHelper.GeometricMean(fitness);
-
-          VSynchronizationContext.InvokeOnDispatcher(() =>
-          {
-            TrainingSession.AddValue(CurrentSymbol, Statistic.BackTestMean, (decimal)meanFitness);
-          });
         }
         finally
         {
           semaphoreSlim.Release();
         }
-      });  
+      });
     }
 
     #endregion

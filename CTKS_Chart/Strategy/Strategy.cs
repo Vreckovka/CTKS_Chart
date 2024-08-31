@@ -1743,7 +1743,7 @@ namespace CTKS_Chart.Strategy
 
     public void UpdateIntersections(IEnumerable<CtksIntersection> ctksIntersections)
     {
-      var positions = AllOpenedPositions.Where(x => x.Intersection.IntersectionType != IntersectionType.RangeFilter);
+      var positions = AllOpenedPositions.Where(x => x.Intersection.IntersectionType != IntersectionType.RangeFilter).ToList();
 
       foreach (var postion in positions)
       {
