@@ -789,7 +789,12 @@ namespace CTKS_Chart.ViewModels
 
     public bool IsSimulation { get; set; } = false;
 
-    public static List<TimeFrame> IndicatorTimeframes { get; set; } = new List<TimeFrame>() { TimeFrame.D1, TimeFrame.H4};
+    public static List<TimeFrame> IndicatorTimeframes { get; set; } = new List<TimeFrame>() 
+    { 
+      TimeFrame.D1, 
+      TimeFrame.H4,
+      TimeFrame.D3
+    };
 
     public async void RenderLayout(Candle actual)
     {
@@ -803,6 +808,7 @@ namespace CTKS_Chart.ViewModels
         await semaphoreSlim.WaitAsync();
 
         var indicatorsCandle = GetCandle(IndicatorTimeframes, actual);
+
         var ctksIntersections = GetIntersections(actual, out var outdated);
 
         actualCachedCandle = actual;

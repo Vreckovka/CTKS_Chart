@@ -13,6 +13,8 @@ namespace CTKS_Chart.Strategy.AIStrategy
   public class AIStrategy : BaseSimulationStrategy<AIPosition>
   {
     public IList<IndicatorData> IndicatorDatas { get; set; }
+    public IList<IndicatorData> HighIndicatorDatas { get; set; }
+    
     public AIBot BuyAIBot { get; set; }
     public AIBot SellAIBot { get; set; }
     public float OriginalFitness { get; set; }
@@ -54,7 +56,9 @@ namespace CTKS_Chart.Strategy.AIStrategy
     public int takeLastDailyCandles = 100;
     Candle lastDailyCandle = null;
 
-    public override async void CreatePositions(Candle actualCandle, IList<Candle> indicatorCandles)
+    public override async void CreatePositions(
+      Candle actualCandle, 
+      IList<Candle> indicatorCandles)
     {
       try
       {

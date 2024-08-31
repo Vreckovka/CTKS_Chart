@@ -42,7 +42,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       var index = 0;
 
       decimal minPrice = lastPrices.Min() * 0.25m;
-      decimal maxPrice = lastPrices.Max() * 3m;
+      decimal maxPrice = lastPrices.Max() * 10m;
 
       AddInput((float)(strategy.Budget / strategy.TotalValue), ref index, ref inputs);
       AddInput((float)(strategy.OpenBuyPositions.Sum(x => x.PositionSize) / strategy.TotalValue), ref index, ref inputs);
@@ -53,13 +53,27 @@ namespace CTKS_Chart.Strategy.AIStrategy
       AddInput(AddNormalizedInput(actualCandle.High, minPrice, maxPrice), ref index, ref inputs);
       AddInput(AddNormalizedInput(actualCandle.Low, minPrice, maxPrice), ref index, ref inputs);
 
-      foreach(var indicatorData in strategy.IndicatorDatas)
+      foreach(var indicatorData in strategy.IndicatorDatas.Take(2))
       {
         AddIndicator(indicatorData.RangeFilter, ref index, ref inputs, minPrice, maxPrice, true);
-        AddIndicator(indicatorData.BBWP, ref index, ref inputs, minPrice, maxPrice);
         AddIndicator(indicatorData.IchimokuCloud, ref index, ref inputs, minPrice, maxPrice, true);
-        AddIndicator(indicatorData.StochRSI, ref index, ref inputs, minPrice, maxPrice);
-        AddIndicator(indicatorData.RSI, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.ATR, ref index, ref inputs, minPrice, maxPrice, true);
+
+        AddIndicator(indicatorData.BBWP, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.VI, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.ADX, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.MFI, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.AO, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.MACD, ref index, ref inputs, minPrice, maxPrice);
+      }
+
+      foreach (var indicatorData in strategy.IndicatorDatas.Skip(2))
+      {
+        AddIndicator(indicatorData.VI, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.ADX, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.MFI, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.AO, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.MACD, ref index, ref inputs, minPrice, maxPrice);
       }
 
       foreach (var extraInput in extraInputs)
@@ -147,5 +161,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
         indexF++;
       }
     }
+
+
   }
 }

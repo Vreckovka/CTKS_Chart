@@ -114,11 +114,18 @@ namespace CTKS_Chart.Trading
 
             if (header.Length >= 23)
             {
-              indicatorData.RangeFilter = GetRangeFilter(data, header);
-              indicatorData.BBWP = GetBBWP(data, header);
-              indicatorData.IchimokuCloud = GetIchimoku(data, header);
-              indicatorData.StochRSI = GetStochRSI(data, header);
-              indicatorData.RSI = GetRSI(data, header);
+              indicatorData = new IndicatorData()
+              {
+                RangeFilter = GetRangeFilter(data, header),
+                BBWP = GetBBWP(data, header),
+                IchimokuCloud = GetIchimoku(data, header),
+                ADX = GetADX(data, header),
+                AO = GetAwesomeOscilator(data, header),
+                ATR = GetATR(data, header),
+                MACD = GetMACD(data, header),
+                MFI = GetMFI(data, header),
+                VI = GetVortexIndicator(data, header)
+              };
             }
 
             var newCandle = new Candle()
@@ -246,6 +253,8 @@ namespace CTKS_Chart.Trading
 
     #endregion
 
+    #region Indicators
+
     #region GetRangeFilter
 
     private static RangeFilterData GetRangeFilter(string[] data, string[] header)
@@ -292,8 +301,6 @@ namespace CTKS_Chart.Trading
         var bbwpData = new BBWPData();
 
         bbwpData.BBWP = bbwp;
-        bbwpData.ExtremeHi = hi;
-        bbwpData.ExtremeLo = low;
         bbwpData.MA1 = ma1;
         bbwpData.MA2 = ma2;
 
@@ -304,7 +311,6 @@ namespace CTKS_Chart.Trading
     }
 
     #endregion
-
 
     #region GetIchimoku
 
@@ -379,6 +385,129 @@ namespace CTKS_Chart.Trading
         {
           RSI = rsi,
           RSIMA = ma,
+        };
+
+        return indicatorData;
+      }
+
+      return null;
+    }
+
+    #endregion 
+
+
+    public static ATRData GetATR(string[] data, string[] header)
+    {
+      var startIndex = header.IndexOf(x => x == "Line") ?? -1;
+
+      if (startIndex >= 0)
+      {
+        decimal.TryParse(data[startIndex], out var line);
+
+        var indicatorData = new ATRData()
+        {
+          Line = line,
+        };
+
+        return indicatorData;
+      }
+
+      return null;
+    }
+
+    public static VortexIndicatorData GetVortexIndicator(string[] data, string[] header)
+    {
+      var startIndex = header.IndexOf(x => x == "VI +") ?? -1;
+
+      if (startIndex >= 0)
+      {
+        decimal.TryParse(data[startIndex], out var plus);
+        decimal.TryParse(data[startIndex + 1], out var minus);
+
+        var indicatorData = new VortexIndicatorData()
+        {
+          VIPlus = plus,
+          VIMinus = minus
+        };
+
+        return indicatorData;
+      }
+
+      return null;
+    }
+
+    public static ADXData GetADX(string[] data, string[] header)
+    {
+      var startIndex = header.IndexOf(x => x == "ADX") ?? -1;
+
+      if (startIndex >= 0)
+      {
+        decimal.TryParse(data[startIndex], out var adx);
+
+        var indicatorData = new ADXData()
+        {
+          ADX = adx,
+        };
+
+        return indicatorData;
+      }
+
+      return null;
+    }
+
+    public static MFIData GetMFI(string[] data, string[] header)
+    {
+      var startIndex = header.IndexOf(x => x == "MF") ?? -1;
+
+      if (startIndex >= 0)
+      {
+        decimal.TryParse(data[startIndex], out var mf);
+
+        var indicatorData = new MFIData()
+        {
+          MF = mf,
+        };
+
+        return indicatorData;
+      }
+
+      return null;
+    }
+
+    public static AwesomeOsiclatorData GetAwesomeOscilator(string[] data, string[] header)
+    {
+      var startIndex = header.IndexOf(x => x == "Plot") ?? -1;
+
+      if (startIndex >= 0)
+      {
+        decimal.TryParse(data[startIndex], out var plot);
+
+        var indicatorData = new AwesomeOsiclatorData()
+        {
+          Plot = plot,
+        };
+
+        return indicatorData;
+      }
+
+      return null;
+    }
+
+    public static MACDData GetMACD(string[] data, string[] header)
+    {
+      var startIndex = header.IndexOf(x => x == "MACD") ?? -1;
+
+      if (startIndex >= 0)
+      {
+        decimal.TryParse(data[startIndex], out var macd);
+        decimal.TryParse(data[startIndex + 1], out var ema);
+        decimal.TryParse(data[startIndex + 2], out var histogram);
+
+        var indicatorData = new MACDData()
+        {
+          MACD = macd,
+          EMA = ema,
+          Histogram = histogram
         };
 
         return indicatorData;

@@ -1,4 +1,6 @@
-﻿namespace CTKS_Chart.Trading
+﻿using System;
+
+namespace CTKS_Chart.Trading
 {
   public abstract class Indicator
   {
@@ -47,14 +49,12 @@
   public class BBWPData : Indicator
   {
     public decimal BBWP { get; set; }
-    public decimal ExtremeHi { get; set; }
-    public decimal ExtremeLo { get; set; }
     public decimal MA1 { get; set; }
     public decimal MA2 { get; set; }
 
     public override decimal[] GetData()
     {
-      return new decimal[] { BBWP / 100.0m, ExtremeHi / 100.0m, ExtremeLo / 100.0m, MA1 / 100.0m, MA2 / 100.0m };
+      return new decimal[] { BBWP / 100.0m,  MA1 / 100.0m, MA2 / 100.0m };
     }
   }
 
@@ -69,13 +69,103 @@
     }
   }
 
+  public class ATRData : Indicator
+  {
+    public decimal Line { get; set; }
+
+    public override decimal[] GetData()
+    {
+      return new decimal[] { Line };
+    }
+  }
+
+  public class VortexIndicatorData : Indicator
+  {
+    public decimal VIPlus { get; set; }
+    public decimal VIMinus { get; set; }
+
+    public override decimal[] GetData()
+    {
+      return new decimal[] { VIPlus, VIMinus };
+    }
+  }
+
+  public class ADXData : Indicator
+  {
+    public decimal ADX { get; set; }
+
+    public override decimal[] GetData()
+    {
+      return new decimal[] { ADX / 100.0m };
+    }
+  }
+
+  public class MFIData : Indicator
+  {
+    public decimal MF { get; set; }
+
+    public override decimal[] GetData()
+    {
+      return new decimal[] { MF / 100.0m };
+    }
+  }
+
+  public class AwesomeOsiclatorData : Indicator
+  {
+    public decimal Plot { get; set; }
+
+    public override decimal[] GetData()
+    {
+      return new decimal[] { Plot };
+    }
+  }
+
+  public class MACDData : Indicator
+  {
+    public decimal Histogram { get; set; }
+    public decimal MACD { get; set; }
+    public decimal EMA { get; set; }
+
+    public override decimal[] GetData()
+    {
+      return new decimal[] { Histogram, MACD, EMA };
+    }
+  }
+
+  public class HighTimeFrameIndicatorData
+  {
+    public VortexIndicatorData VI { get; set; } = new VortexIndicatorData();
+    public ADXData ADX { get; set; } = new ADXData();
+    public MFIData MFI { get; set; } = new MFIData();
+    public AwesomeOsiclatorData AO { get; set; } = new AwesomeOsiclatorData();
+    public MACDData MACD { get; set; } = new MACDData();
+
+    public int NumberOfInputs
+    {
+      get
+      {
+        return
+          VI.GetData().Length +
+          ADX.GetData().Length +
+          MFI.GetData().Length +
+          AO.GetData().Length +
+          MACD.GetData().Length;
+      }
+    }
+  }
+
   public class IndicatorData
   {
     public RangeFilterData RangeFilter { get; set; } = new RangeFilterData();
-    public BBWPData BBWP { get; set; } = new BBWPData();
     public IchimokuCloud IchimokuCloud { get; set; } = new IchimokuCloud();
-    public StochRSI StochRSI { get; set; } = new StochRSI();
-    public RSIData RSI { get; set; } = new RSIData();
+    public ATRData ATR { get; set; } = new ATRData();
+    
+    public BBWPData BBWP { get; set; } = new BBWPData();
+    public VortexIndicatorData VI { get; set; } = new VortexIndicatorData();
+    public ADXData ADX { get; set; } = new ADXData();
+    public MFIData MFI { get; set; } = new MFIData();
+    public AwesomeOsiclatorData AO { get; set; } = new AwesomeOsiclatorData();
+    public MACDData MACD { get; set; } = new MACDData();
 
     public int NumberOfInputs
     {
@@ -83,10 +173,15 @@
       {
         return
           RangeFilter.GetData().Length +
-          BBWP.GetData().Length +
           IchimokuCloud.GetData().Length +
-          StochRSI.GetData().Length +
-          RSI.GetData().Length;
+          ATR.GetData().Length +
+          
+          BBWP.GetData().Length +
+          VI.GetData().Length +
+          ADX.GetData().Length +
+          MFI.GetData().Length +
+          AO.GetData().Length +
+          MACD.GetData().Length;
       }
     }
   }

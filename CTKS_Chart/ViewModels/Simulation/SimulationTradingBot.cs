@@ -422,7 +422,8 @@ namespace CTKS_Chart.ViewModels
     public Dictionary<TimeFrame, TimeFrameData> timeFrameDatas = new Dictionary<TimeFrame, TimeFrameData>()
     {
       {TimeFrame.H4, new TimeFrameData() { TimeFrame = TimeFrame.H4, Name = "240" } },
-      {TimeFrame.D1, new TimeFrameData() { TimeFrame = TimeFrame.D1, Name = "1D" } }
+      {TimeFrame.D1, new TimeFrameData() { TimeFrame = TimeFrame.D1, Name = "1D" } },
+      {TimeFrame.D3, new TimeFrameData() { TimeFrame = TimeFrame.D3, Name = "3D" } }
     };
 
     #region LoadLayouts

@@ -290,6 +290,7 @@ namespace CouldComputingServer
       }
 
       session.MedianFitness.ForEach(x => AddValue(SymbolsToTest[0].Name, Statistic.MedianFitness, x));
+      session.BackTestFitness.ForEach(x => AddValue(SymbolsToTest[0].Name, Statistic.BackTestMean, x));
 
       foreach (var value in session.MedianFitness)
       {

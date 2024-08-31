@@ -18,8 +18,11 @@ namespace CTKS_Chart.Trading
     W2 = 3,
     [Description("1W")]
     W1 = 2,
+    [Description("3D")]
+    D3 = 4320,
     [Description("1D")]
     D1 = 1,
+   
 
     [Description("1H")]
     H1 = 60,
