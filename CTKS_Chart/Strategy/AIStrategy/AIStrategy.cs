@@ -56,7 +56,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
     public int takeLastDailyCandles = 100;
     Candle lastDailyCandle = null;
 
-    public override async void CreatePositions(
+    public override async Task CreatePositions(
       Candle actualCandle, 
       IList<Candle> indicatorCandles)
     {
@@ -86,16 +86,11 @@ namespace CTKS_Chart.Strategy.AIStrategy
 
         IndicatorDatas = indicatorCandles.Select(x => x.IndicatorData).ToList();
 
-        var highest = Intersections[3].Value;
-
-        var maxBuy = (decimal)Math.Max((double)(actualCandle.Close.Value * 0.995m), (double)highest);
-
-        await CheckPositions(actualCandle, 0, maxBuy);
+        await CheckPositions(actualCandle, 0, actualCandle.Close.Value);
 
         var inter = Intersections
                     .Where(x => x.IsEnabled)
-                    .Where(x => x.Value < actualCandle.Close.Value &&
-                                x.Value < maxBuy)
+                    .Where(x => x.Value < actualCandle.Close.Value)
                     .Take(SimulationAIPromptViewModel.TakeIntersections)
                     .ToList();
 

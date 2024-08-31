@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using TradingManager.Providers;
 using TradingManager.Views;
@@ -230,54 +231,7 @@ namespace TradingManager.ViewModels
 
         foreach (var outdated in outdatedFiles)
         {
-          var timeFrame = EnumHelper.Description(outdated.TimeFrame);
-          var newFilePath = await tradingViewDataProvider.DownloadTimeframe(outdated.TradingViewSymbol, timeFrame);
-          chromeDriverProvider.Dispose();
-
-          var newCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, newFilePath, outdated.TradingViewSymbol.ToString());
-          var oldCandles = TradingViewHelper.ParseTradingView(outdated.TimeFrame, outdated.Path, outdated.TradingViewSymbol.ToString());
-
-          var allCandles = newCandles
-            .Concat(oldCandles)
-            .DistinctBy(x => x.OpenTime)
-            .OrderBy(x => x.OpenTime).ToList();
-
-          string[] lines = File.ReadAllLines(newFilePath);
-
-          var dir = Path.GetDirectoryName(newFilePath);
-          var tempFilePath = Path.Combine(dir, "temp.csv");
-          var tempFile = File.Create(tempFilePath);
-          tempFile.Close();
-
-          var oldLines = File.ReadAllLines(outdated.Path);
-          var newLines = File.ReadAllLines(newFilePath);
-
-          var header = newLines[0];
-
-          using (StreamWriter w = File.AppendText(tempFilePath))
-          {
-            w.WriteLine(header);
-
-            for (int i = 0; i < allCandles.Count; i++)
-            {
-              var candle = allCandles[i];
-              var line = "";
-
-              if (candle.FilePath == newFilePath)
-              {
-                line = newLines[candle.FileLineIndex];
-              }
-              else
-              {
-                line = oldLines[candle.FileLineIndex];
-              }
-
-              w.WriteLine(line);
-            }
-          }
-
-
-          File.Copy(tempFilePath, outdated.Path, true);
+          await UpdateTimeframe(outdated.TradingViewSymbol, outdated.Path, outdated.TimeFrame);
         }
 
         VSynchronizationContext.InvokeOnDispatcher(CheckFiles);
@@ -285,6 +239,91 @@ namespace TradingManager.ViewModels
       catch (Exception ex)
       {
       }
+    }
+
+    #endregion
+
+    #region DownloadSymbol
+
+    public async void DownloadSymbol(string symbolName)
+    {
+      var symbol = new TradingViewSymbol()
+      {
+        Provider = "BINANCE",
+        Symbol = symbolName
+      };
+
+      TimeFrame[] timeFrames = new TimeFrame[] {
+        TimeFrame.W1,
+        TimeFrame.W2,
+        TimeFrame.M1,
+        TimeFrame.M3,
+        TimeFrame.M6,
+        TimeFrame.M12
+        };
+
+      foreach (var timeFrame in timeFrames)
+      {
+        await tradingViewDataProvider.DownloadTimeframe(symbol, EnumHelper.Description(timeFrame));
+      }
+
+
+    }
+
+    #endregion
+
+    #region UpdateTimeframe
+
+    private async Task UpdateTimeframe(TradingViewSymbol symbol, string path, TimeFrame timeFrameToDownload)
+    {
+      var timeFrame = EnumHelper.Description(timeFrameToDownload);
+      var newFilePath = await tradingViewDataProvider.DownloadTimeframe(symbol, timeFrame);
+      chromeDriverProvider.Dispose();
+
+      var newCandles = TradingViewHelper.ParseTradingView(timeFrameToDownload, newFilePath, symbol.ToString());
+      var oldCandles = TradingViewHelper.ParseTradingView(timeFrameToDownload, path, symbol.ToString());
+
+      var allCandles = newCandles
+        .Concat(oldCandles)
+        .DistinctBy(x => x.OpenTime)
+        .OrderBy(x => x.OpenTime).ToList();
+
+      string[] lines = File.ReadAllLines(newFilePath);
+
+      var dir = Path.GetDirectoryName(newFilePath);
+      var tempFilePath = Path.Combine(dir, "temp.csv");
+      var tempFile = File.Create(tempFilePath);
+      tempFile.Close();
+
+      var oldLines = File.ReadAllLines(path);
+      var newLines = File.ReadAllLines(newFilePath);
+
+      var header = newLines[0];
+
+      using (StreamWriter w = File.AppendText(tempFilePath))
+      {
+        w.WriteLine(header);
+
+        for (int i = 0; i < allCandles.Count; i++)
+        {
+          var candle = allCandles[i];
+          var line = "";
+
+          if (candle.FilePath == newFilePath)
+          {
+            line = newLines[candle.FileLineIndex];
+          }
+          else
+          {
+            line = oldLines[candle.FileLineIndex];
+          }
+
+          w.WriteLine(line);
+        }
+      }
+
+
+      File.Copy(tempFilePath, path, true);
     }
 
     #endregion

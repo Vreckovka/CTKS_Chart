@@ -130,7 +130,6 @@ namespace CloudComputingClient
 
     #endregion
 
-
     #region SetupExceptionHandling
 
     private static void SetupExceptionHandling()

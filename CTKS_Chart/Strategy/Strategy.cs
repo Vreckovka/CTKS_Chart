@@ -805,7 +805,7 @@ namespace CTKS_Chart.Strategy
     public Candle lastCandle = null;
     public IList<Candle> indicatorsCandles = new List<Candle>();
 
-    public virtual async void CreatePositions(Candle actualCandle, IList<Candle> indicatorCandles)
+    public virtual async Task CreatePositions(Candle actualCandle, IList<Candle> indicatorCandles)
     {
       try
       {

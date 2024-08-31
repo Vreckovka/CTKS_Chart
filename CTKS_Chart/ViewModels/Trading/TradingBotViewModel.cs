@@ -793,10 +793,9 @@ namespace CTKS_Chart.ViewModels
     { 
       TimeFrame.D1, 
       TimeFrame.H4,
-      TimeFrame.D3
     };
 
-    public async void RenderLayout(Candle actual)
+    public async  void RenderLayout(Candle actual)
     {
       if (IsPaused)
       {
@@ -858,7 +857,7 @@ namespace CTKS_Chart.ViewModels
           }
 
           TradingBot.Strategy.ValidatePositions(actual);
-          TradingBot.Strategy.CreatePositions(actual, indicatorsCandle);
+          await TradingBot.Strategy.CreatePositions(actual, indicatorsCandle);
         }
         else
         {
