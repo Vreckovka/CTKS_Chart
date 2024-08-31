@@ -174,7 +174,7 @@ namespace CouldComputingServer
       newSeries.Fill = Brushes.Transparent;
       newSeries.Title = "Back Test Median Fitness";
       newSeries.PointForeground = Brushes.Transparent;
-      newSeries.Stroke = Brushes.Purple;
+      newSeries.Stroke = Brushes.Yellow;
 
       BackTestFitnessData.Add(newSeries);
     }

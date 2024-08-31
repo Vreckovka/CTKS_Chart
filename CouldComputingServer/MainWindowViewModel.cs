@@ -46,7 +46,7 @@ namespace CouldComputingServer
       "ADAUSDT", "BTCUSDT",
       "ETHUSDT", "LTCUSDT",
       "BNBUSDT", "EOSUSDT",
-      //"LINKUSDT", "COTIUSDT",
+      "MATICUSDT", "AVAXUSDT",
       //"SOLUSDT", "ALGOUSDT"
     };
 
@@ -553,9 +553,8 @@ namespace CouldComputingServer
           ToStart = 0;
           InProgress = 0;
           FinishedCount = 0;
+          DistributeGeneration(Cycle + 1);
         });
-
-        DistributeGeneration(Cycle + 1);
       });
     }
 
@@ -567,10 +566,13 @@ namespace CouldComputingServer
 
     private ServerRunData serverRunData;
     private object dbaton = new object();
-    private void DistributeGeneration(int? generation = null)
+    SemaphoreSlim semaphoreSlimDistribute = new SemaphoreSlim(1, 1);
+    private async void DistributeGeneration(int? generation = null)
     {
-      lock (dbaton)
+      try
       {
+        await semaphoreSlimDistribute.WaitAsync();
+
         generationStart = DateTime.Now;
 
         if (Clients.Count == 0)
@@ -659,6 +661,10 @@ namespace CouldComputingServer
 
         Logger.Log(MessageType.Inform, "Generation distributed");
       }
+      finally
+      {
+        semaphoreSlimDistribute.Release();
+      }
     }
 
     #endregion
@@ -679,7 +685,7 @@ namespace CouldComputingServer
 
       if (index != null)
       {
-        if(bestMeanGenome != null)
+        if (bestMeanGenome != null)
         {
           var bestClient = runData.FirstOrDefault(x => x.BuyGenomes.Contains($"Network id=\"{bestMeanGenome.Id}\""));
           var bestRun = bestClient.GenomeData.FirstOrDefault(x => x.BuyGenome.Contains($"Network id=\"{bestMeanGenome.Id}\""));
@@ -723,7 +729,7 @@ namespace CouldComputingServer
 
           BuyBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
           SellBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
- 
+
           BuyBotManager.NeatAlgorithm.UpdateGenerationWithoutFitnessReset();
           SellBotManager.NeatAlgorithm.UpdateGenerationWithoutFitnessReset();
 
@@ -799,100 +805,102 @@ namespace CouldComputingServer
 
     private void HandleClient(CloudClient client)
     {
-      try
-      {
-        NetworkStream stream = client.Client.GetStream();
-        Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE];
-
-        MemoryStream ms = new MemoryStream();
-
-
-        int bytesRead;
-        string currentData = "";
-
-        while ((bytesRead = stream.Read(buffer)) > 0)
+      Task.Run(() =>
         {
           try
           {
-            lock (batton)
+            NetworkStream stream = client.Client.GetStream();
+            Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE];
+
+            MemoryStream ms = new MemoryStream();
+
+
+            int bytesRead;
+            string currentData = "";
+
+            while ((bytesRead = stream.Read(buffer)) > 0)
             {
-              ms.Write(buffer);
-
-              currentData = Encoding.Unicode.GetString(ms.ToArray()).Trim();
-
-              if (currentData.Contains(MessageContract.Error))
+              try
               {
-                TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
-                Logger.Log(MessageType.Warning, "Error from client reseding data");
+                lock (batton)
+                {
+                  ms.Write(buffer);
+
+                  currentData = Encoding.Unicode.GetString(ms.ToArray()).Trim();
+
+                  if (currentData.Contains(MessageContract.Error))
+                  {
+                    TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
+                    Logger.Log(MessageType.Warning, "Error from client reseding data");
+
+                    client.ErrorCount++;
+                    ms = new MemoryStream();
+
+                    if (client.ErrorCount % 10 == 0)
+                    {
+                      ResetGeneration();
+                    }
+
+                    continue;
+                  }
+
+                  if (!MessageContract.IsDataMessage(currentData))
+                  {
+                    continue;
+                  }
+
+                  client.ErrorCount = 0;
+
+                  var split = MessageContract.GetDataMessageContent(currentData);
+                  var data = JsonSerializer.Deserialize<ClientData>(split);
+
+                  runResults.Add(data);
+
+                  if (!client.Done)
+                  {
+                    UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
+                  }
+
+
+                  stream.Flush();
+                  ms.Flush();
+                  ms.Dispose();
+                  ms = new MemoryStream();
+                  buffer.Clear();
+
+                  if (client.Done)
+                    Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
+
+                }
+              }
+              catch (Exception ex)
+              {
+                stream.Flush();
+                ms.Flush();
+                ms.Dispose();
+                ms = new MemoryStream();
+                buffer.Clear();
 
                 client.ErrorCount++;
-                ms = new MemoryStream();
-
                 if (client.ErrorCount % 10 == 0)
                 {
                   ResetGeneration();
                 }
 
-                continue;
+                Logger.Log(MessageType.Error, $"ERROR TRANSIMITING DATA!", false, false);
               }
-
-              if (!MessageContract.IsDataMessage(currentData))
-              {
-                continue;
-              }
-
-              client.ErrorCount = 0;
-
-              var split = MessageContract.GetDataMessageContent(currentData);
-              var data = JsonSerializer.Deserialize<ClientData>(split);
-
-              runResults.Add(data);
-
-              if (!client.Done)
-              {
-                UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
-              }
-
-
-              stream.Flush();
-              ms.Flush();
-              ms.Dispose();
-              ms = new MemoryStream();
-              buffer.Clear();
-
-              if (client.Done)
-                Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
 
             }
+
+            TryRemoveClient(client);
           }
           catch (Exception ex)
           {
-            stream.Flush();
-            ms.Flush();
-            ms.Dispose();
-            ms = new MemoryStream();
-            buffer.Clear();
+            TryRemoveClient(client);
 
-            client.ErrorCount++;
-            if (client.ErrorCount % 10 == 0)
-            {
-              ResetGeneration();
-            }
-
-            Logger.Log(MessageType.Error, $"ERROR TRANSIMITING DATA!", false, false);
+            Logger.Log(ex);
           }
-
-        }
-
-        TryRemoveClient(client);
-
-      }
-      catch (Exception ex)
-      {
-        TryRemoveClient(client);
-
-        Logger.Log(ex);
-      }
+        });
     }
 
     #endregion
@@ -1018,43 +1026,49 @@ namespace CouldComputingServer
 
     SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
 
-    private async void StartTest(NeatGenome buy, NeatGenome sell)
+    private void StartTest(NeatGenome buy, NeatGenome sell)
     {
-      try
+      Task.Run(async () =>
       {
-        await semaphoreSlim.WaitAsync();
-
-        var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
-
-        var symbolsToTest = new string[] { "ALGOUSDT", "COTIUSDT", "SOLUSDT", "LINKUSDT" };
-        var fitness = new List<float>();
-
-        foreach (var symbol in symbolsToTest)
+        try
         {
-          await aIBotRunner.RunGeneration(
-            1,
-            Minutes,
-            SplitTake,
-            symbol,
-            false,
-            new List<NeatGenome>() { buy },
-            new List<NeatGenome>() { sell }
-            );
+          await semaphoreSlim.WaitAsync();
 
-          var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
+          var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
 
-          fitness.Add(neat.Fitness);
-          neat.ResetFitness();
+          var symbolsToTest = new string[] { "ALGOUSDT", "COTIUSDT", "SOLUSDT", "LINKUSDT" };
+          var fitness = new List<float>();
+
+          foreach (var symbol in symbolsToTest)
+          {
+            await aIBotRunner.RunGeneration(
+              1,
+              Minutes,
+              SplitTake,
+              symbol,
+              false,
+              new List<NeatGenome>() { buy },
+              new List<NeatGenome>() { sell }
+              );
+
+            var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
+
+            fitness.Add(neat.Fitness);
+            neat.ResetFitness();
+          }
+
+          var meanFitness = MathHelper.GeometricMean(fitness);
+
+          VSynchronizationContext.InvokeOnDispatcher(() =>
+          {
+            TrainingSession.AddValue(CurrentSymbol, Statistic.BackTestMean, (decimal)meanFitness);
+          });
         }
-
-        var meanFitness = MathHelper.GeometricMean(fitness);
-
-        TrainingSession.AddValue(CurrentSymbol, Statistic.BackTestMean, (decimal)meanFitness);
-      }
-      finally
-      {
-        semaphoreSlim.Release();
-      }
+        finally
+        {
+          semaphoreSlim.Release();
+        }
+      });  
     }
 
     #endregion

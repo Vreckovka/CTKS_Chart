@@ -34,46 +34,43 @@ namespace CTKS_Chart.Strategy.AIStrategy
     public virtual float[] GetInputs(
       Candle actualCandle,
       AIStrategy strategy,
-       IList<CtksIntersection> intersections,
+      IList<CtksIntersection> intersections,
       IList<decimal> lastPrices,
       params float[] extraInputs)
     {
       var inputs = new float[NeuralNetwork.InputCount];
       var index = 0;
 
-      decimal minPrice = lastPrices.Min() * 0.25m;
-      decimal maxPrice = lastPrices.Max() * 10m;
-
       AddInput((float)(strategy.Budget / strategy.TotalValue), ref index, ref inputs);
       AddInput((float)(strategy.OpenBuyPositions.Sum(x => x.PositionSize) / strategy.TotalValue), ref index, ref inputs);
       AddInput((float)(strategy.DrawdawnFromMaxTotalValue / 100.0m), ref index, ref inputs);
 
-      AddInput(AddNormalizedInput(actualCandle.Open, minPrice, maxPrice), ref index, ref inputs);
-      AddInput(AddNormalizedInput(actualCandle.Close, minPrice, maxPrice), ref index, ref inputs);
-      AddInput(AddNormalizedInput(actualCandle.High, minPrice, maxPrice), ref index, ref inputs);
-      AddInput(AddNormalizedInput(actualCandle.Low, minPrice, maxPrice), ref index, ref inputs);
+      AddInput(NormalizeZScore(actualCandle.Open, lastPrices), ref index, ref inputs);
+      AddInput(NormalizeZScore(actualCandle.Close, lastPrices), ref index, ref inputs);
+      AddInput(NormalizeZScore(actualCandle.High, lastPrices), ref index, ref inputs);
+      AddInput(NormalizeZScore(actualCandle.Low, lastPrices), ref index, ref inputs);
 
       foreach(var indicatorData in strategy.IndicatorDatas.Take(2))
       {
-        AddIndicator(indicatorData.RangeFilter, ref index, ref inputs, minPrice, maxPrice, true);
-        AddIndicator(indicatorData.IchimokuCloud, ref index, ref inputs, minPrice, maxPrice, true);
-        AddIndicator(indicatorData.ATR, ref index, ref inputs, minPrice, maxPrice, true);
+        AddIndicator(indicatorData.RangeFilter, ref index, ref inputs, lastPrices);
+        AddIndicator(indicatorData.IchimokuCloud, ref index, ref inputs, lastPrices);
+        AddIndicator(indicatorData.ATR, ref index, ref inputs, lastPrices);
 
-        AddIndicator(indicatorData.BBWP, ref index, ref inputs, minPrice, maxPrice);
-        AddIndicator(indicatorData.VI, ref index, ref inputs, minPrice, maxPrice);
-        AddIndicator(indicatorData.ADX, ref index, ref inputs, minPrice, maxPrice);
-        AddIndicator(indicatorData.MFI, ref index, ref inputs, minPrice, maxPrice);
-        AddIndicator(indicatorData.AO, ref index, ref inputs, minPrice, maxPrice);
-        AddIndicator(indicatorData.MACD, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.BBWP, ref index, ref inputs);
+        AddIndicator(indicatorData.VI, ref index, ref inputs);
+        AddIndicator(indicatorData.ADX, ref index, ref inputs);
+        AddIndicator(indicatorData.MFI, ref index, ref inputs);
+        AddIndicator(indicatorData.AO, ref index, ref inputs);
+        AddIndicator(indicatorData.MACD, ref index, ref inputs);
       }
 
       foreach (var indicatorData in strategy.IndicatorDatas.Skip(2))
       {
-        AddIndicator(indicatorData.VI, ref index, ref inputs, minPrice, maxPrice);
-        AddIndicator(indicatorData.ADX, ref index, ref inputs, minPrice, maxPrice);
-        AddIndicator(indicatorData.MFI, ref index, ref inputs, minPrice, maxPrice);
-        AddIndicator(indicatorData.AO, ref index, ref inputs, minPrice, maxPrice);
-        AddIndicator(indicatorData.MACD, ref index, ref inputs, minPrice, maxPrice);
+        AddIndicator(indicatorData.VI, ref index, ref inputs);
+        AddIndicator(indicatorData.ADX, ref index, ref inputs);
+        AddIndicator(indicatorData.MFI, ref index, ref inputs);
+        AddIndicator(indicatorData.AO, ref index, ref inputs);
+        AddIndicator(indicatorData.MACD, ref index, ref inputs);
       }
 
       foreach (var extraInput in extraInputs)
@@ -81,21 +78,19 @@ namespace CTKS_Chart.Strategy.AIStrategy
         AddInput(extraInput, ref index, ref inputs);
       }
 
-      AddIntersectionInputs(intersections, minPrice, maxPrice, ref index, ref inputs);
+      AddIntersectionInputs(intersections, ref index, ref inputs);
 
       return inputs;
     }
 
     private void AddIntersectionInputs(
       IList<CtksIntersection> intersections,
-      decimal minPrice,
-      decimal maxPrice,
       ref int index,
       ref float[] inputs)
     {
       for (int i = 0; i < intersections.Count; i++)
       {
-        var value = AddNormalizedInput(intersections[i].Value, minPrice, maxPrice);
+        var value = NormalizeZScore(intersections[i].Value, intersections.Select(x => x.Value));
         var weight = AddNormalizedInput((double)(int)intersections[i].TimeFrame, 1, 7);
 
         AddInput(value, ref index, ref inputs);
@@ -109,17 +104,40 @@ namespace CTKS_Chart.Strategy.AIStrategy
       index++;
     }
 
-    protected float AddNormalizedInput(decimal? price, decimal minPrice, decimal maxPrice)
+    //protected float AddNormalizedInput(decimal? price, decimal minPrice, decimal maxPrice)
+    //{
+    //  if (price != null)
+    //  {
+    //    decimal normalized = (price.Value - minPrice) / (maxPrice - minPrice);
+
+    //    return (float)normalized;
+    //  }
+
+    //  return -1;
+    //}
+
+    public float NormalizeZScore(decimal? value, IEnumerable<decimal> historicalValues)
     {
-      if (price != null)
-      {
-        decimal normalized = (price.Value - minPrice) / (maxPrice - minPrice);
+      decimal mean = CalculateMean(historicalValues);
+      decimal stdDev = CalculateStdDev(historicalValues, mean);
 
-        return (float)normalized;
-      }
+      // Avoid division by zero in case of very small standard deviation
+      if (stdDev == 0) return 0;
 
-      return -1;
+      return (float)((value - mean) / stdDev);
     }
+
+    public decimal CalculateStdDev(IEnumerable<decimal> values, decimal mean)
+    {
+      decimal sumSquaredDiffs = values.Sum(value => (value - mean) * (value - mean));
+      return (decimal)Math.Sqrt((double)(sumSquaredDiffs / values.Count()));
+    }
+
+    public decimal CalculateMean(IEnumerable<decimal> values)
+    {
+      return values.Sum() / values.Count();
+    }
+
 
     protected float AddNormalizedInput(double value, double min, double max)
     {
@@ -132,17 +150,14 @@ namespace CTKS_Chart.Strategy.AIStrategy
       Indicator indicatorData,
       ref int index,
       ref float[] inputs,
-      decimal minPrice,
-      decimal maxPrice,
-      bool normlized = false
-      )
+      IEnumerable<decimal> historicalValues = null)
     {
       var values = indicatorData.GetData();
       int indexF = 0;
 
       foreach (var value in values)
       {
-        if (normlized)
+        if (historicalValues != null)
         {
           if (indicatorData is RangeFilterData filterData && indexF == 3)
           {
@@ -150,7 +165,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
           }
           else
           {
-            AddInput(AddNormalizedInput(value, minPrice, maxPrice), ref index, ref inputs);
+            AddInput(NormalizeZScore(value, historicalValues), ref index, ref inputs);
           }
         }
         else
