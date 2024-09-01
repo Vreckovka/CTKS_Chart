@@ -789,13 +789,13 @@ namespace CTKS_Chart.ViewModels
 
     public bool IsSimulation { get; set; } = false;
 
-    public static List<TimeFrame> IndicatorTimeframes { get; set; } = new List<TimeFrame>() 
-    { 
-      TimeFrame.D1, 
+    public static List<TimeFrame> IndicatorTimeframes { get; set; } = new List<TimeFrame>()
+    {
+      TimeFrame.D1,
       TimeFrame.H4,
     };
 
-    public async  void RenderLayout(Candle actual)
+    public async void RenderLayout(Candle actual)
     {
       if (IsPaused)
       {
@@ -1039,8 +1039,7 @@ namespace CTKS_Chart.ViewModels
 
     #region GetCandle
 
-    Candle lastDailyCandle;
-    Candle lastWeeklyCandle;
+    Dictionary<TimeFrame, Candle> cachedCandles = new Dictionary<TimeFrame, Candle>();
 
     protected virtual IList<Candle> GetCandle(IList<TimeFrame> timeFrames, Candle actualCandle)
     {
@@ -1048,31 +1047,23 @@ namespace CTKS_Chart.ViewModels
 
       foreach (var timeFrame in timeFrames)
       {
-        if (timeFrame == TimeFrame.W1)
+        var existing = cachedCandles.TryGetValue(timeFrame, out var lastCandle);
+
+        if (lastCandle == null || !TradingHelper.IsWithinRange(lastCandle, actualCandle))
         {
-          DateTimeFormatInfo dfi = DateTimeFormatInfo.CurrentInfo;
-          var cal = dfi.Calendar;
+          lastCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, timeFrame, actualCandle);
 
-          var week = cal.GetWeekOfYear(actualCandle.OpenTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek);
-
-          var lastweek = lastDailyCandle?.CloseTime != null ? cal.GetWeekOfYear(lastDailyCandle.CloseTime, dfi.CalendarWeekRule, dfi.FirstDayOfWeek) : -1;
-
-          if (week != lastweek)
-            lastWeeklyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.W1, actualCandle);
-
-          list.Add(lastWeeklyCandle);
+          if (!existing)
+          {
+            cachedCandles.Add(timeFrame, lastCandle);
+          }
+          else
+          {
+            cachedCandles[timeFrame] = lastCandle;
+          }
         }
-        if (timeFrame == TimeFrame.D1)
-        {
-          if (actualCandle.OpenTime.Date != lastDailyCandle?.OpenTime.Date)
-            lastDailyCandle = TradingHelper.GetActualEqivalentCandle(Asset.Symbol, TimeFrame.D1, actualCandle);
-
-          list.Add(lastDailyCandle);
-        }
-        else 
-        {
-          list.Add(TradingHelper.GetActualEqivalentCandle(Asset.Symbol, timeFrame, actualCandle));
-        }
+        
+        list.Add(lastCandle);
       }
 
 

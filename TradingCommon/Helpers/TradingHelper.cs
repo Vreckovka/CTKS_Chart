@@ -162,9 +162,7 @@ namespace CTKS_Chart.Trading
 
 
         var equivalentDataCandles = candles
-       .Where(x => 
-       x.UnixTime <= actualCandle.UnixTime &&
-       x.CloseTime >= actualCandle.CloseTime).ToList();
+       .Where(x => IsWithinRange(x, actualCandle)).ToList();
 
         var equivalentDataCandle = equivalentDataCandles.FirstOrDefault();
 
@@ -176,6 +174,11 @@ namespace CTKS_Chart.Trading
       }
 
       return null;
+    }
+
+    public static bool IsWithinRange(Candle interestCandle, Candle actualCandle)
+    {
+      return interestCandle.UnixTime <= actualCandle.UnixTime && interestCandle.CloseTime >= actualCandle.CloseTime;
     }
   }
 }

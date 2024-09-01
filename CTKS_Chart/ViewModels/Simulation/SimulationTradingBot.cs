@@ -430,23 +430,55 @@ namespace CTKS_Chart.ViewModels
 
     protected override async Task LoadLayouts()
     {
-      var allCandles = SimulationTradingBot.GetSimulationCandles(
-         Minutes,
-         DataPath, Asset.Symbol, FromDate);
+      DateTime fromDate = DateTime.Now;
+      double splitTake = 0;
 
-      TimeFrame = allCandles.allCandles.First().TimeFrame;
+      var asset = Asset;
+      var dailyCandles = SimulationTradingBot.GetIndicatorData(timeFrameDatas[TimeFrame.D1], asset);
 
-      var dailyCandles = SimulationTradingBot.GetIndicatorData(timeFrameDatas[TimeFrame.D1], Asset);
+      foreach (var indiFrame in TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes)
+      {
+        SimulationTradingBot.GetIndicatorData(timeFrameDatas[indiFrame], asset);
+      }
 
+      //ignore filter starting values of indicators
       var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(10);
       var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(-10);
 
-      var cutCandles = allCandles.cutCandles.Where(x => x.OpenTime.Date > firstValidDate.Date && x.OpenTime.Date < lastValidDate.Date).ToList();
+      fromDate = firstValidDate;
+
+
+      var allCandles = SimulationTradingBot.GetSimulationCandles(
+         Minutes,
+         SimulationPromptViewModel.GetSimulationDataPath(Asset.Symbol, Minutes.ToString()), Asset.Symbol, fromDate);
+
+      var simulateCandles = allCandles.cutCandles.Where(x => x.OpenTime.Date > firstValidDate.Date && x.OpenTime.Date < lastValidDate.Date).ToList();
       var candles = allCandles.candles;
       var mainCandles = allCandles.allCandles.Where(x => x.OpenTime.Date > firstValidDate.Date).ToList();
 
-      if (candles.Count == 0)
-        candles = mainCandles;
+
+      var timeFrame = simulateCandles.First().TimeFrame;
+      var key = new Tuple<string, TimeFrame>(Asset.Symbol, timeFrame);
+
+      LoadSecondaryLayouts(firstValidDate);
+      PreloadCandles(key, mainCandles);
+      PreLoadIntersections(key, mainCandles);
+
+
+      if (splitTake != 0)
+      {
+        var take = (int)(mainCandles.Count / splitTake);
+
+        simulateCandles = simulateCandles.Take(take).ToList();
+      }
+
+      FromDate = fromDate;
+      InitializeBot(simulateCandles);
+
+      if (TradingBot.Strategy is AIStrategy aIStrategy)
+      {
+        HeatBot(simulateCandles, aIStrategy);
+      }
 
       DrawingViewModel.ActualCandles = candles;
 
@@ -471,27 +503,6 @@ namespace CTKS_Chart.ViewModels
       var rangeBtcFilterData = "INDEX BTCUSD, 1D.csv";
 
       TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy<TPosition>(rangeAdaFilterData, Asset.Symbol, rangeBtcFilterData, TradingBot.Strategy));
-
-
-      var simulateCandles = cutCandles.ToList();
-
-      if (SplitTake != 0)
-      {
-        var take = (int)(mainCandles.Count / SplitTake);
-
-        simulateCandles = cutCandles.Take(take).ToList();
-      }
-
-      if (TradingBot.Strategy is AIStrategy aIStrategy)
-      {
-        HeatBot(cutCandles, aIStrategy);
-      }
-
-
-      InitializeBot(simulateCandles);
-      PreloadCandles(botKey, simulateCandles);
-      PreLoadIntersections(botKey, simulateCandles);
-
 
       Simulate(simulateCandles);
     }
@@ -532,9 +543,9 @@ namespace CTKS_Chart.ViewModels
 
         foreach (var line in content)
         {
-          if(line.Contains("}{\"TotalValue\""))
+          if (line.Contains("}{\"TotalValue\""))
           {
-            
+
           }
           else
           {

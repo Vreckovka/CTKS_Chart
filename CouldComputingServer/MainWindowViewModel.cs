@@ -562,7 +562,7 @@ namespace CouldComputingServer
             ToStart = 0;
             InProgress = 0;
             FinishedCount = 0;
-            DistributeGeneration(Cycle + 1);
+            DistributeGeneration(Cycle);
           });
 
           Observable.Timer(TimeSpan.FromSeconds(10))
@@ -663,7 +663,7 @@ namespace CouldComputingServer
           TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
         }
 
-        Logger.Log(MessageType.Inform, $"Generation {BuyBotManager.Generation} distributed");
+        Logger.Log(MessageType.Inform, $"Generation {CurrentSymbol} - {BuyBotManager.Generation} distributed");
       }
       finally
       {
@@ -694,7 +694,7 @@ namespace CouldComputingServer
           var bestClient = runData.FirstOrDefault(x => x.BuyGenomes.Contains($"Network id=\"{bestMeanGenome.Id}\""));
           var bestRun = bestClient.GenomeData.FirstOrDefault(x => x.BuyGenome.Contains($"Network id=\"{bestMeanGenome.Id}\""));
 
-          Logger.Log(MessageType.Inform, $"Best genome ID {bestClient.Symbol} - {bestMeanGenome.Id}");
+          Logger.Log(MessageType.Inform, $"{bestMeanGenome.Id} - Genome ID {bestClient.Symbol} - {bestRun.TotalValue} $");
 
           TrainingSession.AddValue(serverRunData.Symbol, Statistic.AverageFitness, bestClient.Average);
           TrainingSession.AddValue(serverRunData.Symbol, Statistic.BestFitness, bestRun.Fitness);
@@ -709,8 +709,6 @@ namespace CouldComputingServer
 
           if (fullCycle)
           {
-            Logger.Log(MessageType.Inform, $"Best genome ID {bestClient.Symbol} showcase");
-
             BestFitness = (float)bestRun.Fitness;
             TotalValue = bestRun.TotalValue;
             Drawdawn = bestRun.Drawdawn;
@@ -1044,7 +1042,15 @@ namespace CouldComputingServer
         {
           await semaphoreSlim.WaitAsync();
 
-          var symbolsToTest = new string[] { "ALGOUSDT", "COTIUSDT", "SOLUSDT", "LINKUSDT" };
+          var symbolsToTest = new string[] { 
+            "ALGOUSDT", 
+            "COTIUSDT", 
+            "SOLUSDT", 
+            "LINKUSDT",
+            "MATICUSDT",
+            "BNBUSDT"};
+
+
           var fitness = new List<float>();
           var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
 
