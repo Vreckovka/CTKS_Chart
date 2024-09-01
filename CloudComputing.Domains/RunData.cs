@@ -10,6 +10,8 @@ namespace CloudComputing.Domains
 
     public string BuyGenomes { get; set; }
     public string SellGenomes { get; set; }
+
+    public string Symbol { get; set; }
   }
 
   public class RunData

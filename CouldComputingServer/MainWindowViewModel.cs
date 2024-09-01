@@ -540,25 +540,35 @@ namespace CouldComputingServer
 
     #region ResetGeneration
 
+    bool canResetGeneration = true;
     private void ResetGeneration()
     {
       Task.Run(async () =>
       {
-        foreach (var client in Clients)
+        if(canResetGeneration)
         {
-          TCPHelper.SendMessage(client.Client, MessageContract.Done);
+          canResetGeneration = false;
+
+          foreach (var client in Clients)
+          {
+            TCPHelper.SendMessage(client.Client, MessageContract.Done);
+          }
+
+          await Task.Delay(5000);
+
+          VSynchronizationContext.InvokeOnDispatcher(() =>
+          {
+            Logger.Log(MessageType.Warning, "Reseting generation!");
+            ToStart = 0;
+            InProgress = 0;
+            FinishedCount = 0;
+            DistributeGeneration(Cycle + 1);
+          });
+
+          Observable.Timer(TimeSpan.FromSeconds(10))
+         .Subscribe(x => canResetGeneration = true)
+         .DisposeWith(this);
         }
-
-        await Task.Delay(3000);
-
-        VSynchronizationContext.InvokeOnDispatcher(() =>
-        {
-          Logger.Log(MessageType.Warning, "Reseting generation!");
-          ToStart = 0;
-          InProgress = 0;
-          FinishedCount = 0;
-          DistributeGeneration(Cycle + 1);
-        });
       });
     }
 
@@ -653,7 +663,7 @@ namespace CouldComputingServer
           TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
         }
 
-        Logger.Log(MessageType.Inform, "Generation distributed");
+        Logger.Log(MessageType.Inform, $"Generation {BuyBotManager.Generation} distributed");
       }
       finally
       {
@@ -684,6 +694,8 @@ namespace CouldComputingServer
           var bestClient = runData.FirstOrDefault(x => x.BuyGenomes.Contains($"Network id=\"{bestMeanGenome.Id}\""));
           var bestRun = bestClient.GenomeData.FirstOrDefault(x => x.BuyGenome.Contains($"Network id=\"{bestMeanGenome.Id}\""));
 
+          Logger.Log(MessageType.Inform, $"Best genome ID {bestClient.Symbol} - {bestMeanGenome.Id}");
+
           TrainingSession.AddValue(serverRunData.Symbol, Statistic.AverageFitness, bestClient.Average);
           TrainingSession.AddValue(serverRunData.Symbol, Statistic.BestFitness, bestRun.Fitness);
           TrainingSession.AddValue(serverRunData.Symbol, Statistic.OriginalFitness, bestRun.OriginalFitness);
@@ -697,6 +709,8 @@ namespace CouldComputingServer
 
           if (fullCycle)
           {
+            Logger.Log(MessageType.Inform, $"Best genome ID {bestClient.Symbol} showcase");
+
             BestFitness = (float)bestRun.Fitness;
             TotalValue = bestRun.TotalValue;
             Drawdawn = bestRun.Drawdawn;

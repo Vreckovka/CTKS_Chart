@@ -204,6 +204,7 @@ namespace CloudComputingClient
 
         clientData.BuyGenomes = NeatGenomeXmlIO.SaveComplete(buyGenomes, false).OuterXml;
         clientData.SellGenomes = NeatGenomeXmlIO.SaveComplete(sellGenomes, false).OuterXml;
+        clientData.Symbol = aIBotRunner.Bots[0].Asset.Symbol;
 
         SendMessage(tcpClient, clientData);
 
