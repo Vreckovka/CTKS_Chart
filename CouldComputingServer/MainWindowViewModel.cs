@@ -45,9 +45,8 @@ namespace CouldComputingServer
     string[] allSymbols = new string[] {
       "ADAUSDT", "BTCUSDT",
       "ETHUSDT", "LTCUSDT",
-      "BNBUSDT", "EOSUSDT",
-      "MATICUSDT", "AVAXUSDT",
-      //"SOLUSDT", "ALGOUSDT"
+      "GALAUSDT", "EOSUSDT",
+      "AVAXUSDT",
     };
 
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
@@ -518,15 +517,18 @@ namespace CouldComputingServer
       _listenerThread.Start();
 
 
-      Observable.Interval(TimeSpan.FromSeconds(1)).ObserveOnDispatcher().Subscribe(async (x) =>
+      Observable.Interval(TimeSpan.FromSeconds(1)).Subscribe(async (x) =>
       {
         lock (batton)
         {
           if (IsGenerationEnded())
           {
-            Clients.ForEach(x => x.Done = false);
+            VSynchronizationContext.InvokeOnDispatcher(() =>
+            {
+              Clients.ForEach(x => x.Done = false);
 
-            UpdateGeneration(runResults);
+              UpdateGeneration(runResults);
+            });
           }
         }
       });
@@ -604,16 +606,6 @@ namespace CouldComputingServer
 
         var first = ordered.First();
         var last = ordered.Last();
-
-        TimeSpan difference = last.LastGenerationTime - first.LastGenerationTime;
-        var sec = (int)difference.TotalSeconds;
-
-        sec = Math.Min(sec, last.PopulationSize / 3);
-        if (sec >= 1)
-        {
-          last.PopulationSize--;
-          first.PopulationSize++;
-        }
 
         foreach (var client in Clients.ToList())
         {
@@ -884,12 +876,14 @@ namespace CouldComputingServer
                 buffer.Clear();
 
                 client.ErrorCount++;
+
                 if (client.ErrorCount % 10 == 0)
                 {
                   ResetGeneration();
                 }
 
                 Logger.Log(MessageType.Error, $"ERROR TRANSIMITING DATA!", false, false);
+                //TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
               }
 
             }
@@ -1027,7 +1021,7 @@ namespace CouldComputingServer
     #region StartTest
 
     SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
-    object baat = new object();
+
     private void StartTest(NeatGenome buy, NeatGenome sell)
     {
       Task.Run(async () =>
@@ -1038,38 +1032,11 @@ namespace CouldComputingServer
 
           var symbolsToTest = new string[] { "ALGOUSDT", "COTIUSDT", "SOLUSDT", "LINKUSDT" };
           var fitness = new List<float>();
+          var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
 
           foreach (var symbol in symbolsToTest)
-          {
-            var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
-
-            aIBotRunner.OnGenerationCompleted += (x, y) =>
-            {
-              lock (baat)
-              {
-                var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
-
-                fitness.Add(neat.Fitness);
-
-                Logger.Log(MessageType.Inform, $"{aIBotRunner.Bots[0].Asset.Symbol} - {neat.Fitness}");
-
-                neat.ResetFitness();
-
-                if (fitness.Count == symbolsToTest.Count())
-                {
-                  var meanFitness = MathHelper.GeometricMean(fitness);
-
-                  Logger.Log(MessageType.Inform, $"MEAN - {meanFitness}");
-
-                  VSynchronizationContext.InvokeOnDispatcher(() =>
-                  {
-                    TrainingSession.AddValue(CurrentSymbol, Statistic.BackTestMean, (decimal)meanFitness);
-                  });
-                }
-              }
-            };
-
-            _ = aIBotRunner.RunGeneration(
+          {       
+            await aIBotRunner.RunGeneration(
               1,
               Minutes,
               SplitTake,
@@ -1078,7 +1045,24 @@ namespace CouldComputingServer
               new List<NeatGenome>() { buy },
               new List<NeatGenome>() { sell }
               );
+
+            var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
+
+            fitness.Add(neat.Fitness);
+
+            Logger.Log(MessageType.Inform, $"{aIBotRunner.Bots[0].Asset.Symbol} - {neat.Fitness}");
+
+            neat.ResetFitness();
           }
+
+          var meanFitness = MathHelper.GeometricMean(fitness);
+
+          Logger.Log(MessageType.Inform, $"MEAN - {meanFitness}");
+
+          VSynchronizationContext.InvokeOnDispatcher(() =>
+          {
+            TrainingSession.AddValue(CurrentSymbol, Statistic.BackTestMean, (decimal)meanFitness);
+          });
         }
         finally
         {

@@ -436,7 +436,7 @@ namespace CTKS_Chart.ViewModels
 
       TimeFrame = allCandles.allCandles.First().TimeFrame;
 
-      var dailyCandles = SimulationTradingBot.GetIndicatorData(timeFrameDatas[TimeFrame.D3], Asset);
+      var dailyCandles = SimulationTradingBot.GetIndicatorData(timeFrameDatas[TimeFrame.D1], Asset);
 
       var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(10);
       var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(-10);

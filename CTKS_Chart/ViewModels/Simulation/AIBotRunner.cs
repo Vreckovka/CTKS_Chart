@@ -247,7 +247,7 @@ namespace CTKS_Chart.ViewModels
           double splitTake = 0;
 
           var asset = Bots.First().Asset;
-          var dailyCandles = SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[TimeFrame.D3], asset);
+          var dailyCandles = SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[TimeFrame.D1], asset);
 
           foreach (var indiFrame in TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes)
           {

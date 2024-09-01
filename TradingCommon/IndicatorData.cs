@@ -17,7 +17,7 @@ namespace CTKS_Chart.Trading
 
     public override decimal[] GetData()
     {
-      return new decimal[] { RangeFilter, HighTarget, LowTarget, Upward ? 1 : 0 };
+      return new decimal[] { RangeFilter, HighTarget, LowTarget, Upward ? 1 : -1 };
     }
   }
 
@@ -43,7 +43,7 @@ namespace CTKS_Chart.Trading
 
     public override decimal[] GetData()
     {
-      return new decimal[] { K / 100.0m, D / 100.0m };
+      return new decimal[] { K, D  };
     }
   }
 
@@ -55,7 +55,7 @@ namespace CTKS_Chart.Trading
 
     public override decimal[] GetData()
     {
-      return new decimal[] { BBWP / 100.0m, MA1 / 100.0m, MA2 / 100.0m };
+      return new decimal[] { BBWP / 100.0m , MA1 / 100.0m, MA2 / 100.0m };
     }
   }
 
@@ -66,7 +66,7 @@ namespace CTKS_Chart.Trading
 
     public override decimal[] GetData()
     {
-      return new decimal[] { RSI / 1000.0m, RSIMA / 100.0m };
+      return new decimal[] { RSI, RSIMA  };
     }
   }
 
@@ -87,7 +87,7 @@ namespace CTKS_Chart.Trading
 
     public override decimal[] GetData()
     {
-      return new decimal[] { MathHelper.NormalizedValue(VIPlus, 0, 1.5m), MathHelper.NormalizedValue(VIMinus, 0, 1.5m) };
+      return new decimal[] {VIPlus, VIMinus };
     }
   }
 
@@ -117,7 +117,7 @@ namespace CTKS_Chart.Trading
 
     public override decimal[] GetData()
     {
-      return new decimal[] { MathHelper.NormalizedValue(Plot, -1, 1) };
+      return new decimal[] { Plot };
     }
   }
 
@@ -129,7 +129,7 @@ namespace CTKS_Chart.Trading
 
     public override decimal[] GetData()
     {
-      return new decimal[] { MathHelper.NormalizedValue(Histogram, -1, 1), MathHelper.NormalizedValue(MACD, -1, 1), MathHelper.NormalizedValue(EMA, -1, 1) };
+      return new decimal[] { Histogram, MACD,EMA };
     }
   }
 

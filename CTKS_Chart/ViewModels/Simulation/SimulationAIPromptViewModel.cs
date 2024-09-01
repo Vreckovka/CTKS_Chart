@@ -61,15 +61,14 @@ namespace CTKS_Chart.ViewModels
       get
       {
         var strategyInputs = 3;
-        var actualCandle = 4;
+        var actualCandle = 0;
        
         var indicatorData = 
           new IndicatorData().NumberOfInputs * 
-          (TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes.Count - 1);
+          (TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes.Count );
 
-        var highTimeFrame = new HighTimeFrameIndicatorData().NumberOfInputs;
 
-        return strategyInputs + actualCandle + indicatorData + highTimeFrame + TakeIntersections;
+        return strategyInputs + actualCandle + indicatorData + TakeIntersections;
         //return strategyInputs + actualCandle + indicatorData;
       }
     }

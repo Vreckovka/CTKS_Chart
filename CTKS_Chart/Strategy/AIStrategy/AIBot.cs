@@ -31,8 +31,8 @@ namespace CTKS_Chart.Strategy.AIStrategy
       return NeuralNetwork.FeedForward(inputs);
     }
 
-    decimal minPrice;
-    decimal maxPrice;
+    decimal mean;
+    decimal stdDev;
 
     public virtual float[] GetInputs(
       Candle actualCandle,
@@ -44,34 +44,20 @@ namespace CTKS_Chart.Strategy.AIStrategy
       var inputs = new float[NeuralNetwork.InputCount];
       var index = 0;
 
-      minPrice = lastPrices.Min() * 0.25m;
-      maxPrice = lastPrices.Max() * 10m;
+      mean = MathHelper.CalculateMean(lastPrices);
+      stdDev = MathHelper.CalculateStdDev(lastPrices, mean);
 
       AddInput((float)(strategy.Budget / strategy.TotalValue), ref index, ref inputs);
       AddInput((float)(strategy.OpenBuyPositions.Sum(x => x.PositionSize) / strategy.TotalValue), ref index, ref inputs);
       AddInput((float)(strategy.DrawdawnFromMaxTotalValue / 100.0m), ref index, ref inputs);
 
-      AddInput(GetNormalizedInput(actualCandle.Open), ref index, ref inputs);
-      AddInput(GetNormalizedInput(actualCandle.Close), ref index, ref inputs);
-      AddInput(GetNormalizedInput(actualCandle.High), ref index, ref inputs);
-      AddInput(GetNormalizedInput(actualCandle.Low), ref index, ref inputs);
-
-      foreach (var indicatorData in strategy.IndicatorDatas.Take(2))
+      foreach (var indicatorData in strategy.IndicatorDatas)
       {
         AddIndicator(indicatorData.RangeFilter, ref index, ref inputs, lastPrices);
         AddIndicator(indicatorData.IchimokuCloud, ref index, ref inputs, lastPrices);
         AddIndicator(indicatorData.ATR, ref index, ref inputs, lastPrices);
 
         AddIndicator(indicatorData.BBWP, ref index, ref inputs);
-        AddIndicator(indicatorData.VI, ref index, ref inputs);
-        AddIndicator(indicatorData.ADX, ref index, ref inputs);
-        AddIndicator(indicatorData.MFI, ref index, ref inputs);
-        AddIndicator(indicatorData.AO, ref index, ref inputs);
-        AddIndicator(indicatorData.MACD, ref index, ref inputs);
-      }
-
-      foreach (var indicatorData in strategy.IndicatorDatas.Skip(2))
-      {
         AddIndicator(indicatorData.VI, ref index, ref inputs);
         AddIndicator(indicatorData.ADX, ref index, ref inputs);
         AddIndicator(indicatorData.MFI, ref index, ref inputs);
@@ -112,7 +98,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
     {
       if (price != null)
       {
-       return (float)MathHelper.NormalizedValue(price.Value, minPrice, maxPrice);
+       return (float)MathHelper.NormalizeAndClampZScore(price.Value, mean, stdDev);
       }
 
       return 0;
