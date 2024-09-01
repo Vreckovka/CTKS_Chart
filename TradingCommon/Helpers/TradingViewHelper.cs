@@ -66,6 +66,7 @@ namespace CTKS_Chart.Trading
         int index = 0;
 
         TimeSpan? dateDiff = null;
+        long unixDiff = 0;
 
         for (int i = 1; i < lines.Length - cut; i++)
         {
@@ -108,6 +109,11 @@ namespace CTKS_Chart.Trading
             list[1].CloseTime = list[1].OpenTime.AddMinutes(dateDiff.Value.TotalMinutes);
           }
 
+          if(list.Count > 1 && unixDiff == 0)
+          {
+            unixDiff = list[1].UnixTime - list[0].UnixTime;
+          }
+
           if (!isOverDate)
           {
             IndicatorData indicatorData = new IndicatorData();
@@ -136,6 +142,7 @@ namespace CTKS_Chart.Trading
               Low = lowParsed,
               OpenTime = dateTime,
               UnixTime = unixTimestamp,
+              UnixDiff = unixDiff,
               IndicatorData = indicatorData,
               FileLineIndex = i,
               FilePath = path,

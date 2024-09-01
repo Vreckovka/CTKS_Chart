@@ -313,6 +313,7 @@ namespace CouldComputingServer
       Drawdawn = new Dictionary<string, List<decimal>>();
       NumberOfTrades = new Dictionary<string, List<decimal>>();
       MedianFitness = new List<decimal>();
+      BackTestFitness = new List<decimal>();
 
       AverageData.ForEach(x => x.Values.Clear());
       TotalValueData.ForEach(x => x.Values.Clear());
@@ -321,6 +322,7 @@ namespace CouldComputingServer
       FitnessData.ForEach(x => x.Values.Clear());
       NumberOfTradesData.ForEach(x => x.Values.Clear());
       MedianFitnessData.ForEach(x => x.Values.Clear());
+      BackTestFitnessData.ForEach(x => x.Values.Clear());
 
       Labels.Clear();
       RaisePropertyChanged(nameof(Labels));

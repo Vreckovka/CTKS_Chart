@@ -401,6 +401,13 @@ namespace CTKS_Chart.ViewModels
         fitness *= tradesInfluence;
       }
 
+      var negativeTrades = strategy.ClosedBuyPositions.Count(x => x.FinalProfit < 0);
+      var allTrades = strategy.ClosedBuyPositions.Count();
+
+      var ratio = (float)negativeTrades / allTrades;
+
+      fitness *= 1 - ratio;
+
       // Ensure fitness is not negative
       strategy.AddFitness(fitness < 0 ? 0 : fitness);
     }

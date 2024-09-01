@@ -26,6 +26,7 @@ namespace CTKS_Chart.Trading
     }
 
     public long UnixTime { get; set; }
+    public long UnixDiff { get; set; }
     public DateTime OpenTime { get; set; }
     public DateTime CloseTime { get; set; }
 

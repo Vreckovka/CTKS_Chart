@@ -479,7 +479,7 @@ namespace CTKS_Chart.ViewModels
         case "COTIUSDT":
           asset = new Asset()
           {
-            Symbol = "COTIUSD",
+            Symbol = "COTIUSDT",
             NativeRound = 0,
             PriceRound = 5,
             DataPath = path,

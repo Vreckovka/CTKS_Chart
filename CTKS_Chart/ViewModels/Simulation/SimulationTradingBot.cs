@@ -377,7 +377,19 @@ namespace CTKS_Chart.ViewModels
 
       foreach (var timeFrame in indicatorTimeframes)
       {
-        list.Add(preloadedIndicatorCandles[timeFrame][botKey][actualCandle.UnixTime]);
+        var unix = timeFrame == TimeFrame.D1 ?
+          DateTimeHelper.DateTimeToUnixSeconds(actualCandle.OpenTime.AddDays(-1)) :
+          actualCandle.UnixTime - actualCandle.UnixDiff;
+
+        //There are missing candles in the data
+        if (preloadedIndicatorCandles[timeFrame][botKey].TryGetValue(unix, out var candle))
+        {
+          list.Add(candle);
+        }
+        else if (preloadedIndicatorCandles[timeFrame][botKey].TryGetValue(actualCandle.UnixTime, out var candle1))
+        {
+          list.Add(candle1);
+        }
       }
 
       return list;
@@ -504,7 +516,7 @@ namespace CTKS_Chart.ViewModels
 
       TradingBot.Strategy.InnerStrategies.Add(new RangeFilterStrategy<TPosition>(rangeAdaFilterData, Asset.Symbol, rangeBtcFilterData, TradingBot.Strategy));
 
-      Simulate(simulateCandles);
+      Simulate(simulateCandles.Skip(50).ToList());
     }
 
     #endregion
@@ -696,6 +708,12 @@ namespace CTKS_Chart.ViewModels
           SimulationResults.LinqSortDescending(x => x.Date);
         }
 
+
+        if(TradingBot.Strategy is AIStrategy aIStrategy)
+        {
+          AIBotRunner.AddFitness(aIStrategy);
+        }  
+        
         Finished?.Invoke(this, null);
       }
       catch (TaskCanceledException)
