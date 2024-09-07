@@ -663,7 +663,7 @@ namespace CouldComputingServer
           TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
         }
 
-        Logger.Log(MessageType.Inform, $"Generation {CurrentSymbol} - {BuyBotManager.Generation} distributed");
+        Logger.Log(MessageType.Inform, $"Generation {BuyBotManager.Generation} - {CurrentSymbol} distributed");
       }
       finally
       {

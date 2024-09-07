@@ -149,8 +149,6 @@ namespace CTKS_Chart.Strategy.AIStrategy
             await CancelPositionOnIntersection(intersection);
           }
         }
-
-        //CheckSellPositions();
       }
       catch (Exception ex)
       {
@@ -163,25 +161,6 @@ namespace CTKS_Chart.Strategy.AIStrategy
     }
 
     #endregion
-
-    private async void CheckSellPositions()
-    {
-      foreach(var position in OpenSellPositions.ToList())
-      {
-        var buy = (AIPosition)position.OpositPositions[0];
-        var probs = GetSellProbs(buy);
-
-        var index = probs.inter.IndexOf(position.Intersection);
-        var newProb = probs.indexes.SingleOrDefault(x => x.index == index);
-
-        if(newProb.prob < 0.25)
-        {
-          await CancelPosition(position);
-
-          await CreateSellPositionForBuy(buy);
-        }
-      }
-    }
 
     #region CancelPositionOnIntersection
 

@@ -345,22 +345,24 @@
         </TextBlock>
 
         <StackPanel Margin="0,10">
-          <TextBlock FontSize="13">
-            <Run
-              FontSize="11"
-              Foreground="#858585"
-              Text="Generation Time: " />
-            <Run
-              FontWeight="Bold"
-              Foreground="#858585"
-              Text="{Binding GenerationRunTime, StringFormat={}{0:hh\\:mm\\:ss}}" />
-          </TextBlock>
 
           <TextBlock FontSize="13">
             <Run
               FontSize="11"
               Foreground="#858585"
               Text="Cycle Time: " />
+            <Run
+              FontWeight="Bold"
+              Foreground="#858585"
+              Text="{Binding GenerationRunTime, StringFormat={}{0:hh\\:mm\\:ss}}" />
+          </TextBlock>
+
+
+          <TextBlock FontSize="13">
+            <Run
+              FontSize="11"
+              Foreground="#858585"
+              Text="Generation Time: " />
             <Run
               FontWeight="Bold"
               Foreground="#858585"
