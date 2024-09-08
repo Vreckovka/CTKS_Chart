@@ -881,11 +881,7 @@ namespace CouldComputingServer
               }
               catch (Exception ex)
               {
-                stream.Flush();
-                ms.Flush();
-                ms.Dispose();
                 ms = new MemoryStream();
-                buffer.Clear();
 
                 client.ErrorCount++;
 
@@ -895,7 +891,6 @@ namespace CouldComputingServer
                 }
 
                 Logger.Log(MessageType.Error, $"ERROR TRANSIMITING DATA!", false, false);
-                //TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
               }
 
             }
