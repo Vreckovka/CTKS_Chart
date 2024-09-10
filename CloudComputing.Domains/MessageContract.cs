@@ -4,6 +4,7 @@ namespace CloudComputing.Domains
 {
   public static class MessageContract
   {
+    public static string Handsake { get; } = "HANDSHAKE";
     public static string Done { get; } = "1DONE1";
     public static string StartOfMessage { get; } = "1START1";
     public static string EndOfMessage { get; } = "1END1";

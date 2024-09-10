@@ -13,6 +13,7 @@ namespace CouldComputingServer
     public Dictionary<uint, bool> SentSellGenomes { get; set; } = new Dictionary<uint, bool>();
 
     public bool Done { get; set; }
+    public bool ReceivedData { get; set; }
 
     public int PopulationSize { get; set; }
     public DateTime LastGenerationTime { get; set; } 

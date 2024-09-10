@@ -327,8 +327,6 @@ namespace CloudComputingClient
           {
             lock (batton)
             {
-              serialDisposable.Disposable?.Dispose();
-
               // Append received data to the memory stream
               ms.Write(buffer.Slice(0, bytesRead));
 
@@ -344,6 +342,9 @@ namespace CloudComputingClient
                 buffer.Clear();
                 stream.Flush();
                 ms = new MemoryStream();
+
+                serialDisposable.Disposable?.Dispose();
+
                 continue;
               }
 
@@ -428,6 +429,8 @@ namespace CloudComputingClient
                      sellGenomes);
 
           UpdateUI();
+
+          TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(MessageContract.Handsake + JsonSerializer.Serialize(ServerRunData)));
         }
       }
       catch (Exception ex)

@@ -579,6 +579,8 @@ namespace CouldComputingServer
     private ServerRunData serverRunData;
     private object dbaton = new object();
     SemaphoreSlim semaphoreSlimDistribute = new SemaphoreSlim(1, 1);
+
+    private SerialDisposable serialDisposable1 = new SerialDisposable();
     private async void DistributeGeneration(int? generation = null)
     {
       try
@@ -658,8 +660,18 @@ namespace CouldComputingServer
             messages.Add(client, message);
           }
 
+        
           TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
         }
+
+        serialDisposable1.Disposable = Observable.Interval(TimeSpan.FromSeconds(1)).Subscribe((x) =>
+        {
+          foreach (var client in Clients.Where(x => !x.ReceivedData))
+          {
+            TCPHelper.SendMessage(client.Client, messages[client]);
+          }
+        });
+
 
         Logger.Log(MessageType.Inform, $"Generation {BuyBotManager.Generation} - {CurrentSymbol} distributed");
       }
@@ -843,6 +855,7 @@ namespace CouldComputingServer
                   if (message.Contains(MessageContract.Error))
                   {
                     TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
+
                     Logger.Log(MessageType.Warning, "Error from client reseding data");
 
                     client.ErrorCount++;
@@ -861,30 +874,30 @@ namespace CouldComputingServer
                     continue;
                   }
 
-                  // Full message received, process it
-                  string completeMessage = messageBuilder.ToString();
-
                   // Clear for the next message
                   messageBuilder.Clear();
                   buffer.Clear();
                   stream.Flush();
                   ms = new MemoryStream();
 
-                  var split = MessageContract.GetDataMessageContent(message);
-                  var data = JsonSerializer.Deserialize<ClientData>(split);
+                  message = MessageContract.GetDataMessageContent(message);
+
+                  if (message.Contains(MessageContract.Handsake))
+                  {
+                    message = message.Replace(MessageContract.Handsake, "");
+
+                    client.ReceivedData = message == messages[client];
+                    
+                    continue;
+                  }
+
+                  var data = JsonSerializer.Deserialize<ClientData>(message);
 
                   if (!client.Done && data.Symbol == CurrentSymbol)
                   {
                     UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
 
                     client.ErrorCount = 0;
-
-                    stream.Flush();
-                    ms.Flush();
-                    ms.Dispose();
-                    ms = new MemoryStream();
-                    buffer.Clear();
-                    messageBuilder.Clear();
 
                     if (client.Done)
                     {
