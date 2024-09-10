@@ -7,7 +7,6 @@ namespace CloudComputing.Domains
     public static string Done { get; } = "1DONE1";
     public static string StartOfMessage { get; } = "1START1";
     public static string EndOfMessage { get; } = "1END1";
-    public static int BUFFER_SIZE { get; } = 5242880 * 3;
     public static string Error  { get; } = "1ERROR1";
 
     public static int BUFFER_SIZE_CLIENT { get; } = 65536;
@@ -21,7 +20,7 @@ namespace CloudComputing.Domains
 
     public static bool IsDataMessage(string data)
     {
-      return data.Contains(EndOfMessage) && data.Contains(StartOfMessage);
+      return messageRegex.IsMatch(data);
     }
 
     public static string GetDataMessage(string data)

@@ -46,7 +46,8 @@ namespace CouldComputingServer
       "ADAUSDT", "BTCUSDT",
       "ETHUSDT", "LTCUSDT",
       "GALAUSDT", "EOSUSDT",
-      "AVAXUSDT",
+      "AVAXUSDT", "ALGOUSDT",
+      "SOLUSDT"
     };
 
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
@@ -545,7 +546,7 @@ namespace CouldComputingServer
     {
       Task.Run(async () =>
       {
-        if(canResetGeneration)
+        if (canResetGeneration)
         {
           canResetGeneration = false;
 
@@ -640,8 +641,8 @@ namespace CouldComputingServer
           var buyDocument = NeatGenomeXmlIO.SaveComplete(buyGenomes, false);
           var sellDocument = NeatGenomeXmlIO.SaveComplete(sellGenomes, false);
 
-          newData.BuyGenomes = buyDocument.OuterXml.Replace("\"", "'");
-          newData.SellGenomes = sellDocument.OuterXml.Replace("\"", "'");
+          newData.BuyGenomes = buyDocument.OuterXml;
+          newData.SellGenomes = sellDocument.OuterXml;
 
           agentsToRun -= client.PopulationSize;
           runAgents += client.PopulationSize;
@@ -816,13 +817,12 @@ namespace CouldComputingServer
           try
           {
             NetworkStream stream = client.Client.GetStream();
-            Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE];
+            Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE_CLIENT];
 
             MemoryStream ms = new MemoryStream();
-
+            StringBuilder messageBuilder = new StringBuilder();
 
             int bytesRead;
-            string currentData = "";
 
             while ((bytesRead = stream.Read(buffer)) > 0)
             {
@@ -830,11 +830,19 @@ namespace CouldComputingServer
               {
                 lock (batton)
                 {
-                  ms.Write(buffer);
+                  // Append received data to the memory stream
+                  ms.Write(buffer.Slice(0, bytesRead));
 
-                  currentData = Encoding.Unicode.GetString(ms.ToArray()).Trim();
+                  // Convert the memory stream to string and append to messageBuilder
+                  string currentData = Encoding.Unicode.GetString(ms.ToArray());
+                  messageBuilder.Append(currentData);
 
-                  if (currentData.Contains(MessageContract.Error))
+                  // Reset the memory stream for the next chunk
+                  ms.SetLength(0);
+
+                  var message = messageBuilder.ToString();
+
+                  if (message.Contains(MessageContract.Error))
                   {
                     TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
                     Logger.Log(MessageType.Warning, "Error from client reseding data");
@@ -850,13 +858,21 @@ namespace CouldComputingServer
                     continue;
                   }
 
-                  if (!MessageContract.IsDataMessage(currentData))
+                  if (!MessageContract.IsDataMessage(message))
                   {
                     continue;
                   }
 
+                  // Full message received, process it
+                  string completeMessage = messageBuilder.ToString();
 
-                  var split = MessageContract.GetDataMessageContent(currentData);
+                  // Clear for the next message
+                  messageBuilder.Clear();
+                  buffer.Clear();
+                  stream.Flush();
+                  ms = new MemoryStream();
+
+                  var split = MessageContract.GetDataMessageContent(message);
                   var data = JsonSerializer.Deserialize<ClientData>(split);
 
                   runResults.Add(data);
@@ -873,6 +889,7 @@ namespace CouldComputingServer
                   ms.Dispose();
                   ms = new MemoryStream();
                   buffer.Clear();
+                  messageBuilder.Clear();
 
                   if (client.Done)
                     Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
@@ -882,6 +899,7 @@ namespace CouldComputingServer
               catch (Exception ex)
               {
                 ms = new MemoryStream();
+                messageBuilder.Clear();
 
                 client.ErrorCount++;
 
@@ -968,8 +986,35 @@ namespace CouldComputingServer
           {
             if (!tcpClient.SentBuyGenomes[existingBuy.Id] && !tcpClient.SentSellGenomes[existingSell.Id])
             {
-              buyManger.NeatAlgorithm.GenomeList[buyManger.NeatAlgorithm.GenomeList.IndexOf(existingBuy)].AddSequentialFitness(receivedGenome.Item1.Fitness);
-              sellManager.NeatAlgorithm.GenomeList[sellManager.NeatAlgorithm.GenomeList.IndexOf(existingSell)].AddSequentialFitness(receivedGenome.Item2.Fitness);
+              existingBuy.AddSequentialFitness(receivedGenome.Item1.Fitness);
+              existingSell.AddSequentialFitness(receivedGenome.Item2.Fitness);
+
+              if (existingBuy.fitnesses.Where(x => x > 0).GroupBy(x => x).Any(g => g.Count() > 1))
+              {
+                Logger.Log(MessageType.Warning, "SAME FITNESSES FOR DIFFERENT SYMBOLS!");
+
+                foreach(var fitness in existingBuy.fitnesses)
+                {
+                  Logger.Log(MessageType.Warning, fitness.ToString());
+                }
+
+                ResetGeneration();
+
+              }
+
+              if (existingBuy.fitnesses.Where(x => x > 0).GroupBy(x => x).Any(g => g.Count() > 1))
+              {
+                Logger.Log(MessageType.Warning, "SAME FITNESSES FOR DIFFERENT SYMBOLS!");
+
+                foreach (var fitness in existingBuy.fitnesses)
+                {
+                  Logger.Log(MessageType.Warning, fitness.ToString());
+                }
+
+                ResetGeneration();
+
+              }
+
 
               FinishedCount += 1;
               InProgress -= 1;
@@ -1037,10 +1082,8 @@ namespace CouldComputingServer
         {
           await semaphoreSlim.WaitAsync();
 
-          var symbolsToTest = new string[] { 
-            "ALGOUSDT", 
-            "COTIUSDT", 
-            "SOLUSDT", 
+          var symbolsToTest = new string[] {
+            "COTIUSDT",
             "LINKUSDT",
             "MATICUSDT",
             "BNBUSDT"};
@@ -1050,7 +1093,7 @@ namespace CouldComputingServer
           var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
 
           foreach (var symbol in symbolsToTest)
-          {       
+          {
             await aIBotRunner.RunGeneration(
               1,
               Minutes,

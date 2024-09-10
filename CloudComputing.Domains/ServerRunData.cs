@@ -30,7 +30,7 @@ namespace CloudComputing.Domains
         var data = Encoding.Unicode.GetBytes(message);
 
         // Define buffer size (e.g., 1024 bytes)
-        int bufferSize = MessageContract.BUFFER_SIZE;
+        int bufferSize = MessageContract.BUFFER_SIZE_CLIENT;
         int totalBytesSent = 0;
 
         // Send data in chunks

@@ -367,8 +367,6 @@ namespace CTKS_Chart.ViewModels
         AddFitness(x.TradingBot.Strategy);
       });
 
-      var aIStrategy = Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First().TradingBot.Strategy;
-
       canRunGeneration = true;
 
       OnGenerationCompleted?.Invoke(null, null);
@@ -383,8 +381,11 @@ namespace CTKS_Chart.ViewModels
       strategy.OriginalFitness = (float)((strategy.TotalValue - strategy.StartingBudget) / strategy.StartingBudget) * 1000;
       float fitness = strategy.OriginalFitness;
 
+      var closedBuy = strategy.ClosedBuyPositions.ToList();
+      var closedSell = strategy.ClosedSellPositions.ToList();
+
       var drawdown = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
-      float exponent = 2.25f;
+      float exponent = 1.25f;
       var drawdownMultiplier = (float)Math.Pow(1 - drawdown, exponent);
 
       drawdownMultiplier = Math.Max(drawdownMultiplier, 0);
@@ -394,22 +395,28 @@ namespace CTKS_Chart.ViewModels
         fitness *= drawdownMultiplier;
       }
 
-      if (strategy.ClosedSellPositions.Count > 0)
+      if (closedSell.Count > 0)
       {
-        var tradesInfluence = GetTradesInfluance(strategy.ClosedSellPositions.Count);
+        var tradesInfluence = GetTradesInfluance(closedSell.Count);
 
         fitness *= tradesInfluence;
       }
 
-      var negativeTrades = strategy.ClosedBuyPositions.Count(x => x.FinalProfit < 0);
-      var allTrades = strategy.ClosedBuyPositions.Count();
+      var negativeTrades = closedBuy.Count(x => x.FinalProfit < 0);
+      var allTrades = closedBuy.Count();
 
-      var ratio = (float)negativeTrades / allTrades;
+      if (allTrades > 0)
+      {
+        var ratio = (float)negativeTrades / allTrades;
 
-      fitness *= 1 - ratio;
+        fitness *= 1 - ratio;
 
-      // Ensure fitness is not negative
-      strategy.AddFitness(fitness < 0 ? 0 : fitness);
+        strategy.AddFitness(fitness < 0 ? 0 : fitness);
+      }
+      else
+      {
+        strategy.AddFitness(0);
+      }
     }
 
     #endregion
