@@ -29,15 +29,13 @@ namespace CloudComputing.Domains
 
         var data = Encoding.Unicode.GetBytes(message);
 
-        // Define buffer size (e.g., 1024 bytes)
-        int bufferSize = MessageContract.BUFFER_SIZE_CLIENT;
         int totalBytesSent = 0;
 
         // Send data in chunks
         while (totalBytesSent < data.Length)
         {
           // Calculate the number of bytes to send in this chunk
-          int bytesToSend = Math.Min(bufferSize, data.Length - totalBytesSent);
+          int bytesToSend = Math.Min(MessageContract.BUFFER_SIZE_CLIENT, data.Length - totalBytesSent);
 
           // Write the current chunk to the stream
           _stream.Write(data, totalBytesSent, bytesToSend);

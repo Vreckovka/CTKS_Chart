@@ -877,23 +877,26 @@ namespace CouldComputingServer
 
                   runResults.Add(data);
 
-                  if (!client.Done)
+                  if (!client.Done && data.Symbol == CurrentSymbol)
                   {
                     UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
+
+                    client.ErrorCount = 0;
+
+                    stream.Flush();
+                    ms.Flush();
+                    ms.Dispose();
+                    ms = new MemoryStream();
+                    buffer.Clear();
+                    messageBuilder.Clear();
+
+                    if (client.Done)
+                      Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
                   }
-
-                  client.ErrorCount = 0;
-
-                  stream.Flush();
-                  ms.Flush();
-                  ms.Dispose();
-                  ms = new MemoryStream();
-                  buffer.Clear();
-                  messageBuilder.Clear();
-
-                  if (client.Done)
-                    Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
-
+                  else
+                  {
+                    //Logger.Log(MessageType.Inform, $"Duplicated message {data.Symbol}");
+                  }
                 }
               }
               catch (Exception ex)
