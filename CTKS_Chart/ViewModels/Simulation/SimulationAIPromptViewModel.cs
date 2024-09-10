@@ -573,14 +573,14 @@ namespace CTKS_Chart.ViewModels
         case PositionSide.Buy:
           return new NEATManager<AIBot>(
          viewModelsFactory,
-         NetworkActivationScheme.CreateAcyclicScheme(),
+         NetworkActivationScheme.CreateCyclicRelaxingActivationScheme(0.05,100),
          inputNumber,
          TakeIntersections * 2,
          QuadraticSigmoid.__DefaultInstance);
         case PositionSide.Sell:
           return new NEATManager<AIBot>(
         viewModelsFactory,
-        NetworkActivationScheme.CreateAcyclicScheme(),
+        NetworkActivationScheme.CreateCyclicRelaxingActivationScheme(0.05, 100),
         inputNumber + 1,
         TakeIntersections,
         QuadraticSigmoid.__DefaultInstance);

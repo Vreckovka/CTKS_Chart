@@ -2,7 +2,6 @@
 using CTKS_Chart.Strategy;
 using CTKS_Chart.Strategy.AIStrategy;
 using CTKS_Chart.ViewModels;
-using LiveCharts.Configurations;
 using Logger;
 using SharpNeat.Genomes.Neat;
 using System;
@@ -25,11 +24,9 @@ using System.Xml;
 using VCore.Standard.Factories.ViewModels;
 using VCore.Standard.Helpers;
 using VCore.WPF;
-using VCore.WPF.Helpers;
 using VCore.WPF.Misc;
 using VCore.WPF.ViewModels;
 using VNeuralNetwork;
-using RunData = CloudComputing.Domains.RunData;
 
 namespace CouldComputingServer
 {
@@ -43,11 +40,10 @@ namespace CouldComputingServer
     List<ClientData> runResults = new List<ClientData>();
 
     string[] allSymbols = new string[] {
-      "ADAUSDT", "BTCUSDT",
-      "ETHUSDT", "LTCUSDT",
-      "GALAUSDT", "EOSUSDT",
-      "AVAXUSDT", "ALGOUSDT",
-      "SOLUSDT"
+       "ADAUSDT",  "BTCUSDT",
+       "ETHUSDT",  "LTCUSDT",
+       "GALAUSDT", "EOSUSDT",
+       "AVAXUSDT", "SOLUSDT"
     };
 
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
@@ -498,6 +494,7 @@ namespace CouldComputingServer
       DistributeGeneration();
 
       TrainingSession.SymbolsToTest.Skip(1).ForEach(x => x.IsEnabled = false);
+      cycleLastElapsed = DateTime.Now;
     }
 
     #endregion
@@ -676,7 +673,9 @@ namespace CouldComputingServer
 
     #region UpdateGeneration
 
-    NeatGenome bestMeanGenome;
+    NeatGenome bestBuyGenome;
+    NeatGenome bestSellGenome;
+
     private void UpdateGeneration(IEnumerable<ClientData> runData)
     {
       GenerationRunTime = DateTime.Now - generationStart;
@@ -690,12 +689,12 @@ namespace CouldComputingServer
 
       if (index != null)
       {
-        if (bestMeanGenome != null)
+        if (bestBuyGenome != null)
         {
-          var bestClient = runData.FirstOrDefault(x => x.BuyGenomes.Contains($"Network id=\"{bestMeanGenome.Id}\""));
-          var bestRun = bestClient.GenomeData.FirstOrDefault(x => x.BuyGenome.Contains($"Network id=\"{bestMeanGenome.Id}\""));
+          var bestClient = runData.FirstOrDefault(x => x.BuyGenomes.Contains($"Network id=\"{bestBuyGenome.Id}\""));
+          var bestRun = bestClient.GenomeData.FirstOrDefault(x => x.BuyGenome.Contains($"Network id=\"{bestBuyGenome.Id}\""));
 
-          Logger.Log(MessageType.Inform, $"{bestMeanGenome.Id} - Genome ID {bestClient.Symbol} - {bestRun.TotalValue} $");
+          Logger.Log(MessageType.Inform, $"{bestBuyGenome.Id} - Genome ID {bestClient.Symbol} - {bestRun.TotalValue.ToString("N2")} $");
 
           TrainingSession.AddValue(serverRunData.Symbol, Statistic.AverageFitness, bestClient.Average);
           TrainingSession.AddValue(serverRunData.Symbol, Statistic.BestFitness, bestRun.Fitness);
@@ -706,7 +705,7 @@ namespace CouldComputingServer
 
           var fullCycle = Cycle % TrainingSession.SymbolsToTest.Count == 0;
 
-          cycleLastElapsed = DateTime.Now;
+          var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
 
           if (fullCycle)
           {
@@ -731,7 +730,6 @@ namespace CouldComputingServer
 
           CycleRunTime = DateTime.Now - cycleLastElapsed;
 
-
           cycleLastElapsed = DateTime.Now;
 
           BuyBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
@@ -740,10 +738,10 @@ namespace CouldComputingServer
           BuyBotManager.NeatAlgorithm.UpdateGenerationWithoutFitnessReset();
           SellBotManager.NeatAlgorithm.UpdateGenerationWithoutFitnessReset();
 
-          bestMeanGenome = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).FirstOrDefault();
-          var bestMeanSellGenome = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).FirstOrDefault();
+          bestBuyGenome = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).FirstOrDefault();
+          bestSellGenome = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).FirstOrDefault();
 
-          TrainingSession.AddValue(serverRunData.Symbol, Statistic.MedianFitness, (decimal)bestMeanGenome.Fitness);
+          TrainingSession.AddValue(serverRunData.Symbol, Statistic.MedianFitness, (decimal)bestBuyGenome.Fitness);
 
           SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, generation, "BUY.txt", "MEDIAN_BUY.txt");
           SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name, generation, "SELL.txt", "MEDIAN_SELL.txt");
@@ -751,7 +749,7 @@ namespace CouldComputingServer
           BuyBotManager.ResetFitness();
           SellBotManager.ResetFitness();
 
-          StartTest(bestMeanGenome, bestMeanSellGenome);
+          StartTest(bestBuyGenome, bestSellGenome);
         }
       }
 
@@ -817,7 +815,7 @@ namespace CouldComputingServer
           try
           {
             NetworkStream stream = client.Client.GetStream();
-            Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE_CLIENT];
+            Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE_CLIENT * 2];
 
             MemoryStream ms = new MemoryStream();
             StringBuilder messageBuilder = new StringBuilder();
@@ -875,8 +873,6 @@ namespace CouldComputingServer
                   var split = MessageContract.GetDataMessageContent(message);
                   var data = JsonSerializer.Deserialize<ClientData>(split);
 
-                  runResults.Add(data);
-
                   if (!client.Done && data.Symbol == CurrentSymbol)
                   {
                     UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
@@ -891,7 +887,10 @@ namespace CouldComputingServer
                     messageBuilder.Clear();
 
                     if (client.Done)
+                    {
+                      runResults.Add(data);
                       Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
+                    }
                   }
                   else
                   {
@@ -1089,14 +1088,16 @@ namespace CouldComputingServer
             "COTIUSDT",
             "LINKUSDT",
             "MATICUSDT",
-            "BNBUSDT"};
+            "BNBUSDT",
+            "ALGOUSDT"};
 
 
           var fitness = new List<float>();
-          var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
 
           foreach (var symbol in symbolsToTest)
           {
+            var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
+
             await aIBotRunner.RunGeneration(
               1,
               Minutes,

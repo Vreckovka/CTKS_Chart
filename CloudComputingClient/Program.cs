@@ -315,7 +315,7 @@ namespace CloudComputingClient
         if (stream == null)
           return;
 
-        Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE_CLIENT];
+        Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE_CLIENT * 2];
         MemoryStream ms = new MemoryStream();
         int bytesRead;
         StringBuilder messageBuilder = new StringBuilder();
