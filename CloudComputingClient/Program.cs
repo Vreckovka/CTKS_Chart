@@ -435,6 +435,8 @@ namespace CloudComputingClient
       }
       catch (Exception ex)
       {
+        TCPHelper.SendMessage(tcpClient, MessageContract.Error);
+
         Logger.Log(ex);
       }
     }

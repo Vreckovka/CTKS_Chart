@@ -523,7 +523,7 @@ namespace CouldComputingServer
           {
             VSynchronizationContext.InvokeOnDispatcher(() =>
             {
-              Clients.ForEach(x => x.Done = false);
+              Clients.ForEach(x => { x.Done = false; x.ReceivedData = false; });
 
               UpdateGeneration(runResults);
             });
@@ -605,7 +605,7 @@ namespace CouldComputingServer
 
         CurrentSymbol = TrainingSession.SymbolsToTest[gen % TrainingSession.SymbolsToTest.Count].Name;
 
-        Clients.ForEach(x => { x.Done = false; x.ErrorCount = 0; });
+        Clients.ForEach(x => { x.Done = false; x.ErrorCount = 0; x.ReceivedData = false; });
 
         foreach (var client in Clients)
         {
@@ -660,7 +660,7 @@ namespace CouldComputingServer
             messages.Add(client, message);
           }
 
-        
+
           TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
         }
 
@@ -887,7 +887,7 @@ namespace CouldComputingServer
                     message = message.Replace(MessageContract.Handsake, "");
 
                     client.ReceivedData = message == messages[client];
-                    
+
                     continue;
                   }
 
@@ -945,7 +945,7 @@ namespace CouldComputingServer
 
     public bool IsGenerationEnded()
     {
-      return Clients.All(x => x.Done) && Clients.Count > 0;
+      return Clients.All(x => x.Done && x.ReceivedData) && Clients.Count > 0;
     }
 
     #endregion
@@ -1008,7 +1008,7 @@ namespace CouldComputingServer
               {
                 Logger.Log(MessageType.Warning, "SAME FITNESSES FOR DIFFERENT SYMBOLS!");
 
-                foreach(var fitness in existingBuy.fitnesses)
+                foreach (var fitness in existingBuy.fitnesses)
                 {
                   Logger.Log(MessageType.Warning, fitness.ToString());
                 }
