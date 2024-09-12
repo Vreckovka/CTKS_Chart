@@ -26,7 +26,7 @@ namespace CTKS_Chart.ViewModels
     Random random = new Random();
 
     public AIBotRunner(
-      ILogger logger, 
+      ILogger logger,
       IViewModelsFactory viewModelsFactory)
     {
       Logger = logger;
@@ -192,6 +192,7 @@ namespace CTKS_Chart.ViewModels
       List<NeatGenome> buyGenomes,
       List<NeatGenome> sellGenomes)
     {
+      Bots.ForEach(x => x.Stop());
       Bots.Clear();
 
       ToStart = 0;
@@ -220,7 +221,7 @@ namespace CTKS_Chart.ViewModels
       }
 
 
-     return RunBots(random, symbol, isRandom, splitTake, minutes);
+      return RunBots(random, symbol, isRandom, splitTake, minutes);
     }
 
     #endregion
@@ -347,7 +348,8 @@ namespace CTKS_Chart.ViewModels
 
           Task.WaitAll(tasks.ToArray());
 
-          GenerationCompleted(); 
+          if (!Bots.Any(x => x.stopRequested))
+            GenerationCompleted();
         }
       });
     }
@@ -385,7 +387,7 @@ namespace CTKS_Chart.ViewModels
       var closedSell = strategy.ClosedSellPositions.ToList();
 
       var drawdown = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
-      float exponent = 1.25f;
+      float exponent = 2.25f;
       var drawdownMultiplier = (float)Math.Pow(1 - drawdown, exponent);
 
       drawdownMultiplier = Math.Max(drawdownMultiplier, 0);

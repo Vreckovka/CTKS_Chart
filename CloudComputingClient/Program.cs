@@ -53,7 +53,7 @@ namespace CloudComputingClient
     static NEATManager<AIBot> buyManager;
     static NEATManager<AIBot> sellManager;
 
-    static AIBotRunner aIBotRunner;
+    static AIBotRunner aIBotRunner { get; set; }
 
     static ILogger Logger { get; set; }
 
@@ -155,7 +155,7 @@ namespace CloudComputingClient
     {
       var aIStrategy = aIBotRunner.Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First().TradingBot.Strategy;
 
-      SendResult();
+      //SendResult();
 
       serialDisposable.Disposable = Observable.Interval(TimeSpan.FromSeconds(1)).Subscribe((x) =>
       {
@@ -177,7 +177,9 @@ namespace CloudComputingClient
       {
         var clientData = new ClientData();
 
-        foreach(var bot in aIBotRunner.Bots)
+        var bots = aIBotRunner.Bots.ToList();
+
+        foreach (var bot in bots)
         {
           var data = new RunData();
           var strat = bot.TradingBot.Strategy;
@@ -196,10 +198,10 @@ namespace CloudComputingClient
 
           clientData.GenomeData.Add(data);
         }
-       
 
-        var buyGenomes = aIBotRunner.Bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
-        var sellGenomes = aIBotRunner.Bots.Select(x => x.TradingBot.Strategy.SellAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
+
+        var buyGenomes = bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
+        var sellGenomes = bots.Select(x => x.TradingBot.Strategy.SellAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
         clientData.Average = (decimal)buyGenomes.Average(x => x.Fitness);
 
         XmlWriterSettings xwSettings = new XmlWriterSettings();
@@ -225,7 +227,7 @@ namespace CloudComputingClient
           clientData.SellGenomes = sw.ToString();
         }
 
-        clientData.Symbol = aIBotRunner.Bots[0].Asset.Symbol;
+        clientData.Symbol = bots[0].Asset.Symbol;
 
         SendMessage(tcpClient, clientData);
 
@@ -333,7 +335,7 @@ namespace CloudComputingClient
               // Convert the memory stream to string and append to messageBuilder
               string currentData = Encoding.Unicode.GetString(ms.ToArray());
               messageBuilder.Append(currentData);
-
+             
               // Reset the memory stream for the next chunk
               ms.SetLength(0);
 
@@ -344,6 +346,7 @@ namespace CloudComputingClient
                 ms = new MemoryStream();
 
                 serialDisposable.Disposable?.Dispose();
+                aIBotRunner.Bots.ForEach(x => x.Stop());
 
                 continue;
               }
@@ -387,57 +390,49 @@ namespace CloudComputingClient
 
     private static void ProcessMessage(string message)
     {
-      try
-      {
-        var split = MessageContract.GetDataMessageContent(message);
-        var serverRunData = JsonSerializer.Deserialize<ServerRunData>(split);
 
-        if (serverRunData != null)
+      var split = MessageContract.GetDataMessageContent(message);
+      var serverRunData = JsonSerializer.Deserialize<ServerRunData>(split);
+
+      if (serverRunData != null)
+      {
+        LastServerRunData = ServerRunData;
+        ServerRunData = serverRunData;
+
+        List<NeatGenome> buyGenomes = new List<NeatGenome>();
+        List<NeatGenome> sellGenomes = new List<NeatGenome>();
+
+        using (StringReader tx = new StringReader(ServerRunData.BuyGenomes.ToString()))
+        using (XmlReader xr = XmlReader.Create(tx))
         {
-          LastServerRunData = ServerRunData;
-          ServerRunData = serverRunData;
-
-          List<NeatGenome> buyGenomes = new List<NeatGenome>();
-          List<NeatGenome> sellGenomes = new List<NeatGenome>();
-
-          using (StringReader tx = new StringReader(ServerRunData.BuyGenomes.ToString()))
-          using (XmlReader xr = XmlReader.Create(tx))
-          {
-            // Replace NeatGenomeXmlIO.ReadCompleteGenomeList with your actual method to read genomes.
-            buyGenomes = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, buyManager.GetGenomeFactory());
-          }
-
-          using (StringReader tx = new StringReader(ServerRunData.SellGenomes.ToString()))
-          using (XmlReader xr = XmlReader.Create(tx))
-          {
-            // Replace NeatGenomeXmlIO.ReadCompleteGenomeList with your actual method to read genomes.
-            sellGenomes = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, sellManager.GetGenomeFactory());
-          }
-
-          buyManager.NeatAlgorithm.UpdateNetworks(buyGenomes);
-          sellManager.NeatAlgorithm.UpdateNetworks(sellGenomes);
-
-          UpdateUI();
-
-          aIBotRunner.RunGeneration(
-                     ServerRunData.AgentCount,
-                     ServerRunData.Minutes,
-                     ServerRunData.Split,
-                     ServerRunData.Symbol,
-                     ServerRunData.IsRandom,
-                     buyGenomes,
-                     sellGenomes);
-
-          UpdateUI();
-
-          TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(MessageContract.Handsake + JsonSerializer.Serialize(ServerRunData)));
+          // Replace NeatGenomeXmlIO.ReadCompleteGenomeList with your actual method to read genomes.
+          buyGenomes = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, buyManager.GetGenomeFactory());
         }
-      }
-      catch (Exception ex)
-      {
-        TCPHelper.SendMessage(tcpClient, MessageContract.Error);
 
-        Logger.Log(ex);
+        using (StringReader tx = new StringReader(ServerRunData.SellGenomes.ToString()))
+        using (XmlReader xr = XmlReader.Create(tx))
+        {
+          // Replace NeatGenomeXmlIO.ReadCompleteGenomeList with your actual method to read genomes.
+          sellGenomes = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, sellManager.GetGenomeFactory());
+        }
+
+        buyManager.NeatAlgorithm.UpdateNetworks(buyGenomes);
+        sellManager.NeatAlgorithm.UpdateNetworks(sellGenomes);
+
+        UpdateUI();
+
+        TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(MessageContract.Handsake + JsonSerializer.Serialize(ServerRunData)));
+
+        aIBotRunner.RunGeneration(
+                   ServerRunData.AgentCount,
+                   ServerRunData.Minutes,
+                   ServerRunData.Split,
+                   ServerRunData.Symbol,
+                   ServerRunData.IsRandom,
+                   buyGenomes,
+                   sellGenomes);
+
+        UpdateUI();
       }
     }
 

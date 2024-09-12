@@ -43,7 +43,8 @@ namespace CouldComputingServer
        "ADAUSDT",  "BTCUSDT",
        "ETHUSDT",  "LTCUSDT",
        "GALAUSDT", "EOSUSDT",
-       "AVAXUSDT", "SOLUSDT"
+       "AVAXUSDT", "SOLUSDT",
+       "MATICUSDT",
     };
 
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
@@ -587,6 +588,8 @@ namespace CouldComputingServer
       {
         await semaphoreSlimDistribute.WaitAsync();
 
+        Clients.ForEach(x => TCPHelper.SendMessage(x.Client, MessageContract.Done));
+
         generationStart = DateTime.Now;
 
         if (Clients.Count == 0 || !BuyBotManager.NeatAlgorithm.GenomeList.Any())
@@ -664,11 +667,15 @@ namespace CouldComputingServer
           TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
         }
 
-        serialDisposable1.Disposable = Observable.Interval(TimeSpan.FromSeconds(1)).Subscribe((x) =>
+        serialDisposable1.Disposable?.Dispose();
+        serialDisposable1.Disposable = Observable.Interval(TimeSpan.FromSeconds(5)).ObserveOnDispatcher().Subscribe(async (x) =>
         {
           foreach (var client in Clients.Where(x => !x.ReceivedData))
           {
-            TCPHelper.SendMessage(client.Client, messages[client]);
+            TCPHelper.SendMessage(client.Client, MessageContract.Done);
+            TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
+
+            Logger.Log(MessageType.Warning, $"Resending data NO HANDSHAKE");
           }
         });
 
@@ -854,17 +861,12 @@ namespace CouldComputingServer
 
                   if (message.Contains(MessageContract.Error))
                   {
-                    TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
+                    Logger.Log(MessageType.Warning, "Error from client");
 
-                    Logger.Log(MessageType.Warning, "Error from client reseding data");
-
-                    client.ErrorCount++;
+                    messageBuilder.Clear();
+                    buffer.Clear();
+                    stream.Flush();
                     ms = new MemoryStream();
-
-                    if (client.ErrorCount % 10 == 0)
-                    {
-                      ResetGeneration();
-                    }
 
                     continue;
                   }
@@ -882,7 +884,7 @@ namespace CouldComputingServer
 
                   message = MessageContract.GetDataMessageContent(message);
 
-                  if (message.Contains(MessageContract.Handsake))
+                  if (message.Contains(MessageContract.Handsake) && !client.ReceivedData)
                   {
                     message = message.Replace(MessageContract.Handsake, "");
 
@@ -891,9 +893,10 @@ namespace CouldComputingServer
                     continue;
                   }
 
+
                   var data = JsonSerializer.Deserialize<ClientData>(message);
 
-                  if (!client.Done && data.Symbol == CurrentSymbol)
+                  if (!client.Done && data.Symbol == CurrentSymbol && client.ReceivedData)
                   {
                     UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
 
@@ -907,7 +910,18 @@ namespace CouldComputingServer
                   }
                   else
                   {
-                    //Logger.Log(MessageType.Inform, $"Duplicated message {data.Symbol}");
+                    if(!client.Done)
+                    {
+                      client.ErrorCount++;
+
+                      if (client.ErrorCount > 5)
+                      {
+                        client.ReceivedData = false;
+                        TCPHelper.SendMessage(client.Client, MessageContract.Done);
+
+                        Logger.Log(MessageType.Warning, "Reseting HANDSHAKE");
+                      }
+                    }
                   }
                 }
               }
@@ -918,9 +932,12 @@ namespace CouldComputingServer
 
                 client.ErrorCount++;
 
-                if (client.ErrorCount % 10 == 0)
+                if (client.ErrorCount > 5)
                 {
-                  ResetGeneration();
+                  client.ReceivedData = false;
+                  TCPHelper.SendMessage(client.Client, MessageContract.Done);
+
+                  Logger.Log(MessageType.Warning, "Reseting HANDSHAKE");
                 }
 
                 Logger.Log(MessageType.Error, $"ERROR TRANSIMITING DATA!", false, false);
@@ -1100,7 +1117,6 @@ namespace CouldComputingServer
           var symbolsToTest = new string[] {
             "COTIUSDT",
             "LINKUSDT",
-            "MATICUSDT",
             "BNBUSDT",
             "ALGOUSDT"};
 

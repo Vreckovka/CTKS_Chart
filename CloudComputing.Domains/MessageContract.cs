@@ -21,7 +21,7 @@ namespace CloudComputing.Domains
 
     public static bool IsDataMessage(string data)
     {
-      return messageRegex.IsMatch(data);
+      return data.Contains(StartOfMessage) && data.Contains(EndOfMessage);
     }
 
     public static string GetDataMessage(string data)
