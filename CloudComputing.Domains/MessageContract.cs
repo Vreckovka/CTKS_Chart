@@ -4,13 +4,14 @@ namespace CloudComputing.Domains
 {
   public static class MessageContract
   {
-    public static string Handsake { get; } = "HANDSHAKE";
+    public static string Handshake { get; } = "HANDSHAKE";
     public static string Done { get; } = "1DONE1";
     public static string StartOfMessage { get; } = "1START1";
     public static string EndOfMessage { get; } = "1END1";
     public static string Error  { get; } = "1ERROR1";
 
-    public static int BUFFER_SIZE_CLIENT { get; } = 1048576 / 2; // 1MB
+    public static int BUFFER_SIZE_CLIENT { get; } = 1048576 / 4;
+    public static int BUFFER_SIZE_CLIENT_CACHE { get; } = 1048576; // 1MB
 
     private static Regex messageRegex = new Regex($"{StartOfMessage}(.*?){EndOfMessage}");
     public static string GetDataMessageContent(string data)

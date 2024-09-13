@@ -160,6 +160,8 @@ namespace CloudComputingClient
       serialDisposable.Disposable = Observable.Interval(TimeSpan.FromSeconds(1)).Subscribe((x) =>
       {
         SendResult();
+
+        Logger.Log(MessageType.Inform2, "RESULTS SENDED");
       });
 
 
@@ -187,8 +189,8 @@ namespace CloudComputingClient
           var buyGenome = (NeatGenome)strat.BuyAIBot.NeuralNetwork;
           var sellGenome = (NeatGenome)strat.SellAIBot.NeuralNetwork;
 
-          data.BuyGenome = NeatGenomeXmlIO.SaveComplete(buyGenome, false).OuterXml;
-          data.SellGenome = NeatGenomeXmlIO.SaveComplete(sellGenome, false).OuterXml;
+          data.BuyGenomeId = buyGenome.Id;
+          data.SellGenomeId = sellGenome.Id;
 
           data.Drawdawn = strat.MaxDrawdawnFromMaxTotalValue;
           data.TotalValue = strat.TotalValue;
@@ -199,33 +201,9 @@ namespace CloudComputingClient
           clientData.GenomeData.Add(data);
         }
 
-
         var buyGenomes = bots.Select(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
-        var sellGenomes = bots.Select(x => x.TradingBot.Strategy.SellAIBot.NeuralNetwork).OfType<NeatGenome>().ToList();
+
         clientData.Average = (decimal)buyGenomes.Average(x => x.Fitness);
-
-        XmlWriterSettings xwSettings = new XmlWriterSettings();
-        xwSettings.Indent = true;
-
-        using (var sw = new StringWriter())
-        {
-          using (var xw = XmlWriter.Create(sw, xwSettings))
-          {
-            NeatGenomeXmlIO.WriteComplete(xw, buyGenomes, false);
-          }
-
-          clientData.BuyGenomes = sw.ToString();
-        }
-
-        using (var sw = new StringWriter())
-        {
-          using (var xw = XmlWriter.Create(sw, xwSettings))
-          {
-            NeatGenomeXmlIO.WriteComplete(xw, sellGenomes, false);
-          }
-
-          clientData.SellGenomes = sw.ToString();
-        }
 
         clientData.Symbol = bots[0].Asset.Symbol;
 
@@ -317,7 +295,7 @@ namespace CloudComputingClient
         if (stream == null)
           return;
 
-        Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE_CLIENT * 2];
+        Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE_CLIENT_CACHE];
         MemoryStream ms = new MemoryStream();
         int bytesRead;
         StringBuilder messageBuilder = new StringBuilder();
@@ -333,11 +311,31 @@ namespace CloudComputingClient
               ms.Write(buffer.Slice(0, bytesRead));
 
               // Convert the memory stream to string and append to messageBuilder
-              string currentData = Encoding.Unicode.GetString(ms.ToArray());
+              string currentData = Encoding.UTF8.GetString(ms.ToArray());
               messageBuilder.Append(currentData);
              
               // Reset the memory stream for the next chunk
               ms.SetLength(0);
+
+              if (currentData == MessageContract.Handshake && ServerRunData != null)
+              {
+                serialDisposable.Disposable?.Dispose();
+
+                aIBotRunner.RunGeneration(
+                           ServerRunData.AgentCount,
+                           ServerRunData.Minutes,
+                           ServerRunData.Split,
+                           ServerRunData.Symbol,
+                           ServerRunData.IsRandom,
+                           buyGenomes,
+                           sellGenomes);
+
+
+                UpdateUI();
+
+                continue;
+              }
+
 
               if (currentData.Contains(MessageContract.Done))
               {
@@ -345,12 +343,13 @@ namespace CloudComputingClient
                 stream.Flush();
                 ms = new MemoryStream();
 
-                serialDisposable.Disposable?.Dispose();
+
                 aIBotRunner.Bots.ForEach(x => x.Stop());
 
                 continue;
               }
 
+            
               // Check if the message contains the 'Done' marker to indicate it's complete
               if (MessageContract.IsDataMessage(messageBuilder.ToString()))
               {
@@ -389,6 +388,8 @@ namespace CloudComputingClient
         Console.WriteLine("DISCONNECTED!");
       }
     }
+    static List<NeatGenome> buyGenomes = new List<NeatGenome>();
+    static List<NeatGenome> sellGenomes = new List<NeatGenome>();
 
     private static void ProcessMessage(string message)
     {
@@ -400,9 +401,6 @@ namespace CloudComputingClient
       {
         LastServerRunData = ServerRunData;
         ServerRunData = serverRunData;
-
-        List<NeatGenome> buyGenomes = new List<NeatGenome>();
-        List<NeatGenome> sellGenomes = new List<NeatGenome>();
 
         using (StringReader tx = new StringReader(ServerRunData.BuyGenomes.ToString()))
         using (XmlReader xr = XmlReader.Create(tx))
@@ -423,18 +421,8 @@ namespace CloudComputingClient
 
         UpdateUI();
 
-        aIBotRunner.RunGeneration(
-                   ServerRunData.AgentCount,
-                   ServerRunData.Minutes,
-                   ServerRunData.Split,
-                   ServerRunData.Symbol,
-                   ServerRunData.IsRandom,
-                   buyGenomes,
-                   sellGenomes);
 
-        TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(MessageContract.Handsake + JsonSerializer.Serialize(ServerRunData)));
-
-        UpdateUI();
+        TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(MessageContract.Handshake + ServerRunData.Symbol));
       }
     }
 

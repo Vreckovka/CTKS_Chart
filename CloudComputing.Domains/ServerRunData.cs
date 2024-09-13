@@ -27,7 +27,8 @@ namespace CloudComputing.Domains
       if (_stream != null)
       {
 
-        var data = Encoding.Unicode.GetBytes(message);
+        
+        var data = Encoding.UTF8.GetBytes(message);
 
         int totalBytesSent = 0;
 

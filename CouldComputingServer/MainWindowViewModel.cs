@@ -44,7 +44,6 @@ namespace CouldComputingServer
        "ETHUSDT",  "LTCUSDT",
        "GALAUSDT", "EOSUSDT",
        "AVAXUSDT", "SOLUSDT",
-       "MATICUSDT",
     };
 
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
@@ -524,8 +523,6 @@ namespace CouldComputingServer
           {
             VSynchronizationContext.InvokeOnDispatcher(() =>
             {
-              Clients.ForEach(x => { x.Done = false; x.ReceivedData = false; });
-
               UpdateGeneration(runResults);
             });
           }
@@ -561,6 +558,14 @@ namespace CouldComputingServer
             ToStart = 0;
             InProgress = 0;
             FinishedCount = 0;
+
+            var mod = Cycle % TrainingSession.SymbolsToTest.Count;
+
+            Cycle = Cycle - mod;
+
+            BuyBotManager.NeatAlgorithm.GenomeList.OfType<NeatGenome>().ForEach(x => x.fitnesses.Clear());
+            SellBotManager.NeatAlgorithm.GenomeList.OfType<NeatGenome>().ForEach(x => x.fitnesses.Clear());
+
             DistributeGeneration(Cycle);
           });
 
@@ -587,6 +592,7 @@ namespace CouldComputingServer
       try
       {
         await semaphoreSlimDistribute.WaitAsync();
+        serialDisposable1.Disposable?.Dispose();
 
         Clients.ForEach(x => TCPHelper.SendMessage(x.Client, MessageContract.Done));
 
@@ -667,8 +673,8 @@ namespace CouldComputingServer
           TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
         }
 
-        serialDisposable1.Disposable?.Dispose();
-        serialDisposable1.Disposable = Observable.Interval(TimeSpan.FromSeconds(5)).ObserveOnDispatcher().Subscribe(async (x) =>
+      
+        serialDisposable1.Disposable = Observable.Interval(TimeSpan.FromSeconds(5)).Subscribe(async (x) =>
         {
           foreach (var client in Clients.Where(x => !x.ReceivedData))
           {
@@ -710,8 +716,8 @@ namespace CouldComputingServer
       {
         if (bestBuyGenome != null)
         {
-          var bestClient = runData.FirstOrDefault(x => x.BuyGenomes.Contains($"Network id=\"{bestBuyGenome.Id}\""));
-          var bestRun = bestClient.GenomeData.FirstOrDefault(x => x.BuyGenome.Contains($"Network id=\"{bestBuyGenome.Id}\""));
+          var bestClient = runData.FirstOrDefault(x => x.GenomeData.Any(x => x.BuyGenomeId == bestBuyGenome.Id));
+          var bestRun = bestClient.GenomeData.FirstOrDefault(x => x.BuyGenomeId == bestBuyGenome.Id);
 
           Logger.Log(MessageType.Inform, $"{bestBuyGenome.Id} - Genome ID {bestClient.Symbol} - {bestRun.TotalValue.ToString("N2")} $");
 
@@ -761,6 +767,8 @@ namespace CouldComputingServer
           bestSellGenome = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).FirstOrDefault();
 
           TrainingSession.AddValue(serverRunData.Symbol, Statistic.MedianFitness, (decimal)bestBuyGenome.Fitness);
+
+          Logger.Log(MessageType.Inform, $"Mean fitness: {bestBuyGenome.Fitness}");
 
           SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, generation, "BUY.txt", "MEDIAN_BUY.txt");
           SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name, generation, "SELL.txt", "MEDIAN_SELL.txt");
@@ -834,7 +842,7 @@ namespace CouldComputingServer
         try
         {
           NetworkStream stream = client.Client.GetStream();
-          Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE_CLIENT * 2];
+          Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE_CLIENT_CACHE];
 
           MemoryStream ms = new MemoryStream();
           StringBuilder messageBuilder = new StringBuilder();
@@ -850,7 +858,7 @@ namespace CouldComputingServer
                 ms.Write(buffer.Slice(0, bytesRead));
 
                 // Convert the memory stream to string and append to messageBuilder
-                string currentData = Encoding.Unicode.GetString(ms.ToArray());
+                string currentData = Encoding.UTF8.GetString(ms.ToArray());
                 messageBuilder.Append(currentData);
 
                 // Reset the memory stream for the next chunk
@@ -920,11 +928,12 @@ namespace CouldComputingServer
     {
       message = MessageContract.GetDataMessageContent(message);
 
-      if (message.Contains(MessageContract.Handsake) && !client.ReceivedData)
+      if (message.Contains(MessageContract.Handshake) && !client.ReceivedData)
       {
-        message = message.Replace(MessageContract.Handsake, "");
+        message = message.Replace(MessageContract.Handshake, "");
+        var storedData = JsonSerializer.Deserialize<ServerRunData>(messages[client]);
 
-        client.ReceivedData = message == messages[client];
+        client.ReceivedData = message == storedData.Symbol;
 
         if (!client.ReceivedData)
         {
@@ -936,6 +945,10 @@ namespace CouldComputingServer
             ResetGeneration();
           }
         }
+        else
+        {
+          TCPHelper.SendMessage(client.Client, MessageContract.Handshake);
+        }
 
         return;
       }
@@ -944,7 +957,7 @@ namespace CouldComputingServer
 
       if (!client.Done && data.Symbol == CurrentSymbol && client.ReceivedData)
       {
-        UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
+        UpdateManager(client, data.GenomeData, BuyBotManager, SellBotManager);
 
         client.ErrorCount = 0;
 
@@ -989,9 +1002,9 @@ namespace CouldComputingServer
 
     private void UpdateManager(
       CloudClient tcpClient,
-      string buyXml,
+      IList<CloudComputing.Domains.RunData> runDatas,
       NEATManager<AIBot> buyManger,
-      string sellXml, NEATManager<AIBot> sellManager)
+      NEATManager<AIBot> sellManager)
     {
       lock (managerBatton)
       {
@@ -1002,40 +1015,19 @@ namespace CouldComputingServer
           return;
         }
 
-        List<NeatGenome> buyGenomeList = new List<NeatGenome>();
-        List<NeatGenome> sellGenomeList = new List<NeatGenome>();
 
-        using (StringReader tx = new StringReader(buyXml))
-        using (XmlReader xr = XmlReader.Create(tx))
+
+        foreach (var receivedGenome in runDatas)
         {
-          buyGenomeList = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, buyManger.GetGenomeFactory());
-        }
-
-        using (StringReader tx = new StringReader(sellXml))
-        using (XmlReader xr = XmlReader.Create(tx))
-        {
-          sellGenomeList = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, sellManager.GetGenomeFactory());
-        }
-
-        List<Tuple<NeatGenome, NeatGenome>> list = new List<Tuple<NeatGenome, NeatGenome>>();
-
-        for (int i = 0; i < buyGenomeList.Count; i++)
-        {
-          list.Add(new Tuple<NeatGenome, NeatGenome>(buyGenomeList[i], sellGenomeList[i]));
-        }
-
-
-        foreach (var receivedGenome in list)
-        {
-          var existingBuy = buyManger.NeatAlgorithm.GenomeList.SingleOrDefault(x => x.Id == receivedGenome.Item1.Id);
-          var existingSell = sellManager.NeatAlgorithm.GenomeList.SingleOrDefault(x => x.Id == receivedGenome.Item2.Id);
+          var existingBuy = buyManger.NeatAlgorithm.GenomeList.SingleOrDefault(x => x.Id == receivedGenome.BuyGenomeId);
+          var existingSell = sellManager.NeatAlgorithm.GenomeList.SingleOrDefault(x => x.Id == receivedGenome.SellGenomeId);
 
           if (existingBuy != null && existingSell != null)
           {
             if (!tcpClient.SentBuyGenomes[existingBuy.Id] && !tcpClient.SentSellGenomes[existingSell.Id])
             {
-              existingBuy.AddSequentialFitness(receivedGenome.Item1.Fitness);
-              existingSell.AddSequentialFitness(receivedGenome.Item2.Fitness);
+              existingBuy.AddSequentialFitness((float)receivedGenome.Fitness);
+              existingSell.AddSequentialFitness((float)receivedGenome.Fitness);
 
               if (existingBuy.fitnesses.Where(x => x > 0).GroupBy(x => x).Any(g => g.Count() > 1))
               {
@@ -1081,7 +1073,7 @@ namespace CouldComputingServer
           }
           else
           {
-            Logger.Log(MessageType.Error, $"NOT FOUND GENOME WITH ID: {receivedGenome.Item1.Id}", true);
+            Logger.Log(MessageType.Error, $"NOT FOUND GENOME WITH ID: {receivedGenome.BuyGenomeId}", true);
 
             if (tcpClient.ErrorCount < 10)
             {
@@ -1131,9 +1123,9 @@ namespace CouldComputingServer
           await semaphoreSlim.WaitAsync();
 
           var symbolsToTest = new string[] {
-            "ADAUSDT",  
+            "ADAUSDT",
             "BTCUSDT",
-
+            "MATICUSDT",
             "BNBUSDT",
             "ALGOUSDT"};
 
@@ -1158,7 +1150,7 @@ namespace CouldComputingServer
 
             fitness.Add(neat.Fitness);
 
-            Logger.Log(MessageType.Inform, $"{aIBotRunner.Bots[0].Asset.Symbol} - {neat.Fitness}");
+            Logger.Log(MessageType.Inform, $"{aIBotRunner.Bots[0].Asset.Symbol} - {neat.Fitness} - {aIBotRunner.Bots[0].TradingBot.Strategy.TotalValue.ToString("N2")} $");
 
             neat.ResetFitness();
           }
