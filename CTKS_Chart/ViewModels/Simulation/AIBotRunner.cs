@@ -131,7 +131,7 @@ namespace CTKS_Chart.ViewModels
     #endregion
 
 
-    public ObservableCollection<SimulationTradingBot<AIPosition, AIStrategy>> Bots { get; set; } = new ObservableCollection<SimulationTradingBot<AIPosition, AIStrategy>>();
+    public List<SimulationTradingBot<AIPosition, AIStrategy>> Bots { get; set; } = new List<SimulationTradingBot<AIPosition, AIStrategy>>();
     ILogger Logger { get; }
     IViewModelsFactory ViewModelsFactory { get; }
 
@@ -350,6 +350,13 @@ namespace CTKS_Chart.ViewModels
 
           if (!Bots.Any(x => x.stopRequested))
             GenerationCompleted();
+          else
+          {
+            InProgress = 0;
+            FinishedCount = 0;
+          }
+
+          canRunGeneration = true;
         }
       });
     }
@@ -368,8 +375,6 @@ namespace CTKS_Chart.ViewModels
       {
         AddFitness(x.TradingBot.Strategy);
       });
-
-      canRunGeneration = true;
 
       OnGenerationCompleted?.Invoke(null, null);
     }

@@ -290,6 +290,7 @@
                         IconCheckedColor="{StaticResource YellowColor}"
                         IconDefaultColor="#15ffffff"
                         IsChecked="{Binding ReceivedData}"
+                        IsHitTestVisible="False"
                         IsReadOnly="True" />
 
                       <controls:PathButton
@@ -297,6 +298,7 @@
                         IconCheckedColor="{StaticResource GreenColor}"
                         IconDefaultColor="#15ffffff"
                         IsChecked="{Binding Done}"
+                        IsHitTestVisible="False"
                         IsReadOnly="True" />
 
                       <TextBlock

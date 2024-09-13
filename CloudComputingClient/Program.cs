@@ -373,6 +373,8 @@ namespace CloudComputingClient
             // Handle exceptions during message processing
             TCPHelper.SendMessage(tcpClient, MessageContract.Error);
             ms = new MemoryStream();
+            messageBuilder.Clear();
+
             Logger.Log(ex);
             buffer.Clear();
             stream.Flush();
@@ -421,8 +423,6 @@ namespace CloudComputingClient
 
         UpdateUI();
 
-        TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(MessageContract.Handsake + JsonSerializer.Serialize(ServerRunData)));
-
         aIBotRunner.RunGeneration(
                    ServerRunData.AgentCount,
                    ServerRunData.Minutes,
@@ -431,6 +431,8 @@ namespace CloudComputingClient
                    ServerRunData.IsRandom,
                    buyGenomes,
                    sellGenomes);
+
+        TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(MessageContract.Handsake + JsonSerializer.Serialize(ServerRunData)));
 
         UpdateUI();
       }

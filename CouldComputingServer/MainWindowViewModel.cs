@@ -40,7 +40,7 @@ namespace CouldComputingServer
     List<ClientData> runResults = new List<ClientData>();
 
     string[] allSymbols = new string[] {
-       "ADAUSDT",  "BTCUSDT",
+       "COTIUSDT", "LINKUSDT",
        "ETHUSDT",  "LTCUSDT",
        "GALAUSDT", "EOSUSDT",
        "AVAXUSDT", "SOLUSDT",
@@ -830,130 +830,146 @@ namespace CouldComputingServer
     private void HandleClient(CloudClient client)
     {
       Task.Run(() =>
+      {
+        try
         {
-          try
+          NetworkStream stream = client.Client.GetStream();
+          Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE_CLIENT * 2];
+
+          MemoryStream ms = new MemoryStream();
+          StringBuilder messageBuilder = new StringBuilder();
+          int bytesRead;
+
+          while ((bytesRead = stream.Read(buffer)) > 0)
           {
-            NetworkStream stream = client.Client.GetStream();
-            Span<byte> buffer = new byte[MessageContract.BUFFER_SIZE_CLIENT * 2];
-
-            MemoryStream ms = new MemoryStream();
-            StringBuilder messageBuilder = new StringBuilder();
-
-            int bytesRead;
-
-            while ((bytesRead = stream.Read(buffer)) > 0)
+            try
             {
-              try
+              lock (batton)
               {
-                lock (batton)
+                // Append received data to the memory stream
+                ms.Write(buffer.Slice(0, bytesRead));
+
+                // Convert the memory stream to string and append to messageBuilder
+                string currentData = Encoding.Unicode.GetString(ms.ToArray());
+                messageBuilder.Append(currentData);
+
+                // Reset the memory stream for the next chunk
+                ms.SetLength(0);
+
+                var message = messageBuilder.ToString();
+
+                if (message.Trim() == MessageContract.Error)
                 {
-                  // Append received data to the memory stream
-                  ms.Write(buffer.Slice(0, bytesRead));
+                  Logger.Log(MessageType.Warning, "Error from client");
 
-                  // Convert the memory stream to string and append to messageBuilder
-                  string currentData = Encoding.Unicode.GetString(ms.ToArray());
-                  messageBuilder.Append(currentData);
-
-                  // Reset the memory stream for the next chunk
-                  ms.SetLength(0);
-
-                  var message = messageBuilder.ToString();
-
-                  if (message.Contains(MessageContract.Error))
-                  {
-                    Logger.Log(MessageType.Warning, "Error from client");
-
-                    messageBuilder.Clear();
-                    buffer.Clear();
-                    stream.Flush();
-                    ms = new MemoryStream();
-
-                    continue;
-                  }
-
-                  if (!MessageContract.IsDataMessage(message))
-                  {
-                    continue;
-                  }
-
-                  // Clear for the next message
-                  messageBuilder.Clear();
-                  buffer.Clear();
-                  stream.Flush();
-                  ms = new MemoryStream();
-
-                  message = MessageContract.GetDataMessageContent(message);
-
-                  if (message.Contains(MessageContract.Handsake) && !client.ReceivedData)
-                  {
-                    message = message.Replace(MessageContract.Handsake, "");
-
-                    client.ReceivedData = message == messages[client];
-
-                    continue;
-                  }
-
-
-                  var data = JsonSerializer.Deserialize<ClientData>(message);
-
-                  if (!client.Done && data.Symbol == CurrentSymbol && client.ReceivedData)
-                  {
-                    UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
-
-                    client.ErrorCount = 0;
-
-                    if (client.Done)
-                    {
-                      runResults.Add(data);
-                      Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
-                    }
-                  }
-                  else
-                  {
-                    if(!client.Done)
-                    {
-                      client.ErrorCount++;
-
-                      if (client.ErrorCount > 5)
-                      {
-                        client.ReceivedData = false;
-                        TCPHelper.SendMessage(client.Client, MessageContract.Done);
-
-                        Logger.Log(MessageType.Warning, "Reseting HANDSHAKE");
-                      }
-                    }
-                  }
-                }
-              }
-              catch (Exception ex)
-              {
-                ms = new MemoryStream();
-                messageBuilder.Clear();
-
-                client.ErrorCount++;
-
-                if (client.ErrorCount > 5)
-                {
                   client.ReceivedData = false;
-                  TCPHelper.SendMessage(client.Client, MessageContract.Done);
+                  TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
+                  messageBuilder.Clear();
 
-                  Logger.Log(MessageType.Warning, "Reseting HANDSHAKE");
+                  continue;
                 }
 
-                Logger.Log(MessageType.Error, $"ERROR TRANSIMITING DATA!", false, false);
+                // Here is where you handle message boundary detection
+                if (MessageContract.IsDataMessage(message))
+                {
+                  // Process complete message
+                  ProcessMessage(client, message);
+
+                  // Clear the builder after processing a full message
+                  messageBuilder.Clear();
+                }
+                else
+                {
+                  // If message is not complete, keep buffering
+                  continue;
+                }
+              }
+            }
+            catch (Exception ex)
+            {
+              ms = new MemoryStream();
+              messageBuilder.Clear();
+              stream.Flush();
+
+              client.ErrorCount++;
+
+              if (client.ErrorCount > 5)
+              {
+                client.ReceivedData = false;
+                TCPHelper.SendMessage(client.Client, MessageContract.Done);
+
+                Logger.Log(MessageType.Warning, "Resetting HANDSHAKE");
+                client.ErrorCount = 0;
               }
 
+              Logger.Log(MessageType.Error, $"ERROR TRANSMITTING DATA!", false, false);
             }
-
-            TryRemoveClient(client);
           }
-          catch (Exception ex)
+
+          TryRemoveClient(client);
+        }
+        catch (Exception ex)
+        {
+          TryRemoveClient(client);
+          Logger.Log(ex);
+        }
+      });
+    }
+
+    private void ProcessMessage(CloudClient client, string message)
+    {
+      message = MessageContract.GetDataMessageContent(message);
+
+      if (message.Contains(MessageContract.Handsake) && !client.ReceivedData)
+      {
+        message = message.Replace(MessageContract.Handsake, "");
+
+        client.ReceivedData = message == messages[client];
+
+        if (!client.ReceivedData)
+        {
+          client.ErrorCount++;
+
+          if (client.ErrorCount > 5)
           {
-            TryRemoveClient(client);
-
-            Logger.Log(ex);
+            client.ErrorCount = 0;
+            ResetGeneration();
           }
-        });
+        }
+
+        return;
+      }
+
+      var data = JsonSerializer.Deserialize<ClientData>(message);
+
+      if (!client.Done && data.Symbol == CurrentSymbol && client.ReceivedData)
+      {
+        UpdateManager(client, data.BuyGenomes, BuyBotManager, data.SellGenomes, SellBotManager);
+
+        client.ErrorCount = 0;
+
+        if (client.Done)
+        {
+          runResults.Add(data);
+          Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
+        }
+      }
+      else
+      {
+        if (!client.Done)
+        {
+          client.ErrorCount++;
+
+          if (client.ErrorCount > 5)
+          {
+            client.ReceivedData = false;
+            TCPHelper.SendMessage(client.Client, MessageContract.Done);
+
+            client.ErrorCount = 0;
+            Logger.Log(MessageType.Warning, "Reseting HANDSHAKE");
+          }
+        }
+      }
     }
 
     #endregion
@@ -1115,8 +1131,9 @@ namespace CouldComputingServer
           await semaphoreSlim.WaitAsync();
 
           var symbolsToTest = new string[] {
-            "COTIUSDT",
-            "LINKUSDT",
+            "ADAUSDT",  
+            "BTCUSDT",
+
             "BNBUSDT",
             "ALGOUSDT"};
 
