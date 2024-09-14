@@ -43,7 +43,7 @@ namespace CouldComputingServer
        "COTIUSDT", "LINKUSDT",
        "ETHUSDT",  "LTCUSDT",
        "GALAUSDT", "EOSUSDT",
-       "AVAXUSDT", "SOLUSDT",
+       //"AVAXUSDT", "SOLUSDT",
     };
 
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
@@ -594,8 +594,6 @@ namespace CouldComputingServer
         await semaphoreSlimDistribute.WaitAsync();
         serialDisposable1.Disposable?.Dispose();
 
-        Clients.ForEach(x => TCPHelper.SendMessage(x.Client, MessageContract.Done));
-
         generationStart = DateTime.Now;
 
         if (Clients.Count == 0 || !BuyBotManager.NeatAlgorithm.GenomeList.Any())
@@ -673,15 +671,22 @@ namespace CouldComputingServer
           TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
         }
 
-      
+
         serialDisposable1.Disposable = Observable.Interval(TimeSpan.FromSeconds(5)).Subscribe(async (x) =>
         {
           foreach (var client in Clients.Where(x => !x.ReceivedData))
           {
-            TCPHelper.SendMessage(client.Client, MessageContract.Done);
-            TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
+            if (messages.TryGetValue(client, out var message))
+            {
+              TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
 
-            Logger.Log(MessageType.Warning, $"Resending data NO HANDSHAKE");
+              Logger.Log(MessageType.Warning, $"Resending data NO HANDSHAKE");
+            }
+            else
+            {
+              Logger.Log(MessageType.Warning, $"NO CACHED DATA!");
+              ResetGeneration();
+            }
           }
         });
 
@@ -757,6 +762,7 @@ namespace CouldComputingServer
 
           cycleLastElapsed = DateTime.Now;
 
+
           BuyBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
           SellBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
 
@@ -776,7 +782,7 @@ namespace CouldComputingServer
           BuyBotManager.ResetFitness();
           SellBotManager.ResetFitness();
 
-          StartTest(bestBuyGenome, bestSellGenome);
+          StartTest(generation);
         }
       }
 
@@ -904,7 +910,6 @@ namespace CouldComputingServer
               if (client.ErrorCount > 5)
               {
                 client.ReceivedData = false;
-                TCPHelper.SendMessage(client.Client, MessageContract.Done);
 
                 Logger.Log(MessageType.Warning, "Resetting HANDSHAKE");
                 client.ErrorCount = 0;
@@ -928,26 +933,30 @@ namespace CouldComputingServer
     {
       message = MessageContract.GetDataMessageContent(message);
 
-      if (message.Contains(MessageContract.Handshake) && !client.ReceivedData)
+
+      if (message.Contains(MessageContract.Handshake))
       {
         message = message.Replace(MessageContract.Handshake, "");
         var storedData = JsonSerializer.Deserialize<ServerRunData>(messages[client]);
 
-        client.ReceivedData = message == storedData.Symbol;
-
         if (!client.ReceivedData)
         {
-          client.ErrorCount++;
+          client.ReceivedData = message == storedData.Symbol;
 
-          if (client.ErrorCount > 5)
+          if (!client.ReceivedData)
           {
-            client.ErrorCount = 0;
-            ResetGeneration();
+            client.ErrorCount++;
+
+            if (client.ErrorCount > 5)
+            {
+              client.ErrorCount = 0;
+              ResetGeneration();
+            }
           }
-        }
-        else
-        {
-          TCPHelper.SendMessage(client.Client, MessageContract.Handshake);
+          else
+          {
+            TCPHelper.SendMessage(client.Client, MessageContract.Handshake);
+          }
         }
 
         return;
@@ -976,7 +985,6 @@ namespace CouldComputingServer
           if (client.ErrorCount > 5)
           {
             client.ReceivedData = false;
-            TCPHelper.SendMessage(client.Client, MessageContract.Done);
 
             client.ErrorCount = 0;
             Logger.Log(MessageType.Warning, "Reseting HANDSHAKE");
@@ -1038,21 +1046,7 @@ namespace CouldComputingServer
                   Logger.Log(MessageType.Warning, fitness.ToString());
                 }
 
-                ResetGeneration();
-
-              }
-
-              if (existingBuy.fitnesses.Where(x => x > 0).GroupBy(x => x).Any(g => g.Count() > 1))
-              {
-                Logger.Log(MessageType.Warning, "SAME FITNESSES FOR DIFFERENT SYMBOLS!");
-
-                foreach (var fitness in existingBuy.fitnesses)
-                {
-                  Logger.Log(MessageType.Warning, fitness.ToString());
-                }
-
-                ResetGeneration();
-
+                //ResetGeneration();
               }
 
 
@@ -1114,55 +1108,84 @@ namespace CouldComputingServer
 
     SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
 
-    private void StartTest(NeatGenome buy, NeatGenome sell)
+    private void StartTest(string generation)
     {
-      Task.Run(async () =>
+      VSynchronizationContext.InvokeOnDispatcher(async () =>
       {
         try
         {
           await semaphoreSlim.WaitAsync();
 
-          var symbolsToTest = new string[] {
+          List<float> ffasd = new List<float>();
+
+          for (int i = 0; i < 3; i++)
+          {
+            var symbolsToTest = new string[] {
             "ADAUSDT",
             "BTCUSDT",
             "MATICUSDT",
             "BNBUSDT",
             "ALGOUSDT"};
 
+            var fitness = new List<float>();
 
-          var fitness = new List<float>();
+            var buyBotManager_1 = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
+            var bellBotManager_1 = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
 
-          foreach (var symbol in symbolsToTest)
-          {
-            var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
+            var aiPath = @$"Trainings\{TrainingSession.Name}\{generation}\MEDIAN_BUY.txt";
+            var buy = aiPath.Replace("SELL", "BUY");
+            var sell = aiPath.Replace("BUY", "SELL");
 
-            await aIBotRunner.RunGeneration(
-              1,
-              Minutes,
-              SplitTake,
-              symbol,
-              false,
-              new List<NeatGenome>() { buy },
-              new List<NeatGenome>() { sell }
-              );
+            buyBotManager_1.LoadBestGenome(buy);
+            bellBotManager_1.LoadBestGenome(sell);
 
-            var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
+            buyBotManager_1.InitializeManager(1);
+            bellBotManager_1.InitializeManager(1);
 
-            fitness.Add(neat.Fitness);
+            var buyG = buyBotManager_1.NeatAlgorithm.GenomeList[0];
+            var sellG = bellBotManager_1.NeatAlgorithm.GenomeList[0];
 
-            Logger.Log(MessageType.Inform, $"{aIBotRunner.Bots[0].Asset.Symbol} - {neat.Fitness} - {aIBotRunner.Bots[0].TradingBot.Strategy.TotalValue.ToString("N2")} $");
+            foreach (var symbol in symbolsToTest)
+            {
+              var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
 
-            neat.ResetFitness();
+              await aIBotRunner.RunGeneration(
+                1,
+                Minutes,
+                SplitTake,
+                symbol,
+                false,
+                new List<NeatGenome>() { new NeatGenome(buyG, buyG.Id, 0) },
+                new List<NeatGenome>() { new NeatGenome(sellG, sellG.Id, 0) }
+                );
+
+              var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
+
+              fitness.Add(neat.Fitness);
+
+              Logger.Log(MessageType.Inform, $"{aIBotRunner.Bots[0].Asset.Symbol} - {neat.Fitness} - {aIBotRunner.Bots[0].TradingBot.Strategy.TotalValue.ToString("N2")} $");
+
+              neat.ResetFitness();
+            }
+
+            var meanFitness = MathHelper.GeometricMean(fitness);
+
+            Logger.Log(MessageType.Inform, $"MEAN - {meanFitness}");
+
+            ffasd.Add(meanFitness);
+
           }
 
-          var meanFitness = MathHelper.GeometricMean(fitness);
-
-          Logger.Log(MessageType.Inform, $"MEAN - {meanFitness}");
 
           VSynchronizationContext.InvokeOnDispatcher(() =>
           {
-            TrainingSession.AddValue(CurrentSymbol, Statistic.BackTestMean, (decimal)meanFitness);
+            TrainingSession.AddValue(CurrentSymbol, Statistic.BackTestMean, (decimal)ffasd[0]);
           });
+
+          foreach (var asd in ffasd)
+          {
+            Console.WriteLine(asd);
+          }
         }
         finally
         {

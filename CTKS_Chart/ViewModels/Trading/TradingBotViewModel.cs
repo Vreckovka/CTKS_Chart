@@ -698,7 +698,7 @@ namespace CTKS_Chart.ViewModels
 
       if (DrawingViewModel.ActualCandles.Count > 0)
       {
-        RenderLayout(DrawingViewModel.ActualCandles.Last());
+        await RenderLayout(DrawingViewModel.ActualCandles.Last());
       }
     }
 
@@ -780,7 +780,7 @@ namespace CTKS_Chart.ViewModels
 
     #region RenderLayout
 
-    private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+    private static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
 
     private bool wasLoaded = false;
     DateTime lastFileCheck = DateTime.Now;
@@ -795,7 +795,7 @@ namespace CTKS_Chart.ViewModels
       TimeFrame.H4,
     };
 
-    public async void RenderLayout(Candle actual)
+    public async Task RenderLayout(Candle actual)
     {
       if (IsPaused)
       {
@@ -870,6 +870,10 @@ namespace CTKS_Chart.ViewModels
           VSynchronizationContext.InvokeOnDispatcher(() => DrawingViewModel.RenderOverlay(athPrice, actual));
         }
 
+      }
+      catch (Exception ex)
+      {
+        Logger.Log(ex);
       }
       finally
       {
@@ -1062,7 +1066,7 @@ namespace CTKS_Chart.ViewModels
             cachedCandles[timeFrame] = lastCandle;
           }
         }
-        
+
         list.Add(lastCandle);
       }
 
@@ -1340,10 +1344,10 @@ namespace CTKS_Chart.ViewModels
         }
 
 
-        VSynchronizationContext.InvokeOnDispatcher(() =>
+        VSynchronizationContext.InvokeOnDispatcher(async () =>
         {
           if (SelectedLayout != null)
-            RenderLayout(actual);
+            await RenderLayout(actual);
         });
 
 

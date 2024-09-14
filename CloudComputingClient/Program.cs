@@ -313,7 +313,7 @@ namespace CloudComputingClient
               // Convert the memory stream to string and append to messageBuilder
               string currentData = Encoding.UTF8.GetString(ms.ToArray());
               messageBuilder.Append(currentData);
-             
+
               // Reset the memory stream for the next chunk
               ms.SetLength(0);
 
@@ -342,14 +342,15 @@ namespace CloudComputingClient
                 buffer.Clear();
                 stream.Flush();
                 ms = new MemoryStream();
+                messageBuilder.Clear();
 
-
+                serialDisposable.Disposable?.Dispose();
                 aIBotRunner.Bots.ForEach(x => x.Stop());
 
                 continue;
               }
 
-            
+
               // Check if the message contains the 'Done' marker to indicate it's complete
               if (MessageContract.IsDataMessage(messageBuilder.ToString()))
               {
@@ -361,8 +362,10 @@ namespace CloudComputingClient
                 buffer.Clear();
                 stream.Flush();
 
-                // Process the full message
-                ProcessMessage(completeMessage);
+                if (!completeMessage.Contains(MessageContract.Handshake))
+                  // Process the full message
+                  ProcessMessage(completeMessage);
+
                 continue;
               }
             }
@@ -391,7 +394,7 @@ namespace CloudComputingClient
     static List<NeatGenome> buyGenomes = new List<NeatGenome>();
     static List<NeatGenome> sellGenomes = new List<NeatGenome>();
 
-    private static void ProcessMessage(string message)
+    private static async void ProcessMessage(string message)
     {
 
       var split = MessageContract.GetDataMessageContent(message);
@@ -402,14 +405,14 @@ namespace CloudComputingClient
         LastServerRunData = ServerRunData;
         ServerRunData = serverRunData;
 
-        using (StringReader tx = new StringReader(ServerRunData.BuyGenomes.ToString()))
+        using (StringReader tx = new StringReader(serverRunData.BuyGenomes.ToString()))
         using (XmlReader xr = XmlReader.Create(tx))
         {
           // Replace NeatGenomeXmlIO.ReadCompleteGenomeList with your actual method to read genomes.
           buyGenomes = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, buyManager.GetGenomeFactory());
         }
 
-        using (StringReader tx = new StringReader(ServerRunData.SellGenomes.ToString()))
+        using (StringReader tx = new StringReader(serverRunData.SellGenomes.ToString()))
         using (XmlReader xr = XmlReader.Create(tx))
         {
           // Replace NeatGenomeXmlIO.ReadCompleteGenomeList with your actual method to read genomes.
@@ -422,7 +425,13 @@ namespace CloudComputingClient
         UpdateUI();
 
 
-        TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(MessageContract.Handshake + ServerRunData.Symbol));
+        for (int i = 0; i < 2; i++)
+        {
+
+          TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(MessageContract.Handshake + serverRunData.Symbol));
+
+          await Task.Delay(500);
+        }
       }
     }
 

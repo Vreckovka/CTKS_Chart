@@ -4,6 +4,7 @@ using CTKS_Chart.Strategy.Futures;
 using CTKS_Chart.Trading;
 using CTKS_Chart.Views.Prompts;
 using Logger;
+using SharpNeat.Genomes.Neat;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -17,6 +18,7 @@ using System.Windows.Forms;
 using System.Windows.Input;
 using VCore.Standard;
 using VCore.Standard.Factories.ViewModels;
+using VCore.Standard.Helpers;
 using VCore.WPF.Interfaces.Managers;
 using VCore.WPF.Misc;
 using VCore.WPF.Prompts;
@@ -95,17 +97,12 @@ namespace CTKS_Chart.ViewModels
       this.viewModelsFactory = viewModelsFactory ?? throw new ArgumentNullException(nameof(viewModelsFactory));
       this.windowManager = windowManager ?? throw new ArgumentNullException(nameof(windowManager));
       this.logger = logger;
-      BuyBotManager = SimulationAIPromptViewModel.GetNeatManager(viewModelsFactory, PositionSide.Buy);
-      SellBotManager = SimulationAIPromptViewModel.GetNeatManager(viewModelsFactory, PositionSide.Sell);
 
       CreateBots();
 
     }
 
     public override string Title { get; set; } = "Simulation";
-
-    NEATManager<AIBot> BuyBotManager { get; set; }
-    NEATManager<AIBot> SellBotManager { get; set; }
 
     public RunData RunData { get; set; } = new RunData();
 
@@ -222,7 +219,7 @@ namespace CTKS_Chart.ViewModels
         openFileDialog.RestoreDirectory = true;
         openFileDialog.InitialDirectory = Path.GetDirectoryName("Trainings");
 
-          // Show the dialog and check if the user selected a file
+        // Show the dialog and check if the user selected a file
         if (openFileDialog.ShowDialog() == DialogResult.OK)
         {
           // Get the selected file path
@@ -287,7 +284,7 @@ namespace CTKS_Chart.ViewModels
     {
       var vm = viewModelsFactory.Create<DownloadSymbolViewModel>();
 
-      windowManager.ShowPrompt<DownloadSymbolView>(vm, 350, 350,false);
+      windowManager.ShowPrompt<DownloadSymbolView>(vm, 350, 350, false);
     }
 
     #endregion
@@ -548,10 +545,14 @@ namespace CTKS_Chart.ViewModels
 
     private void CreateAiBot()
     {
+
       var directories = AiPath.Split("\\");
 
       var buy = AiPath.Replace("SELL", "BUY");
       var sell = AiPath.Replace("BUY", "SELL");
+
+      var BuyBotManager = SimulationAIPromptViewModel.GetNeatManager(viewModelsFactory, PositionSide.Buy);
+      var SellBotManager = SimulationAIPromptViewModel.GetNeatManager(viewModelsFactory, PositionSide.Sell);
 
       BuyBotManager.LoadBestGenome(buy);
       SellBotManager.LoadBestGenome(sell);
@@ -577,6 +578,53 @@ namespace CTKS_Chart.ViewModels
 
       SelectedBot = adaAi;
       Bots.Add(adaAi);
+
+      for (int i = 0; i < 3; i++)
+      {
+        Task.Run(async () =>
+        {
+          var symbolsToTest = new string[] {
+            "COTIUSDT",
+            //"ADAUSDT",
+            //"BTCUSDT",
+            //"MATICUSDT",
+            //"BNBUSDT",
+            //"ALGOUSDT"
+            };
+
+
+          var fitness = new List<float>();
+
+          var buyG = BuyBotManager.NeatAlgorithm.GenomeList[0];
+          var sellG = SellBotManager.NeatAlgorithm.GenomeList[0];
+
+          foreach (var symbol in symbolsToTest)
+          {
+            var aIBotRunner = new AIBotRunner(logger, viewModelsFactory);
+
+            await aIBotRunner.RunGeneration(
+              1,
+              240,
+              4.5,
+              symbol,
+              false,
+              new List<NeatGenome>() { new NeatGenome(buyG, buyG.Id, 0) },
+              new List<NeatGenome>() { new NeatGenome(sellG, sellG.Id, 0) }
+              );
+
+            var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
+
+            fitness.Add(neat.Fitness);
+
+            Debug.WriteLine(aIBotRunner.Bots[0].TradingBot.Strategy.TotalValue);
+
+            neat.ResetFitness();
+          }
+
+          var meanFitness = MathHelper.GeometricMean(fitness);
+          Debug.WriteLine($"MEAN - {meanFitness}");
+        });    
+      }
     }
 
     #endregion 

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -28,7 +30,6 @@ namespace CTKS_Chart.Strategy
   public abstract class BaseStrategy<TPosition> : ViewModel where TPosition : Position, new()
   {
     protected decimal LeftSize = 0;
-    protected SemaphoreSlim sellLock = new SemaphoreSlim(1, 1);
     protected SemaphoreSlim buyLock = new SemaphoreSlim(1, 1);
 
     public BaseStrategy()
@@ -47,9 +48,8 @@ namespace CTKS_Chart.Strategy
       StartingBudget *= multi;
       Budget = StartingBudget;
 
-      MaxAutomaticBudget = StartingBudget * (decimal)0.35;
-      AutomaticBudget = StartingBudget * (decimal)0.35;
-
+      StrategyData.MaxAutomaticBudget = StartingBudget * (decimal)0.35;
+      StrategyData.AutomaticBudget = StartingBudget * (decimal)0.35;
 
       PositionSizeMapping = new Dictionary<TimeFrame, decimal>()
       {
@@ -82,12 +82,6 @@ namespace CTKS_Chart.Strategy
         return onCreatePositionSub.AsObservable();
       }
     }
-
-
-
-
-
-
 
     public Asset Asset { get; set; }
     public decimal MinPositionValue { get; set; } = 6;
@@ -323,6 +317,7 @@ namespace CTKS_Chart.Strategy
               var openedBuy = OpenBuyPositions
                 .Where(x => x.IsAutomatic)
                 .ToList();
+
               VSynchronizationContext.InvokeOnDispatcher(async () =>
               {
                 foreach (var buyPosition in openedBuy)
@@ -597,11 +592,11 @@ namespace CTKS_Chart.Strategy
 
     #region Positions
 
-    public virtual IList<TPosition> ClosedBuyPositions { get; set; } = new List<TPosition>();
-    public virtual IList<TPosition> ClosedSellPositions { get; set; } = new List<TPosition>();
+    public virtual ObservableCollection<TPosition> ClosedBuyPositions { get; set; } = new ObservableCollection<TPosition>();
+    public virtual ObservableCollection<TPosition> ClosedSellPositions { get; set; } = new ObservableCollection<TPosition>();
 
-    public virtual IList<TPosition> OpenSellPositions { get; set; } = new List<TPosition>();
-    public virtual IList<TPosition> OpenBuyPositions { get; set; } = new List<TPosition>();
+    public virtual ObservableCollection<TPosition> OpenSellPositions { get; set; } = new ObservableCollection<TPosition>();
+    public virtual ObservableCollection<TPosition> OpenBuyPositions { get; set; } = new ObservableCollection<TPosition>();
 
     #region ActualPositions
 
@@ -1300,7 +1295,7 @@ namespace CTKS_Chart.Strategy
     {
       try
       {
-        await sellLock.WaitAsync();
+        await buyLock.WaitAsync();
 
         var newTotalNativeAsset = TotalNativeAsset - position.OriginalPositionSizeNative;
 
@@ -1369,7 +1364,7 @@ namespace CTKS_Chart.Strategy
       }
       finally
       {
-        sellLock.Release();
+        buyLock.Release();
       }
 
     }
@@ -1590,7 +1585,7 @@ namespace CTKS_Chart.Strategy
     {
       try
       {
-        await sellLock.WaitAsync();
+        await buyLock.WaitAsync();
 
         foreach (var sell in createdPositions)
         {
@@ -1635,7 +1630,7 @@ namespace CTKS_Chart.Strategy
       }
       finally
       {
-        sellLock.Release();
+        buyLock.Release();
       }
     }
 

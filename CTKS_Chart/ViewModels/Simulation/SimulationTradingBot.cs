@@ -523,20 +523,20 @@ namespace CTKS_Chart.ViewModels
 
     #region SimulateCandle
 
-    public void SimulateCandle(Candle candle)
+    public async Task SimulateCandle(Candle candle)
     {
       DrawingViewModel.ActualCandles.Add(candle);
 
       if (DrawChart)
       {
-        VSynchronizationContext.InvokeOnDispatcher(() =>
+        VSynchronizationContext.InvokeOnDispatcher(async () =>
         {
-          RenderLayout(candle);
+          await RenderLayout(candle);
         });
       }
       else
       {
-        RenderLayout(candle);
+        await RenderLayout(candle);
       }
 
     }
@@ -627,7 +627,7 @@ namespace CTKS_Chart.ViewModels
                 return;
 
 
-              SimulateCandle(actual);
+              await SimulateCandle(actual);
 
 
               if (cts.IsCancellationRequested)

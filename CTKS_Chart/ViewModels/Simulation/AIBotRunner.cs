@@ -4,6 +4,7 @@ using CTKS_Chart.Trading;
 using Logger;
 using SharpNeat.Genomes.Neat;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -311,7 +312,7 @@ namespace CTKS_Chart.ViewModels
 
           foreach (var take in splitTakeC)
           {
-            tasks.Add(Task.Run(() =>
+            tasks.Add(Task.Run(async  () =>
             {
               lock (batton)
               {
@@ -329,7 +330,7 @@ namespace CTKS_Chart.ViewModels
 
                   foreach (var bot in take)
                   {
-                    bot.SimulateCandle(candle);
+                    await bot.SimulateCandle(candle);
                   }
                 }
               }
