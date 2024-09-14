@@ -232,7 +232,7 @@ namespace CTKS_Chart.Strategy.Futures
 
     public override async void ValidatePositions(Candle candle)
     {
-      await ValidateSimulationPosition(candle, OpenBuyPositions.Where(x => x.StopLoss != null));
+      await ValidateSimulationPosition(candle);
 
       var openedBuy = OpenBuyPositions.ToList();
 

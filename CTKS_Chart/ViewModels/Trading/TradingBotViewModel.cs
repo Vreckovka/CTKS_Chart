@@ -780,7 +780,8 @@ namespace CTKS_Chart.ViewModels
 
     #region RenderLayout
 
-    private static SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+    private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+    public static SemaphoreSlim semaphoreSlim1 = new SemaphoreSlim(1, 1);
 
     private bool wasLoaded = false;
     DateTime lastFileCheck = DateTime.Now;
@@ -856,8 +857,16 @@ namespace CTKS_Chart.ViewModels
               TradingBot.Strategy.UpdateIntersections(ctksIntersections);
           }
 
+          await semaphoreSlim1.WaitAsync();
+
           TradingBot.Strategy.ValidatePositions(actual);
+
+
+        
+
           await TradingBot.Strategy.CreatePositions(actual, indicatorsCandle);
+
+          semaphoreSlim1.Release();
         }
         else
         {

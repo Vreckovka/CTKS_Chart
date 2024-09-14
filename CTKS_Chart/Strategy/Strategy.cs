@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -31,6 +32,7 @@ namespace CTKS_Chart.Strategy
   {
     protected decimal LeftSize = 0;
     protected SemaphoreSlim buyLock = new SemaphoreSlim(1, 1);
+    //protected SemaphoreSlim sellLock = new SemaphoreSlim(1, 1);
 
     public BaseStrategy()
     {
@@ -592,11 +594,11 @@ namespace CTKS_Chart.Strategy
 
     #region Positions
 
-    public virtual ObservableCollection<TPosition> ClosedBuyPositions { get; set; } = new ObservableCollection<TPosition>();
-    public virtual ObservableCollection<TPosition> ClosedSellPositions { get; set; } = new ObservableCollection<TPosition>();
+    public virtual IList<TPosition> ClosedBuyPositions { get; set; } = new List<TPosition>();
+    public virtual IList<TPosition> ClosedSellPositions { get; set; } = new List<TPosition>();
 
-    public virtual ObservableCollection<TPosition> OpenSellPositions { get; set; } = new ObservableCollection<TPosition>();
-    public virtual ObservableCollection<TPosition> OpenBuyPositions { get; set; } = new ObservableCollection<TPosition>();
+    public virtual IList<TPosition> OpenSellPositions { get; set; } = new List<TPosition>();
+    public virtual IList<TPosition> OpenBuyPositions { get; set; } = new List<TPosition>();
 
     #region ActualPositions
 
@@ -819,8 +821,6 @@ namespace CTKS_Chart.Strategy
 
         await CheckPositions(actualCandle, minBuy, maxBuy);
         var validIntersections = Intersections;
-
-      
 
         if (EnableRangeFilterStrategy)
         {
@@ -1191,8 +1191,10 @@ namespace CTKS_Chart.Strategy
 
     #region ValidatePositions
 
-    public virtual void ValidatePositions(Candle candle)
+    public async virtual void ValidatePositions(Candle candle)
     {
+      await buyLock.WaitAsync();
+
       var openedBuy = OpenBuyPositions.ToList();
 
       var assetsValue = TotalNativeAsset * candle.Close.Value;
@@ -1215,6 +1217,8 @@ namespace CTKS_Chart.Strategy
 
       RaisePropertyChanged(nameof(StrategyViewModel<TPosition>.AvrageBuyPrice));
       RaisePropertyChanged(nameof(AllClosedPositions));
+
+      buyLock.Release();
     }
 
     #endregion
@@ -1249,14 +1253,8 @@ namespace CTKS_Chart.Strategy
 
         if (TPosition.State != PositionState.Filled)
         {
-          //var inter = Intersections.SingleOrDefault(x => x.IsSame(buyPosition.Intersection));
-
-          //if (inter != null)
-          //  inter.IsEnabled = false;
-
           TotalNativeAsset += TPosition.PositionSizeNative;
           LeftSize += TPosition.PositionSizeNative;
-
           await CreateSellPositionForBuy(TPosition, minForcePrice);
 
           TPosition.State = PositionState.Filled;
@@ -1314,7 +1312,7 @@ namespace CTKS_Chart.Strategy
         }
 
         var finalSize = position.Price * position.OriginalPositionSizeNative;
-        var profit = finalSize - position.OriginalPositionSize; 
+        var profit = finalSize - position.OriginalPositionSize;
 
         position.Profit = profit;
         position.PositionSize = 0;
@@ -1366,7 +1364,6 @@ namespace CTKS_Chart.Strategy
       {
         buyLock.Release();
       }
-
     }
 
     #endregion
@@ -1585,8 +1582,6 @@ namespace CTKS_Chart.Strategy
     {
       try
       {
-        await buyLock.WaitAsync();
-
         foreach (var sell in createdPositions)
         {
           long id = 0;
@@ -1627,10 +1622,6 @@ namespace CTKS_Chart.Strategy
       catch (Exception ex)
       {
         Logger.Log(ex);
-      }
-      finally
-      {
-        buyLock.Release();
       }
     }
 

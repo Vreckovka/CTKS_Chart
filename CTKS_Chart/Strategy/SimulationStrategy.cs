@@ -1,7 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using CTKS_Chart.Strategy.AIStrategy;
 using CTKS_Chart.Trading;
+using CTKS_Chart.ViewModels;
 
 namespace CTKS_Chart.Strategy
 {
@@ -47,15 +50,14 @@ namespace CTKS_Chart.Strategy
 
     public override async void ValidatePositions(Candle candle)
     {
-      await ValidateSimulationPosition(candle, AllOpenedPositions.ToList());
+      await ValidateSimulationPosition(candle);
       base.ValidatePositions(candle);
     }
 
-    protected virtual async Task ValidateSimulationPosition(Candle candle, IEnumerable<TPosition> positions)
+
+    protected virtual async Task ValidateSimulationPosition(Candle candle)
     {
-      lastCandle = candle;
-      var allPositions = positions
-        .Where(x => x.State == PositionState.Open)
+      var allPositions = AllOpenedPositions
         .OrderByDescending(x => x.Price)
         .ToList();
 
@@ -83,8 +85,6 @@ namespace CTKS_Chart.Strategy
       {
         CloseSell(openSell);
       }
-
-
     }
     protected override Task<bool> PlaceCancelPosition(TPosition position)
     {

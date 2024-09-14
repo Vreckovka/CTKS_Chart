@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -11,11 +12,11 @@ namespace CTKS_Chart.Strategy
   public abstract class StrategyViewModel<TPosition> : BaseStrategy<TPosition>
     where TPosition : Position, new()
   {
-    public override ObservableCollection<TPosition> ClosedBuyPositions { get; set; } = new ObservableCollection<TPosition>();
-    public override ObservableCollection<TPosition> ClosedSellPositions { get; set; } = new ObservableCollection<TPosition>();
+    public override IList<TPosition> ClosedBuyPositions { get; set; } = new ObservableCollection<TPosition>();
+    public override IList<TPosition> ClosedSellPositions { get; set; } = new ObservableCollection<TPosition>();
 
-    public override ObservableCollection<TPosition> OpenSellPositions { get; set; } = new ObservableCollection<TPosition>();
-    public override ObservableCollection<TPosition> OpenBuyPositions { get; set; } = new ObservableCollection<TPosition>();
+    public override IList<TPosition> OpenSellPositions { get; set; } = new ObservableCollection<TPosition>();
+    public override IList<TPosition> OpenBuyPositions { get; set; } = new ObservableCollection<TPosition>();
 
     #region ActualPositions
 
