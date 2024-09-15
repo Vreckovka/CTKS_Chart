@@ -18,6 +18,7 @@ namespace CTKS_Chart.Trading
     public decimal Price { get; set; }
     public long UnixTime { get; set; }
   }
+
   public class CtksLine
   {
     public PositionPoint StartPoint { get; set; }

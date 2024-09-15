@@ -543,7 +543,7 @@ namespace CTKS_Chart.ViewModels
 
     #region CreateAiBot
 
-    private void CreateAiBot()
+    private async void CreateAiBot()
     {
 
       var directories = AiPath.Split("\\");
@@ -568,7 +568,7 @@ namespace CTKS_Chart.ViewModels
 
       foreach (var indiFrame in TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes)
       {
-        SimulationTradingBot.GetIndicatorData(adaAi.timeFrameDatas[indiFrame], adaAi.Asset);
+        SimulationTradingBot.GetIndicatorData(adaAi.TimeFrameDatas[indiFrame], adaAi.Asset);
       }
 
       adaAi.SaveResults = true;
@@ -579,9 +579,9 @@ namespace CTKS_Chart.ViewModels
       SelectedBot = adaAi;
       Bots.Add(adaAi);
 
-      for (int i = 0; i < 3; i++)
+      for (int i = 0; i < 5; i++)
       {
-        Task.Run(async () =>
+        await Task.Run(async () =>
         {
           var symbolsToTest = new string[] {
             "COTIUSDT",
@@ -617,14 +617,61 @@ namespace CTKS_Chart.ViewModels
             fitness.Add(neat.Fitness);
 
             Debug.WriteLine(aIBotRunner.Bots[0].TradingBot.Strategy.TotalValue);
-
-            neat.ResetFitness();
           }
-
-          var meanFitness = MathHelper.GeometricMean(fitness);
-          Debug.WriteLine($"MEAN - {meanFitness}");
-        });    
+        });
       }
+
+
+      await Task.Run(async () =>
+      {
+        var symbolsToTest = new string[] {
+            "COTIUSDT",
+          //"ADAUSDT",
+          //"BTCUSDT",
+          //"MATICUSDT",
+          //"BNBUSDT",
+          //"ALGOUSDT"
+        };
+
+
+        var fitness = new List<float>();
+
+        var buyG = BuyBotManager.NeatAlgorithm.GenomeList[0];
+        var sellG = SellBotManager.NeatAlgorithm.GenomeList[0];
+
+        foreach (var symbol in symbolsToTest)
+        {
+          var aIBotRunner = new AIBotRunner(logger, viewModelsFactory);
+
+          await aIBotRunner.RunGeneration(
+            5,
+            240,
+            4.5,
+            symbol,
+            false,
+            new List<NeatGenome>() {
+              new NeatGenome(buyG, buyG.Id, 0),
+              new NeatGenome(buyG, buyG.Id, 0),
+              new NeatGenome(buyG, buyG.Id, 0),
+              new NeatGenome(buyG, buyG.Id, 0),
+              new NeatGenome(buyG, buyG.Id, 0)
+            },
+            new List<NeatGenome>() {
+              new NeatGenome(sellG, sellG.Id, 0),
+              new NeatGenome(sellG, sellG.Id, 0),
+              new NeatGenome(sellG, sellG.Id, 0),
+              new NeatGenome(sellG, sellG.Id, 0),
+              new NeatGenome(sellG, sellG.Id, 0)
+            }
+            );
+
+          Debug.WriteLine(aIBotRunner.Bots[0].TradingBot.Strategy.TotalValue);
+          Debug.WriteLine(aIBotRunner.Bots[1].TradingBot.Strategy.TotalValue);
+          Debug.WriteLine(aIBotRunner.Bots[2].TradingBot.Strategy.TotalValue);
+          Debug.WriteLine(aIBotRunner.Bots[3].TradingBot.Strategy.TotalValue);
+          Debug.WriteLine(aIBotRunner.Bots[4].TradingBot.Strategy.TotalValue);
+        }
+      });
     }
 
     #endregion 

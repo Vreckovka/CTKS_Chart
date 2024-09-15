@@ -3,7 +3,9 @@ using CTKS_Chart.ViewModels;
 using Logger;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using VNeuralNetwork;
 
@@ -14,19 +16,10 @@ namespace CTKS_Chart.Strategy.AIStrategy
   {
     public IList<IndicatorData> IndicatorDatas { get; set; }
     public IList<IndicatorData> HighIndicatorDatas { get; set; }
-    
+
     public AIBot BuyAIBot { get; set; }
     public AIBot SellAIBot { get; set; }
     public float OriginalFitness { get; set; }
-
-    decimal Coeficient
-    {
-      get
-      {
-        return TotalValue / StartingBudget;
-      }
-    }
-
 
     private decimal PositionSize
     {
@@ -57,7 +50,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
     Candle lastDailyCandle = null;
 
     public override async Task CreatePositions(
-      Candle actualCandle, 
+      Candle actualCandle,
       IList<Candle> indicatorCandles)
     {
       try
@@ -89,7 +82,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
         await CheckPositions(actualCandle, 0, actualCandle.Close.Value);
 
         var inter = Intersections
-                    .Where(x => x.IsEnabled)
+                    //.Where(x => x.IsEnabled)
                     .Where(x => x.Value < actualCandle.Close.Value)
                     .Take(SimulationAIPromptViewModel.TakeIntersections)
                     .ToList();
@@ -133,10 +126,10 @@ namespace CTKS_Chart.Strategy.AIStrategy
               .ToList();
 
 
-            if (positionsOnIntersesction.Count == 0)
+            if (positionsOnIntersesction.Count == 0 && GetBudget() > size && size > MinPositionValue)
             {
               await CreateBuyPositionFromIntersection(intersection, size);
-            }
+            }       
           }
         }
 
@@ -185,10 +178,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
       CtksIntersection intersection,
       decimal leftSize)
     {
-      if (GetBudget() > leftSize && leftSize > MinPositionValue)
-      {
-        await CreateBuyPosition(leftSize, intersection, false);
-      }
+      await CreateBuyPosition(leftSize, intersection, false);
     }
 
     #endregion
@@ -207,7 +197,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
         inter,
         GetLastPrices(takeLastDailyCandles),
         (float)(buyPosition.PositionSize / PositionSize));
-    
+
 
       var indexes = output
         .Select((prob, index) => (prob, index))

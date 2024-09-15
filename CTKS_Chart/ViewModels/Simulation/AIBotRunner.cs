@@ -249,11 +249,11 @@ namespace CTKS_Chart.ViewModels
           double splitTake = 0;
 
           var asset = Bots.First().Asset;
-          var dailyCandles = SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[TimeFrame.D1], asset);
+          var dailyCandles = SimulationTradingBot.GetIndicatorData(Bots[0].TimeFrameDatas[TimeFrame.D1], asset);
 
           foreach (var indiFrame in TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes)
           {
-            SimulationTradingBot.GetIndicatorData(Bots[0].timeFrameDatas[indiFrame], asset);
+            SimulationTradingBot.GetIndicatorData(Bots[0].TimeFrameDatas[indiFrame], asset);
           }
 
           //ignore filter starting values of indicators
@@ -283,6 +283,10 @@ namespace CTKS_Chart.ViewModels
           var timeFrame = simulateCandles.First().TimeFrame;
           var key = new Tuple<string, TimeFrame>(Bots[0].Asset.Symbol, timeFrame);
 
+          //Bots.ForEach(x => x.LoadSecondaryLayouts(firstValidDate));
+          //Bots.ForEach(x => x.PreloadCandles(key, mainCandles));
+          //Bots.ForEach(x => x.PreLoadIntersections(key, mainCandles));
+
           Bots[0].LoadSecondaryLayouts(firstValidDate);
           Bots[0].PreloadCandles(key, mainCandles);
           Bots[0].PreLoadIntersections(key, mainCandles);
@@ -300,7 +304,6 @@ namespace CTKS_Chart.ViewModels
             bot.InitializeBot(simulateCandles);
             bot.HeatBot(simulateCandles, bot.TradingBot.Strategy);
           }
-
 
 
           ToStart = Bots.Count;

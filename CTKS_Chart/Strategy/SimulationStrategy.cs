@@ -48,10 +48,10 @@ namespace CTKS_Chart.Strategy
       return false;
     }
 
-    public override async void ValidatePositions(Candle candle)
+    public override async Task ValidatePositions(Candle candle)
     {
       await ValidateSimulationPosition(candle);
-      base.ValidatePositions(candle);
+      await base.ValidatePositions(candle);
     }
 
 
@@ -74,7 +74,7 @@ namespace CTKS_Chart.Strategy
           }
           else
           {
-            CloseSell(position);
+            await CloseSell(position);
           }
         }
       }
@@ -83,7 +83,7 @@ namespace CTKS_Chart.Strategy
 
       foreach (var openSell in openSells)
       {
-        CloseSell(openSell);
+        await CloseSell(openSell);
       }
     }
     protected override Task<bool> PlaceCancelPosition(TPosition position)

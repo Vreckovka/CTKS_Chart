@@ -624,7 +624,7 @@ namespace CTKS_Chart.ViewModels
 
       stopwatch.Start();
 
-      ForexChart_Loaded();
+      await ForexChart_Loaded();
 
       if (!IsSimulation)
       {
@@ -664,7 +664,7 @@ namespace CTKS_Chart.ViewModels
 
     #region ForexChart_Loaded
 
-    private async void ForexChart_Loaded()
+    private async Task ForexChart_Loaded()
     {
       TradingBot.Strategy.Logger = logger;
 
@@ -781,7 +781,6 @@ namespace CTKS_Chart.ViewModels
     #region RenderLayout
 
     private SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
-    public static SemaphoreSlim semaphoreSlim1 = new SemaphoreSlim(1, 1);
 
     private bool wasLoaded = false;
     DateTime lastFileCheck = DateTime.Now;
@@ -833,7 +832,7 @@ namespace CTKS_Chart.ViewModels
 
 
         if (outdated)
-          TradingBot.Strategy.UpdateIntersections(ctksIntersections);
+          await TradingBot.Strategy.UpdateIntersections(ctksIntersections);
 
 
         if (ctksIntersections.Count > 0)
@@ -841,9 +840,6 @@ namespace CTKS_Chart.ViewModels
           if (!wasLoaded)
           {
             wasLoaded = true;
-
-            TradingBot.Strategy.lastCandle = actual;
-            TradingBot.Strategy.indicatorsCandles = indicatorsCandle;
 
             TradingBot.Strategy.LoadState();
 
@@ -853,20 +849,11 @@ namespace CTKS_Chart.ViewModels
               VSynchronizationContext.InvokeOnDispatcher(() => MainWindow?.SortActualPositions());
             }
 
-            if (ctksIntersections.Count > 0)
-              TradingBot.Strategy.UpdateIntersections(ctksIntersections);
+            await TradingBot.Strategy.UpdateIntersections(ctksIntersections);
           }
 
-          await semaphoreSlim1.WaitAsync();
-
-          TradingBot.Strategy.ValidatePositions(actual);
-
-
-        
-
+          await TradingBot.Strategy.ValidatePositions(actual);
           await TradingBot.Strategy.CreatePositions(actual, indicatorsCandle);
-
-          semaphoreSlim1.Release();
         }
         else
         {

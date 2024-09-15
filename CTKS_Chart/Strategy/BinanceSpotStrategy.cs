@@ -100,7 +100,7 @@ namespace CTKS_Chart.Strategy
                 existingPosition.FilledDate = orderUpdate.UpdateTime;
 
                 if (existingPosition.Side == PositionSide.Sell)
-                  CloseSell(existingPosition);
+                  await CloseSell(existingPosition);
                 else
                   await CloseBuy(existingPosition);
               }
@@ -150,7 +150,7 @@ namespace CTKS_Chart.Strategy
                 if (postion.Side == PositionSide.Buy)
                   await CloseBuy(postion);
                 else
-                  CloseSell(postion);
+                  await CloseSell (postion);
               }
               else if (closed.Status == CryptoExchange.Net.CommonObjects.CommonOrderStatus.Canceled)
               {

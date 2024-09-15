@@ -34,7 +34,7 @@ namespace CTKS_Chart.Trading
 
     public Tag Tag { get; set; }
 
-    public bool IsEnabled { get; set; } = true;
+    //public bool IsEnabled { get; set; } = true;
 
     public bool IsCluster
     {

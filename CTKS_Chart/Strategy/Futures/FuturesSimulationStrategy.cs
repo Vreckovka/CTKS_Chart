@@ -181,6 +181,7 @@ namespace CTKS_Chart.Strategy.Futures
       OpenSellPositions.Add(position.TakeProfit);
       OpenBuyPositions.Add(position.StopLoss);
       OpenBuyPositions.Remove(position);
+     
 
       ActualPositions.Add(position);
     }
@@ -230,7 +231,7 @@ namespace CTKS_Chart.Strategy.Futures
       }
     }
 
-    public override async void ValidatePositions(Candle candle)
+    public override async Task ValidatePositions(Candle candle)
     {
       await ValidateSimulationPosition(candle);
 
@@ -277,8 +278,8 @@ namespace CTKS_Chart.Strategy.Futures
           Budget += position.PnL * position.OriginalPositionSize;
 
           ActualPositions.Remove(position);
-          OpenBuyPositions.Remove(position.StopLoss);
-          OpenSellPositions.Remove(position.TakeProfit);
+          //OpenBuyPositions.Remove(position.StopLoss);
+          //OpenSellPositions.Remove(position.TakeProfit);
 
           RaisePropertyChanged(nameof(AllCompletedPositions));
           RaisePropertyChanged(nameof(StrategyViewModel<FuturesPosition>.TotalExpectedProfit));

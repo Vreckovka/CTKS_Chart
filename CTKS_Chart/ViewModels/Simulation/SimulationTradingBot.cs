@@ -277,12 +277,9 @@ namespace CTKS_Chart.ViewModels
 
     static Dictionary<Tuple<string, TimeFrame>, Dictionary<long, Tuple<List<CtksIntersection>, bool>>> preloadedIntersections = new Dictionary<Tuple<string, TimeFrame>, Dictionary<long, Tuple<List<CtksIntersection>, bool>>>();
 
-
-    static object batton12 = new object();
-
     public void PreLoadIntersections(Tuple<string, TimeFrame> key, IList<Candle> simulationCandles)
     {
-      lock (batton12)
+      lock (batton1)
       {
         if (!preloadedIntersections.ContainsKey(key))
         {
@@ -294,7 +291,6 @@ namespace CTKS_Chart.ViewModels
             intersections.Add(candle.UnixTime, new Tuple<List<CtksIntersection>, bool>(inters, outdated));
           }
 
-          var counts = intersections.Select(x => x.Value.Item1.Count);
 
           preloadedIntersections.Add(key, intersections);
         }
@@ -308,6 +304,7 @@ namespace CTKS_Chart.ViewModels
     static Dictionary<TimeFrame, Dictionary<Tuple<string, TimeFrame>, Dictionary<long, Candle>>> preloadedIndicatorCandles = new Dictionary<TimeFrame, Dictionary<Tuple<string, TimeFrame>, Dictionary<long, Candle>>>();
 
     static object batton1 = new object();
+
     public void PreloadCandles(
       Tuple<string, TimeFrame> key,
       IList<Candle> simulationCandles)
@@ -399,7 +396,7 @@ namespace CTKS_Chart.ViewModels
 
     public void HeatBot(IEnumerable<Candle> simulateCandles, AIStrategy aIStrategy)
     {
-      var dailyCandles = SimulationTradingBot.GetIndicatorData(timeFrameDatas[TimeFrame.D1], Asset);
+      var dailyCandles = SimulationTradingBot.GetIndicatorData(TimeFrameDatas[TimeFrame.D1], Asset);
 
       var lastDailyCandles = dailyCandles
         .Where(x => x.CloseTime <= simulateCandles.First().CloseTime)
@@ -407,7 +404,6 @@ namespace CTKS_Chart.ViewModels
         .ToList();
 
       aIStrategy.lastDailyCandles = lastDailyCandles;
-      aIStrategy.indicatorsCandles = new List<Candle>() { lastDailyCandles.Last() };
     }
 
     #endregion
@@ -431,11 +427,10 @@ namespace CTKS_Chart.ViewModels
 
     public TimeFrame TimeFrame { get; set; }
 
-    public Dictionary<TimeFrame, TimeFrameData> timeFrameDatas = new Dictionary<TimeFrame, TimeFrameData>()
+    public Dictionary<TimeFrame, TimeFrameData> TimeFrameDatas { get; } = new Dictionary<TimeFrame, TimeFrameData>()
     {
       {TimeFrame.H4, new TimeFrameData() { TimeFrame = TimeFrame.H4, Name = "240" } },
       {TimeFrame.D1, new TimeFrameData() { TimeFrame = TimeFrame.D1, Name = "1D" } },
-      {TimeFrame.D3, new TimeFrameData() { TimeFrame = TimeFrame.D3, Name = "3D" } }
     };
 
     #region LoadLayouts
@@ -446,11 +441,11 @@ namespace CTKS_Chart.ViewModels
       double splitTake = 0;
 
       var asset = Asset;
-      var dailyCandles = SimulationTradingBot.GetIndicatorData(timeFrameDatas[TimeFrame.D1], asset);
+      var dailyCandles = SimulationTradingBot.GetIndicatorData(TimeFrameDatas[TimeFrame.D1], asset);
 
       foreach (var indiFrame in TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes)
       {
-        SimulationTradingBot.GetIndicatorData(timeFrameDatas[indiFrame], asset);
+        SimulationTradingBot.GetIndicatorData(TimeFrameDatas[indiFrame], asset);
       }
 
       //ignore filter starting values of indicators
@@ -709,11 +704,11 @@ namespace CTKS_Chart.ViewModels
         }
 
 
-        if(TradingBot.Strategy is AIStrategy aIStrategy)
+        if (TradingBot.Strategy is AIStrategy aIStrategy)
         {
           AIBotRunner.AddFitness(aIStrategy);
-        }  
-        
+        }
+
         Finished?.Invoke(this, null);
       }
       catch (TaskCanceledException)

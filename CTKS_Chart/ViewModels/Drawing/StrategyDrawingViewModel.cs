@@ -542,10 +542,10 @@ namespace CTKS_Chart.ViewModels
 
       var lineY = canvasHeight - actual;
 
-      if (!intersection.IsEnabled)
-      {
-        selectedHex = "#614c4c";
-      }
+      //if (!intersection.IsEnabled)
+      //{
+      //  selectedHex = "#614c4c";
+      //}
 
 
       if (allPositions != null)
@@ -573,10 +573,10 @@ namespace CTKS_Chart.ViewModels
       }
 
       var selectedBrush = DrawingHelper.GetBrushFromHex(selectedHex);
-      if (!intersection.IsEnabled)
-      {
-        selectedBrush.Opacity = 0.25;
-      }
+      //if (!intersection.IsEnabled)
+      //{
+      //  selectedBrush.Opacity = 0.25;
+      //}
 
       return new Tuple<string, Brush>(selectedHex, selectedBrush);
     }
