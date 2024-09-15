@@ -148,9 +148,10 @@ namespace CTKS_Chart.ViewModels
     public Task RunGeneration(
       int agentCount,
       int minutes,
-      double split,
       string symbol,
       bool isRandom,
+      int maxTake,
+      int randomStartIndex,
       List<NeatGenome> buyGenomes,
       List<NeatGenome> sellGenomes)
     {
@@ -174,7 +175,7 @@ namespace CTKS_Chart.ViewModels
 
         serialDisposable.Disposable?.Dispose();
 
-        return CreateStrategies(agentCount, minutes, split, symbol, isRandom, buyGenomes, sellGenomes);
+        return CreateStrategies(agentCount, minutes, symbol, isRandom, buyGenomes, sellGenomes, maxTake, randomStartIndex);
       }
 
       return Task.CompletedTask;
@@ -187,11 +188,12 @@ namespace CTKS_Chart.ViewModels
     private Task CreateStrategies(
       int agentCount,
       int minutes,
-      double splitTake,
       string symbol,
       bool isRandom,
       List<NeatGenome> buyGenomes,
-      List<NeatGenome> sellGenomes)
+      List<NeatGenome> sellGenomes,
+      int maxTake,
+      int randomStartIndex)
     {
       Bots.ForEach(x => x.Stop());
       Bots.Clear();
@@ -222,7 +224,6 @@ namespace CTKS_Chart.ViewModels
           BuyBotManager.Agents[0],
           SellBotManager.Agents[0],
           minutes,
-          splitTake,
           random,
           ViewModelsFactory,
           Logger,
@@ -234,7 +235,7 @@ namespace CTKS_Chart.ViewModels
       }
 
 
-      return RunBots(random, symbol, isRandom, splitTake, minutes);
+      return RunBots(random, symbol, isRandom, minutes, maxTake, randomStartIndex);
     }
 
     #endregion
@@ -244,12 +245,14 @@ namespace CTKS_Chart.ViewModels
     object batton = new object();
     object batton1 = new object();
 
+
     private Task RunBots(
               Random random,
               string symbol,
               bool useRandomDate,
-              double pSpliTake,
-              int minutes)
+              int minutes,
+              int maxTake,
+              int randomStartIndex)
     {
       generationStart = DateTime.Now;
 
@@ -258,30 +261,31 @@ namespace CTKS_Chart.ViewModels
         lock (batton1)
         {
           DateTime fromDate = DateTime.Now;
-          double splitTake = 0;
 
           var asset = Bots.First().Asset;
-          var dailyCandles = SimulationTradingBot.GetIndicatorData(Bots[0].TimeFrameDatas[TimeFrame.D1], asset);
+
+          var dailyCandles = SimulationTradingBot
+              .GetIndicatorData(Bots[0].TimeFrameDatas[TimeFrame.D1], asset)
+              .Where(x => x.IndicatorData.RangeFilter.HighTarget > 0)
+              .ToList();
+
+          var selectedCandles = dailyCandles;
+
+          if (maxTake > 0)
+          {
+            selectedCandles = dailyCandles.Skip(randomStartIndex).Take(maxTake).ToList();
+          }
+
+          // If you want to set firstValidDate and lastValidDate using the selected candles
+          var firstValidDate = selectedCandles.First().CloseTime.AddDays(10);
+          var lastValidDate = selectedCandles.Last().CloseTime.AddDays(-10);
+          fromDate = firstValidDate;
 
           foreach (var indiFrame in TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes)
           {
             SimulationTradingBot.GetIndicatorData(Bots[0].TimeFrameDatas[indiFrame], asset);
           }
 
-          //ignore filter starting values of indicators
-          var firstValidDate = dailyCandles.First(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(10);
-          var lastValidDate = dailyCandles.Last(x => x.IndicatorData.RangeFilter.HighTarget > 0).CloseTime.AddDays(-10);
-
-          if (useRandomDate)
-          {
-            var year = random.Next(2020, 2023);
-            fromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
-            splitTake = pSpliTake;
-          }
-          else
-          {
-            fromDate = firstValidDate;
-          }
 
           var allCandles = SimulationTradingBot.GetSimulationCandles(
              minutes,
@@ -305,13 +309,6 @@ namespace CTKS_Chart.ViewModels
 
           foreach (var bot in Bots)
           {
-            if (splitTake != 0)
-            {
-              var take = (int)(mainCandles.Count / splitTake);
-
-              simulateCandles = simulateCandles.Take(take).ToList();
-            }
-
             bot.FromDate = fromDate;
             bot.InitializeBot(simulateCandles);
             bot.HeatBot(simulateCandles, bot.TradingBot.Strategy);
@@ -327,7 +324,7 @@ namespace CTKS_Chart.ViewModels
 
           foreach (var take in splitTakeC)
           {
-            tasks.Add(Task.Run(async  () =>
+            tasks.Add(Task.Run(async () =>
             {
               lock (batton)
               {

@@ -12,7 +12,8 @@ namespace CloudComputing.Domains
 
     public int AgentCount { get; set; }
     public int Minutes { get; set; }
-    public double Split { get; set; }
+    public int MaxTake { get; set; }
+    public int RandomStartIndex { get; set; }
     public bool IsRandom { get; set; }
 
     public string Symbol { get; set; }

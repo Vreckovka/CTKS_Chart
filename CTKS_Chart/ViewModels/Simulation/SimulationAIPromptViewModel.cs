@@ -341,9 +341,10 @@ namespace CTKS_Chart.ViewModels
       AIBotRunner.RunGeneration(
         AgentCount,
         Minutes,
-        SplitTake,
         Symbol,
         IsRandom(),
+        0,
+        0,
         BuyBotManager.NeatAlgorithm.GenomeList.ToList(),
         SellBotManager.NeatAlgorithm.GenomeList.ToList());
     }
@@ -419,12 +420,13 @@ namespace CTKS_Chart.ViewModels
       BuyBotManager.UpdateNEATGeneration();
       SellBotManager.UpdateNEATGeneration();
 
-      AIBotRunner.RunGeneration(
+      _ = AIBotRunner.RunGeneration(
        AgentCount,
        Minutes,
-       SplitTake,
        Symbol,
        IsRandom(),
+       0,
+       0,
        BuyBotManager.NeatAlgorithm.GenomeList.ToList(),
        SellBotManager.NeatAlgorithm.GenomeList.ToList());
     }
@@ -442,7 +444,7 @@ namespace CTKS_Chart.ViewModels
 
       var testBot = GetBot(TestSymbol,
         new AIBot(new NeatGenome((NeatGenome)strategy.BuyAIBot.NeuralNetwork, 0, 0)),
-        new AIBot(new NeatGenome((NeatGenome)strategy.SellAIBot.NeuralNetwork, 0, 0)), Minutes, SplitTake, random, viewModelsFactory, logger);
+        new AIBot(new NeatGenome((NeatGenome)strategy.SellAIBot.NeuralNetwork, 0, 0)), Minutes, random, viewModelsFactory, logger);
 
       testBot.FromDate = new DateTime(2019, 1, 1);
 
@@ -530,7 +532,6 @@ namespace CTKS_Chart.ViewModels
       AIBot buy,
       AIBot sell,
       int minutes,
-      double splitTake,
       Random random,
       IViewModelsFactory viewModelsFactory,
       ILogger logger,
@@ -551,9 +552,6 @@ namespace CTKS_Chart.ViewModels
       }
 
       bot.FromDate = fromDate;
-
-      if (useRandom)
-        bot.SplitTake = splitTake;
 
       return bot;
     }

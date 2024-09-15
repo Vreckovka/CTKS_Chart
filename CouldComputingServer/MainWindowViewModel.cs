@@ -625,6 +625,21 @@ namespace CouldComputingServer
         var first = ordered.First();
         var last = ordered.Last();
 
+        int maxTake = 365;
+
+        var dailyCandles = SimulationTradingBot
+           .GetIndicatorData(
+           new TimeFrameData() { Name = "1D", TimeFrame = CTKS_Chart.Trading.TimeFrame.D1}, 
+           SimulationPromptViewModel.GetAsset(CurrentSymbol, Minutes.ToString() ))
+           .Where(x => x.IndicatorData.RangeFilter.HighTarget > 0)
+           .ToList();
+
+        var selectedCandles = dailyCandles;
+
+        Random random = new Random();
+        int maxStartIndex = dailyCandles.Count - maxTake;
+        int randomStartIndex = random.Next(0, maxStartIndex + 1);
+
         foreach (var client in Clients.ToList())
         {
           var newData = new ServerRunData()
@@ -633,7 +648,8 @@ namespace CouldComputingServer
             Generation = Cycle,
             IsRandom = false,
             Minutes = Minutes,
-            Split = SplitTake,
+            MaxTake = maxTake,
+            RandomStartIndex = randomStartIndex,
             Symbol = CurrentSymbol,
           };
 
@@ -707,91 +723,105 @@ namespace CouldComputingServer
     NeatGenome bestBuyGenome;
     NeatGenome bestSellGenome;
 
-    private void UpdateGeneration(IEnumerable<ClientData> runData)
+    private async void UpdateGeneration(IEnumerable<ClientData> runData)
     {
-      GenerationRunTime = DateTime.Now - generationStart;
-
-      var isLastSymbol = CurrentSymbol == TrainingSession.SymbolsToTest.Last().Name;
-
-      var bestBuy = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
-      var bestSell = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
-
-      var index = TrainingSession.SymbolsToTest.IndexOf((x) => x.Name == serverRunData.Symbol);
-
-      if (index != null)
+      try
       {
-        if (bestBuyGenome != null)
+
+        await semaphoreSlimDistribute.WaitAsync();
+
+        lock (this)
         {
-          var bestClient = runData.FirstOrDefault(x => x.GenomeData.Any(x => x.BuyGenomeId == bestBuyGenome.Id));
-          var bestRun = bestClient.GenomeData.FirstOrDefault(x => x.BuyGenomeId == bestBuyGenome.Id);
+          GenerationRunTime = DateTime.Now - generationStart;
 
-          Logger.Log(MessageType.Inform, $"{bestBuyGenome.Id} - Genome ID {bestClient.Symbol} - {bestRun.TotalValue.ToString("N2")} $");
+          var isLastSymbol = CurrentSymbol == TrainingSession.SymbolsToTest.Last().Name;
 
-          TrainingSession.AddValue(serverRunData.Symbol, Statistic.AverageFitness, bestClient.Average);
-          TrainingSession.AddValue(serverRunData.Symbol, Statistic.BestFitness, bestRun.Fitness);
-          TrainingSession.AddValue(serverRunData.Symbol, Statistic.OriginalFitness, bestRun.OriginalFitness);
-          TrainingSession.AddValue(serverRunData.Symbol, Statistic.TotalValue, bestRun.TotalValue);
-          TrainingSession.AddValue(serverRunData.Symbol, Statistic.Drawdawn, bestRun.Drawdawn);
-          TrainingSession.AddValue(serverRunData.Symbol, Statistic.NumberOfTrades, bestRun.NumberOfTrades);
+          var bestBuy = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
+          var bestSell = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).First();
 
-          var fullCycle = Cycle % TrainingSession.SymbolsToTest.Count == 0;
+          var index = TrainingSession.SymbolsToTest.IndexOf((x) => x.Name == serverRunData.Symbol);
 
-          var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
-
-          if (fullCycle)
+          if (index != null)
           {
-            BestFitness = (float)bestRun.Fitness;
-            TotalValue = bestRun.TotalValue;
-            Drawdawn = bestRun.Drawdawn;
-            NumberOfTrades = bestRun.NumberOfTrades;
+            if (bestBuyGenome != null)
+            {
+              var bestClient = runData.FirstOrDefault(x => x.GenomeData.Any(x => x.BuyGenomeId == bestBuyGenome.Id));
+              var bestRun = bestClient.GenomeData.FirstOrDefault(x => x.BuyGenomeId == bestBuyGenome.Id);
 
-            TrainingSession.AddLabel();
+              Logger.Log(MessageType.Inform, $"{bestBuyGenome.Id} - Genome ID {bestClient.Symbol} - {bestRun.TotalValue.ToString("N2")} $");
+
+              TrainingSession.AddValue(serverRunData.Symbol, Statistic.AverageFitness, bestClient.Average);
+              TrainingSession.AddValue(serverRunData.Symbol, Statistic.BestFitness, bestRun.Fitness);
+              TrainingSession.AddValue(serverRunData.Symbol, Statistic.OriginalFitness, bestRun.OriginalFitness);
+              TrainingSession.AddValue(serverRunData.Symbol, Statistic.TotalValue, bestRun.TotalValue);
+              TrainingSession.AddValue(serverRunData.Symbol, Statistic.Drawdawn, bestRun.Drawdawn);
+              TrainingSession.AddValue(serverRunData.Symbol, Statistic.NumberOfTrades, bestRun.NumberOfTrades);
+
+              var fullCycle = Cycle % TrainingSession.SymbolsToTest.Count == 0;
+
+              var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
+
+              if (fullCycle)
+              {
+                BestFitness = (float)bestRun.Fitness;
+                TotalValue = bestRun.TotalValue;
+                Drawdawn = bestRun.Drawdawn;
+                NumberOfTrades = bestRun.NumberOfTrades;
+
+                TrainingSession.AddLabel();
+              }
+            }
+
+            if (isLastSymbol)
+            {
+              var generation = $"Generation {BuyBotManager.Generation}";
+              var folder = Path.Combine("Trainings", TrainingSession.Name);
+              Directory.CreateDirectory(folder);
+
+              var training = JsonSerializer.Serialize(TrainingSession);
+
+              File.WriteAllText(Path.Combine(folder, "session.txt"), training);
+
+              CycleRunTime = DateTime.Now - cycleLastElapsed;
+
+              cycleLastElapsed = DateTime.Now;
+
+
+              BuyBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
+              SellBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
+
+              BuyBotManager.NeatAlgorithm.UpdateGenerationWithoutFitnessReset();
+              SellBotManager.NeatAlgorithm.UpdateGenerationWithoutFitnessReset();
+
+              bestBuyGenome = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).FirstOrDefault();
+              bestSellGenome = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).FirstOrDefault();
+
+              TrainingSession.AddValue(serverRunData.Symbol, Statistic.MedianFitness, (decimal)bestBuyGenome.Fitness);
+
+              Logger.Log(MessageType.Inform, $"Mean fitness: {bestBuyGenome.Fitness}");
+
+              SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, generation, "BUY.txt", "MEDIAN_BUY.txt");
+              SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name, generation, "SELL.txt", "MEDIAN_SELL.txt");
+
+              BuyBotManager.ResetFitness();
+              SellBotManager.ResetFitness();
+
+              StartTest(generation);
+            }
           }
-        }
 
-        if (isLastSymbol)
-        {
-          var generation = $"Generation {BuyBotManager.Generation}";
-          var folder = Path.Combine("Trainings", TrainingSession.Name);
-          Directory.CreateDirectory(folder);
+          Cycle++;
+          FinishedCount = 0;
+          ToStart = AgentCount;
 
-          var training = JsonSerializer.Serialize(TrainingSession);
-
-          File.WriteAllText(Path.Combine(folder, "session.txt"), training);
-
-          CycleRunTime = DateTime.Now - cycleLastElapsed;
-
-          cycleLastElapsed = DateTime.Now;
-
-
-          BuyBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
-          SellBotManager.NeatAlgorithm.GenomeList.ForEach(x => x.UpdateFitnesses());
-
-          BuyBotManager.NeatAlgorithm.UpdateGenerationWithoutFitnessReset();
-          SellBotManager.NeatAlgorithm.UpdateGenerationWithoutFitnessReset();
-
-          bestBuyGenome = BuyBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).FirstOrDefault();
-          bestSellGenome = SellBotManager.NeatAlgorithm.GenomeList.OrderByDescending(x => x.Fitness).FirstOrDefault();
-
-          TrainingSession.AddValue(serverRunData.Symbol, Statistic.MedianFitness, (decimal)bestBuyGenome.Fitness);
-
-          Logger.Log(MessageType.Inform, $"Mean fitness: {bestBuyGenome.Fitness}");
-
-          SimulationAIPromptViewModel.SaveGeneration(BuyBotManager, TrainingSession.Name, generation, "BUY.txt", "MEDIAN_BUY.txt");
-          SimulationAIPromptViewModel.SaveGeneration(SellBotManager, TrainingSession.Name, generation, "SELL.txt", "MEDIAN_SELL.txt");
-
-          BuyBotManager.ResetFitness();
-          SellBotManager.ResetFitness();
-
-          StartTest(generation);
+          runResults.Clear();
         }
       }
+      finally
+      {
+        semaphoreSlimDistribute.Release();
+      }
 
-      Cycle++;
-      FinishedCount = 0;
-      ToStart = AgentCount;
-
-      runResults.Clear();
       DistributeGeneration();
     }
 
@@ -933,12 +963,11 @@ namespace CouldComputingServer
     private void ProcessMessage(CloudClient client, string message)
     {
       message = MessageContract.GetDataMessageContent(message);
-
+      var storedData = JsonSerializer.Deserialize<ServerRunData>(messages[client]);
 
       if (message.Contains(MessageContract.Handshake))
       {
         message = message.Replace(MessageContract.Handshake, "");
-        var storedData = JsonSerializer.Deserialize<ServerRunData>(messages[client]);
 
         if (!client.ReceivedData)
         {
@@ -956,6 +985,7 @@ namespace CouldComputingServer
           }
           else
           {
+            client.ErrorCount = 0;
             TCPHelper.SendMessage(client.Client, MessageContract.Handshake);
           }
         }
@@ -964,8 +994,7 @@ namespace CouldComputingServer
       }
 
       var data = JsonSerializer.Deserialize<ClientData>(message);
-
-      if (!client.Done && data.Symbol == CurrentSymbol && client.ReceivedData)
+      if (!client.Done && data.Symbol == storedData.Symbol && client.ReceivedData)
       {
         UpdateManager(client, data.GenomeData, BuyBotManager, SellBotManager);
 
@@ -1024,8 +1053,6 @@ namespace CouldComputingServer
           return;
         }
 
-
-
         foreach (var receivedGenome in runDatas)
         {
           var existingBuy = buyManger.NeatAlgorithm.GenomeList.SingleOrDefault(x => x.Id == receivedGenome.BuyGenomeId);
@@ -1038,11 +1065,13 @@ namespace CouldComputingServer
               existingBuy.AddSequentialFitness((float)receivedGenome.Fitness);
               existingSell.AddSequentialFitness((float)receivedGenome.Fitness);
 
-              if (existingBuy.fitnesses.Where(x => x > 0).GroupBy(x => x).Any(g => g.Count() > 1))
+              var fitnesses = existingBuy.fitnesses.Where(x => x > 0).ToList();
+
+              if (fitnesses.GroupBy(x => x).Any(g => g.Count() > 1))
               {
                 Logger.Log(MessageType.Warning, "SAME FITNESSES FOR DIFFERENT SYMBOLS!");
 
-                foreach (var fitness in existingBuy.fitnesses)
+                foreach (var fitness in fitnesses)
                 {
                   Logger.Log(MessageType.Warning, fitness.ToString());
                 }
@@ -1107,7 +1136,7 @@ namespace CouldComputingServer
 
     #region StartTest
 
-    SemaphoreSlim semaphoreSlim = new SemaphoreSlim(1, 1);
+    SemaphoreSlim testSemaphore = new SemaphoreSlim(1, 1);
 
     private void StartTest(string generation)
     {
@@ -1115,7 +1144,7 @@ namespace CouldComputingServer
       {
         try
         {
-          await semaphoreSlim.WaitAsync();
+          await testSemaphore.WaitAsync();
 
           var symbolsToTest = new string[] {
             "BTCUSDT",
@@ -1148,9 +1177,10 @@ namespace CouldComputingServer
             await aIBotRunner.RunGeneration(
               1,
               Minutes,
-              SplitTake,
               symbol,
               false,
+              0,
+              0,
               new List<NeatGenome>() { new NeatGenome(buyG, buyG.Id, 0) },
               new List<NeatGenome>() { new NeatGenome(sellG, sellG.Id, 0) }
               );
@@ -1174,40 +1204,13 @@ namespace CouldComputingServer
         }
         finally
         {
-          semaphoreSlim.Release();
+          testSemaphore.Release();
         }
       });
     }
 
     #endregion
 
-    #region IsClientConnected
-
-    private bool IsClientConnected(TcpClient client)
-    {
-      try
-      {
-        if (client == null || !client.Connected)
-        {
-          return false;
-        }
-
-        // Poll to check if the client is still connected
-        if (client.Client.Poll(0, SelectMode.SelectRead))
-        {
-          // Check if the buffer is empty, meaning the client has disconnected
-          return client.Client.Available > 0;
-        }
-
-        return true;
-      }
-      catch (SocketException)
-      {
-        return false; // Exception means the client is not connected
-      }
-    }
-
-    #endregion
 
     #region OnClose
 

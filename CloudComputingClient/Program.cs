@@ -324,9 +324,10 @@ namespace CloudComputingClient
                 aIBotRunner.RunGeneration(
                            ServerRunData.AgentCount,
                            ServerRunData.Minutes,
-                           ServerRunData.Split,
                            ServerRunData.Symbol,
                            ServerRunData.IsRandom,
+                           ServerRunData.MaxTake,
+                           ServerRunData.RandomStartIndex,
                            buyGenomes,
                            sellGenomes);
 

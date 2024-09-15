@@ -607,9 +607,10 @@ namespace CTKS_Chart.ViewModels
               await aIBotRunner.RunGeneration(
                 1,
                 240,
-                4.5,
                 symbol,
                 false,
+                0,
+                0,
                 new List<NeatGenome>() { new NeatGenome(buyG, buyG.Id, 0) },
                 new List<NeatGenome>() { new NeatGenome(sellG, sellG.Id, 0) }
                 );
@@ -650,9 +651,10 @@ namespace CTKS_Chart.ViewModels
           await aIBotRunner.RunGeneration(
             5,
             240,
-            4.5,
             symbol,
             false,
+            0,
+            0,
             new List<NeatGenome>() {
               new NeatGenome(buyG, buyG.Id, 0),
               new NeatGenome(buyG, buyG.Id, 0),

@@ -243,7 +243,6 @@ namespace CTKS_Chart.ViewModels
 
     public DateTime FromDate { get; set; } = new DateTime(2018, 9, 21);
     public int Minutes { get; set; } = 720;
-    public double SplitTake { get; set; }
 
     #endregion
 
