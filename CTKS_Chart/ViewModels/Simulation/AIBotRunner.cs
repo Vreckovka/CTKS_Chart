@@ -201,14 +201,26 @@ namespace CTKS_Chart.ViewModels
 
       for (int i = 0; i < agentCount; i++)
       {
-        buyGenomes[i].InputCount = buyGenomes[i].NodeList.Count(x => x.NodeType == SharpNeat.Network.NodeType.Input);
-        sellGenomes[i].InputCount = sellGenomes[i].NodeList.Count(x => x.NodeType == SharpNeat.Network.NodeType.Input);
+        var BuyBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
+        BuyBotManager.SetBestGenome(buyGenomes[i]);
+        BuyBotManager.InitializeManager(1);
+        BuyBotManager.CreateAgents();
 
+        var SellBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
+        SellBotManager.SetBestGenome(sellGenomes[i]);
+        SellBotManager.InitializeManager(1);
+        SellBotManager.CreateAgents();
+
+        BuyBotManager.Agents[0].NeuralNetwork.InputCount = buyGenomes[i].NodeList.Count(x => x.NodeType == SharpNeat.Network.NodeType.Input);
+        SellBotManager.Agents[0].NeuralNetwork.InputCount = sellGenomes[i].NodeList.Count(x => x.NodeType == SharpNeat.Network.NodeType.Input);
+
+        ((NeatGenome)BuyBotManager.Agents[0].NeuralNetwork).Id = buyGenomes[i].Id;
+        ((NeatGenome)SellBotManager.Agents[0].NeuralNetwork).Id = sellGenomes[i].Id;
 
         var bot = SimulationAIPromptViewModel.GetBot(
           symbol,
-          new AIBot(buyGenomes[i]),
-          new AIBot(sellGenomes[i]),
+          BuyBotManager.Agents[0],
+          SellBotManager.Agents[0],
           minutes,
           splitTake,
           random,

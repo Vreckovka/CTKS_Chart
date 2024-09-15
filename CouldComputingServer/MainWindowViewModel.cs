@@ -40,10 +40,11 @@ namespace CouldComputingServer
     List<ClientData> runResults = new List<ClientData>();
 
     string[] allSymbols = new string[] {
-       "COTIUSDT", "LINKUSDT",
-       "ETHUSDT",  "LTCUSDT",
-       "GALAUSDT", "EOSUSDT",
-       //"AVAXUSDT", "SOLUSDT",
+        "ADAUSDT","COTIUSDT",
+         "ETHUSDT",  "LTCUSDT",
+         "GALAUSDT", "EOSUSDT",
+         "AVAXUSDT", "SOLUSDT",
+         "LINKUSDT",
     };
 
     public MainWindowViewModel(IViewModelsFactory viewModelsFactory, ILogger logger) : base(viewModelsFactory)
@@ -1116,76 +1117,60 @@ namespace CouldComputingServer
         {
           await semaphoreSlim.WaitAsync();
 
-          List<float> ffasd = new List<float>();
-
-          for (int i = 0; i < 3; i++)
-          {
-            var symbolsToTest = new string[] {
-            "ADAUSDT",
+          var symbolsToTest = new string[] {
             "BTCUSDT",
             "MATICUSDT",
             "BNBUSDT",
             "ALGOUSDT"};
 
-            var fitness = new List<float>();
+          var fitness = new List<float>();
 
-            var buyBotManager_1 = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
-            var bellBotManager_1 = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
+          var buyBotManager_1 = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
+          var bellBotManager_1 = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
 
-            var aiPath = @$"Trainings\{TrainingSession.Name}\{generation}\MEDIAN_BUY.txt";
-            var buy = aiPath.Replace("SELL", "BUY");
-            var sell = aiPath.Replace("BUY", "SELL");
+          var aiPath = @$"Trainings\{TrainingSession.Name}\{generation}\MEDIAN_BUY.txt";
+          var buy = aiPath.Replace("SELL", "BUY");
+          var sell = aiPath.Replace("BUY", "SELL");
 
-            buyBotManager_1.LoadBestGenome(buy);
-            bellBotManager_1.LoadBestGenome(sell);
+          buyBotManager_1.LoadBestGenome(buy);
+          bellBotManager_1.LoadBestGenome(sell);
 
-            buyBotManager_1.InitializeManager(1);
-            bellBotManager_1.InitializeManager(1);
+          buyBotManager_1.InitializeManager(1);
+          bellBotManager_1.InitializeManager(1);
 
-            var buyG = buyBotManager_1.NeatAlgorithm.GenomeList[0];
-            var sellG = bellBotManager_1.NeatAlgorithm.GenomeList[0];
+          var buyG = buyBotManager_1.NeatAlgorithm.GenomeList[0];
+          var sellG = bellBotManager_1.NeatAlgorithm.GenomeList[0];
 
-            foreach (var symbol in symbolsToTest)
-            {
-              var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
+          foreach (var symbol in symbolsToTest)
+          {
+            var aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
 
-              await aIBotRunner.RunGeneration(
-                1,
-                Minutes,
-                SplitTake,
-                symbol,
-                false,
-                new List<NeatGenome>() { new NeatGenome(buyG, buyG.Id, 0) },
-                new List<NeatGenome>() { new NeatGenome(sellG, sellG.Id, 0) }
-                );
+            await aIBotRunner.RunGeneration(
+              1,
+              Minutes,
+              SplitTake,
+              symbol,
+              false,
+              new List<NeatGenome>() { new NeatGenome(buyG, buyG.Id, 0) },
+              new List<NeatGenome>() { new NeatGenome(sellG, sellG.Id, 0) }
+              );
 
-              var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
+            var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
 
-              fitness.Add(neat.Fitness);
+            fitness.Add(neat.Fitness);
 
-              Logger.Log(MessageType.Inform, $"{aIBotRunner.Bots[0].Asset.Symbol} - {neat.Fitness} - {aIBotRunner.Bots[0].TradingBot.Strategy.TotalValue.ToString("N2")} $");
 
-              neat.ResetFitness();
-            }
 
-            var meanFitness = MathHelper.GeometricMean(fitness);
+            Logger.Log(MessageType.Inform, $"{aIBotRunner.Bots[0].Asset.Symbol} - {neat.Fitness} - {aIBotRunner.Bots[0].TradingBot.Strategy.TotalValue.ToString("N2")} $");
 
-            Logger.Log(MessageType.Inform, $"MEAN - {meanFitness}");
-
-            ffasd.Add(meanFitness);
-
+            neat.ResetFitness();
           }
 
+          var meanFitness = MathHelper.GeometricMean(fitness);
 
-          VSynchronizationContext.InvokeOnDispatcher(() =>
-          {
-            TrainingSession.AddValue(CurrentSymbol, Statistic.BackTestMean, (decimal)ffasd[0]);
-          });
+          TrainingSession.AddValue(CurrentSymbol, Statistic.BackTestMean, (decimal)meanFitness);
+          Logger.Log(MessageType.Inform, $"MEAN - {meanFitness}");
 
-          foreach (var asd in ffasd)
-          {
-            Console.WriteLine(asd);
-          }
         }
         finally
         {

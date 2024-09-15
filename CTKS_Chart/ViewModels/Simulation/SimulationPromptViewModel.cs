@@ -579,11 +579,13 @@ namespace CTKS_Chart.ViewModels
       SelectedBot = adaAi;
       Bots.Add(adaAi);
 
-      for (int i = 0; i < 5; i++)
+      await Task.Run(() =>
       {
-        await Task.Run(async () =>
+        for (int i = 0; i < 5; i++)
         {
-          var symbolsToTest = new string[] {
+          Task.Run(async () =>
+          {
+            var symbolsToTest = new string[] {
             "COTIUSDT",
             //"ADAUSDT",
             //"BTCUSDT",
@@ -593,33 +595,35 @@ namespace CTKS_Chart.ViewModels
             };
 
 
-          var fitness = new List<float>();
+            var fitness = new List<float>();
 
-          var buyG = BuyBotManager.NeatAlgorithm.GenomeList[0];
-          var sellG = SellBotManager.NeatAlgorithm.GenomeList[0];
+            var buyG = BuyBotManager.NeatAlgorithm.GenomeList[0];
+            var sellG = SellBotManager.NeatAlgorithm.GenomeList[0];
 
-          foreach (var symbol in symbolsToTest)
-          {
-            var aIBotRunner = new AIBotRunner(logger, viewModelsFactory);
+            foreach (var symbol in symbolsToTest)
+            {
+              var aIBotRunner = new AIBotRunner(logger, viewModelsFactory);
 
-            await aIBotRunner.RunGeneration(
-              1,
-              240,
-              4.5,
-              symbol,
-              false,
-              new List<NeatGenome>() { new NeatGenome(buyG, buyG.Id, 0) },
-              new List<NeatGenome>() { new NeatGenome(sellG, sellG.Id, 0) }
-              );
+              await aIBotRunner.RunGeneration(
+                1,
+                240,
+                4.5,
+                symbol,
+                false,
+                new List<NeatGenome>() { new NeatGenome(buyG, buyG.Id, 0) },
+                new List<NeatGenome>() { new NeatGenome(sellG, sellG.Id, 0) }
+                );
 
-            var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
+              var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
 
-            fitness.Add(neat.Fitness);
+              fitness.Add(neat.Fitness);
 
-            Debug.WriteLine(aIBotRunner.Bots[0].TradingBot.Strategy.TotalValue);
-          }
-        });
-      }
+              Debug.WriteLine(aIBotRunner.Bots[0].TradingBot.Strategy.TotalValue);
+            }
+          });
+        }
+      });
+     
 
 
       await Task.Run(async () =>
