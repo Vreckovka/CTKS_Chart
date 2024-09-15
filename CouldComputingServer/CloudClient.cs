@@ -90,7 +90,27 @@ namespace CouldComputingServer
 
     #endregion
 
-    public int PopulationSize { get; set; }
+
+
+    #region PopulationSize
+
+    private int populationSize;
+
+    public int PopulationSize
+    {
+      get { return populationSize; }
+      set
+      {
+        if (value != populationSize)
+        {
+          populationSize = value;
+          RaisePropertyChanged();
+        }
+      }
+    }
+
+    #endregion
+
     public DateTime LastGenerationTime { get; set; } 
 
     public string IP

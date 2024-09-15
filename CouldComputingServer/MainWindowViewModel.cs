@@ -542,37 +542,44 @@ namespace CouldComputingServer
     {
       Task.Run(async () =>
       {
-        if (canResetGeneration)
+        try
         {
-          canResetGeneration = false;
-
-          foreach (var client in Clients)
+          if (canResetGeneration)
           {
-            TCPHelper.SendMessage(client.Client, MessageContract.Done);
+            canResetGeneration = false;
+
+            foreach (var client in Clients)
+            {
+              TCPHelper.SendMessage(client.Client, MessageContract.Done);
+            }
+
+            await Task.Delay(5000);
+
+            VSynchronizationContext.InvokeOnDispatcher(() =>
+            {
+              Logger.Log(MessageType.Warning, "Reseting generation!");
+              ToStart = 0;
+              InProgress = 0;
+              FinishedCount = 0;
+
+              var mod = Cycle % TrainingSession.SymbolsToTest.Count;
+
+              Cycle = Cycle - mod;
+
+              BuyBotManager.NeatAlgorithm.GenomeList.OfType<NeatGenome>().ForEach(x => x.fitnesses.Clear());
+              SellBotManager.NeatAlgorithm.GenomeList.OfType<NeatGenome>().ForEach(x => x.fitnesses.Clear());
+
+              DistributeGeneration(Cycle);
+            });
+
+            Observable.Timer(TimeSpan.FromSeconds(10))
+           .Subscribe(x => canResetGeneration = true)
+           .DisposeWith(this);
           }
-
-          await Task.Delay(5000);
-
-          VSynchronizationContext.InvokeOnDispatcher(() =>
-          {
-            Logger.Log(MessageType.Warning, "Reseting generation!");
-            ToStart = 0;
-            InProgress = 0;
-            FinishedCount = 0;
-
-            var mod = Cycle % TrainingSession.SymbolsToTest.Count;
-
-            Cycle = Cycle - mod;
-
-            BuyBotManager.NeatAlgorithm.GenomeList.OfType<NeatGenome>().ForEach(x => x.fitnesses.Clear());
-            SellBotManager.NeatAlgorithm.GenomeList.OfType<NeatGenome>().ForEach(x => x.fitnesses.Clear());
-
-            DistributeGeneration(Cycle);
-          });
-
-          Observable.Timer(TimeSpan.FromSeconds(10))
-         .Subscribe(x => canResetGeneration = true)
-         .DisposeWith(this);
+        }
+        catch (Exception ex)
+        {
+          Logger.Log(ex);
         }
       });
     }
@@ -588,6 +595,9 @@ namespace CouldComputingServer
     SemaphoreSlim semaphoreSlimDistribute = new SemaphoreSlim(1, 1);
 
     private SerialDisposable serialDisposable1 = new SerialDisposable();
+
+    Random random = new Random();
+
     private async void DistributeGeneration(int? generation = null)
     {
       try
@@ -615,30 +625,51 @@ namespace CouldComputingServer
 
         Clients.ForEach(x => { x.Done = false; x.ErrorCount = 0; x.ReceivedData = false; });
 
-        foreach (var client in Clients)
+
+        if (Clients.Any(x => x.PopulationSize == 0))
         {
-          client.PopulationSize = AgentCount / Clients.Count;
+          foreach (var client in Clients)
+          {
+            client.PopulationSize = AgentCount / Clients.Count;
+          }
         }
+
 
         var ordered = Clients.OrderBy(x => x.LastGenerationTime).ToList();
 
         var first = ordered.First();
         var last = ordered.Last();
 
+        TimeSpan difference = last.LastGenerationTime - first.LastGenerationTime;
+        var sec = (int)(difference.TotalMilliseconds * 2.0 / 100);
+
+        sec = Math.Min(sec, last.PopulationSize / 3);
+
+        if (sec >= 1)
+        {
+          last.PopulationSize -= sec;
+          first.PopulationSize += sec;
+        }
+
         int maxTake = 365;
+        int randomStartIndex = 0;
 
-        var dailyCandles = SimulationTradingBot
-           .GetIndicatorData(
-           new TimeFrameData() { Name = "1D", TimeFrame = CTKS_Chart.Trading.TimeFrame.D1}, 
-           SimulationPromptViewModel.GetAsset(CurrentSymbol, Minutes.ToString() ))
-           .Where(x => x.IndicatorData.RangeFilter.HighTarget > 0)
-           .ToList();
+        if (maxTake > 0)
+        {
+          var dailyCandles = SimulationTradingBot
+            .GetIndicatorData(
+            new TimeFrameData() { Name = CurrentSymbol, TimeFrame = CTKS_Chart.Trading.TimeFrame.D1 },
+            SimulationPromptViewModel.GetAsset(CurrentSymbol, Minutes.ToString()))
+            .Where(x => x.IndicatorData.RangeFilter.HighTarget > 0)
+            .ToList();
 
-        var selectedCandles = dailyCandles;
+          var selectedCandles = dailyCandles;
 
-        Random random = new Random();
-        int maxStartIndex = dailyCandles.Count - maxTake;
-        int randomStartIndex = random.Next(0, maxStartIndex + 1);
+          int maxStartIndex = dailyCandles.Count - maxTake;
+          randomStartIndex = random.Next(0, maxStartIndex + 1);
+        }
+
+        var tasks = new List<Task>();
 
         foreach (var client in Clients.ToList())
         {
@@ -649,7 +680,7 @@ namespace CouldComputingServer
             IsRandom = false,
             Minutes = Minutes,
             MaxTake = maxTake,
-            RandomStartIndex = randomStartIndex,
+            StartIndex = randomStartIndex,
             Symbol = CurrentSymbol,
           };
 
@@ -685,25 +716,34 @@ namespace CouldComputingServer
           }
 
 
-          TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
+          tasks.Add(Task.Run(() => TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message)));
         }
 
 
+        await Task.WhenAll(tasks);
+
         serialDisposable1.Disposable = Observable.Interval(TimeSpan.FromSeconds(5)).Subscribe(async (x) =>
         {
-          foreach (var client in Clients.Where(x => !x.ReceivedData))
+          try
           {
-            if (messages.TryGetValue(client, out var message))
+            foreach (var client in Clients.Where(x => !x.ReceivedData))
             {
-              TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
+              if (messages.TryGetValue(client, out var message))
+              {
+                TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
 
-              Logger.Log(MessageType.Warning, $"Resending data NO HANDSHAKE");
+                Logger.Log(MessageType.Warning, $"Resending data NO HANDSHAKE");
+              }
+              else
+              {
+                Logger.Log(MessageType.Warning, $"NO CACHED DATA!");
+                ResetGeneration();
+              }
             }
-            else
-            {
-              Logger.Log(MessageType.Warning, $"NO CACHED DATA!");
-              ResetGeneration();
-            }
+          }
+          catch (Exception ex)
+          {
+            Logger.Log(ex);
           }
         });
 
@@ -1046,68 +1086,71 @@ namespace CouldComputingServer
     {
       lock (managerBatton)
       {
-
-        if (buyManger.NeatAlgorithm == null)
+        try
         {
-          TCPHelper.SendMessage(tcpClient.Client, MessageContract.Done);
-          return;
-        }
-
-        foreach (var receivedGenome in runDatas)
-        {
-          var existingBuy = buyManger.NeatAlgorithm.GenomeList.SingleOrDefault(x => x.Id == receivedGenome.BuyGenomeId);
-          var existingSell = sellManager.NeatAlgorithm.GenomeList.SingleOrDefault(x => x.Id == receivedGenome.SellGenomeId);
-
-          if (existingBuy != null && existingSell != null)
+          if (buyManger.NeatAlgorithm == null)
           {
-            if (!tcpClient.SentBuyGenomes[existingBuy.Id] && !tcpClient.SentSellGenomes[existingSell.Id])
+            TCPHelper.SendMessage(tcpClient.Client, MessageContract.Done);
+            return;
+          }
+
+          foreach (var receivedGenome in runDatas)
+          {
+            var existingBuy = buyManger.NeatAlgorithm.GenomeList.SingleOrDefault(x => x.Id == receivedGenome.BuyGenomeId);
+            var existingSell = sellManager.NeatAlgorithm.GenomeList.SingleOrDefault(x => x.Id == receivedGenome.SellGenomeId);
+
+            if (existingBuy != null && existingSell != null)
             {
-              existingBuy.AddSequentialFitness((float)receivedGenome.Fitness);
-              existingSell.AddSequentialFitness((float)receivedGenome.Fitness);
-
-              var fitnesses = existingBuy.fitnesses.Where(x => x > 0).ToList();
-
-              if (fitnesses.GroupBy(x => x).Any(g => g.Count() > 1))
+              if (!tcpClient.SentBuyGenomes[existingBuy.Id] && !tcpClient.SentSellGenomes[existingSell.Id])
               {
-                Logger.Log(MessageType.Warning, "SAME FITNESSES FOR DIFFERENT SYMBOLS!");
+                existingBuy.AddSequentialFitness((float)receivedGenome.Fitness);
+                existingSell.AddSequentialFitness((float)receivedGenome.Fitness);
 
-                foreach (var fitness in fitnesses)
+                var fitnesses = existingBuy.fitnesses.Where(x => x > 0).ToList();
+
+                if (fitnesses.GroupBy(x => x).Any(g => g.Count() > 1))
                 {
-                  Logger.Log(MessageType.Warning, fitness.ToString());
+                  Logger.Log(MessageType.Warning, "SAME FITNESSES FOR DIFFERENT SYMBOLS!");
+
+                  foreach (var fitness in fitnesses)
+                  {
+                    Logger.Log(MessageType.Warning, fitness.ToString());
+                  }
                 }
 
-                //ResetGeneration();
-              }
+                FinishedCount += 1;
+                InProgress -= 1;
 
+                tcpClient.SentBuyGenomes[existingBuy.Id] = true;
+                tcpClient.SentSellGenomes[existingSell.Id] = true;
 
-              FinishedCount += 1;
-              InProgress -= 1;
+                tcpClient.Done = tcpClient.SentBuyGenomes.All(x => x.Value == true) && tcpClient.SentSellGenomes.All(x => x.Value == true);
 
-              tcpClient.SentBuyGenomes[existingBuy.Id] = true;
-              tcpClient.SentSellGenomes[existingSell.Id] = true;
-
-              tcpClient.Done = tcpClient.SentBuyGenomes.All(x => x.Value == true) && tcpClient.SentSellGenomes.All(x => x.Value == true);
-
-              if (tcpClient.Done)
-              {
-                tcpClient.LastGenerationTime = DateTime.Now;
-                TCPHelper.SendMessage(tcpClient.Client, MessageContract.Done);
+                if (tcpClient.Done)
+                {
+                  tcpClient.LastGenerationTime = DateTime.Now;
+                  TCPHelper.SendMessage(tcpClient.Client, MessageContract.Done);
+                }
               }
             }
-          }
-          else
-          {
-            Logger.Log(MessageType.Error, $"NOT FOUND GENOME WITH ID: {receivedGenome.BuyGenomeId}", true);
-
-            if (tcpClient.ErrorCount < 10)
+            else
             {
-              tcpClient.ErrorCount = 10;
-              ResetGeneration();
-              break;
-            }
+              Logger.Log(MessageType.Error, $"NOT FOUND GENOME WITH ID: {receivedGenome.BuyGenomeId}", true);
 
-            tcpClient.ErrorCount++;
+              if (tcpClient.ErrorCount < 10)
+              {
+                tcpClient.ErrorCount = 10;
+                ResetGeneration();
+                break;
+              }
+
+              tcpClient.ErrorCount++;
+            }
           }
+        }
+        catch (Exception ex)
+        {
+          Logger.Log(ex);
         }
       }
     }
@@ -1179,7 +1222,6 @@ namespace CouldComputingServer
               Minutes,
               symbol,
               false,
-              0,
               0,
               new List<NeatGenome>() { new NeatGenome(buyG, buyG.Id, 0) },
               new List<NeatGenome>() { new NeatGenome(sellG, sellG.Id, 0) }

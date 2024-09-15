@@ -13,7 +13,7 @@ namespace CloudComputing.Domains
     public int AgentCount { get; set; }
     public int Minutes { get; set; }
     public int MaxTake { get; set; }
-    public int RandomStartIndex { get; set; }
+    public int StartIndex { get; set; }
     public bool IsRandom { get; set; }
 
     public string Symbol { get; set; }
@@ -27,8 +27,6 @@ namespace CloudComputing.Domains
 
       if (_stream != null)
       {
-
-        
         var data = Encoding.UTF8.GetBytes(message);
 
         int totalBytesSent = 0;

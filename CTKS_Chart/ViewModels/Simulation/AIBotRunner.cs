@@ -240,6 +240,51 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+    static Dictionary<string, int> cachedData = new Dictionary<string, int>();
+    static object cachedAllDataLock = new object();
+
+    private void CacheAllData(string symbol, int minutes)
+    {
+      lock (cachedAllDataLock)
+      {
+        if (!cachedData.ContainsKey(symbol))
+        {
+          var asset = Bots.First().Asset;
+
+          var dailyCandles = SimulationTradingBot
+               .GetIndicatorData(Bots[0].TimeFrameDatas[TimeFrame.D1], asset)
+               .Where(x => x.IndicatorData.RangeFilter.HighTarget > 0)
+               .ToList();
+
+          var firstValidDate = dailyCandles.First().CloseTime;
+          var lastValidDate = dailyCandles.Last().CloseTime;
+          var fromDate = firstValidDate;
+
+          var allCandles = SimulationTradingBot.GetSimulationCandles(
+            minutes,
+            SimulationPromptViewModel.GetSimulationDataPath(symbol, minutes.ToString()), symbol, fromDate);
+
+          var simulateCandles = allCandles.cutCandles.Where(x => x.OpenTime.Date > firstValidDate.Date && x.OpenTime.Date < lastValidDate.Date).ToList();
+          var candles = allCandles.candles;
+          var mainCandles = allCandles.allCandles.Where(x => x.OpenTime.Date > firstValidDate.Date).ToList();
+
+
+          var timeFrame = simulateCandles.First().TimeFrame;
+          var key = new Tuple<string, TimeFrame>(Bots[0].Asset.Symbol, timeFrame);
+
+          //Bots.ForEach(x => x.LoadSecondaryLayouts(firstValidDate));
+          //Bots.ForEach(x => x.PreloadCandles(key, mainCandles));
+          //Bots.ForEach(x => x.PreLoadIntersections(key, mainCandles));
+
+          Bots[0].LoadSecondaryLayouts(firstValidDate);
+          Bots[0].PreloadCandles(key, mainCandles);
+          Bots[0].PreLoadIntersections(key, mainCandles);
+
+          cachedData.Add(symbol, minutes);
+        } 
+      }
+    }
+
     #region RunBots
 
     object batton = new object();
@@ -260,6 +305,9 @@ namespace CTKS_Chart.ViewModels
       {
         lock (batton1)
         {
+
+          CacheAllData(symbol, minutes);
+
           DateTime fromDate = DateTime.Now;
 
           var asset = Bots.First().Asset;
@@ -295,13 +343,8 @@ namespace CTKS_Chart.ViewModels
           var candles = allCandles.candles;
           var mainCandles = allCandles.allCandles.Where(x => x.OpenTime.Date > firstValidDate.Date).ToList();
 
-
           var timeFrame = simulateCandles.First().TimeFrame;
           var key = new Tuple<string, TimeFrame>(Bots[0].Asset.Symbol, timeFrame);
-
-          //Bots.ForEach(x => x.LoadSecondaryLayouts(firstValidDate));
-          //Bots.ForEach(x => x.PreloadCandles(key, mainCandles));
-          //Bots.ForEach(x => x.PreLoadIntersections(key, mainCandles));
 
           Bots[0].LoadSecondaryLayouts(firstValidDate);
           Bots[0].PreloadCandles(key, mainCandles);

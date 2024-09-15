@@ -303,6 +303,11 @@
 
                       <TextBlock
                         Margin="5,0"
+                        Foreground="#cc0390fc"
+                        Text="{Binding PopulationSize}" />
+
+                      <TextBlock
+                        Margin="5,0"
                         Foreground="#858585"
                         Text="{Binding ErrorCount}" />
                     </UniformGrid>
