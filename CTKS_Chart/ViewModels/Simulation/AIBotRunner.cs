@@ -305,114 +305,121 @@ namespace CTKS_Chart.ViewModels
       {
         lock (batton1)
         {
-
-          CacheAllData(symbol, minutes);
-
-          DateTime fromDate = DateTime.Now;
-
-          var asset = Bots.First().Asset;
-
-          var dailyCandles = SimulationTradingBot
-              .GetIndicatorData(Bots[0].TimeFrameDatas[TimeFrame.D1], asset)
-              .Where(x => x.IndicatorData.RangeFilter.HighTarget > 0)
-              .ToList();
-
-          var selectedCandles = dailyCandles;
-
-          if (maxTake > 0)
+          try
           {
-            selectedCandles = dailyCandles.Skip(randomStartIndex).Take(maxTake).ToList();
-          }
 
-          // If you want to set firstValidDate and lastValidDate using the selected candles
-          var firstValidDate = selectedCandles.First().CloseTime.AddDays(10);
-          var lastValidDate = selectedCandles.Last().CloseTime.AddDays(-10);
-          fromDate = firstValidDate;
+            CacheAllData(symbol, minutes);
 
-          foreach (var indiFrame in TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes)
-          {
-            SimulationTradingBot.GetIndicatorData(Bots[0].TimeFrameDatas[indiFrame], asset);
-          }
+            DateTime fromDate = DateTime.Now;
 
+            var asset = Bots.First().Asset;
 
-          var allCandles = SimulationTradingBot.GetSimulationCandles(
-             minutes,
-             SimulationPromptViewModel.GetSimulationDataPath(symbol, minutes.ToString()), symbol, fromDate);
+            var dailyCandles = SimulationTradingBot
+                .GetIndicatorData(Bots[0].TimeFrameDatas[TimeFrame.D1], asset)
+                .Where(x => x.IndicatorData.RangeFilter.HighTarget > 0)
+                .ToList();
 
-          var simulateCandles = allCandles.cutCandles.Where(x => x.OpenTime.Date > firstValidDate.Date && x.OpenTime.Date < lastValidDate.Date).ToList();
-          var candles = allCandles.candles;
-          var mainCandles = allCandles.allCandles.Where(x => x.OpenTime.Date > firstValidDate.Date).ToList();
+            var selectedCandles = dailyCandles;
 
-          var timeFrame = simulateCandles.First().TimeFrame;
-          var key = new Tuple<string, TimeFrame>(Bots[0].Asset.Symbol, timeFrame);
-
-          Bots[0].LoadSecondaryLayouts(firstValidDate);
-          Bots[0].PreloadCandles(key, mainCandles);
-          Bots[0].PreLoadIntersections(key, mainCandles);
-
-          foreach (var bot in Bots)
-          {
-            bot.FromDate = fromDate;
-            bot.InitializeBot(simulateCandles);
-            bot.HeatBot(simulateCandles, bot.TradingBot.Strategy);
-          }
-
-
-          ToStart = Bots.Count;
-
-          var min = Math.Min(Bots.Count, 10);
-
-          var splitTakeC = Bots.SplitList(Bots.Count / min);
-          var tasks = new List<Task>();
-
-          foreach (var take in splitTakeC)
-          {
-            tasks.Add(Task.Run(async () =>
+            if (maxTake > 0)
             {
-              lock (batton)
-              {
-                ToStart -= take.Count;
-                InProgress += take.Count;
-              }
+              selectedCandles = dailyCandles.Skip(randomStartIndex).Take(maxTake).ToList();
+            }
 
-              try
-              {
+            // If you want to set firstValidDate and lastValidDate using the selected candles
+            var firstValidDate = selectedCandles.First().CloseTime.AddDays(10);
+            var lastValidDate = selectedCandles.Last().CloseTime.AddDays(-10);
+            fromDate = firstValidDate;
 
-                foreach (var candle in simulateCandles)
+            foreach (var indiFrame in TradingBotViewModel<Position, BaseStrategy<Position>>.IndicatorTimeframes)
+            {
+              SimulationTradingBot.GetIndicatorData(Bots[0].TimeFrameDatas[indiFrame], asset);
+            }
+
+
+            var allCandles = SimulationTradingBot.GetSimulationCandles(
+               minutes,
+               SimulationPromptViewModel.GetSimulationDataPath(symbol, minutes.ToString()), symbol, fromDate);
+
+            var simulateCandles = allCandles.cutCandles.Where(x => x.OpenTime.Date > firstValidDate.Date && x.OpenTime.Date < lastValidDate.Date).ToList();
+            var candles = allCandles.candles;
+            var mainCandles = allCandles.allCandles.Where(x => x.OpenTime.Date > firstValidDate.Date).ToList();
+
+            var timeFrame = simulateCandles.First().TimeFrame;
+            var key = new Tuple<string, TimeFrame>(Bots[0].Asset.Symbol, timeFrame);
+
+            Bots[0].LoadSecondaryLayouts(firstValidDate);
+            Bots[0].PreloadCandles(key, mainCandles);
+            Bots[0].PreLoadIntersections(key, mainCandles);
+
+            foreach (var bot in Bots)
+            {
+              bot.FromDate = fromDate;
+              bot.InitializeBot(simulateCandles);
+              bot.HeatBot(simulateCandles, bot.TradingBot.Strategy);
+            }
+
+
+            ToStart = Bots.Count;
+
+            var min = Math.Min(Bots.Count, 10);
+
+            var splitTakeC = Bots.SplitList(Bots.Count / min);
+            var tasks = new List<Task>();
+
+            foreach (var take in splitTakeC)
+            {
+              tasks.Add(Task.Run(async () =>
+              {
+                lock (batton)
                 {
-                  if (take.Any(x => x.stopRequested))
-                    return;
+                  ToStart -= take.Count;
+                  InProgress += take.Count;
+                }
 
-                  foreach (var bot in take)
+                try
+                {
+
+                  foreach (var candle in simulateCandles)
                   {
-                    await bot.SimulateCandle(candle);
+                    if (take.Any(x => x.stopRequested))
+                      return;
+
+                    foreach (var bot in take)
+                    {
+                      await bot.SimulateCandle(candle);
+                    }
                   }
                 }
-              }
-              catch (Exception ex)
-              {
-                Logger.Log(ex);
-              }
+                catch (Exception ex)
+                {
+                  Logger.Log(ex);
+                }
 
-              lock (batton)
-              {
-                FinishedCount += take.Count;
-                InProgress -= take.Count;
-              }
-            }));
+                lock (batton)
+                {
+                  FinishedCount += take.Count;
+                  InProgress -= take.Count;
+                }
+              }));
+            }
+
+            Task.WaitAll(tasks.ToArray());
+
+            if (!Bots.Any(x => x.stopRequested))
+              GenerationCompleted();
+            else
+            {
+              InProgress = 0;
+              FinishedCount = 0;
+            }
+
+            canRunGeneration = true;
           }
-
-          Task.WaitAll(tasks.ToArray());
-
-          if (!Bots.Any(x => x.stopRequested))
-            GenerationCompleted();
-          else
+          catch (Exception ex)
           {
-            InProgress = 0;
-            FinishedCount = 0;
+            Logger.Log(ex);
           }
-
-          canRunGeneration = true;
         }
       });
     }

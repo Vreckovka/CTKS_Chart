@@ -40,7 +40,7 @@ namespace CouldComputingServer
     List<ClientData> runResults = new List<ClientData>();
 
     string[] allSymbols = new string[] {
-        "ADAUSDT","COTIUSDT",
+          "BTCUSDT","COTIUSDT",
          "ETHUSDT",  "LTCUSDT",
          "GALAUSDT", "EOSUSDT",
          "AVAXUSDT", "SOLUSDT",
@@ -641,9 +641,9 @@ namespace CouldComputingServer
         var last = ordered.Last();
 
         TimeSpan difference = last.LastGenerationTime - first.LastGenerationTime;
-        var sec = (int)(difference.TotalMilliseconds * 2.0 / 100);
+        var sec = (int)(difference.TotalMilliseconds / 100);
 
-        sec = Math.Min(sec, last.PopulationSize / 3);
+        sec = Math.Min(sec, last.PopulationSize / 10);
 
         if (sec >= 1)
         {
@@ -651,14 +651,14 @@ namespace CouldComputingServer
           first.PopulationSize += sec;
         }
 
-        int maxTake = 365;
+        int maxTake = 720;
         int randomStartIndex = 0;
 
         if (maxTake > 0)
         {
           var dailyCandles = SimulationTradingBot
             .GetIndicatorData(
-            new TimeFrameData() { Name = CurrentSymbol, TimeFrame = CTKS_Chart.Trading.TimeFrame.D1 },
+            new TimeFrameData() { Name = "1D", TimeFrame = CTKS_Chart.Trading.TimeFrame.D1 },
             SimulationPromptViewModel.GetAsset(CurrentSymbol, Minutes.ToString()))
             .Where(x => x.IndicatorData.RangeFilter.HighTarget > 0)
             .ToList();
@@ -716,7 +716,7 @@ namespace CouldComputingServer
           }
 
 
-          tasks.Add(Task.Run(() => TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message)));
+          tasks.Add(Task.Run(() => TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message))));
         }
 
 
@@ -728,10 +728,13 @@ namespace CouldComputingServer
           {
             foreach (var client in Clients.Where(x => !x.ReceivedData))
             {
-              if (messages.TryGetValue(client, out var message))
+              if(!messages.Any())
+              {
+                TCPHelper.SendMessage(client.Client, MessageContract.Done);
+              }
+              else if (messages.TryGetValue(client, out var message))
               {
                 TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(message));
-
                 Logger.Log(MessageType.Warning, $"Resending data NO HANDSHAKE");
               }
               else
@@ -1190,7 +1193,7 @@ namespace CouldComputingServer
           await testSemaphore.WaitAsync();
 
           var symbolsToTest = new string[] {
-            "BTCUSDT",
+            "ADAUSDT",
             "MATICUSDT",
             "BNBUSDT",
             "ALGOUSDT"};
@@ -1223,6 +1226,7 @@ namespace CouldComputingServer
               symbol,
               false,
               0,
+              0,
               new List<NeatGenome>() { new NeatGenome(buyG, buyG.Id, 0) },
               new List<NeatGenome>() { new NeatGenome(sellG, sellG.Id, 0) }
               );
@@ -1231,9 +1235,13 @@ namespace CouldComputingServer
 
             fitness.Add(neat.Fitness);
 
+            var strategy = aIBotRunner.Bots[0].TradingBot.Strategy;
 
-
-            Logger.Log(MessageType.Inform, $"{aIBotRunner.Bots[0].Asset.Symbol} - {neat.Fitness} - {aIBotRunner.Bots[0].TradingBot.Strategy.TotalValue.ToString("N2")} $");
+            Logger.Log(MessageType.Inform, 
+              $"{aIBotRunner.Bots[0].Asset.Symbol} - " +
+              $"{neat.Fitness} - " +
+              $"({strategy.MaxDrawdawnFromMaxTotalValue.ToString("N2")} %, " +
+              $"{strategy.TotalValue.ToString("N2")} $)");
 
             neat.ResetFitness();
           }

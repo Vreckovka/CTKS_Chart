@@ -357,7 +357,6 @@ namespace CloudComputingClient
                 ms = new MemoryStream();
                 messageBuilder.Clear();
 
-                serialDisposable.Disposable?.Dispose();
                 aIBotRunner.Bots.ForEach(x => x.Stop());
 
                 continue;

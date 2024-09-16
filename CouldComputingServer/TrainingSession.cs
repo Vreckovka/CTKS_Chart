@@ -203,6 +203,8 @@ namespace CouldComputingServer
 
     #endregion
 
+    public int MovingAverage = 5;
+
     #region AddValue
 
     public void AddValue(string symbol, Statistic statistics, decimal value)
@@ -233,11 +235,11 @@ namespace CouldComputingServer
             break;
           case Statistic.MedianFitness:
             MedianFitness.Add(value);
-            MedianFitnessData[0].Values.Add(Math.Round(MedianFitness.TakeLast(20).Average(), 2));
+            MedianFitnessData[0].Values.Add(Math.Round(MedianFitness.TakeLast(MovingAverage).Average(), 2));
             break;
           case Statistic.BackTestMean:
             BackTestFitness.Add(value);
-            BackTestFitnessData[0].Values.Add(Math.Round(BackTestFitness.TakeLast(20).Average(), 2));
+            BackTestFitnessData[0].Values.Add(Math.Round(BackTestFitness.TakeLast(MovingAverage).Average(), 2));
             break;
         }
       }
@@ -254,7 +256,7 @@ namespace CouldComputingServer
         values.Add(key, new List<decimal>() { value });
       }
 
-      return Math.Round(values[key].TakeLast(20).Average(), 2);
+      return Math.Round(values[key].TakeLast(MovingAverage).Average(), 2);
     }
 
     #endregion

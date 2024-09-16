@@ -335,6 +335,13 @@ namespace CTKS_Chart.ViewModels
             }
             else
             {
+
+              if (!TradingViewHelper.LoadedData[key.Item1].ContainsKey(indicatorTimeframe))
+              {
+                var data = TradingViewHelper.ParseTradingView(indicatorTimeframe, 
+                  SimulationTradingBot.GetIndicatorDataPath(TimeFrameDatas[indicatorTimeframe], Asset), Asset.Symbol,saveData: true);
+              }
+
               foreach (var candle in simulationCandles)
               {
                 var dailyCandle = base.GetCandle(new List<TimeFrame>() { indicatorTimeframe }, candle).FirstOrDefault();
