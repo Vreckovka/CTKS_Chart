@@ -515,22 +515,6 @@ namespace CouldComputingServer
       _listenerThread.IsBackground = true;
       _listenerThread.Start();
 
-
-      Observable.Interval(TimeSpan.FromSeconds(1)).Subscribe(async (x) =>
-      {
-        lock (batton)
-        {
-          if (IsGenerationEnded())
-          {
-            VSynchronizationContext.InvokeOnDispatcher(() =>
-            {
-              UpdateGeneration(runResults);
-            });
-          }
-        }
-      });
-
-
     }
 
     #endregion
@@ -728,7 +712,7 @@ namespace CouldComputingServer
           {
             foreach (var client in Clients.Where(x => !x.ReceivedData))
             {
-              if(!messages.Any())
+              if (!messages.Any())
               {
                 TCPHelper.SendMessage(client.Client, MessageContract.Done);
               }
@@ -981,7 +965,7 @@ namespace CouldComputingServer
 
               client.ErrorCount++;
 
-              if (client.ErrorCount > 5)
+              if (client.ErrorCount > errorThreshold)
               {
                 client.ReceivedData = false;
 
@@ -1003,6 +987,8 @@ namespace CouldComputingServer
       });
     }
 
+    int errorThreshold = 10;
+
     private void ProcessMessage(CloudClient client, string message)
     {
       message = MessageContract.GetDataMessageContent(message);
@@ -1020,7 +1006,7 @@ namespace CouldComputingServer
           {
             client.ErrorCount++;
 
-            if (client.ErrorCount > 5)
+            if (client.ErrorCount > errorThreshold)
             {
               client.ErrorCount = 0;
               ResetGeneration();
@@ -1046,6 +1032,15 @@ namespace CouldComputingServer
         {
           runResults.Add(data);
           Logger.Log(MessageType.Inform2, "SUCESSFULL GENOME UPDATE");
+          TCPHelper.SendMessage(client.Client, MessageContract.Finished);
+        }
+
+        if (IsGenerationEnded())
+        {
+          VSynchronizationContext.InvokeOnDispatcher(() =>
+          {
+            UpdateGeneration(runResults);
+          });
         }
       }
       else
@@ -1054,7 +1049,7 @@ namespace CouldComputingServer
         {
           client.ErrorCount++;
 
-          if (client.ErrorCount > 5)
+          if (client.ErrorCount > errorThreshold)
           {
             client.ReceivedData = false;
 
@@ -1236,7 +1231,7 @@ namespace CouldComputingServer
 
             var strategy = aIBotRunner.Bots[0].TradingBot.Strategy;
 
-            Logger.Log(MessageType.Inform, 
+            Logger.Log(MessageType.Inform,
               $"{aIBotRunner.Bots[0].Asset.Symbol} - " +
               $"{neat.Fitness} - " +
               $"({strategy.MaxDrawdawnFromMaxTotalValue.ToString("N2")} %, " +
