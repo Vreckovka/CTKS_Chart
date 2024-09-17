@@ -608,7 +608,6 @@ namespace CTKS_Chart.ViewModels
                 1,
                 240,
                 symbol,
-                false,
                 0,
                 0,
                 new List<NeatGenome>() { new NeatGenome(buyG, buyG.Id, 0) },
@@ -652,7 +651,6 @@ namespace CTKS_Chart.ViewModels
             5,
             240,
             symbol,
-            false,
             0,
             0,
             new List<NeatGenome>() {

@@ -149,7 +149,6 @@ namespace CTKS_Chart.ViewModels
       int agentCount,
       int minutes,
       string symbol,
-      bool isRandom,
       int maxTake,
       int randomStartIndex,
       List<NeatGenome> buyGenomes,
@@ -175,7 +174,7 @@ namespace CTKS_Chart.ViewModels
 
         serialDisposable.Disposable?.Dispose();
 
-        return CreateStrategies(agentCount, minutes, symbol, isRandom, buyGenomes, sellGenomes, maxTake, randomStartIndex);
+        return CreateStrategies(agentCount, minutes, symbol, buyGenomes, sellGenomes, maxTake, randomStartIndex);
       }
 
       return Task.CompletedTask;
@@ -189,7 +188,6 @@ namespace CTKS_Chart.ViewModels
       int agentCount,
       int minutes,
       string symbol,
-      bool isRandom,
       List<NeatGenome> buyGenomes,
       List<NeatGenome> sellGenomes,
       int maxTake,
@@ -226,8 +224,7 @@ namespace CTKS_Chart.ViewModels
           minutes,
           random,
           ViewModelsFactory,
-          Logger,
-          isRandom);
+          Logger);
 
         ToStart++;
 
@@ -235,7 +232,7 @@ namespace CTKS_Chart.ViewModels
       }
 
 
-      return RunBots(random, symbol, isRandom, minutes, maxTake, randomStartIndex);
+      return RunBots(random, symbol, minutes, maxTake, randomStartIndex);
     }
 
     #endregion
@@ -272,10 +269,6 @@ namespace CTKS_Chart.ViewModels
           var timeFrame = simulateCandles.First().TimeFrame;
           var key = new Tuple<string, TimeFrame>(Bots[0].Asset.Symbol, timeFrame);
 
-          //Bots.ForEach(x => x.LoadSecondaryLayouts(firstValidDate));
-          //Bots.ForEach(x => x.PreloadCandles(key, mainCandles));
-          //Bots.ForEach(x => x.PreLoadIntersections(key, mainCandles));
-
           Bots[0].LoadSecondaryLayouts(firstValidDate);
           Bots[0].PreloadCandles(key, mainCandles);
           Bots[0].PreLoadIntersections(key, mainCandles);
@@ -294,7 +287,6 @@ namespace CTKS_Chart.ViewModels
     private Task RunBots(
               Random random,
               string symbol,
-              bool useRandomDate,
               int minutes,
               int maxTake,
               int randomStartIndex)

@@ -14,8 +14,6 @@ namespace CloudComputing.Domains
     public int Minutes { get; set; }
     public int MaxTake { get; set; }
     public int StartIndex { get; set; }
-    public bool IsRandom { get; set; }
-
     public string Symbol { get; set; }
   }
 

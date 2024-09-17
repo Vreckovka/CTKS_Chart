@@ -452,7 +452,6 @@ namespace CloudComputingClient
                             ServerRunData.AgentCount,
                             ServerRunData.Minutes,
                             ServerRunData.Symbol,
-                            ServerRunData.IsRandom,
                             ServerRunData.MaxTake,
                             ServerRunData.StartIndex,
                             buyGenomes,
@@ -530,7 +529,8 @@ namespace CloudComputingClient
       Console.WriteLine();
       Console.WriteLine($"Symbol: {ServerRunData?.Symbol}");
       Console.WriteLine($"Minutes: {ServerRunData?.Minutes}");
-      Console.WriteLine($"Random: {ServerRunData?.IsRandom}");
+      Console.WriteLine($"Max Take: {ServerRunData?.MaxTake}");
+      Console.WriteLine($"Start index: {ServerRunData?.StartIndex}");
       Console.WriteLine();
       Console.WriteLine($"To Start: {aIBotRunner.ToStart} In Progress: {aIBotRunner.InProgress} Finished: {aIBotRunner.FinishedCount}");
 
@@ -540,7 +540,8 @@ namespace CloudComputingClient
       Console.WriteLine($"GEN.Run Time: {aIBotRunner.GenerationRunTime.ToString(@"hh\:mm\:ss")}");
       Console.WriteLine($"Symbol: {LastServerRunData?.Symbol}");
       Console.WriteLine($"Minutes: {LastServerRunData?.Minutes}");
-      Console.WriteLine($"Random: {LastServerRunData?.IsRandom}");
+      Console.WriteLine($"Max Take: {LastServerRunData?.MaxTake}");
+      Console.WriteLine($"Start index: {LastServerRunData?.StartIndex}");
 
       Console.WriteLine();
       Console.WriteLine($"BEST Fitness: {LastData?.Fitness.ToString("N2")}");

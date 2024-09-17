@@ -342,20 +342,10 @@ namespace CTKS_Chart.ViewModels
         AgentCount,
         Minutes,
         Symbol,
-        IsRandom(),
         0,
         0,
         BuyBotManager.NeatAlgorithm.GenomeList.ToList(),
         SellBotManager.NeatAlgorithm.GenomeList.ToList());
-    }
-
-    #endregion
-
-    #region IsRandom
-
-    private bool IsRandom()
-    {
-      return false;
     }
 
     #endregion
@@ -366,9 +356,7 @@ namespace CTKS_Chart.ViewModels
     {
       var best = AIBotRunner.Bots.OrderByDescending(x => x.TradingBot.Strategy.BuyAIBot.NeuralNetwork.Fitness).First();
 
-      var addStats = !IsRandom() && BuyBotManager.Generation + 1 % 10 > 1;
-
-      //var addStats = true;
+      var addStats =BuyBotManager.Generation + 1 % 10 > 1;
 
       if (addStats)
       {
@@ -424,7 +412,6 @@ namespace CTKS_Chart.ViewModels
        AgentCount,
        Minutes,
        Symbol,
-       IsRandom(),
        0,
        0,
        BuyBotManager.NeatAlgorithm.GenomeList.ToList(),
@@ -534,24 +521,11 @@ namespace CTKS_Chart.ViewModels
       int minutes,
       Random random,
       IViewModelsFactory viewModelsFactory,
-      ILogger logger,
-      bool useRandom = false)
+      ILogger logger)
     {
       var bot = SimulationPromptViewModel.GetTradingBot<AIPosition, AIStrategy>(viewModelsFactory, symbol, minutes, logger, new AIStrategy(buy, sell));
 
-      DateTime fromDate = DateTime.Now;
-
-      if (useRandom)
-      {
-        var year = random.Next(2019, 2023);
-        fromDate = new DateTime(year, random.Next(1, 13), random.Next(1, 25));
-      }
-      else
-      {
-        fromDate = new DateTime(2019, 1, 1);
-      }
-
-      bot.FromDate = fromDate;
+      bot.FromDate = new DateTime(2019, 1, 1);
 
       return bot;
     }

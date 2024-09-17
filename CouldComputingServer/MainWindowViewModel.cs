@@ -650,7 +650,9 @@ namespace CouldComputingServer
           var selectedCandles = dailyCandles;
 
           int maxStartIndex = dailyCandles.Count - maxTake;
-          randomStartIndex = random.Next(0, maxStartIndex + 1);
+
+          if (maxStartIndex > 0)
+            randomStartIndex = random.Next(0, maxStartIndex + 1);
         }
 
         var tasks = new List<Task>();
@@ -661,7 +663,6 @@ namespace CouldComputingServer
           {
             AgentCount = client.PopulationSize,
             Generation = Cycle,
-            IsRandom = false,
             Minutes = Minutes,
             MaxTake = maxTake,
             StartIndex = randomStartIndex,
@@ -1218,7 +1219,6 @@ namespace CouldComputingServer
               1,
               Minutes,
               symbol,
-              false,
               0,
               0,
               new List<NeatGenome>() { new NeatGenome(buyG, buyG.Id, 0) },
