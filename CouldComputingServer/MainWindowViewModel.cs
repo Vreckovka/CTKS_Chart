@@ -1029,7 +1029,6 @@ namespace CouldComputingServer
           else
           {
             client.ErrorCount = 0;
-            TCPHelper.SendMessage(client.Client, MessageContract.Handshake);
           }
         }
 
