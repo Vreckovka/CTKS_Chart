@@ -288,9 +288,16 @@ namespace CloudComputingClient
 
     private static void ListenToServer(TcpClient client)
     {
-      var clientThread = new Thread(() => HandleIncomingMessage(client));
-      clientThread.IsBackground = true;
-      clientThread.Start();
+      try
+      {
+        var clientThread = new Thread(() => HandleIncomingMessage(client));
+        clientThread.IsBackground = true;
+        clientThread.Start();
+      }
+      catch (Exception ex)
+      {
+        Logger.Log(ex);
+      }
     }
 
     #endregion
@@ -377,6 +384,7 @@ namespace CloudComputingClient
           }
           catch (Exception ex)
           {
+            serialDisposable.Disposable?.Dispose();
             try
             {
               TCPHelper.SendMessage(tcpClient, MessageContract.Error);
@@ -409,7 +417,7 @@ namespace CloudComputingClient
     {
       try
       {
-
+        serialDisposable.Disposable?.Dispose();
         var split = MessageContract.GetDataMessageContent(message);
         var serverRunData = JsonSerializer.Deserialize<ServerRunData>(split);
 
@@ -449,10 +457,7 @@ namespace CloudComputingClient
                             ServerRunData.StartIndex,
                             buyGenomes,
                             sellGenomes);
-
-
-
-          serialDisposable.Disposable?.Dispose();
+        
           UpdateUI();
 
           for (int i = 0; i < 2; i++)

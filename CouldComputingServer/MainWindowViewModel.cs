@@ -635,7 +635,7 @@ namespace CouldComputingServer
           first.PopulationSize += sec;
         }
 
-        int maxTake = 720;
+        int maxTake = 1080;
         int randomStartIndex = 0;
 
         if (maxTake > 0)
@@ -1009,7 +1009,8 @@ namespace CouldComputingServer
             if (client.ErrorCount > errorThreshold)
             {
               client.ErrorCount = 0;
-              ResetGeneration();
+              client.ReceivedData = false;
+              Logger.Log(MessageType.Warning, "Reseting HANDSHAKE, invalid received data");
             }
           }
           else
@@ -1126,7 +1127,6 @@ namespace CouldComputingServer
                 if (tcpClient.Done)
                 {
                   tcpClient.LastGenerationTime = DateTime.Now;
-                  TCPHelper.SendMessage(tcpClient.Client, MessageContract.Done);
                 }
               }
             }
