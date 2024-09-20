@@ -50,9 +50,6 @@ namespace CloudComputingClient
     static ServerRunData ServerRunData { get; set; }
     static ServerRunData LastServerRunData { get; set; }
 
-    static NEATManager<AIBot> buyManager;
-    static NEATManager<AIBot> sellManager;
-
     static AIBotRunner aIBotRunner { get; set; }
 
     static ILogger Logger { get; set; }
@@ -81,14 +78,9 @@ namespace CloudComputingClient
 
         TradingViewHelper.DebugFlag = true;
 
-        buyManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
-        sellManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
         aIBotRunner = new AIBotRunner(Logger, ViewModelsFactory);
 
         aIBotRunner.OnGenerationCompleted += (x, y) => GenerationCompleted();
-
-        buyManager.InitializeManager(1);
-        sellManager.InitializeManager(1);
 
         var add = JsonSerializer.Deserialize<ServerAdress>(File.ReadAllText("server.txt"));
 
@@ -341,20 +333,14 @@ namespace CloudComputingClient
                 aIBotRunner.Bots.ForEach(x => x.Stop());
                 serialDisposable.Disposable?.Dispose();
 
-                buffer.Clear();
-                stream.Flush();
-                ms = new MemoryStream();
-                messageBuilder.Clear();
+                ClearMessage(ref ms, buffer, stream, messageBuilder);
 
                 continue;
               }
 
               if (currentData.Contains(MessageContract.Done))
               {
-                buffer.Clear();
-                stream.Flush();
-                ms = new MemoryStream();
-                messageBuilder.Clear();
+                ClearMessage(ref ms, buffer, stream, messageBuilder);
 
                 aIBotRunner.Bots.ForEach(x => x.Stop());
 
@@ -368,11 +354,7 @@ namespace CloudComputingClient
                 // Full message received, process it
                 string completeMessage = messageBuilder.ToString();
 
-                // Clear for the next message
-                ms = new MemoryStream();
-                messageBuilder.Clear();
-                buffer.Clear();
-                stream.Flush();
+                ClearMessage(ref ms, buffer, stream, messageBuilder);
 
                 if (!completeMessage.Contains(MessageContract.Handshake))
                   // Process the full message
@@ -384,6 +366,8 @@ namespace CloudComputingClient
           }
           catch (Exception ex)
           {
+            ClearMessage(ref ms, buffer, stream, messageBuilder);
+
             serialDisposable.Disposable?.Dispose();
             try
             {
@@ -393,12 +377,7 @@ namespace CloudComputingClient
             {
             }
 
-            ms = new MemoryStream();
-            messageBuilder.Clear();
-
             Logger.Log(ex);
-            buffer.Clear();
-            stream.Flush();
           }
         }
       }
@@ -412,71 +391,53 @@ namespace CloudComputingClient
       }
     }
 
+    private static void ClearMessage(
+      ref MemoryStream ms,
+      Span<byte> buffer,
+      NetworkStream stream,
+      StringBuilder messageBuilder)
+    {
+      ms = new MemoryStream();
+      messageBuilder.Clear();
+      buffer.Clear();
+      stream.Flush();
+    }
 
     private static async void ProcessMessage(string message)
     {
-      try
+      serialDisposable.Disposable?.Dispose();
+      var split = MessageContract.GetDataMessageContent(message);
+      var serverRunData = JsonSerializer.Deserialize<ServerRunData>(split);
+
+      if (serverRunData != null)
       {
-        serialDisposable.Disposable?.Dispose();
-        var split = MessageContract.GetDataMessageContent(message);
-        var serverRunData = JsonSerializer.Deserialize<ServerRunData>(split);
+        LastServerRunData = ServerRunData;
+        ServerRunData = serverRunData;
 
-        if (serverRunData != null)
+        var buyManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
+        var sellManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
+
+        var buyGenomes = buyManager.GetGeneration(serverRunData.BuyGenomes);
+        var sellGenomes = sellManager.GetGeneration(serverRunData.SellGenomes);
+
+        UpdateUI();
+
+        _ = aIBotRunner.RunGeneration(
+                          ServerRunData.AgentCount,
+                          ServerRunData.Minutes,
+                          ServerRunData.Symbol,
+                          ServerRunData.MaxTake,
+                          ServerRunData.StartIndex,
+                          buyGenomes,
+                          sellGenomes);
+
+        UpdateUI();
+
+        for (int i = 0; i < 2; i++)
         {
-          LastServerRunData = ServerRunData;
-          ServerRunData = serverRunData;
+          TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(MessageContract.Handshake + serverRunData.Symbol));
 
-          List<NeatGenome> buyGenomes = new List<NeatGenome>();
-          List<NeatGenome> sellGenomes = new List<NeatGenome>();
-
-          using (StringReader tx = new StringReader(serverRunData.BuyGenomes.ToString()))
-          using (XmlReader xr = XmlReader.Create(tx))
-          {
-            // Replace NeatGenomeXmlIO.ReadCompleteGenomeList with your actual method to read genomes.
-            buyGenomes = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, buyManager.GetGenomeFactory());
-          }
-
-          using (StringReader tx = new StringReader(serverRunData.SellGenomes.ToString()))
-          using (XmlReader xr = XmlReader.Create(tx))
-          {
-            // Replace NeatGenomeXmlIO.ReadCompleteGenomeList with your actual method to read genomes.
-            sellGenomes = NeatGenomeXmlIO.ReadCompleteGenomeList(xr, false, sellManager.GetGenomeFactory());
-          }
-
-          buyManager.NeatAlgorithm.UpdateNetworks(buyGenomes);
-          sellManager.NeatAlgorithm.UpdateNetworks(sellGenomes);
-
-          UpdateUI();
-
-          _ = aIBotRunner.RunGeneration(
-                            ServerRunData.AgentCount,
-                            ServerRunData.Minutes,
-                            ServerRunData.Symbol,
-                            ServerRunData.MaxTake,
-                            ServerRunData.StartIndex,
-                            buyGenomes,
-                            sellGenomes);
-        
-          UpdateUI();
-
-          for (int i = 0; i < 2; i++)
-          {
-            TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(MessageContract.Handshake + serverRunData.Symbol));
-
-            await Task.Delay(500);
-          }
-        }
-      }
-      catch (Exception ex)
-      {
-        Logger.Log(ex);
-
-        try
-        {
-          TCPHelper.SendMessage(tcpClient, MessageContract.Error);
-        }
-        catch (Exception)
-        {
+          await Task.Delay(500);
         }
       }
     }

@@ -21,7 +21,7 @@ namespace CloudComputing.Domains
   {
     public static void SendMessage(TcpClient client, string message)
     {
-      var _stream = client.GetStream();
+      var _stream = client?.GetStream();
 
       if (_stream != null)
       {

@@ -31,8 +31,6 @@ namespace CTKS_Chart.ViewModels
 
     public bool IsDirty { get; set; }
 
-
-
     #region ScaleSize
 
     public double ScaleSize
@@ -49,9 +47,6 @@ namespace CTKS_Chart.ViewModels
     }
 
     #endregion
-
-
-
 
     #region PositionSizeMapping
 

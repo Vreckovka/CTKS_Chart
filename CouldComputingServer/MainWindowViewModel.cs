@@ -211,18 +211,18 @@ namespace CouldComputingServer
 
     #endregion
 
-    #region SplitTake
+    #region TakeDays
 
-    private double splitTake = 4.5;
+    private int takeDays = 720;
 
-    public double SplitTake
+    public int TakeDays
     {
-      get { return splitTake; }
+      get { return takeDays; }
       set
       {
-        if (value != splitTake)
+        if (value != takeDays)
         {
-          splitTake = value;
+          takeDays = value;
           RaisePropertyChanged();
         }
       }
@@ -635,7 +635,7 @@ namespace CouldComputingServer
           first.PopulationSize += sec;
         }
 
-        int maxTake = 1080;
+        int maxTake = TakeDays;
         int randomStartIndex = 0;
 
         if (maxTake > 0)
@@ -737,6 +737,10 @@ namespace CouldComputingServer
 
 
         Logger.Log(MessageType.Inform, $"Generation {BuyBotManager.Generation} - {CurrentSymbol} distributed");
+      }
+      catch (Exception ex)
+      {
+        Logger.Log(ex);
       }
       finally
       {
@@ -938,6 +942,12 @@ namespace CouldComputingServer
                   client.ReceivedData = false;
                   TCPHelper.SendMessage(client.Client, MessageContract.GetDataMessage(messages[client]));
                   messageBuilder.Clear();
+                  client.ErrorCount++;
+
+                  if(client.ErrorCount > errorThreshold)
+                  {
+                    ResetGeneration();
+                  }
 
                   continue;
                 }
@@ -1238,6 +1248,8 @@ namespace CouldComputingServer
               $"{strategy.TotalValue.ToString("N2")} $)");
 
             neat.ResetFitness();
+
+            aIBotRunner.Dispose();
           }
 
           var meanFitness = MathHelper.GeometricMean(fitness);

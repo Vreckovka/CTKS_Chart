@@ -266,7 +266,7 @@
 
             <TextBox Margin="0,5" Text="{Binding Minutes, UpdateSourceTrigger=PropertyChanged}" />
             <TextBox Margin="0,5" Text="{Binding AgentCount, UpdateSourceTrigger=PropertyChanged}" />
-
+            <TextBox Margin="0,5" Text="{Binding TakeDays, UpdateSourceTrigger=PropertyChanged}" />
 
             <CheckBox Margin="0,5" IsChecked="{Binding UseRandomizer, Mode=TwoWay}">Multiple symbols</CheckBox>
 
@@ -310,6 +310,8 @@
                         Margin="5,0"
                         Foreground="#858585"
                         Text="{Binding ErrorCount}" />
+
+
                     </UniformGrid>
                   </StackPanel>
                 </DataTemplate>
@@ -365,7 +367,7 @@
             <Run.Text>
               <MultiBinding Converter="{converters:PercentageConverter}" StringFormat="{}({0:N0}%)">
                 <Binding Path="FinishedCount" />
-                <Binding Mode="OneWay" Path="AgentCount" />
+                <Binding Mode="OneWay" Path="                          " />
               </MultiBinding>
             </Run.Text>
           </Run>

@@ -201,26 +201,26 @@ namespace CTKS_Chart.ViewModels
 
       for (int i = 0; i < agentCount; i++)
       {
-        var BuyBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
-        BuyBotManager.SetBestGenome(buyGenomes[i]);
-        BuyBotManager.InitializeManager(1);
-        BuyBotManager.CreateAgents();
+        var buyBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Buy);
+        buyBotManager.SetBestGenome(buyGenomes[i]);
+        buyBotManager.InitializeManager(1);
+        buyBotManager.CreateAgents();
 
-        var SellBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
-        SellBotManager.SetBestGenome(sellGenomes[i]);
-        SellBotManager.InitializeManager(1);
-        SellBotManager.CreateAgents();
+        var sellBotManager = SimulationAIPromptViewModel.GetNeatManager(ViewModelsFactory, PositionSide.Sell);
+        sellBotManager.SetBestGenome(sellGenomes[i]);
+        sellBotManager.InitializeManager(1);
+        sellBotManager.CreateAgents();
 
-        BuyBotManager.Agents[0].NeuralNetwork.InputCount = buyGenomes[i].NodeList.Count(x => x.NodeType == SharpNeat.Network.NodeType.Input);
-        SellBotManager.Agents[0].NeuralNetwork.InputCount = sellGenomes[i].NodeList.Count(x => x.NodeType == SharpNeat.Network.NodeType.Input);
+        buyBotManager.Agents[0].NeuralNetwork.InputCount = buyGenomes[i].NodeList.Count(x => x.NodeType == SharpNeat.Network.NodeType.Input);
+        sellBotManager.Agents[0].NeuralNetwork.InputCount = sellGenomes[i].NodeList.Count(x => x.NodeType == SharpNeat.Network.NodeType.Input);
 
-        ((NeatGenome)BuyBotManager.Agents[0].NeuralNetwork).Id = buyGenomes[i].Id;
-        ((NeatGenome)SellBotManager.Agents[0].NeuralNetwork).Id = sellGenomes[i].Id;
+        ((NeatGenome)buyBotManager.Agents[0].NeuralNetwork).Id = buyGenomes[i].Id;
+        ((NeatGenome)sellBotManager.Agents[0].NeuralNetwork).Id = sellGenomes[i].Id;
 
         var bot = SimulationAIPromptViewModel.GetBot(
           symbol,
-          BuyBotManager.Agents[0],
-          SellBotManager.Agents[0],
+          buyBotManager.Agents[0],
+          sellBotManager.Agents[0],
           minutes,
           random,
           ViewModelsFactory,
@@ -447,7 +447,7 @@ namespace CTKS_Chart.ViewModels
       var closedSell = strategy.ClosedSellPositions.ToList();
 
       var drawdown = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
-      float exponent = 1.25f;
+      float exponent = 1.75f;
       var drawdownMultiplier = (float)Math.Pow(1 - drawdown, exponent);
 
       drawdownMultiplier = Math.Max(drawdownMultiplier, 0);
@@ -499,5 +499,13 @@ namespace CTKS_Chart.ViewModels
 
     #endregion
 
+
+    public override void Dispose()
+    {
+      serialDisposable?.Dispose();
+      intervalDisposable?.Dispose();
+
+      base.Dispose();
+    }
   }
 }

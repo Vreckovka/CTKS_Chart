@@ -586,7 +586,7 @@ namespace CTKS_Chart.ViewModels
           Task.Run(async () =>
           {
             var symbolsToTest = new string[] {
-            "COTIUSDT",
+            "ADAUSDT",
             //"ADAUSDT",
             //"BTCUSDT",
             //"MATICUSDT",
@@ -629,7 +629,7 @@ namespace CTKS_Chart.ViewModels
       await Task.Run(async () =>
       {
         var symbolsToTest = new string[] {
-            "COTIUSDT",
+            "ADAUSDT",
           //"ADAUSDT",
           //"BTCUSDT",
           //"MATICUSDT",
