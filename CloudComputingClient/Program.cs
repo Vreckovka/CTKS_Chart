@@ -91,7 +91,8 @@ namespace CloudComputingClient
         port = add.Port;
 
         UpdateUI();
-        ListenToServer(ConnectToServer());
+        ConnectToServer();
+        ListenToServer();
 
         Thread.CurrentThread.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
         CultureInfo.CurrentCulture = new CultureInfo("en-US");
@@ -100,7 +101,8 @@ namespace CloudComputingClient
         {
           if (!IsClientConnected(tcpClient))
           {
-            ListenToServer(ConnectToServer());
+            ConnectToServer();
+            ListenToServer();
           }
 
           UpdateUI();
@@ -139,7 +141,7 @@ namespace CloudComputingClient
 
     #region GenerationCompleted
 
-    static SerialDisposable serialDisposable = new SerialDisposable();
+    static SerialDisposable sendResultSerialDisposable = new SerialDisposable();
 
     private static void GenerationCompleted()
     {
@@ -149,7 +151,7 @@ namespace CloudComputingClient
 
         SendResult();
 
-        serialDisposable.Disposable = Observable.Interval(TimeSpan.FromSeconds(1)).Subscribe((x) =>
+        sendResultSerialDisposable.Disposable = Observable.Interval(TimeSpan.FromSeconds(1)).Subscribe((x) =>
         {
           SendResult();
 
@@ -209,6 +211,11 @@ namespace CloudComputingClient
           SendMessage(tcpClient, clientData);
 
           LastData = clientData.GenomeData.OrderByDescending(x => x.Fitness).FirstOrDefault();
+        }
+        catch (SocketException ex)
+        {
+          Logger.Log(ex);
+          CloseClient();
         }
         catch (Exception ex)
         {
@@ -277,12 +284,15 @@ namespace CloudComputingClient
     #region ListenToServer
 
     static TcpClient tcpClient;
+    static Thread clientThread;
 
-    private static void ListenToServer(TcpClient client)
+    private static void ListenToServer()
     {
       try
       {
-        var clientThread = new Thread(() => HandleIncomingMessage(client));
+        clientThread?.Abort();
+
+        clientThread = new Thread(() => HandleIncomingMessage());
         clientThread.IsBackground = true;
         clientThread.Start();
       }
@@ -295,9 +305,10 @@ namespace CloudComputingClient
     #endregion
 
     #region HandleIncomingMessage
+
     static object batton = new object();
 
-    private static void HandleIncomingMessage(TcpClient tcpClient)
+    private static void HandleIncomingMessage()
     {
       try
       {
@@ -331,7 +342,7 @@ namespace CloudComputingClient
               if (currentData.Contains(MessageContract.Finished))
               {
                 aIBotRunner.Bots.ForEach(x => x.Stop());
-                serialDisposable.Disposable?.Dispose();
+                sendResultSerialDisposable.Disposable?.Dispose();
 
                 ClearMessage(ref ms, buffer, stream, messageBuilder);
 
@@ -364,11 +375,16 @@ namespace CloudComputingClient
               }
             }
           }
+          catch (SocketException ex)
+          {
+            Logger.Log(ex);
+            CloseClient();
+          }
           catch (Exception ex)
           {
             ClearMessage(ref ms, buffer, stream, messageBuilder);
 
-            serialDisposable.Disposable?.Dispose();
+            sendResultSerialDisposable.Disposable?.Dispose();
             try
             {
               TCPHelper.SendMessage(tcpClient, MessageContract.Error);
@@ -383,13 +399,17 @@ namespace CloudComputingClient
       }
       catch (Exception ex)
       {
-        serialDisposable.Disposable?.Dispose();
+        sendResultSerialDisposable.Disposable?.Dispose();
         Connected = false;
         CloseClient();
         Logger.Log(ex);
         Console.WriteLine("DISCONNECTED!");
       }
     }
+
+    #endregion
+
+    #region ClearMessage
 
     private static void ClearMessage(
       ref MemoryStream ms,
@@ -403,9 +423,13 @@ namespace CloudComputingClient
       stream.Flush();
     }
 
+    #endregion
+
+    #region ProcessMessage
+
     private static async void ProcessMessage(string message)
     {
-      serialDisposable.Disposable?.Dispose();
+      sendResultSerialDisposable.Disposable?.Dispose();
       var split = MessageContract.GetDataMessageContent(message);
       var serverRunData = JsonSerializer.Deserialize<ServerRunData>(split);
 
@@ -435,9 +459,17 @@ namespace CloudComputingClient
 
         for (int i = 0; i < 2; i++)
         {
-          TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(MessageContract.Handshake + serverRunData.Symbol));
+          try
+          {
+            TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(MessageContract.Handshake + serverRunData.Symbol));
 
-          await Task.Delay(500);
+            await Task.Delay(500);
+          }
+          catch (SocketException ex)
+          {
+            Logger.Log(ex, false, false);
+            CloseClient();
+          }
         }
       }
     }
@@ -459,6 +491,11 @@ namespace CloudComputingClient
             TCPHelper.SendMessage(tcpClient, MessageContract.GetDataMessage(JsonSerializer.Serialize(runData)));
         }
       }
+      catch (SocketException ex)
+      {
+        CloseClient();
+        Logger.Log(ex);
+      }
       catch (Exception ex)
       {
         Logger.Log(ex);
@@ -474,6 +511,8 @@ namespace CloudComputingClient
     {
       tcpClient?.Close();
       tcpClient = null;
+      sendResultSerialDisposable.Disposable?.Dispose();
+      clientThread?.Abort();
     }
 
     #endregion

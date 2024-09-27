@@ -71,6 +71,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
         if (lastDailyCandle == null || dailyCandle.CloseTime > lastDailyCandle.CloseTime)
         {
           lastDailyCandles.Add(dailyCandle);
+          CheckSellPositions(actualCandle);
         }
 
         indicatorsCandles = indicatorCandles;
@@ -106,9 +107,8 @@ namespace CTKS_Chart.Strategy.AIStrategy
         .Take(SimulationAIPromptViewModel.TakeIntersections)
         .Select((v, i) => new { prob = v, index = i });
 
-        var toOpen = indexes.Where(x => x.prob > 0.75);
-        var toClose = indexes.Where(x => x.prob < 0.25);
-
+        var toOpen = indexes.Where(x => x.prob > 0.70);
+        var toClose = indexes.Where(x => x.prob < 0.30);
 
         foreach (var prob in toOpen)
         {
@@ -129,7 +129,7 @@ namespace CTKS_Chart.Strategy.AIStrategy
             if (positionsOnIntersesction.Count == 0 && GetBudget() > size && size > MinPositionValue)
             {
               await CreateBuyPositionFromIntersection(intersection, size);
-            }       
+            }
           }
         }
 
@@ -154,6 +154,40 @@ namespace CTKS_Chart.Strategy.AIStrategy
     }
 
     #endregion
+
+    private async void CheckSellPositions(Candle actualCandle)
+    {
+      var inter = Intersections
+          .Where(x => x.Value > actualCandle.Close * 1.005m)
+          .OrderBy(x => x.Value)
+          .Take(SimulationAIPromptViewModel.TakeIntersections)
+          .ToList();
+
+      foreach (var position in ActualPositions)
+      {
+        var output = SellAIBot.Update(
+          lastCandle,
+          this,
+          inter,
+          GetLastPrices(takeLastDailyCandles),
+          (float)(position.PositionSize / PositionSize));
+
+
+        var indexes = output
+          .Select((prob, index) => (prob, index))
+          .OrderByDescending(x => x.prob);
+
+        var sell = ((AIPosition)position.OpositPositions[0]);
+
+        var better = indexes.OrderByDescending(x => x.prob).FirstOrDefault(x => x.prob > sell.Prob);
+
+        if (better.prob > 0)
+        {
+          await CancelPosition(sell);
+          await CreateSellPositionForBuy(position);
+        }
+      }
+    }
 
     #region CancelPositionOnIntersection
 

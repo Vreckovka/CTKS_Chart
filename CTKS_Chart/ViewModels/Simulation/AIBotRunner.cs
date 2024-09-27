@@ -447,7 +447,7 @@ namespace CTKS_Chart.ViewModels
       var closedSell = strategy.ClosedSellPositions.ToList();
 
       var drawdown = (float)Math.Abs(strategy.MaxDrawdawnFromMaxTotalValue) / 100;
-      float exponent = 1.75f;
+      float exponent = 2.0f;
       var drawdownMultiplier = (float)Math.Pow(1 - drawdown, exponent);
 
       drawdownMultiplier = Math.Max(drawdownMultiplier, 0);

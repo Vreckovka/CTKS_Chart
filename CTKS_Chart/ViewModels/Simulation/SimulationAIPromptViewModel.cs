@@ -16,6 +16,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Xml;
 using TradingBroker.MachineLearning;
 using VCore.Standard.Factories.ViewModels;
 using VCore.Standard.Helpers;
@@ -601,6 +602,27 @@ namespace CTKS_Chart.ViewModels
       string bestGenomeFileName)
     {
       manager.SavePopulation(GetTrainingPath(fileName, session, folderName), GetTrainingPath(bestGenomeFileName, session, folderName));
+    }
+
+    #endregion
+
+    #region SaveGenome
+
+    public static void SaveGenome(
+      NeatGenome neatGenome,
+      string session,
+      string fileName)
+    {
+      var gfolder = Path.Combine("Trainings", session);
+      var path = Path.Combine(gfolder, fileName);
+
+      XmlWriterSettings xwSettings = new XmlWriterSettings();
+      xwSettings.Indent = true;
+
+      using (XmlWriter xw = XmlWriter.Create(path, xwSettings))
+      {
+        NeatGenomeXmlIO.WriteComplete(xw, neatGenome, false);
+      }
     }
 
     #endregion

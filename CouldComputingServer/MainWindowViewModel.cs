@@ -1189,6 +1189,8 @@ namespace CouldComputingServer
 
     SemaphoreSlim testSemaphore = new SemaphoreSlim(1, 1);
 
+    private float bestTestFitness = 0;
+
     private void StartTest(string generation)
     {
       VSynchronizationContext.InvokeOnDispatcher(async () =>
@@ -1236,7 +1238,7 @@ namespace CouldComputingServer
               );
 
             var neat = aIBotRunner.Bots[0].TradingBot.Strategy.BuyAIBot.NeuralNetwork;
-
+          
             fitness.Add(neat.Fitness);
 
             var strategy = aIBotRunner.Bots[0].TradingBot.Strategy;
@@ -1253,6 +1255,18 @@ namespace CouldComputingServer
           }
 
           var meanFitness = MathHelper.GeometricMean(fitness);
+
+          if (meanFitness > bestTestFitness)
+          {
+            bestTestFitness = meanFitness;
+
+            buyG.Fitness = meanFitness;
+            sellG.Fitness = meanFitness;
+
+            SimulationAIPromptViewModel.SaveGenome(buyG, TrainingSession.Name, "BEST_TEST_BUY.txt");
+            SimulationAIPromptViewModel.SaveGenome(sellG, TrainingSession.Name, "BEST_TEST_SELL.txt");
+          }
+
 
           TrainingSession.AddValue(CurrentSymbol, Statistic.BackTestMean, (decimal)meanFitness);
           Logger.Log(MessageType.Inform, $"MEAN - {meanFitness}");
